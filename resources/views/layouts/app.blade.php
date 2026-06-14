@@ -4,20 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $title ?? 'VISERVICE' }} — VISERVICE</title>
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-    @livewireStyles
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;600;700&display=swap">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', system-ui, sans-serif; }
+        [x-cloak] { display: none !important; }
+        body { font-family: 'Inter', sans-serif; }
     </style>
-    @stack('head')
+    @vite(['resources/css/app.css', 'resources/css/utils.css', 'resources/css/index.css', 'resources/js/app.js'])
+    @livewireStyles
+    @stack('styles')
 </head>
 <body class="bg-slate-100 text-slate-900 antialiased min-h-screen">
     @php
         $u = $user ?? auth()->user();
-        $displayName = $u?->name ?? $u?->username ?? $u?->email ?? 'Usuario';
+        $displayName = ($u?->full_name ?: null) ?? $u?->username ?? $u?->email ?? 'Usuario';
         $displayEmail = $u?->email ?? '';
         $initials = strtoupper(mb_substr(preg_replace('/\s+/', '', $displayName), 0, 2));
         if (mb_strlen($displayName) >= 2 && preg_match('/\s/u', $displayName)) {
@@ -32,10 +36,19 @@
             sidebarCollapsed: localStorage.getItem('sidebarCollapsed') === 'true',
             usersNavOpen: localStorage.getItem('sidebarNavUsersOpen') !== 'false',
             usersCollapsedOpen: false,
+            subsNavOpen: localStorage.getItem('sidebarNavSubsOpen') !== 'false',
+            subsCollapsedOpen: false,
+            workshopNavOpen: localStorage.getItem('sidebarNavWorkshopOpen') !== 'false',
+            workshopCollapsedOpen: false,
+            catalogNavOpen: localStorage.getItem('sidebarNavCatalogOpen') !== 'false',
+            catalogCollapsedOpen: false,
             toggleSidebar() {
                 this.sidebarCollapsed = !this.sidebarCollapsed;
                 localStorage.setItem('sidebarCollapsed', this.sidebarCollapsed);
                 this.usersCollapsedOpen = false;
+                this.subsCollapsedOpen = false;
+                this.workshopCollapsedOpen = false;
+                this.catalogCollapsedOpen = false;
             },
             toggleUsersNav() {
                 this.usersNavOpen = !this.usersNavOpen;
@@ -43,15 +56,58 @@
             },
             toggleUsersCollapsedMenu() {
                 this.usersCollapsedOpen = !this.usersCollapsedOpen;
+                this.subsCollapsedOpen = false;
             },
             closeUsersCollapsedMenu() {
                 this.usersCollapsedOpen = false;
+            },
+            toggleSubsNav() {
+                this.subsNavOpen = !this.subsNavOpen;
+                localStorage.setItem('sidebarNavSubsOpen', this.subsNavOpen);
+            },
+            toggleSubsCollapsedMenu() {
+                this.subsCollapsedOpen = !this.subsCollapsedOpen;
+                this.usersCollapsedOpen = false;
+                this.workshopCollapsedOpen = false;
+                this.catalogCollapsedOpen = false;
+            },
+            closeSubsCollapsedMenu() {
+                this.subsCollapsedOpen = false;
+            },
+            toggleWorkshopNav() {
+                this.workshopNavOpen = !this.workshopNavOpen;
+                localStorage.setItem('sidebarNavWorkshopOpen', this.workshopNavOpen);
+            },
+            toggleWorkshopCollapsedMenu() {
+                this.workshopCollapsedOpen = !this.workshopCollapsedOpen;
+                this.usersCollapsedOpen = false;
+                this.subsCollapsedOpen = false;
+                this.catalogCollapsedOpen = false;
+            },
+            closeWorkshopCollapsedMenu() {
+                this.workshopCollapsedOpen = false;
+            },
+            toggleCatalogNav() {
+                this.catalogNavOpen = !this.catalogNavOpen;
+                localStorage.setItem('sidebarNavCatalogOpen', this.catalogNavOpen);
+            },
+            toggleCatalogCollapsedMenu() {
+                this.catalogCollapsedOpen = !this.catalogCollapsedOpen;
+                this.usersCollapsedOpen = false;
+                this.subsCollapsedOpen = false;
+                this.workshopCollapsedOpen = false;
+            },
+            closeCatalogCollapsedMenu() {
+                this.catalogCollapsedOpen = false;
             }
         }"
-        @if (request()->routeIs('admin.users.*', 'admin.roles.*'))
-            x-init="usersNavOpen = true"
-        @endif
-        @keydown.escape.window="if (usersCollapsedOpen) closeUsersCollapsedMenu()"
+        x-init="
+            @if (request()->routeIs('admin.users.*', 'admin.roles.*')) usersNavOpen = true; @endif
+            @if (request()->routeIs('admin.subscriptions.*')) subsNavOpen = true; @endif
+            @if (request()->routeIs('admin.workshop.clients.*', 'admin.workshop.vehicles.*', 'admin.workshop.quotations.*', 'admin.workshop.work-orders.*')) workshopNavOpen = true; @endif
+            @if (request()->routeIs('admin.workshop.catalog.*')) catalogNavOpen = true; @endif
+        "
+        @keydown.escape.window="if (usersCollapsedOpen) closeUsersCollapsedMenu(); if (subsCollapsedOpen) closeSubsCollapsedMenu(); if (workshopCollapsedOpen) closeWorkshopCollapsedMenu(); if (catalogCollapsedOpen) closeCatalogCollapsedMenu()"
     >
         {{-- Sidebar --}}
         <aside
@@ -59,12 +115,12 @@
             :class="sidebarCollapsed ? 'w-[4.25rem]' : 'w-60'"
         >
             <div class="h-14 flex items-center px-3 border-b border-slate-800/80 gap-2">
-                <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-600 text-white font-bold text-sm">
-                    V
-                </div>
+                <img src="{{ asset('images/logo-initial.png') }}"
+                     alt="VISERVICE"
+                     class="h-8 w-8 shrink-0 rounded-lg object-contain bg-white/5 p-0.5">
                 <div class="min-w-0 flex-1" x-show="!sidebarCollapsed" x-transition.opacity>
                     <p class="font-semibold text-white truncate text-sm">VISERVICE</p>
-                    <p class="text-[11px] text-slate-400 truncate">Panel</p>
+                    <p class="text-[11px] text-slate-400 truncate">Panel de control</p>
                 </div>
             </div>
 
@@ -186,6 +242,215 @@
                         </a>
                     </div>
                 </div>
+
+                {{-- Suscripciones (solo superAdmin) --}}
+                @role('superAdmin')
+
+                {{-- Colapsado: popup dropdown --}}
+                <div
+                    x-cloak
+                    x-show="sidebarCollapsed"
+                    class="relative"
+                    @click.outside="closeSubsCollapsedMenu()"
+                >
+                    <button
+                        type="button"
+                        @click.stop="toggleSubsCollapsedMenu()"
+                        class="flex w-full items-center justify-center rounded-lg px-2.5 py-2.5 text-sm font-medium transition
+                            {{ request()->routeIs('admin.subscriptions.*') ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white' }}"
+                        title="Suscripciones"
+                        :aria-expanded="subsCollapsedOpen"
+                    >
+                        <svg class="h-5 w-5 shrink-0 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                        </svg>
+                    </button>
+                    <div
+                        x-show="subsCollapsedOpen"
+                        x-transition:enter="transition ease-out duration-100"
+                        x-transition:enter-start="opacity-0 -translate-y-0.5"
+                        x-transition:enter-end="opacity-100 translate-y-0"
+                        x-transition:leave="transition ease-in duration-75"
+                        x-transition:leave-start="opacity-100"
+                        x-transition:leave-end="opacity-0"
+                        class="absolute left-0 right-0 top-full z-[100] mt-1 flex flex-col gap-0.5 rounded-xl border border-slate-700/90 bg-slate-900 p-1 shadow-lg ring-1 ring-white/5"
+                    >
+                        <a
+                            href="{{ route('admin.subscriptions.index') }}"
+                            wire:navigate
+                            @click="closeSubsCollapsedMenu()"
+                            class="flex items-center justify-center rounded-lg py-2.5 transition
+                                {{ request()->routeIs('admin.subscriptions.index') ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
+                            title="Ver suscripciones"
+                        >
+                            <svg class="h-5 w-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
+                            </svg>
+                        </a>
+                        <a
+                            href="{{ route('admin.subscriptions.plans.index') }}"
+                            wire:navigate
+                            @click="closeSubsCollapsedMenu()"
+                            class="flex items-center justify-center rounded-lg py-2.5 transition
+                                {{ request()->routeIs('admin.subscriptions.plans.index') ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
+                            title="Planes"
+                        >
+                            <svg class="h-5 w-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+
+                {{-- Expandido: acordeón --}}
+                <div x-show="!sidebarCollapsed" x-cloak class="space-y-0.5">
+                    <button
+                        type="button"
+                        @click="toggleSubsNav()"
+                        class="w-full flex items-center gap-3 rounded-lg px-2.5 py-2.5 text-sm font-medium transition text-left
+                            {{ request()->routeIs('admin.subscriptions.*') ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white' }}"
+                    >
+                        <svg class="h-5 w-5 shrink-0 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                        </svg>
+                        <span class="truncate flex-1">Suscripciones</span>
+                        <svg
+                            class="h-4 w-4 shrink-0 text-slate-400 transition-transform duration-200"
+                            :class="subsNavOpen ? 'rotate-180' : ''"
+                            fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                        >
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </button>
+                    <div x-show="subsNavOpen" class="mt-0.5 space-y-0.5 border-l border-slate-700/80 ml-4 pl-3">
+                        <a
+                            href="{{ route('admin.subscriptions.index') }}"
+                            wire:navigate
+                            class="flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition
+                                {{ request()->routeIs('admin.subscriptions.index') ? 'bg-slate-800/90 text-white font-medium' : 'text-slate-400 hover:bg-slate-800/60 hover:text-white' }}"
+                            title="Ver suscripciones"
+                        >
+                            <svg class="h-4 w-4 shrink-0 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
+                            </svg>
+                            <span class="truncate">Ver suscripciones</span>
+                        </a>
+                        <a
+                            href="{{ route('admin.subscriptions.plans.index') }}"
+                            wire:navigate
+                            class="flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition
+                                {{ request()->routeIs('admin.subscriptions.plans.index') ? 'bg-slate-800/90 text-white font-medium' : 'text-slate-400 hover:bg-slate-800/60 hover:text-white' }}"
+                            title="Planes"
+                        >
+                            <svg class="h-4 w-4 shrink-0 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                            </svg>
+                            <span class="truncate">Planes</span>
+                        </a>
+                    </div>
+                </div>
+
+                @endrole
+
+                {{-- === TALLER === --}}
+                {{-- Colapsado --}}
+                <div x-cloak x-show="sidebarCollapsed" class="relative" @click.outside="closeWorkshopCollapsedMenu()">
+                    <button type="button" @click.stop="toggleWorkshopCollapsedMenu()"
+                        class="flex w-full items-center justify-center rounded-lg px-2.5 py-2.5 text-sm font-medium transition
+                            {{ request()->routeIs('admin.workshop.clients.*','admin.workshop.vehicles.*','admin.workshop.quotations.*','admin.workshop.work-orders.*') ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white' }}"
+                        title="Taller" :aria-expanded="workshopCollapsedOpen">
+                        <svg class="h-5 w-5 shrink-0 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                    </button>
+                    <div x-show="workshopCollapsedOpen" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0 -translate-y-0.5" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-75" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+                        class="absolute left-0 right-0 top-full z-[100] mt-1 flex flex-col gap-0.5 rounded-xl border border-slate-700/90 bg-slate-900 p-1 shadow-lg ring-1 ring-white/5">
+                        @foreach([['route'=>'admin.workshop.clients.index','title'=>'Clientes','path'=>'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z'],['route'=>'admin.workshop.vehicles.index','title'=>'Vehículos','path'=>'M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z'],['route'=>'admin.workshop.quotations.index','title'=>'Cotizaciones','path'=>'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'],['route'=>'admin.workshop.work-orders.index','title'=>'OTs','path'=>'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01']] as $item)
+                        <a href="{{ route($item['route']) }}" wire:navigate @click="closeWorkshopCollapsedMenu()"
+                            class="flex items-center justify-center rounded-lg py-2.5 transition {{ request()->routeIs($item['route']) ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
+                            title="{{ $item['title'] }}">
+                            <svg class="h-5 w-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $item['path'] }}"/></svg>
+                        </a>
+                        @endforeach
+                    </div>
+                </div>
+
+                {{-- Expandido --}}
+                <div x-show="!sidebarCollapsed" x-cloak class="space-y-0.5">
+                    <button type="button" @click="toggleWorkshopNav()"
+                        class="w-full flex items-center gap-3 rounded-lg px-2.5 py-2.5 text-sm font-medium transition text-left
+                            {{ request()->routeIs('admin.workshop.clients.*','admin.workshop.vehicles.*','admin.workshop.quotations.*','admin.workshop.work-orders.*') ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white' }}">
+                        <svg class="h-5 w-5 shrink-0 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                        <span class="truncate flex-1">Taller</span>
+                        <svg class="h-4 w-4 shrink-0 text-slate-400 transition-transform duration-200" :class="workshopNavOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div x-show="workshopNavOpen" class="mt-0.5 space-y-0.5 border-l border-slate-700/80 ml-4 pl-3">
+                        @foreach([['route'=>'admin.workshop.clients.index','label'=>'Clientes','path'=>'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z'],['route'=>'admin.workshop.vehicles.index','label'=>'Vehículos','path'=>'M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z'],['route'=>'admin.workshop.quotations.index','label'=>'Cotizaciones','path'=>'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'],['route'=>'admin.workshop.work-orders.index','label'=>'Órdenes de Trabajo','path'=>'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01']] as $item)
+                        <a href="{{ route($item['route']) }}" wire:navigate
+                            class="flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition {{ request()->routeIs($item['route']) ? 'bg-slate-800/90 text-white font-medium' : 'text-slate-400 hover:bg-slate-800/60 hover:text-white' }}">
+                            <svg class="h-4 w-4 shrink-0 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $item['path'] }}"/></svg>
+                            <span class="truncate">{{ $item['label'] }}</span>
+                        </a>
+                        @endforeach
+                    </div>
+                </div>
+
+                {{-- === CATÁLOGO === --}}
+                {{-- Colapsado --}}
+                <div x-cloak x-show="sidebarCollapsed" class="relative" @click.outside="closeCatalogCollapsedMenu()">
+                    <button type="button" @click.stop="toggleCatalogCollapsedMenu()"
+                        class="flex w-full items-center justify-center rounded-lg px-2.5 py-2.5 text-sm font-medium transition
+                            {{ request()->routeIs('admin.workshop.catalog.*') ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white' }}"
+                        title="Catálogo" :aria-expanded="catalogCollapsedOpen">
+                        <svg class="h-5 w-5 shrink-0 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                        </svg>
+                    </button>
+                    <div x-show="catalogCollapsedOpen" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0 -translate-y-0.5" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-75" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+                        class="absolute left-0 right-0 top-full z-[100] mt-1 flex flex-col gap-0.5 rounded-xl border border-slate-700/90 bg-slate-900 p-1 shadow-lg ring-1 ring-white/5">
+                        <a href="{{ route('admin.workshop.catalog.services.index') }}" wire:navigate @click="closeCatalogCollapsedMenu()"
+                            class="flex items-center justify-center rounded-lg py-2.5 transition {{ request()->routeIs('admin.workshop.catalog.services.index') ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
+                            title="Servicios">
+                            <svg class="h-5 w-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                        </a>
+                        <a href="{{ route('admin.workshop.catalog.spare-parts.index') }}" wire:navigate @click="closeCatalogCollapsedMenu()"
+                            class="flex items-center justify-center rounded-lg py-2.5 transition {{ request()->routeIs('admin.workshop.catalog.spare-parts.index') ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
+                            title="Repuestos">
+                            <svg class="h-5 w-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                        </a>
+                    </div>
+                </div>
+
+                {{-- Expandido --}}
+                <div x-show="!sidebarCollapsed" x-cloak class="space-y-0.5">
+                    <button type="button" @click="toggleCatalogNav()"
+                        class="w-full flex items-center gap-3 rounded-lg px-2.5 py-2.5 text-sm font-medium transition text-left
+                            {{ request()->routeIs('admin.workshop.catalog.*') ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white' }}">
+                        <svg class="h-5 w-5 shrink-0 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                        </svg>
+                        <span class="truncate flex-1">Catálogo</span>
+                        <svg class="h-4 w-4 shrink-0 text-slate-400 transition-transform duration-200" :class="catalogNavOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div x-show="catalogNavOpen" class="mt-0.5 space-y-0.5 border-l border-slate-700/80 ml-4 pl-3">
+                        <a href="{{ route('admin.workshop.catalog.services.index') }}" wire:navigate
+                            class="flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition {{ request()->routeIs('admin.workshop.catalog.services.index') ? 'bg-slate-800/90 text-white font-medium' : 'text-slate-400 hover:bg-slate-800/60 hover:text-white' }}">
+                            <svg class="h-4 w-4 shrink-0 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                            <span class="truncate">Servicios</span>
+                        </a>
+                        <a href="{{ route('admin.workshop.catalog.spare-parts.index') }}" wire:navigate
+                            class="flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition {{ request()->routeIs('admin.workshop.catalog.spare-parts.index') ? 'bg-slate-800/90 text-white font-medium' : 'text-slate-400 hover:bg-slate-800/60 hover:text-white' }}">
+                            <svg class="h-4 w-4 shrink-0 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                            <span class="truncate">Repuestos</span>
+                        </a>
+                    </div>
+                </div>
             </nav>
 
             <div class="p-2 border-t border-slate-800/80">
@@ -205,59 +470,112 @@
 
         {{-- Main --}}
         <div class="flex-1 flex flex-col min-w-0 min-h-screen">
-            <header class="h-14 bg-white border-b border-slate-200 flex items-center justify-between px-4 lg:px-6 shrink-0">
-                <div class="min-w-0">
-                    <h1 class="text-lg font-semibold text-slate-900 truncate">{{ $heading ?? $title ?? 'Inicio' }}</h1>
+            <header class="relative z-20 h-14 bg-white/95 backdrop-blur-sm border-b border-slate-200/80 flex items-center justify-between px-4 lg:px-6 shrink-0 shadow-sm">
+
+                {{-- Izquierda: título de la página actual --}}
+                <div class="min-w-0 flex items-center gap-3">
+                    {{-- Breadcrumb / título --}}
+                    <div class="flex items-center gap-2 min-w-0">
+                        <div class="hidden sm:flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-indigo-50">
+                            <svg class="h-4 w-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+                            </svg>
+                        </div>
+                        <h1 class="text-sm font-semibold text-slate-800 truncate">{{ $heading ?? $title ?? 'Inicio' }}</h1>
+                    </div>
                 </div>
 
-                <div class="relative" x-data="{ open: false }" @keydown.escape.window="open = false">
-                    <button
-                        type="button"
-                        @click="open = !open"
-                        class="flex items-center gap-2 rounded-lg pl-1 pr-2 py-1 hover:bg-slate-100 transition border border-transparent hover:border-slate-200"
-                    >
-                        <span class="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-100 text-indigo-700 text-sm font-semibold">
-                            {{ $initials }}
-                        </span>
-                        <div class="hidden sm:block text-left min-w-0">
-                            <p class="text-sm font-medium text-slate-900 truncate max-w-[10rem]">{{ $displayName }}</p>
-                            @if($displayEmail)
-                                <p class="text-xs text-slate-500 truncate max-w-[10rem]">{{ $displayEmail }}</p>
-                            @endif
-                        </div>
-                        <svg class="h-4 w-4 text-slate-400 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                        </svg>
-                    </button>
+                {{-- Derecha: acciones + perfil --}}
+                <div class="flex items-center gap-2">
 
-                    <div
-                        x-show="open"
-                        x-transition.opacity
-                        @click.away="open = false"
-                        class="absolute right-0 mt-2 w-64 rounded-xl border border-slate-200 bg-white shadow-lg py-2 z-50"
-                        style="display: none;"
-                    >
-                        <div class="px-4 py-3 border-b border-slate-100">
-                            <p class="text-sm font-semibold text-slate-900 truncate">{{ $displayName }}</p>
-                            @if($displayEmail)
-                                <p class="text-xs text-slate-500 truncate mt-0.5">{{ $displayEmail }}</p>
-                            @endif
-                            @if($u?->username)
-                                <p class="text-xs text-slate-500 mt-1">Usuario: {{ $u->username }}</p>
-                            @endif
-                        </div>
-                        <form method="POST" action="{{ route('logout') }}">
-                            @csrf
-                            <button
-                                type="submit"
-                                class="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
-                            >
-                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                    {{-- Indicador live --}}
+                    <div class="hidden md:flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1">
+                        <span class="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span class="text-[11px] font-medium text-emerald-700">En línea</span>
+                    </div>
+
+                    {{-- Separador --}}
+                    <div class="hidden md:block h-6 w-px bg-slate-200 mx-1"></div>
+
+                    {{-- Menú de usuario --}}
+                    <div class="relative" x-data="{ open: false }" @keydown.escape.window="open = false">
+                        <button
+                            type="button"
+                            @click="open = !open"
+                            class="flex items-center gap-2.5 rounded-xl pl-1 pr-3 py-1 hover:bg-slate-100 active:bg-slate-200 transition-all border border-transparent hover:border-slate-200"
+                        >
+                            <span class="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-indigo-700 text-white text-xs font-bold shadow-sm">
+                                {{ $initials }}
+                            </span>
+                            <div class="hidden sm:block text-left min-w-0">
+                                <p class="text-xs font-semibold text-slate-900 truncate max-w-[9rem] leading-tight">{{ $displayName }}</p>
+                                @if($displayEmail)
+                                    <p class="text-[11px] text-slate-400 truncate max-w-[9rem] leading-tight">{{ $displayEmail }}</p>
+                                @endif
+                            </div>
+                            <svg class="h-3.5 w-3.5 text-slate-400 hidden sm:block shrink-0 transition-transform duration-150"
+                                 :class="open ? 'rotate-180' : ''"
+                                 fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+
+                        {{-- Dropdown --}}
+                        <div
+                            x-show="open"
+                            x-transition:enter="transition ease-out duration-150"
+                            x-transition:enter-start="opacity-0 scale-95 translate-y-1"
+                            x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                            x-transition:leave="transition ease-in duration-100"
+                            x-transition:leave-start="opacity-100 scale-100"
+                            x-transition:leave-end="opacity-0 scale-95"
+                            @click.away="open = false"
+                            class="absolute right-0 mt-2 w-64 rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-900/10 ring-1 ring-slate-900/5 z-50 overflow-hidden"
+                            style="display:none"
+                        >
+                            {{-- Header del dropdown --}}
+                            <div class="px-4 py-4 bg-gradient-to-br from-indigo-600 to-indigo-800">
+                                <div class="flex items-center gap-3">
+                                    <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20 text-white font-bold text-sm">
+                                        {{ $initials }}
+                                    </span>
+                                    <div class="min-w-0">
+                                        <p class="text-sm font-semibold text-white truncate">{{ $displayName }}</p>
+                                        @if($displayEmail)
+                                            <p class="text-xs text-indigo-200 truncate mt-0.5">{{ $displayEmail }}</p>
+                                        @endif
+                                        @if($u?->username)
+                                            <p class="text-[11px] text-indigo-300 mt-0.5">{{ $u->username }}</p>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- Rol badge --}}
+                            @if($u?->getRoleNames()->first())
+                            <div class="px-4 py-2.5 border-b border-slate-100 flex items-center gap-2">
+                                <svg class="h-3.5 w-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
                                 </svg>
-                                Cerrar sesión
-                            </button>
-                        </form>
+                                <span class="text-xs text-slate-500">Rol:</span>
+                                <span class="text-xs font-medium text-slate-700">{{ $u->getRoleNames()->first() }}</span>
+                            </div>
+                            @endif
+
+                            {{-- Cerrar sesión --}}
+                            <div class="p-2">
+                                <form method="POST" action="{{ route('logout') }}">
+                                    @csrf
+                                    <button type="submit"
+                                        class="w-full flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors">
+                                        <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                                        </svg>
+                                        Cerrar sesión
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </header>
@@ -267,7 +585,9 @@
             </main>
         </div>
     </div>
-    @stack('scripts')
+    <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     @livewireScripts
+    @stack('scripts')
+    <x-livewire-alert::scripts />
 </body>
 </html>

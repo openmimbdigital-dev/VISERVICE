@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             BussinnesTypeSeeder::class,
             BussinnesSeeder::class,
             UsersSeeder::class,
+            SubscriptionPlansSeeder::class,
         ]);
     }
 }

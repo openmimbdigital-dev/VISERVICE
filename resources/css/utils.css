@@ -1,0 +1,135 @@
+.background-test {
+    background-color: blue;
+}
+
+:root {
+    --max: 18rem;
+    --width-menu-lateral: 255px;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.design-scrollbar::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+}
+
+.design-scrollbar::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.design-scrollbar::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+}
+
+.design-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+.grid-cols-10 { grid-template-columns: repeat(10, minmax(0, 1fr)); }
+.grid-cols-11 { grid-template-columns: repeat(11, minmax(0, 1fr)); }
+.grid-cols-12 { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+.grid-cols-13 { grid-template-columns: repeat(13, minmax(0, 1fr)); }
+.grid-cols-14 { grid-template-columns: repeat(14, minmax(0, 1fr)); }
+.grid-cols-15 { grid-template-columns: repeat(15, minmax(0, 1fr)); }
+.grid-cols-16 { grid-template-columns: repeat(16, minmax(0, 1fr)); }
+
+.text-xxs { font-size: 0.68rem; }
+.text-xxxs { font-size: 10px !important; }
+.text-11 { font-size: 11px !important; }
+
+.multiline-ellipsis {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.oneline-ellipsis {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Botón de confirmación SweetAlert2 */
+.swal-confirm-button {
+    background-color: blue !important;
+    color: white !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.swal-cancel-button {
+    background-color: red !important;
+    color: white !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.custom-radio {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 1px solid gray;
+    background-color: white;
+    appearance: none;
+    cursor: pointer;
+    transition: background 0.3s, border 0.3s;
+}
+
+.custom-checkbox {
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border: 2px solid #d1d5db;
+    border-radius: 4px;
+    background-color: white;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s;
+}
+
+.custom-checkbox:checked {
+    background-color: #1C64F2;
+    border-color: #1C64F2;
+}
+
+.custom-checkbox:checked::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.custom-checkbox:focus {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+}
+
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+@media print {
+    .hidden-print {
+        display: none !important;
+    }
+}

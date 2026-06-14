@@ -9,93 +9,64 @@ use Spatie\Permission\PermissionRegistrar;
 
 class RolesAndPermissionsSeeder extends Seeder
 {
-    /**
-     * Roles: superadmin, admin (CRUD users, business_types, businesses).
-     * supervisor, tecnic: solo lectura sobre los mismos recursos.
-     */
     public function run(): void
     {
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
-        $guard_name = 'web';
+        $guard = 'web';
 
-        $permission_users_view = Permission::firstOrCreate(
-            ['name' => 'users.view', 'guard_name' => $guard_name]
-        );
-        $permission_users_create = Permission::firstOrCreate(
-            ['name' => 'users.create', 'guard_name' => $guard_name]
-        );
-        $permission_users_update = Permission::firstOrCreate(
-            ['name' => 'users.update', 'guard_name' => $guard_name]
-        );
-        $permission_users_delete = Permission::firstOrCreate(
-            ['name' => 'users.delete', 'guard_name' => $guard_name]
-        );
+        // ── Permisos ────────────────────────────────────────────────────────
 
-        $permission_business_types_view = Permission::firstOrCreate(
-            ['name' => 'business_types.view', 'guard_name' => $guard_name]
-        );
-        $permission_business_types_create = Permission::firstOrCreate(
-            ['name' => 'business_types.create', 'guard_name' => $guard_name]
-        );
-        $permission_business_types_update = Permission::firstOrCreate(
-            ['name' => 'business_types.update', 'guard_name' => $guard_name]
-        );
-        $permission_business_types_delete = Permission::firstOrCreate(
-            ['name' => 'business_types.delete', 'guard_name' => $guard_name]
-        );
+        $perms = collect([
+            // Usuarios
+            'users.view', 'users.create', 'users.edit', 'users.delete',
+            'users.activate', 'users.deactivate',
+            // Empresas
+            'businesses.view', 'businesses.create', 'businesses.edit', 'businesses.delete',
+            'businesses.activate', 'businesses.deactivate', 'businesses.manage_addresses',
+            // Reportes
+            'reports.view', 'reports.export',
+            // Configuración
+            'settings.view', 'settings.edit',
+            // Roles
+            'roles.view', 'roles.create', 'roles.edit', 'roles.delete',
+            'permissions.view', 'permissions.assign',
+            // Suscripciones
+            'subscriptions.view', 'subscriptions.create', 'subscriptions.edit', 'subscriptions.cancel',
+            'subscriptions.plans.view', 'subscriptions.plans.manage',
+            'subscriptions.invoices.view', 'subscriptions.invoices.manage',
+        ])->mapWithKeys(fn ($name) => [
+            $name => Permission::firstOrCreate(['name' => $name, 'guard_name' => $guard]),
+        ]);
 
-        $permission_businesses_view = Permission::firstOrCreate(
-            ['name' => 'businesses.view', 'guard_name' => $guard_name]
-        );
-        $permission_businesses_create = Permission::firstOrCreate(
-            ['name' => 'businesses.create', 'guard_name' => $guard_name]
-        );
-        $permission_businesses_update = Permission::firstOrCreate(
-            ['name' => 'businesses.update', 'guard_name' => $guard_name]
-        );
-        $permission_businesses_delete = Permission::firstOrCreate(
-            ['name' => 'businesses.delete', 'guard_name' => $guard_name]
-        );
+        // ── Roles ───────────────────────────────────────────────────────────
 
-        $full_crud_permissions = [
-            $permission_users_view,
-            $permission_users_create,
-            $permission_users_update,
-            $permission_users_delete,
-            $permission_business_types_view,
-            $permission_business_types_create,
-            $permission_business_types_update,
-            $permission_business_types_delete,
-            $permission_businesses_view,
-            $permission_businesses_create,
-            $permission_businesses_update,
-            $permission_businesses_delete,
-        ];
+        $superAdmin  = Role::firstOrCreate(['name' => 'superAdmin',    'guard_name' => $guard]);
+        $admin       = Role::firstOrCreate(['name' => 'Administrador', 'guard_name' => $guard]);
+        $supervisor  = Role::firstOrCreate(['name' => 'Supervisor',    'guard_name' => $guard]);
+        $operador    = Role::firstOrCreate(['name' => 'Operador',      'guard_name' => $guard]);
 
-        $view_only_permissions = [
-            $permission_users_view,
-            $permission_business_types_view,
-            $permission_businesses_view,
-        ];
+        // superAdmin tiene todos los permisos
+        $superAdmin->syncPermissions($perms->values());
 
-        $role_superadmin = Role::firstOrCreate(
-            ['name' => 'superadmin', 'guard_name' => $guard_name]
-        );
-        $role_admin = Role::firstOrCreate(
-            ['name' => 'admin', 'guard_name' => $guard_name]
-        );
-        $role_supervisor = Role::firstOrCreate(
-            ['name' => 'supervisor', 'guard_name' => $guard_name]
-        );
-        $role_tecnic = Role::firstOrCreate(
-            ['name' => 'tecnic', 'guard_name' => $guard_name]
-        );
+        // Administrador: todo menos suscripciones (las gestiona solo el superAdmin)
+        $admin->syncPermissions($perms->only([
+            'users.view', 'users.create', 'users.edit',
+            'businesses.view', 'businesses.create', 'businesses.edit',
+            'reports.view', 'reports.export',
+            'settings.view',
+            'roles.view',
+        ])->values());
 
-        $role_superadmin->syncPermissions($full_crud_permissions);
-        $role_admin->syncPermissions($full_crud_permissions);
-        $role_supervisor->syncPermissions($view_only_permissions);
-        $role_tecnic->syncPermissions($view_only_permissions);
+        // Supervisor: solo lectura
+        $supervisor->syncPermissions($perms->only([
+            'users.view', 'businesses.view', 'reports.view', 'settings.view', 'roles.view',
+        ])->values());
+
+        // Operador: mínimo
+        $operador->syncPermissions($perms->only([
+            'users.view', 'businesses.view', 'reports.view',
+        ])->values());
 
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
     }

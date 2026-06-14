@@ -1,4 +1,6 @@
 import './bootstrap';
+import Swal from 'sweetalert2';
+import ApexCharts from 'apexcharts';
 
-// Alpine lo proporciona Livewire (@livewireScripts). No importar alpinejs aquí:
-// si se inicia otra instancia, sobrescribe window.Alpine y wire:navigate deja de interceptar clics.
+window.Swal = Swal;
+window.ApexCharts = ApexCharts;
