@@ -23,7 +23,17 @@ class CheckActiveSubscription
 
         $business = $user->business;
 
-        if (! $business || ! $business->hasActiveSubscription()) {
+        if (! $business) {
+            abort(402, 'No tienes un comercio asociado. Contacta al administrador.');
+        }
+
+        // Suscripción pendiente de confirmación de pago
+        $pendingSubscription = $business->subscriptions()->where('status', 'pending')->latest()->first();
+        if ($pendingSubscription && ! $business->hasActiveSubscription()) {
+            return redirect()->route('pending-activation');
+        }
+
+        if (! $business->hasActiveSubscription()) {
             abort(402, 'Tu suscripción ha expirado o no está activa. Contacta al administrador.');
         }
 

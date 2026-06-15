@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $title ?? 'VISERVICE' }} — VISERVICE</title>
+    <link rel="icon" type="image/png" href="{{ asset('images/logo-initial.png') }}">
+    <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -28,6 +30,10 @@
             $parts = preg_split('/\s+/u', trim($displayName));
             $initials = mb_strtoupper(mb_substr($parts[0] ?? '', 0, 1) . mb_substr($parts[count($parts) - 1] ?? '', 0, 1));
         }
+        $business       = $u?->business ?? null;
+        $businessLogo   = ($business?->logo) ? \Illuminate\Support\Facades\Storage::disk('public')->url($business->logo) : null;
+        $businessName   = $business?->name ?? null;
+        $isComercio     = $u?->hasRole('Comercio') ?? false;
     @endphp
 
     <div
@@ -103,7 +109,7 @@
         }"
         x-init="
             @if (request()->routeIs('admin.users.*', 'admin.roles.*')) usersNavOpen = true; @endif
-            @if (request()->routeIs('admin.subscriptions.*')) subsNavOpen = true; @endif
+            @if (request()->routeIs('admin.subscriptions.*', 'admin.payments.*', 'admin.bank-accounts.*', 'admin.banks.*', 'admin.businesses.*', 'admin.finance.*')) subsNavOpen = true; @endif
             @if (request()->routeIs('admin.workshop.clients.*', 'admin.workshop.vehicles.*', 'admin.workshop.quotations.*', 'admin.workshop.work-orders.*')) workshopNavOpen = true; @endif
             @if (request()->routeIs('admin.workshop.catalog.*')) catalogNavOpen = true; @endif
         "
@@ -115,11 +121,23 @@
             :class="sidebarCollapsed ? 'w-[4.25rem]' : 'w-60'"
         >
             <div class="h-14 flex items-center px-3 border-b border-slate-800/80 gap-2">
-                <img src="{{ asset('images/logo-initial.png') }}"
-                     alt="VISERVICE"
-                     class="h-8 w-8 shrink-0 rounded-lg object-contain bg-white/5 p-0.5">
+                @if($isComercio && $businessLogo)
+                    <img src="{{ $businessLogo }}"
+                         alt="{{ $businessName }}"
+                         class="h-8 w-8 shrink-0 rounded-lg object-cover ring-1 ring-white/10">
+                @elseif($isComercio && $businessName)
+                    <span class="h-8 w-8 shrink-0 flex items-center justify-center rounded-lg bg-violet-600 text-white text-xs font-bold ring-1 ring-white/10">
+                        {{ strtoupper(substr($businessName, 0, 2)) }}
+                    </span>
+                @else
+                    <img src="{{ asset('images/logo-initial.png') }}"
+                         alt="VISERVICE"
+                         class="h-8 w-8 shrink-0 rounded-lg object-contain bg-white/5 p-0.5">
+                @endif
                 <div class="min-w-0 flex-1" x-show="!sidebarCollapsed" x-transition.opacity>
-                    <p class="font-semibold text-white truncate text-sm">VISERVICE</p>
+                    <p class="font-semibold text-white truncate text-sm">
+                        {{ ($isComercio && $businessName) ? $businessName : 'VISERVICE' }}
+                    </p>
                     <p class="text-[11px] text-slate-400 truncate">Panel de control</p>
                 </div>
             </div>
@@ -180,6 +198,7 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
                             </svg>
                         </a>
+                        @role('superAdmin')
                         <a
                             href="{{ route('admin.roles.index') }}"
                             wire:navigate
@@ -187,12 +206,13 @@
                             @click="closeUsersCollapsedMenu()"
                             class="flex items-center justify-center rounded-lg py-2.5 transition
                                 {{ request()->routeIs('admin.roles.index') ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
-                            title="Ver roles"
+                            title="Roles y permisos"
                         >
                             <svg class="h-5 w-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
                             </svg>
                         </a>
+                        @endrole
                     </div>
                 </div>
 
@@ -228,18 +248,20 @@
                             </svg>
                             <span class="truncate">Ver usuarios</span>
                         </a>
+                        @role('superAdmin')
                         <a
                             href="{{ route('admin.roles.index') }}"
                             wire:navigate
                             class="flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition
                                 {{ request()->routeIs('admin.roles.index') ? 'bg-slate-800/90 text-white font-medium' : 'text-slate-400 hover:bg-slate-800/60 hover:text-white' }}"
-                            title="Ver roles"
+                            title="Roles y permisos"
                         >
                             <svg class="h-4 w-4 shrink-0 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
                             </svg>
-                            <span class="truncate">Ver roles</span>
+                            <span class="truncate">Roles y permisos</span>
                         </a>
+                        @endrole
                     </div>
                 </div>
 
@@ -276,6 +298,18 @@
                         class="absolute left-0 right-0 top-full z-[100] mt-1 flex flex-col gap-0.5 rounded-xl border border-slate-700/90 bg-slate-900 p-1 shadow-lg ring-1 ring-white/5"
                     >
                         <a
+                            href="{{ route('admin.finance.index') }}"
+                            wire:navigate
+                            @click="closeSubsCollapsedMenu()"
+                            class="flex items-center justify-center rounded-lg py-2.5 transition
+                                {{ request()->routeIs('admin.finance.index') ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
+                            title="Panel Financiero"
+                        >
+                            <svg class="h-5 w-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                            </svg>
+                        </a>
+                        <a
                             href="{{ route('admin.subscriptions.index') }}"
                             wire:navigate
                             @click="closeSubsCollapsedMenu()"
@@ -297,6 +331,54 @@
                         >
                             <svg class="h-5 w-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                            </svg>
+                        </a>
+                        <a
+                            href="{{ route('admin.payments.index') }}"
+                            wire:navigate
+                            @click="closeSubsCollapsedMenu()"
+                            class="flex items-center justify-center rounded-lg py-2.5 transition
+                                {{ request()->routeIs('admin.payments.index') ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
+                            title="Pagos pendientes"
+                        >
+                            <svg class="h-5 w-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </a>
+                        <a
+                            href="{{ route('admin.bank-accounts.index') }}"
+                            wire:navigate
+                            @click="closeSubsCollapsedMenu()"
+                            class="flex items-center justify-center rounded-lg py-2.5 transition
+                                {{ request()->routeIs('admin.bank-accounts.index') ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
+                            title="Cuentas bancarias"
+                        >
+                            <svg class="h-5 w-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"/>
+                            </svg>
+                        </a>
+                        <a
+                            href="{{ route('admin.banks.index') }}"
+                            wire:navigate
+                            @click="closeSubsCollapsedMenu()"
+                            class="flex items-center justify-center rounded-lg py-2.5 transition
+                                {{ request()->routeIs('admin.banks.index') ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
+                            title="Bancos"
+                        >
+                            <svg class="h-5 w-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                            </svg>
+                        </a>
+                        <a
+                            href="{{ route('admin.businesses.index') }}"
+                            wire:navigate
+                            @click="closeSubsCollapsedMenu()"
+                            class="flex items-center justify-center rounded-lg py-2.5 transition
+                                {{ request()->routeIs('admin.businesses.index') ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
+                            title="Negocios registrados"
+                        >
+                            <svg class="h-5 w-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
                             </svg>
                         </a>
                     </div>
@@ -324,6 +406,18 @@
                     </button>
                     <div x-show="subsNavOpen" class="mt-0.5 space-y-0.5 border-l border-slate-700/80 ml-4 pl-3">
                         <a
+                            href="{{ route('admin.finance.index') }}"
+                            wire:navigate
+                            class="flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition
+                                {{ request()->routeIs('admin.finance.index') ? 'bg-slate-800/90 text-white font-medium' : 'text-slate-400 hover:bg-slate-800/60 hover:text-white' }}"
+                            title="Panel Financiero"
+                        >
+                            <svg class="h-4 w-4 shrink-0 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                            </svg>
+                            <span class="truncate">Finanzas</span>
+                        </a>
+                        <a
                             href="{{ route('admin.subscriptions.index') }}"
                             wire:navigate
                             class="flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition
@@ -347,9 +441,87 @@
                             </svg>
                             <span class="truncate">Planes</span>
                         </a>
+                        <a
+                            href="{{ route('admin.payments.index') }}"
+                            wire:navigate
+                            class="flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition
+                                {{ request()->routeIs('admin.payments.index') ? 'bg-slate-800/90 text-white font-medium' : 'text-slate-400 hover:bg-slate-800/60 hover:text-white' }}"
+                            title="Pagos pendientes"
+                        >
+                            <svg class="h-4 w-4 shrink-0 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <span class="truncate">Pagos pendientes</span>
+                            @php $pendingCount = \App\Models\SubscriptionInvoice::where('status','pending')->whereHas('subscription', fn($q) => $q->where('status','pending'))->count(); @endphp
+                            @if($pendingCount > 0)
+                                <span class="ml-auto shrink-0 inline-flex items-center justify-center h-5 min-w-5 px-1.5 rounded-full bg-amber-500 text-white text-[10px] font-bold">{{ $pendingCount }}</span>
+                            @endif
+                        </a>
+                        <a
+                            href="{{ route('admin.bank-accounts.index') }}"
+                            wire:navigate
+                            class="flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition
+                                {{ request()->routeIs('admin.bank-accounts.index') ? 'bg-slate-800/90 text-white font-medium' : 'text-slate-400 hover:bg-slate-800/60 hover:text-white' }}"
+                            title="Cuentas bancarias"
+                        >
+                            <svg class="h-4 w-4 shrink-0 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"/>
+                            </svg>
+                            <span class="truncate">Cuentas bancarias</span>
+                        </a>
+                        <a
+                            href="{{ route('admin.banks.index') }}"
+                            wire:navigate
+                            class="flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition
+                                {{ request()->routeIs('admin.banks.index') ? 'bg-slate-800/90 text-white font-medium' : 'text-slate-400 hover:bg-slate-800/60 hover:text-white' }}"
+                            title="Bancos"
+                        >
+                            <svg class="h-4 w-4 shrink-0 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                            </svg>
+                            <span class="truncate">Bancos</span>
+                        </a>
+                        <a
+                            href="{{ route('admin.businesses.index') }}"
+                            wire:navigate
+                            class="flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition
+                                {{ request()->routeIs('admin.businesses.index') ? 'bg-slate-800/90 text-white font-medium' : 'text-slate-400 hover:bg-slate-800/60 hover:text-white' }}"
+                            title="Negocios registrados"
+                        >
+                            <svg class="h-4 w-4 shrink-0 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                            </svg>
+                            <span class="truncate">Negocios</span>
+                        </a>
                     </div>
                 </div>
 
+                @endrole
+
+                {{-- Mi Negocio (solo rol Comercio) --}}
+                @role('Comercio')
+                {{-- Colapsado --}}
+                <div x-cloak x-show="sidebarCollapsed">
+                    <a href="{{ route('comercio.business.edit') }}" wire:navigate
+                        class="flex w-full items-center justify-center rounded-lg px-2.5 py-2.5 text-sm font-medium transition
+                            {{ request()->routeIs('comercio.business.edit') ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white' }}"
+                        title="Mi Negocio">
+                        <svg class="h-5 w-5 shrink-0 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                        </svg>
+                    </a>
+                </div>
+                {{-- Expandido --}}
+                <div x-show="!sidebarCollapsed" x-cloak>
+                    <a href="{{ route('comercio.business.edit') }}" wire:navigate
+                        class="flex items-center gap-3 rounded-lg px-2.5 py-2.5 text-sm font-medium transition
+                            {{ request()->routeIs('comercio.business.edit') ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white' }}">
+                        <svg class="h-5 w-5 shrink-0 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                        </svg>
+                        <span class="truncate">Mi Negocio</span>
+                    </a>
+                </div>
                 @endrole
 
                 {{-- === TALLER === --}}
@@ -504,9 +676,14 @@
                             @click="open = !open"
                             class="flex items-center gap-2.5 rounded-xl pl-1 pr-3 py-1 hover:bg-slate-100 active:bg-slate-200 transition-all border border-transparent hover:border-slate-200"
                         >
-                            <span class="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-indigo-700 text-white text-xs font-bold shadow-sm">
-                                {{ $initials }}
-                            </span>
+                            @if($isComercio && $businessLogo)
+                                <img src="{{ $businessLogo }}" alt="{{ $businessName }}"
+                                     class="h-8 w-8 rounded-full object-cover shadow-sm ring-1 ring-slate-200">
+                            @else
+                                <span class="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-indigo-700 text-white text-xs font-bold shadow-sm">
+                                    {{ $initials }}
+                                </span>
+                            @endif
                             <div class="hidden sm:block text-left min-w-0">
                                 <p class="text-xs font-semibold text-slate-900 truncate max-w-[9rem] leading-tight">{{ $displayName }}</p>
                                 @if($displayEmail)
@@ -536,9 +713,14 @@
                             {{-- Header del dropdown --}}
                             <div class="px-4 py-4 bg-gradient-to-br from-indigo-600 to-indigo-800">
                                 <div class="flex items-center gap-3">
-                                    <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20 text-white font-bold text-sm">
-                                        {{ $initials }}
-                                    </span>
+                                    @if($isComercio && $businessLogo)
+                                        <img src="{{ $businessLogo }}" alt="{{ $businessName }}"
+                                             class="h-10 w-10 shrink-0 rounded-full object-cover ring-2 ring-white/30">
+                                    @else
+                                        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20 text-white font-bold text-sm">
+                                            {{ $initials }}
+                                        </span>
+                                    @endif
                                     <div class="min-w-0">
                                         <p class="text-sm font-semibold text-white truncate">{{ $displayName }}</p>
                                         @if($displayEmail)

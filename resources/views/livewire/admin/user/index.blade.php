@@ -1,105 +1,373 @@
-<div class="relative mx-auto w-full max-w-[90rem]">
-    {{-- Acento superior sutil --}}
-    <div
-        class="pointer-events-none absolute -top-4 left-1/2 h-px w-[min(100%,48rem)] -translate-x-1/2 bg-gradient-to-r from-transparent via-indigo-300/40 to-transparent sm:-top-5"
-        aria-hidden="true"
-    ></div>
+<div class="p-6 space-y-6">
 
-    {{-- Migas de pan --}}
-    <nav class="mb-6 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-medium text-slate-500" aria-label="Migas de pan">
-        <a
-            href="{{ route('dashboard') }}"
-            wire:navigate
-            class="rounded-md px-1.5 py-0.5 transition hover:bg-slate-200/60 hover:text-slate-800"
-        >Inicio</a>
-        <span class="text-slate-300" aria-hidden="true">/</span>
-        <span class="rounded-md bg-slate-200/50 px-1.5 py-0.5 text-slate-700">Administración</span>
-        <span class="text-slate-300" aria-hidden="true">/</span>
-        <span class="font-semibold text-slate-900">Usuarios</span>
-    </nav>
+    {{-- Encabezado --}}
+    <div class="flex items-start justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900">Usuarios</h1>
+            <p class="text-sm text-slate-500 mt-1">
+                @role('superAdmin')
+                    Todos los usuarios del sistema.
+                @else
+                    Usuarios de tu comercio.
+                @endrole
+            </p>
+        </div>
+        @can('users.create')
+        <button wire:click="openCreate" type="button"
+            class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm px-4 py-2.5 rounded-xl transition shadow-sm shadow-indigo-500/20">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            Nuevo usuario
+        </button>
+        @endcan
+    </div>
 
-    {{-- Cabecera de página --}}
-    <header class="mb-8 lg:mb-10">
-        <div class="flex flex-col gap-8 lg:flex-row lg:items-stretch lg:justify-between">
-            <div class="min-w-0 flex-1 border-l-4 border-indigo-600 pl-5">
-                <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-indigo-600/90">
-                    Directorio
-                </p>
-                <h1 class="mt-2 text-2xl font-bold tracking-tight text-slate-900 sm:text-[1.65rem] sm:leading-tight">
-                    Gestión de Usuarios
-                </h1>
-                <p class="mt-2 max-w-xl text-sm leading-relaxed text-slate-600">
-                    Consulta, filtra y exporta el registro maestro de identidades. Los cambios aplican de inmediato en todo el sistema.
-                </p>
+    {{-- Stats --}}
+    <div class="grid grid-cols-3 gap-4">
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 flex items-center gap-4">
+            <div class="w-11 h-11 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0">
+                <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
             </div>
-
-            {{-- KPIs --}}
-            <div class="grid shrink-0 grid-cols-2 gap-3 sm:max-w-md sm:gap-4 lg:w-[22rem]">
-                <div
-                    class="group relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-4px_rgba(15,23,42,0.08)] ring-1 ring-slate-900/[0.04]"
-                >
-                    <div class="absolute right-3 top-3 h-8 w-8 rounded-lg bg-indigo-50 text-indigo-600 opacity-90 transition group-hover:bg-indigo-100">
-                        <svg class="m-1.5 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                        </svg>
-                    </div>
-                    <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Total</p>
-                    <p class="mt-2 text-3xl font-semibold tabular-nums tracking-tight text-slate-900">{{ number_format($usersTotal) }}</p>
-                    <p class="mt-1 text-[11px] text-slate-400">Cuentas en el directorio</p>
-                </div>
-                <div
-                    class="group relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-4px_rgba(15,23,42,0.08)] ring-1 ring-slate-900/[0.04]"
-                >
-                    <div class="absolute right-3 top-3 h-8 w-8 rounded-lg bg-emerald-50 text-emerald-700 opacity-90 transition group-hover:bg-emerald-100">
-                        <svg class="m-1.5 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                    </div>
-                    <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Este mes</p>
-                    <p class="mt-2 text-3xl font-semibold tabular-nums tracking-tight text-slate-900">{{ number_format($usersThisMonth) }}</p>
-                    <p class="mt-1 text-[11px] text-slate-400">Altas del mes en curso</p>
-                </div>
+            <div>
+                <p class="text-2xl font-bold text-slate-900">{{ $stats['total'] }}</p>
+                <p class="text-xs text-slate-500">Total de usuarios</p>
             </div>
         </div>
-    </header>
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 flex items-center gap-4">
+            <div class="w-11 h-11 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
+                <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+            <div>
+                <p class="text-2xl font-bold text-slate-900">{{ $stats['active'] }}</p>
+                <p class="text-xs text-slate-500">Activos</p>
+            </div>
+        </div>
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 flex items-center gap-4">
+            <div class="w-11 h-11 rounded-xl bg-sky-100 flex items-center justify-center shrink-0">
+                <svg class="w-5 h-5 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            </div>
+            <div>
+                <p class="text-2xl font-bold text-slate-900">{{ $stats['this_month'] }}</p>
+                <p class="text-xs text-slate-500">Nuevos este mes</p>
+            </div>
+        </div>
+    </div>
 
-    {{-- Contenedor de tabla --}}
-    <section
-        class="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.05),0_12px_32px_-8px_rgba(15,23,42,0.1)] ring-1 ring-slate-900/[0.035]"
-        aria-labelledby="users-directory-heading"
-    >
-        <div class="flex flex-col gap-0 border-b border-slate-100 bg-gradient-to-r from-slate-50/90 via-white to-slate-50/80 px-5 py-4 sm:px-6 sm:py-5">
-            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div class="flex min-w-0 items-start gap-3">
-                    <span class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm shadow-indigo-600/25">
-                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
-                        </svg>
-                    </span>
-                    <div class="min-w-0">
-                        <h2 id="users-directory-heading" class="text-base font-semibold text-slate-900">
-                            Directorio de usuarios
-                        </h2>
-                        <p class="mt-0.5 text-sm text-slate-500">
-                            Ordenación, búsqueda global y exportación integrada
-                        </p>
+    {{-- Filtros --}}
+    <div class="bg-white rounded-2xl border border-slate-200 p-4">
+        <div class="flex flex-wrap gap-3">
+            <div class="relative flex-1 min-w-48">
+                <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
+                    <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                </div>
+                <input wire:model.live.debounce.400ms="search" type="text" placeholder="Buscar por nombre, correo o usuario..."
+                    class="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition">
+            </div>
+            <select wire:model.live="filter_role"
+                class="rounded-xl border border-slate-200 bg-slate-50 py-2.5 px-4 text-sm text-slate-700 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition">
+                <option value="">Todos los roles</option>
+                @foreach($roles as $r)
+                    <option value="{{ $r->name }}">{{ $r->name }}</option>
+                @endforeach
+            </select>
+            <select wire:model.live="filter_status"
+                class="rounded-xl border border-slate-200 bg-slate-50 py-2.5 px-4 text-sm text-slate-700 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition">
+                <option value="">Todos los estados</option>
+                <option value="1">Activos</option>
+                <option value="0">Inactivos</option>
+            </select>
+        </div>
+    </div>
+
+    {{-- Tabla --}}
+    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+        @if($users->isEmpty())
+        <div class="py-16 text-center">
+            <svg class="mx-auto h-12 w-12 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            <p class="mt-3 text-sm font-medium text-slate-900">No se encontraron usuarios</p>
+            <p class="mt-1 text-xs text-slate-500">Prueba ajustando los filtros o crea un nuevo usuario.</p>
+        </div>
+        @else
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-100">
+                <thead>
+                    <tr class="bg-slate-50">
+                        <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Usuario</th>
+                        @role('superAdmin')
+                        <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Comercio</th>
+                        @endrole
+                        <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Rol</th>
+                        <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Estado</th>
+                        <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Registro</th>
+                        <th class="px-5 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    @foreach($users as $user)
+                    @php
+                        $isMe      = $user->id === auth()->id();
+                        $isPrimary = in_array($user->id, $primaryUserIds);
+                        $isSuperA  = $user->hasRole('superAdmin');
+                        $deletable = !$isMe && !$isPrimary && !$isSuperA;
+                        $roleName  = $user->getRoleNames()->first() ?? '—';
+                        // Un Comercio no puede desactivar al usuario principal (solo el propio superAdmin puede)
+                        $canToggle = !$isMe && !$isSuperA && (!$isPrimary || auth()->user()->hasRole('superAdmin'));
+                    @endphp
+                    <tr class="hover:bg-slate-50/70 transition">
+                        {{-- Nombre + email --}}
+                        <td class="px-5 py-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center shrink-0">
+                                    <span class="text-xs font-bold text-white">
+                                        {{ strtoupper(substr($user->first_name ?? '', 0, 1) . substr($user->last_name ?? '', 0, 1)) }}
+                                    </span>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-semibold text-slate-900">
+                                        {{ $user->full_name }}
+                                        @if($isMe)
+                                            <span class="ml-1 text-[10px] font-medium text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-full">Tú</span>
+                                        @endif
+                                    </p>
+                                    <p class="text-xs text-slate-400">{{ $user->email }}</p>
+                                    @if($user->username)
+                                        <p class="text-xs text-slate-400">{{ $user->username }}</p>
+                                    @endif
+                                </div>
+                            </div>
+                        </td>
+
+                        {{-- Comercio (solo superAdmin) --}}
+                        @role('superAdmin')
+                        <td class="px-5 py-4">
+                            <span class="text-sm text-slate-600">{{ $user->business?->name ?? '—' }}</span>
+                        </td>
+                        @endrole
+
+                        {{-- Rol --}}
+                        <td class="px-5 py-4">
+                            @php
+                                $roleBg = match($roleName) {
+                                    'superAdmin'     => 'bg-rose-100 text-rose-700',
+                                    'Comercio'       => 'bg-violet-100 text-violet-700',
+                                    'Administrador'  => 'bg-indigo-100 text-indigo-700',
+                                    'Supervisor'     => 'bg-sky-100 text-sky-700',
+                                    'Operador'       => 'bg-slate-100 text-slate-600',
+                                    default          => 'bg-slate-100 text-slate-600',
+                                };
+                            @endphp
+                            <span class="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full {{ $roleBg }}">
+                                {{ $roleName }}
+                            </span>
+                            @if($isPrimary)
+                                <p class="text-[10px] text-violet-500 mt-0.5">Principal</p>
+                            @endif
+                        </td>
+
+                        {{-- Estado --}}
+                        <td class="px-5 py-4">
+                            @if(! $canToggle)
+                                <span class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full
+                                    {{ $user->status ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500' }}">
+                                    <span class="w-1.5 h-1.5 rounded-full {{ $user->status ? 'bg-emerald-500' : 'bg-slate-400' }}"></span>
+                                    {{ $user->status ? 'Activo' : 'Inactivo' }}
+                                </span>
+                            @else
+                                <button wire:click="toggleStatus({{ $user->id }})" type="button"
+                                    title="{{ $user->status ? 'Clic para desactivar' : 'Clic para activar' }}">
+                                    @if($user->status)
+                                        <span class="inline-flex items-center gap-1 text-xs font-medium bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full hover:bg-emerald-200 transition cursor-pointer">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                            Activo
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center gap-1 text-xs font-medium bg-slate-100 text-slate-500 px-2.5 py-1 rounded-full hover:bg-slate-200 transition cursor-pointer">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                                            Inactivo
+                                        </span>
+                                    @endif
+                                </button>
+                            @endif
+                        </td>
+
+                        {{-- Fecha --}}
+                        <td class="px-5 py-4">
+                            <p class="text-sm text-slate-700">{{ $user->created_at->format('d/m/Y') }}</p>
+                            <p class="text-xs text-slate-400">{{ $user->created_at->diffForHumans() }}</p>
+                        </td>
+
+                        {{-- Acciones --}}
+                        <td class="px-5 py-4">
+                            <div class="flex items-center justify-end gap-1">
+                                @can('users.edit')
+                                <button wire:click="openEdit({{ $user->id }})" type="button"
+                                    class="inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-indigo-700 bg-slate-100 hover:bg-indigo-50 px-2.5 py-1.5 rounded-lg transition"
+                                    title="Editar usuario">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                    Editar
+                                </button>
+                                @endcan
+
+                                @can('users.delete')
+                                @if($deletable)
+                                <button
+                                    wire:click="delete({{ $user->id }})"
+                                    wire:confirm="¿Eliminar a {{ $user->full_name }}? Esta acción no se puede deshacer."
+                                    type="button"
+                                    class="inline-flex items-center gap-1 text-xs font-medium text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-2.5 py-1.5 rounded-lg transition"
+                                    title="Eliminar usuario">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                    Eliminar
+                                </button>
+                                @else
+                                <span class="inline-flex items-center gap-1 text-xs text-slate-300 px-2.5 py-1.5 rounded-lg cursor-not-allowed"
+                                    title="{{ $isMe ? 'No puedes eliminarte a ti mismo' : ($isPrimary ? 'No se puede eliminar al usuario principal del comercio' : 'No se puede eliminar') }}">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                                    Protegido
+                                </span>
+                                @endif
+                                @endcan
+                            </div>
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+
+        @if($users->hasPages())
+        <div class="border-t border-slate-100 px-5 py-4">
+            {{ $users->links() }}
+        </div>
+        @endif
+        @endif
+    </div>
+
+    {{-- Modal crear / editar --}}
+    @if($showModal)
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" wire:click="closeModal"></div>
+        <div class="relative z-10 w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden">
+
+            {{-- Header --}}
+            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+                <h3 class="text-base font-semibold text-slate-900">
+                    {{ $editing ? 'Editar usuario' : 'Nuevo usuario' }}
+                </h3>
+                <button wire:click="closeModal" type="button"
+                    class="text-slate-400 hover:text-slate-600 transition rounded-lg p-1 hover:bg-slate-100">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <form wire:submit="save" class="px-6 py-5 space-y-4">
+
+                {{-- Nombre y apellido --}}
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-700 mb-1.5">Nombre <span class="text-rose-500">*</span></label>
+                        <input wire:model="first_name" type="text" placeholder="Juan"
+                            class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition @error('first_name') border-rose-400 bg-rose-50 @enderror">
+                        @error('first_name') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-700 mb-1.5">Apellido <span class="text-rose-500">*</span></label>
+                        <input wire:model="last_name" type="text" placeholder="Pérez"
+                            class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition @error('last_name') border-rose-400 bg-rose-50 @enderror">
+                        @error('last_name') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                     </div>
                 </div>
-                <div class="flex items-center gap-2 sm:shrink-0">
-                    <span class="inline-flex items-center gap-1.5 rounded-full border border-slate-200/90 bg-white px-3 py-1 text-xs font-medium text-slate-600 shadow-sm">
-                        <span class="h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-emerald-500/25" title="Datos actualizados"></span>
-                        Datos en tiempo real
-                    </span>
-                </div>
-            </div>
-        </div>
 
-        <div class="bg-slate-50/40 px-2 py-4 sm:px-4 sm:py-6">
-            <div class="mx-auto max-w-full rounded-xl border border-slate-200/60 bg-white p-1 shadow-inner shadow-slate-900/[0.03] sm:p-2">
-                <div class="min-w-0 overflow-x-auto rounded-lg [&_.divide-y]:divide-slate-100/90">
-                    <livewire:admin.user.datatable-users />
+                {{-- Correo --}}
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 mb-1.5">Correo electrónico <span class="text-rose-500">*</span></label>
+                    <input wire:model="email" type="email" placeholder="juan@ejemplo.com"
+                        class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition @error('email') border-rose-400 bg-rose-50 @enderror">
+                    @error('email') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                 </div>
-            </div>
+
+                {{-- Usuario y teléfono --}}
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-700 mb-1.5">Nombre de usuario <span class="text-rose-500">*</span></label>
+                        <input wire:model="username" type="text" placeholder="juanperez"
+                            class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition @error('username') border-rose-400 bg-rose-50 @enderror">
+                        @error('username') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-700 mb-1.5">Teléfono</label>
+                        <input wire:model="phone_number" type="tel" placeholder="300 123 4567"
+                            class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition">
+                    </div>
+                </div>
+
+                {{-- Contraseña --}}
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-700 mb-1.5">
+                            Contraseña {{ $editing ? '(dejar vacío para no cambiar)' : '*' }}
+                        </label>
+                        <input wire:model="password" type="password" placeholder="Mínimo 8 caracteres"
+                            class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition @error('password') border-rose-400 bg-rose-50 @enderror">
+                        @error('password') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-700 mb-1.5">Confirmar contraseña</label>
+                        <input wire:model="password_confirmation" type="password" placeholder="Repite la contraseña"
+                            class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition">
+                    </div>
+                </div>
+
+                {{-- Rol (solo superAdmin) y estado --}}
+                <div class="{{ auth()->user()->hasRole('superAdmin') ? 'grid grid-cols-2 gap-4' : '' }}">
+                    @role('superAdmin')
+                    <div>
+                        <label class="block text-xs font-medium text-slate-700 mb-1.5">Rol <span class="text-rose-500">*</span></label>
+                        <select wire:model="role"
+                            class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-700 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition @error('role') border-rose-400 bg-rose-50 @enderror">
+                            <option value="">Selecciona un rol</option>
+                            @foreach($roles as $r)
+                                <option value="{{ $r->name }}">{{ $r->name }}</option>
+                            @endforeach
+                        </select>
+                        @error('role') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                    </div>
+                    @endrole
+                    <div>
+                        <label class="block text-xs font-medium text-slate-700 mb-1.5">Estado</label>
+                        <div class="flex items-center gap-3 mt-2.5">
+                            <button type="button" wire:click="$toggle('status')"
+                                class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200
+                                    {{ $status ? 'bg-indigo-600' : 'bg-slate-300' }}">
+                                <span class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200
+                                    {{ $status ? 'translate-x-6' : 'translate-x-1' }}"></span>
+                            </button>
+                            <span class="text-sm {{ $status ? 'text-emerald-700 font-medium' : 'text-slate-500' }}">
+                                {{ $status ? 'Activo' : 'Inactivo' }}
+                            </span>
+                        </div>
+                        @if(!auth()->user()->hasRole('superAdmin') && !$editing)
+                            <p class="text-[11px] text-slate-400 mt-1.5">El rol asignado será <span class="font-medium text-violet-600">Comercio</span> automáticamente.</p>
+                        @endif
+                    </div>
+                </div>
+
+                {{-- Botones --}}
+                <div class="flex justify-end gap-3 pt-2 border-t border-slate-100">
+                    <button type="button" wire:click="closeModal"
+                        class="px-4 py-2.5 text-sm font-medium text-slate-600 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-xl transition">
+                        Cancelar
+                    </button>
+                    <button type="submit"
+                        class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm px-5 py-2.5 rounded-xl transition disabled:opacity-60"
+                        wire:loading.attr="disabled">
+                        <svg wire:loading.remove class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        <svg wire:loading class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 5 5.373 5 12h4z"/></svg>
+                        <span wire:loading.remove>{{ $editing ? 'Guardar cambios' : 'Crear usuario' }}</span>
+                        <span wire:loading>Guardando...</span>
+                    </button>
+                </div>
+            </form>
         </div>
-    </section>
+    </div>
+    @endif
 </div>

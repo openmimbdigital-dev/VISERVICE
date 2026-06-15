@@ -181,7 +181,16 @@
                 </div>
             @endif
 
-            <p class="mt-8 text-center text-xs text-slate-400">
+            <div class="mt-6 text-center">
+                <p class="text-sm text-slate-500">
+                    ¿No tienes cuenta?
+                    <a href="{{ route('register') }}" class="font-semibold text-indigo-600 hover:text-indigo-700 transition">
+                        Registra tu comercio
+                    </a>
+                </p>
+            </div>
+
+            <p class="mt-4 text-center text-xs text-slate-400">
                 © {{ date('Y') }} VISERVICE · Sistema de gestión de talleres
             </p>
         </div>

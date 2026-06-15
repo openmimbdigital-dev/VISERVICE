@@ -98,6 +98,7 @@ class Subscription extends Model
     public function getStatusLabelAttribute(): string
     {
         return match ($this->status) {
+            'pending'   => 'Pago pendiente',
             'trial'     => 'Prueba',
             'active'    => 'Activa',
             'past_due'  => 'Vencida',
@@ -110,6 +111,7 @@ class Subscription extends Model
     public function getStatusColorAttribute(): string
     {
         return match ($this->status) {
+            'pending'   => 'orange',
             'trial'     => 'blue',
             'active'    => 'green',
             'past_due'  => 'yellow',

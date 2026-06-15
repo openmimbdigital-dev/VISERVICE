@@ -22,6 +22,8 @@ class SubscriptionInvoice extends Model
         'paid_at',
         'payment_method',
         'payment_reference',
+        'bank_account_id',
+        'payment_proof',
         'notes',
         'created_by',
     ];
@@ -47,6 +49,11 @@ class SubscriptionInvoice extends Model
     public function business(): BelongsTo
     {
         return $this->belongsTo(Business::class);
+    }
+
+    public function bankAccount(): BelongsTo
+    {
+        return $this->belongsTo(BankAccount::class);
     }
 
     public function createdBy(): BelongsTo
@@ -80,9 +87,9 @@ class SubscriptionInvoice extends Model
 
     public static function generateInvoiceNumber(): string
     {
-        $year = now()->format('Y');
+        $year  = now()->format('Y');
         $month = now()->format('m');
-        $last = self::whereYear('created_at', $year)->count() + 1;
+        $last  = self::whereYear('created_at', $year)->count() + 1;
 
         return "INV-{$year}{$month}-" . str_pad($last, 4, '0', STR_PAD_LEFT);
     }

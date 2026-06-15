@@ -43,6 +43,7 @@ class RolesAndPermissionsSeeder extends Seeder
 
         $superAdmin  = Role::firstOrCreate(['name' => 'superAdmin',    'guard_name' => $guard]);
         $admin       = Role::firstOrCreate(['name' => 'Administrador', 'guard_name' => $guard]);
+        $comercio    = Role::firstOrCreate(['name' => 'Comercio',      'guard_name' => $guard]);
         $supervisor  = Role::firstOrCreate(['name' => 'Supervisor',    'guard_name' => $guard]);
         $operador    = Role::firstOrCreate(['name' => 'Operador',      'guard_name' => $guard]);
 
@@ -56,6 +57,14 @@ class RolesAndPermissionsSeeder extends Seeder
             'reports.view', 'reports.export',
             'settings.view',
             'roles.view',
+        ])->values());
+
+        // Comercio: propietario del negocio registrado vía onboarding
+        $comercio->syncPermissions($perms->only([
+            'users.view', 'users.create', 'users.edit', 'users.delete',
+            'businesses.view', 'businesses.edit',
+            'reports.view', 'reports.export',
+            'settings.view',
         ])->values());
 
         // Supervisor: solo lectura

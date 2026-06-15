@@ -22,6 +22,8 @@ class DatabaseSeeder extends Seeder
             BussinnesSeeder::class,
             UsersSeeder::class,
             SubscriptionPlansSeeder::class,
+            BanksSeeder::class,
+            BankAccountsSeeder::class,
         ]);
     }
 }

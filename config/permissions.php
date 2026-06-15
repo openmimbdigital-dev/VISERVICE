@@ -88,6 +88,11 @@ return [
             'description' => 'Administración de la empresa',
             'level' => 2,
         ],
+        'Comercio' => [
+            'name' => 'Comercio',
+            'description' => 'Propietario del comercio registrado vía onboarding',
+            'level' => 2,
+        ],
         'Supervisor' => [
             'name' => 'Supervisor',
             'description' => 'Supervisión de operaciones',
