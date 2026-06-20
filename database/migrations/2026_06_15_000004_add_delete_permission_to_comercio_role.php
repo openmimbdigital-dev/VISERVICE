@@ -12,17 +12,21 @@ return new class extends Migration
 
         $permission = Permission::firstOrCreate(['name' => 'users.delete', 'guard_name' => 'web']);
 
-        $role = Role::findByName('Comercio', 'web');
-        if ($role && ! $role->hasPermissionTo('users.delete')) {
-            $role->givePermissionTo($permission);
+        $role = Role::query()->where('name', 'Comercio')->where('guard_name', 'web')->first();
+        if (! $role || $role->hasPermissionTo('users.delete')) {
+            return;
         }
+
+        $role->givePermissionTo($permission);
     }
 
     public function down(): void
     {
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
-        $role = Role::findByName('Comercio', 'web');
-        $role?->revokePermissionTo('users.delete');
+        $role = Role::query()->where('name', 'Comercio')->where('guard_name', 'web')->first();
+        if ($role?->hasPermissionTo('users.delete')) {
+            $role->revokePermissionTo('users.delete');
+        }
     }
 };
