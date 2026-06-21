@@ -32,71 +32,13 @@
     <section class="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
         <div class="flex items-center justify-between border-b border-slate-100 bg-slate-50/80 px-5 py-4">
             <h2 class="font-semibold text-slate-800">Listado de clientes</h2>
-            <button wire:click="openCreate" class="btn btn-primary btn-sm">
+            <a href="{{ route('admin.workshop.clients.form') }}" wire:navigate class="btn btn-primary btn-sm">
                 <svg class="mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                 Nuevo cliente
-            </button>
+            </a>
         </div>
         <div class="p-4">
             <livewire:admin.workshop.clients.datatable-clients />
         </div>
     </section>
-
-    {{-- Modal crear/editar --}}
-    <div x-show="$wire.showModal" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none">
-        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" wire:click="closeModal"></div>
-        <div class="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl" @click.stop>
-            <h3 class="text-lg font-semibold text-slate-900">{{ $editing_id ? 'Editar cliente' : 'Nuevo cliente' }}</h3>
-            <div class="mt-4 grid grid-cols-2 gap-4">
-                <div class="col-span-2">
-                    <label class="label-up">Nombre / Razón social *</label>
-                    <input type="text" wire:model="name" class="form-input" />
-                    @error('name')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
-                </div>
-                <div>
-                    <label class="label-up">Tipo documento</label>
-                    <select wire:model="document_type" class="form-select">
-                        @foreach(['CC','NIT','CE','PA','PPT','TI'] as $t)
-                            <option value="{{ $t }}">{{ $t }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="label-up">Número documento</label>
-                    <input type="text" wire:model="document_number" class="form-input" />
-                </div>
-                <div>
-                    <label class="label-up">Teléfono</label>
-                    <input type="text" wire:model="phone" class="form-input" />
-                </div>
-                <div>
-                    <label class="label-up">Email</label>
-                    <input type="email" wire:model="email" class="form-input" />
-                    @error('email')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
-                </div>
-                <div class="col-span-2">
-                    <label class="label-up">Dirección</label>
-                    <input type="text" wire:model="address" class="form-input" />
-                </div>
-                <div>
-                    <label class="label-up">Contacto</label>
-                    <input type="text" wire:model="contact_name" class="form-input" placeholder="Persona de contacto" />
-                </div>
-                <div class="flex items-end pb-1">
-                    <label class="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" wire:model="status" class="custom-checkbox" />
-                        <span class="text-sm text-slate-700">Cliente activo</span>
-                    </label>
-                </div>
-                <div class="col-span-2">
-                    <label class="label-up">Notas</label>
-                    <textarea wire:model="notes" class="form-input" rows="2"></textarea>
-                </div>
-            </div>
-            <div class="mt-6 flex justify-end gap-3">
-                <button wire:click="closeModal" class="btn btn-outline-secondary">Cancelar</button>
-                <button wire:click="save" wire:loading.attr="disabled" class="btn btn-primary">Guardar</button>
-            </div>
-        </div>
-    </div>
 </div>

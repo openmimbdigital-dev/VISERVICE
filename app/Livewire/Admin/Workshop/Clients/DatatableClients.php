@@ -58,10 +58,6 @@ class DatatableClients extends LivewireDatatable
         ];
     }
 
-    public function openEditEvent(int $id): void
-    {
-        $this->dispatch('open-client-edit', id: $id);
-    }
 
     public function toggleStatus(int $id): void
     {

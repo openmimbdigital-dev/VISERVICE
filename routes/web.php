@@ -13,6 +13,7 @@ use App\Livewire\Admin\Finance\Index as AdminFinanceIndex;
 use App\Livewire\Admin\Businesses\Index as AdminBusinessesIndex;
 use App\Livewire\Admin\Businesses\Show as AdminBusinessesShow;
 use App\Livewire\Comercio\Business\Edit as ComercioBusinessEdit;
+use App\Livewire\Admin\Workshop\Clients\Form as WorkshopClientsForm;
 use App\Livewire\Admin\Workshop\Clients\Index as WorkshopClientsIndex;
 use App\Livewire\Admin\Workshop\Vehicles\Index as WorkshopVehiclesIndex;
 use App\Livewire\Admin\Workshop\Quotations\Index as WorkshopQuotationsIndex;
@@ -71,6 +72,8 @@ Route::middleware('auth')->group(function () {
     // Módulo Taller
     Route::prefix('taller')->name('admin.workshop.')->group(function () {
         Route::get('/clientes', WorkshopClientsIndex::class)->name('clients.index');
+        Route::get('/clientes/form', WorkshopClientsForm::class)->name('clients.form');
+        Route::get('/clientes/{client}/form', WorkshopClientsForm::class)->name('clients.form.edit');
         Route::get('/vehiculos', WorkshopVehiclesIndex::class)->name('vehicles.index');
         Route::get('/cotizaciones', WorkshopQuotationsIndex::class)->name('quotations.index');
         Route::get('/cotizaciones/{quotation}', WorkshopQuotationsShow::class)->name('quotations.show');
