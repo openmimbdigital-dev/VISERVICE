@@ -69,6 +69,17 @@ return [
                 'subscriptions.invoices.manage' => 'Gestionar pagos',
             ],
         ],
+        'workshop_clients' => [
+            'name' => 'Taller — Clientes',
+            'permissions' => [
+                'workshop.clients.view' => 'Ver clientes',
+                'workshop.clients.create' => 'Crear clientes',
+                'workshop.clients.edit' => 'Editar clientes',
+                'workshop.clients.delete' => 'Eliminar clientes',
+                'workshop.clients.activate' => 'Activar clientes',
+                'workshop.clients.deactivate' => 'Desactivar clientes',
+            ],
+        ],
     ],
 
     /*

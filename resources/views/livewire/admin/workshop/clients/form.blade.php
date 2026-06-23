@@ -92,6 +92,7 @@
 
             <div class="flex flex-col justify-end pb-1">
                 <label class="mb-1.5 block text-xs font-medium text-slate-700">Estado</label>
+                @if($can_edit_status_in_form)
                 <div class="flex items-center gap-3">
                     <button type="button" wire:click="$toggle('form.status')"
                         @class([
@@ -113,6 +114,15 @@
                         {{ $form->status ? 'Cliente activo' : 'Cliente inactivo' }}
                     </span>
                 </div>
+                @else
+                <span @class([
+                    'inline-flex w-fit items-center rounded-full px-2.5 py-1 text-xs font-medium',
+                    'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20' => $form->status,
+                    'bg-slate-100 text-slate-600 ring-1 ring-slate-500/20'     => ! $form->status,
+                ])>
+                    {{ $form->status ? 'Activo' : 'Inactivo' }}
+                </span>
+                @endif
                 @error('form.status')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
             </div>
 

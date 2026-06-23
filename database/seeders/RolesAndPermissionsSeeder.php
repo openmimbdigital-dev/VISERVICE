@@ -35,6 +35,9 @@ class RolesAndPermissionsSeeder extends Seeder
             'subscriptions.view', 'subscriptions.create', 'subscriptions.edit', 'subscriptions.cancel',
             'subscriptions.plans.view', 'subscriptions.plans.manage',
             'subscriptions.invoices.view', 'subscriptions.invoices.manage',
+            // Taller — Clientes
+            'workshop.clients.view', 'workshop.clients.create', 'workshop.clients.edit',
+            'workshop.clients.delete', 'workshop.clients.activate', 'workshop.clients.deactivate',
         ])->mapWithKeys(fn ($name) => [
             $name => Permission::firstOrCreate(['name' => $name, 'guard_name' => $guard]),
         ]);
@@ -57,6 +60,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'reports.view', 'reports.export',
             'settings.view',
             'roles.view',
+            'workshop.clients.view', 'workshop.clients.create', 'workshop.clients.edit',
+            'workshop.clients.activate', 'workshop.clients.deactivate',
         ])->values());
 
         // Comercio: propietario del negocio registrado vía onboarding
@@ -65,6 +70,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'businesses.view', 'businesses.edit',
             'reports.view', 'reports.export',
             'settings.view',
+            'workshop.clients.view', 'workshop.clients.create', 'workshop.clients.edit',
+            'workshop.clients.delete', 'workshop.clients.activate', 'workshop.clients.deactivate',
         ])->values());
 
         // Supervisor: solo lectura

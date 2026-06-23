@@ -69,11 +69,17 @@ Route::middleware('auth')->group(function () {
         Route::get('/mi-negocio', ComercioBusinessEdit::class)->name('business.edit');
     });
 
-    // Módulo Taller
+    // Módulo Taller — Clientes
     Route::prefix('taller')->name('admin.workshop.')->group(function () {
-        Route::get('/clientes', WorkshopClientsIndex::class)->name('clients.index');
-        Route::get('/clientes/form', WorkshopClientsForm::class)->name('clients.form');
-        Route::get('/clientes/{client}/form', WorkshopClientsForm::class)->name('clients.form.edit');
+        Route::middleware('permission:workshop.clients.view')->group(function () {
+            Route::get('/clientes', WorkshopClientsIndex::class)->name('clients.index');
+        });
+        Route::middleware('permission:workshop.clients.create')->group(function () {
+            Route::get('/clientes/form', WorkshopClientsForm::class)->name('clients.form');
+        });
+        Route::middleware('permission:workshop.clients.edit')->group(function () {
+            Route::get('/clientes/{client}/form', WorkshopClientsForm::class)->name('clients.form.edit');
+        });
         Route::get('/vehiculos', WorkshopVehiclesIndex::class)->name('vehicles.index');
         Route::get('/cotizaciones', WorkshopQuotationsIndex::class)->name('quotations.index');
         Route::get('/cotizaciones/{quotation}', WorkshopQuotationsShow::class)->name('quotations.show');

@@ -16,11 +16,13 @@
                 <h1 class="mt-2 text-2xl font-bold tracking-tight text-slate-900">Clientes</h1>
                 <p class="mt-2 max-w-xl text-sm text-slate-600">Directorio de clientes del taller. Gestiona datos de contacto y documentos.</p>
             </div>
+            @can('workshop.clients.create')
             <a href="{{ route('admin.workshop.clients.form') }}" wire:navigate
                 class="inline-flex shrink-0 items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-indigo-500/20 transition hover:bg-indigo-700">
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                 Nuevo cliente
             </a>
+            @endcan
         </div>
         <div class="grid shrink-0 grid-cols-2 gap-3 sm:max-w-xs">
                 <div class="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm ring-1 ring-slate-900/[0.04]">

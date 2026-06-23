@@ -70,30 +70,48 @@ class DatatableClients extends LivewireDatatable
                 ->label('Registro')
                 ->sortable(),
 
-            Column::callback(['id'], function ($id) {
-                return view('livewire.admin.workshop.clients.actions', ['id' => $id]);
+            Column::callback(['id', 'status'], function ($id, $status) {
+                return view('livewire.admin.workshop.clients.actions', [
+                    'id'     => $id,
+                    'status' => $status,
+                ]);
             })->label('Acciones')->unsortable(),
         ]);
     }
 
-
     public function toggleStatus(int $id): void
     {
-        $client = Client::findOrFail($id);
-        $client->update(['status' => !$client->status]);
+        $client = $this->findAuthorized($id);
+
+        if ($client->status) {
+            abort_unless(auth()->user()->can('workshop.clients.deactivate'), 403);
+        } else {
+            abort_unless(auth()->user()->can('workshop.clients.activate'), 403);
+        }
+
+        $client->update(['status' => ! $client->status]);
         $this->dispatch('swal', ['title' => 'Estado actualizado', 'icon' => 'success']);
     }
 
     public function deleteRecord(int $id): void
     {
-        $client = Client::findOrFail($id);
+        abort_unless(auth()->user()->can('workshop.clients.delete'), 403);
+
+        $client = $this->findAuthorized($id);
+
         if ($client->workOrders()->exists() || $client->quotations()->exists()) {
             $this->dispatch('swal', ['title' => 'No se puede eliminar: tiene OTs o cotizaciones asociadas', 'icon' => 'error']);
             return;
         }
+
         $client->delete();
         $this->dispatch('swal', ['title' => 'Cliente eliminado', 'icon' => 'warning']);
         $this->dispatch('client-deleted');
+    }
+
+    private function findAuthorized(int $id): Client
+    {
+        return Client::forAuthUser()->where('clients.id', $id)->firstOrFail();
     }
 
     public function render()

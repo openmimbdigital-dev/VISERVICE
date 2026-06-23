@@ -36,6 +36,12 @@ class Index extends Component
     public string $phone_number = '';
     public bool $status = true;
     public string $role = '';
+    private ?bool $original_status = null;
+
+    public function mount(): void
+    {
+        abort_unless(auth()->user()->can('users.view'), 403);
+    }
 
     public function updatingSearch(): void       { $this->resetPage(); }
     public function updatingFilterRole(): void   { $this->resetPage(); }
@@ -72,16 +78,21 @@ class Index extends Component
 
     public function openCreate(): void
     {
+        abort_unless(auth()->user()->can('users.create'), 403);
+
         $this->reset(['first_name','last_name','email','username','password','password_confirmation','phone_number','role']);
-        $this->status    = true;
-        $this->editing   = false;
-        $this->selected_id = null;
-        $this->showModal = true;
+        $this->status          = true;
+        $this->original_status = null;
+        $this->editing         = false;
+        $this->selected_id     = null;
+        $this->showModal       = true;
         $this->resetErrorBag();
     }
 
     public function openEdit(int $id): void
     {
+        abort_unless(auth()->user()->can('users.edit'), 403);
+
         $user = $this->findAuthorized($id);
 
         $this->selected_id           = $user->id;
@@ -91,16 +102,31 @@ class Index extends Component
         $this->username              = $user->username;
         $this->phone_number          = $user->phone_number ?? '';
         $this->status                = (bool) $user->status;
+        $this->original_status       = (bool) $user->status;
         $this->role                  = $user->getRoleNames()->first() ?? '';
         $this->password              = '';
         $this->password_confirmation = '';
-        $this->editing   = true;
-        $this->showModal = true;
+        $this->editing               = true;
+        $this->showModal             = true;
         $this->resetErrorBag();
+    }
+
+    private function authorizeStatusChange(bool $new_status): void
+    {
+        if ($new_status) {
+            abort_unless(auth()->user()->can('users.activate'), 403);
+            return;
+        }
+
+        abort_unless(auth()->user()->can('users.deactivate'), 403);
     }
 
     public function save(): void
     {
+        abort_unless(
+            $this->editing ? auth()->user()->can('users.edit') : auth()->user()->can('users.create'),
+            403
+        );
         $uniqueEmail    = 'unique:users,email'    . ($this->editing ? ",{$this->selected_id}" : '');
         $uniqueUsername = 'unique:users,username' . ($this->editing ? ",{$this->selected_id}" : '');
 
@@ -140,6 +166,11 @@ class Index extends Component
 
         if ($this->editing) {
             $user = $this->findAuthorized($this->selected_id);
+
+            if ($this->status !== $this->original_status) {
+                $this->authorizeStatusChange($this->status);
+            }
+
             $data = [
                 'first_name'   => $this->first_name,
                 'last_name'    => $this->last_name,
@@ -184,6 +215,8 @@ class Index extends Component
     {
         $user = $this->findAuthorized($id);
 
+        $this->authorizeStatusChange(! $user->status);
+
         if ($user->id === auth()->id()) {
             $this->dispatch('swal', ['title' => 'No puedes desactivar tu propia cuenta.', 'icon' => 'warning']);
             return;
@@ -202,6 +235,8 @@ class Index extends Component
 
     public function delete(int $id): void
     {
+        abort_unless(auth()->user()->can('users.delete'), 403);
+
         $user = $this->findAuthorized($id);
 
         if (! $this->canDelete($user)) {

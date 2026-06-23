@@ -110,7 +110,11 @@
                         $deletable = !$isMe && !$isPrimary && !$isSuperA;
                         $roleName  = $user->getRoleNames()->first() ?? '—';
                         // Un Comercio no puede desactivar al usuario principal (solo el propio superAdmin puede)
-                        $canToggle = !$isMe && !$isSuperA && (!$isPrimary || auth()->user()->hasRole('superAdmin'));
+                        $canToggle = ! $isMe && ! $isSuperA && (! $isPrimary || auth()->user()->hasRole('superAdmin'));
+                        $canToggleStatus = $canToggle && (
+                            ($user->status && auth()->user()->can('users.deactivate'))
+                            || (! $user->status && auth()->user()->can('users.activate'))
+                        );
                     @endphp
                     <tr class="hover:bg-slate-50/70 transition">
                         {{-- Nombre + email --}}
@@ -165,7 +169,7 @@
 
                         {{-- Estado --}}
                         <td class="px-5 py-4">
-                            @if(! $canToggle)
+                            @if(! $canToggleStatus)
                                 <span class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full
                                     {{ $user->status ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500' }}">
                                     <span class="w-1.5 h-1.5 rounded-full {{ $user->status ? 'bg-emerald-500' : 'bg-slate-400' }}"></span>
@@ -334,6 +338,7 @@
                     @endrole
                     <div>
                         <label class="block text-xs font-medium text-slate-700 mb-1.5">Estado</label>
+                        @if(! $editing || auth()->user()->can('users.activate') || auth()->user()->can('users.deactivate'))
                         <div class="flex items-center gap-3 mt-2.5">
                             <button type="button" wire:click="$toggle('status')"
                                 class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200
@@ -345,6 +350,15 @@
                                 {{ $status ? 'Activo' : 'Inactivo' }}
                             </span>
                         </div>
+                        @else
+                        <div class="mt-2.5">
+                            <span class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full
+                                {{ $status ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500' }}">
+                                <span class="w-1.5 h-1.5 rounded-full {{ $status ? 'bg-emerald-500' : 'bg-slate-400' }}"></span>
+                                {{ $status ? 'Activo' : 'Inactivo' }}
+                            </span>
+                        </div>
+                        @endif
                         @if(!auth()->user()->hasRole('superAdmin') && !$editing)
                             <p class="text-[11px] text-slate-400 mt-1.5">El rol asignado será <span class="font-medium text-violet-600">Comercio</span> automáticamente.</p>
                         @endif

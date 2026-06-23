@@ -15,6 +15,11 @@ class Index extends Component
     #[On('client-deleted')]
     public function onRecordDeleted(): void {}
 
+    public function mount(): void
+    {
+        abort_unless(auth()->user()->can('workshop.clients.view'), 403);
+    }
+
     public function render()
     {
         $stats = [
