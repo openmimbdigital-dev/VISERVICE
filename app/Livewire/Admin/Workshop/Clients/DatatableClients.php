@@ -16,13 +16,31 @@ class DatatableClients extends LivewireDatatable
 
     public function builder(): Builder
     {
-        return Client::where('business_id', auth()->user()->business_id)
-            ->orderBy('name');
+        $query = Client::query()->forAuthUser();
+
+        if (auth()->user()->hasRole('superAdmin')) {
+            return $query
+                ->leftJoin('businesses', 'clients.business_id', '=', 'businesses.id')
+                ->select('clients.*')
+                ->orderBy('businesses.name')
+                ->orderBy('clients.name');
+        }
+
+        return $query->orderBy('clients.name');
     }
 
     public function getColumns(): Model|array
     {
-        return [
+        $columns = [];
+
+        if (auth()->user()->hasRole('superAdmin')) {
+            $columns[] = Column::raw('businesses.name AS business_name')
+                ->label('Comercio')
+                ->sortable()
+                ->searchable();
+        }
+
+        return array_merge($columns, [
             Column::name('name')
                 ->label('Nombre')
                 ->searchable()
@@ -55,7 +73,7 @@ class DatatableClients extends LivewireDatatable
             Column::callback(['id'], function ($id) {
                 return view('livewire.admin.workshop.clients.actions', ['id' => $id]);
             })->label('Acciones')->unsortable(),
-        ];
+        ]);
     }
 
 

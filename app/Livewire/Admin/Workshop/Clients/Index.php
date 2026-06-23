@@ -17,11 +17,9 @@ class Index extends Component
 
     public function render()
     {
-        $business_id = auth()->user()->business_id;
-
         $stats = [
-            'total'  => Client::where('business_id', $business_id)->count(),
-            'active' => Client::where('business_id', $business_id)->where('status', true)->count(),
+            'total'  => Client::forAuthUser()->count(),
+            'active' => Client::forAuthUser()->where('status', true)->count(),
         ];
 
         return view('livewire.admin.workshop.clients.index', compact('stats'));

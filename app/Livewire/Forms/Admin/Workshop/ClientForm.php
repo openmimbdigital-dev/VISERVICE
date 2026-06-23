@@ -9,6 +9,7 @@ use Livewire\Form;
 class ClientForm extends Form
 {
     public ?int $client_id = null;
+    public ?int $business_id = null;
 
     public string $name            = '';
     public string $document_type   = 'CC';
@@ -23,6 +24,7 @@ class ClientForm extends Form
     public function setClient(Client $client): void
     {
         $this->client_id       = $client->id;
+        $this->business_id     = $client->business_id;
         $this->name            = $client->name;
         $this->document_type   = $client->document_type;
         $this->document_number = $client->document_number ?? '';
@@ -34,11 +36,27 @@ class ClientForm extends Form
         $this->notes           = $client->notes ?? '';
     }
 
+    public function isSuperAdmin(): bool
+    {
+        return auth()->user()?->hasRole('superAdmin') ?? false;
+    }
+
+    public function resolvedBusinessId(): int
+    {
+        if ($this->isSuperAdmin()) {
+            return (int) $this->business_id;
+        }
+
+        return (int) auth()->user()->business_id;
+    }
+
     public function rules(): array
     {
-        $business_id = auth()->user()?->business_id;
+        $business_id = $this->isSuperAdmin()
+            ? $this->business_id
+            : auth()->user()?->business_id;
 
-        return [
+        $rules = [
             'name'            => ['required', 'string', 'max:150'],
             'document_type'   => ['required', Rule::in(['CC', 'NIT', 'CE', 'PA', 'PPT', 'TI'])],
             'document_number' => [
@@ -56,6 +74,12 @@ class ClientForm extends Form
             'status'       => ['boolean'],
             'notes'        => ['nullable', 'string'],
         ];
+
+        if ($this->isSuperAdmin()) {
+            $rules['business_id'] = ['required', 'integer', 'exists:businesses,id'];
+        }
+
+        return $rules;
     }
 
     public function messages(): array
@@ -72,6 +96,8 @@ class ClientForm extends Form
             'email.max'              => 'El correo no puede superar 100 caracteres.',
             'address.max'            => 'La dirección no puede superar 200 caracteres.',
             'contact_name.max'       => 'El nombre de contacto no puede superar 100 caracteres.',
+            'business_id.required'   => 'Debes seleccionar un comercio.',
+            'business_id.exists'     => 'El comercio seleccionado no es válido.',
         ];
     }
 

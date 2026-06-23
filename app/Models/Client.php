@@ -54,6 +54,17 @@ class Client extends Model
         return $query->where('status', true);
     }
 
+    public function scopeForAuthUser($query)
+    {
+        $user = auth()->user();
+
+        if ($user?->hasRole('superAdmin')) {
+            return $query;
+        }
+
+        return $query->where($query->getModel()->getTable() . '.business_id', $user->business_id);
+    }
+
     public function getFullDocumentAttribute(): string
     {
         if ($this->document_number) {

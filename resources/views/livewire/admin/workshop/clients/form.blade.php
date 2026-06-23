@@ -31,6 +31,19 @@
         </div>
 
         <div class="grid grid-cols-1 gap-5 p-6 md:grid-cols-2">
+            @if($is_super_admin)
+                <div class="relative md:col-span-2">
+                    <label class="label-up">Comercio *</label>
+                    <select wire:model="form.business_id" class="form-select w-full border px-3 py-2 text-sm">
+                        <option value="">Seleccionar comercio</option>
+                        @foreach($businesses as $business)
+                            <option value="{{ $business->id }}">{{ $business->name }}</option>
+                        @endforeach
+                    </select>
+                    @error('form.business_id')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                </div>
+            @endif
+
             <div class="relative md:col-span-2">
                 <label class="label-up">Nombre / Razón social *</label>
                 <input type="text" wire:model="form.name" class="form-input w-full border px-3 py-2 text-sm" />

@@ -19,6 +19,7 @@ class CreateOrUpdateClientAction
     public function handle(int $business_id, ?int $client_id, array $data): Client
     {
         $attributes = [
+            'business_id'     => $business_id,
             'name'            => $data['name'],
             'document_type'   => $data['document_type'],
             'document_number' => $data['document_number'],
@@ -30,16 +31,15 @@ class CreateOrUpdateClientAction
             'notes'           => $data['notes'],
         ];
 
-        if (! $client_id) {
-            $attributes['created_by'] = auth()->id();
+        if ($client_id) {
+            $client = Client::findOrFail($client_id);
+            $client->update($attributes);
+
+            return $client->fresh();
         }
 
-        return Client::updateOrCreate(
-            [
-                'id'          => $client_id,
-                'business_id' => $business_id,
-            ],
-            $attributes
-        );
+        $attributes['created_by'] = auth()->id();
+
+        return Client::create($attributes);
     }
 }
