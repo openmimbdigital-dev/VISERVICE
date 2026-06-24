@@ -101,4 +101,19 @@ class Business extends Model
     {
         return $this->activeSubscription()->exists();
     }
+
+    public function brands(): HasMany
+    {
+        return $this->hasMany(Brand::class);
+    }
+
+    public function equipmentModels(): HasMany
+    {
+        return $this->hasMany(EquipmentModel::class);
+    }
+
+    public function equipment(): HasMany
+    {
+        return $this->hasMany(Equipment::class);
+    }
 }

@@ -14,8 +14,9 @@ class Equipment extends Model
     protected $table = 'equipment';
 
     protected $fillable = [
-        'business_id', 'client_id', 'plate', 'brand', 'model',
-        'year', 'km_current', 'status', 'notes', 'created_by',
+        'business_id', 'client_id', 'brand_id', 'model_id',
+        'plate', 'brand', 'model', 'year', 'km_current',
+        'status', 'notes', 'created_by',
     ];
 
     protected function casts(): array
@@ -35,6 +36,16 @@ class Equipment extends Model
     public function client(): BelongsTo
     {
         return $this->belongsTo(Client::class);
+    }
+
+    public function equipmentBrand(): BelongsTo
+    {
+        return $this->belongsTo(Brand::class, 'brand_id');
+    }
+
+    public function equipmentModel(): BelongsTo
+    {
+        return $this->belongsTo(EquipmentModel::class, 'model_id');
     }
 
     public function createdBy(): BelongsTo
