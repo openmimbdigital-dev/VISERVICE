@@ -26,7 +26,7 @@ class AcceptQuotationAction
             return CreateWorkOrderAction::run(
                 $quotation->business_id,
                 $quotation->client_id,
-                $quotation->vehicle_id,
+                $quotation->equipment_id,
                 [
                     'quotation_id'    => $quotation->id,
                     'diagnosis'       => $quotation->diagnosis,

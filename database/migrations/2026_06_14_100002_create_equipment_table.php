@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('vehicles', function (Blueprint $table) {
+        Schema::create('equipment', function (Blueprint $table) {
             $table->id();
             $table->foreignId('business_id')->constrained()->onDelete('cascade');
             $table->foreignId('client_id')->constrained('clients')->onDelete('cascade');
@@ -16,10 +16,6 @@ return new class extends Migration
             $table->string('brand')->nullable()->comment('Marca');
             $table->string('model')->nullable()->comment('Modelo');
             $table->unsignedSmallInteger('year')->nullable();
-            $table->string('color')->nullable();
-            $table->enum('fuel_type', ['gasolina', 'diesel', 'gas', 'electrico', 'hibrido', 'otro'])->default('gasolina');
-            $table->string('engine_cc')->nullable()->comment('Cilindraje');
-            $table->string('vin')->nullable()->comment('Número VIN / serial');
             $table->unsignedInteger('km_current')->default(0);
             $table->boolean('status')->default(true);
             $table->text('notes')->nullable();
@@ -35,6 +31,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('vehicles');
+        Schema::dropIfExists('equipment');
     }
 };

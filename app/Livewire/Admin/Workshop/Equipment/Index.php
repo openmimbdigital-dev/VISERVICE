@@ -1,16 +1,16 @@
 <?php
 
-namespace App\Livewire\Admin\Workshop\Vehicles;
+namespace App\Livewire\Admin\Workshop\Equipment;
 
 use App\Models\Client;
-use App\Models\Vehicle;
+use App\Models\Equipment;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
 #[Layout('layouts.app')]
-#[Title('Vehículos')]
+#[Title('Equipos')]
 class Index extends Component
 {
     public bool   $showModal  = false;
@@ -21,10 +21,6 @@ class Index extends Component
     public string $brand      = '';
     public string $model      = '';
     public string $year       = '';
-    public string $color      = '';
-    public string $fuel_type  = 'gasolina';
-    public string $engine_cc  = '';
-    public string $vin        = '';
     public string $km_current = '0';
     public bool   $status     = true;
     public string $notes      = '';
@@ -37,10 +33,6 @@ class Index extends Component
             'brand'      => 'nullable|string|max:60',
             'model'      => 'nullable|string|max:60',
             'year'       => 'nullable|integer|min:1900|max:' . (date('Y') + 1),
-            'color'      => 'nullable|string|max:40',
-            'fuel_type'  => 'required|in:gasolina,diesel,gas,electrico,hibrido,otro',
-            'engine_cc'  => 'nullable|string|max:20',
-            'vin'        => 'nullable|string|max:50',
             'km_current' => 'required|integer|min:0',
             'status'     => 'boolean',
             'notes'      => 'nullable|string',
@@ -53,23 +45,19 @@ class Index extends Component
         $this->showModal = true;
     }
 
-    #[On('open-vehicle-edit')]
+    #[On('open-equipment-edit')]
     public function openEdit(int $id): void
     {
-        $v = Vehicle::findOrFail($id);
-        $this->editing_id = $v->id;
-        $this->client_id  = $v->client_id;
-        $this->plate      = $v->plate;
-        $this->brand      = $v->brand ?? '';
-        $this->model      = $v->model ?? '';
-        $this->year       = $v->year ?? '';
-        $this->color      = $v->color ?? '';
-        $this->fuel_type  = $v->fuel_type;
-        $this->engine_cc  = $v->engine_cc ?? '';
-        $this->vin        = $v->vin ?? '';
-        $this->km_current = $v->km_current;
-        $this->status     = $v->status;
-        $this->notes      = $v->notes ?? '';
+        $e = Equipment::findOrFail($id);
+        $this->editing_id = $e->id;
+        $this->client_id  = $e->client_id;
+        $this->plate      = $e->plate;
+        $this->brand      = $e->brand ?? '';
+        $this->model      = $e->model ?? '';
+        $this->year       = $e->year ?? '';
+        $this->km_current = $e->km_current;
+        $this->status     = $e->status;
+        $this->notes      = $e->notes ?? '';
         $this->showModal  = true;
     }
 
@@ -85,10 +73,6 @@ class Index extends Component
             'brand'       => $this->brand ?: null,
             'model'       => $this->model ?: null,
             'year'        => $this->year ?: null,
-            'color'       => $this->color ?: null,
-            'fuel_type'   => $this->fuel_type,
-            'engine_cc'   => $this->engine_cc ?: null,
-            'vin'         => $this->vin ?: null,
             'km_current'  => (int) $this->km_current,
             'status'      => $this->status,
             'notes'       => $this->notes ?: null,
@@ -96,17 +80,17 @@ class Index extends Component
         ];
 
         if ($this->editing_id) {
-            Vehicle::findOrFail($this->editing_id)->update($data);
-            $this->dispatch('swal', ['title' => 'Vehículo actualizado', 'icon' => 'success']);
+            Equipment::findOrFail($this->editing_id)->update($data);
+            $this->dispatch('swal', ['title' => 'Equipo actualizado', 'icon' => 'success']);
         } else {
-            Vehicle::create($data);
-            $this->dispatch('swal', ['title' => 'Vehículo registrado', 'icon' => 'success']);
+            Equipment::create($data);
+            $this->dispatch('swal', ['title' => 'Equipo registrado', 'icon' => 'success']);
         }
 
         $this->closeModal();
     }
 
-    #[On('vehicle-deleted')]
+    #[On('equipment-deleted')]
     public function onRecordDeleted(): void {}
 
     public function closeModal(): void
@@ -119,9 +103,8 @@ class Index extends Component
     {
         $this->editing_id = null;
         $this->client_id  = null;
-        $this->plate = $this->brand = $this->model = $this->color = $this->engine_cc = $this->vin = $this->notes = '';
+        $this->plate = $this->brand = $this->model = $this->notes = '';
         $this->year      = '';
-        $this->fuel_type = 'gasolina';
         $this->km_current = '0';
         $this->status    = true;
         $this->resetValidation();
@@ -134,10 +117,10 @@ class Index extends Component
         $clients = Client::where('business_id', $business_id)->where('status', true)->orderBy('name')->get();
 
         $stats = [
-            'total'  => Vehicle::where('business_id', $business_id)->count(),
-            'active' => Vehicle::where('business_id', $business_id)->where('status', true)->count(),
+            'total'  => Equipment::where('business_id', $business_id)->count(),
+            'active' => Equipment::where('business_id', $business_id)->where('status', true)->count(),
         ];
 
-        return view('livewire.admin.workshop.vehicles.index', compact('clients', 'stats'));
+        return view('livewire.admin.workshop.equipment.index', compact('clients', 'stats'));
     }
 }

@@ -13,7 +13,7 @@ class WorkOrder extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'business_id', 'client_id', 'vehicle_id', 'quotation_id',
+        'business_id', 'client_id', 'equipment_id', 'quotation_id',
         'reference', 'status', 'km_entry', 'km_exit',
         'diagnosis', 'work_description', 'observations', 'notes',
         'estimated_delivery', 'subtotal', 'tax_percentage',
@@ -44,9 +44,9 @@ class WorkOrder extends Model
         return $this->belongsTo(Client::class);
     }
 
-    public function vehicle(): BelongsTo
+    public function equipment(): BelongsTo
     {
-        return $this->belongsTo(Vehicle::class);
+        return $this->belongsTo(Equipment::class);
     }
 
     public function quotation(): BelongsTo

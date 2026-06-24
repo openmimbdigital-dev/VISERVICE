@@ -5,7 +5,7 @@ namespace App\Livewire\Admin\Workshop\Quotations;
 use App\Actions\CreateQuotationAction;
 use App\Models\Client;
 use App\Models\Quotation;
-use App\Models\Vehicle;
+use App\Models\Equipment;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
@@ -18,7 +18,7 @@ class Index extends Component
     public bool   $showModal     = false;
 
     public ?int  $client_id      = null;
-    public ?int  $vehicle_id     = null;
+    public ?int  $equipment_id   = null;
     public string $km_entry       = '0';
     public string $diagnosis      = '';
     public string $valid_until    = '';
@@ -29,7 +29,7 @@ class Index extends Component
     {
         return [
             'client_id'      => 'required|exists:clients,id',
-            'vehicle_id'     => 'required|exists:vehicles,id',
+            'equipment_id'   => 'required|exists:equipment,id',
             'km_entry'       => 'required|integer|min:0',
             'diagnosis'      => 'nullable|string',
             'valid_until'    => 'nullable|date',
@@ -40,7 +40,7 @@ class Index extends Component
 
     public function updatedClientId(): void
     {
-        $this->vehicle_id = null;
+        $this->equipment_id = null;
     }
 
     public function openCreate(): void
@@ -57,7 +57,7 @@ class Index extends Component
         $quotation = CreateQuotationAction::run(
             auth()->user()->business_id,
             $this->client_id,
-            $this->vehicle_id,
+            $this->equipment_id,
             [
                 'km_entry'       => (int) $this->km_entry,
                 'diagnosis'      => $this->diagnosis ?: null,
@@ -84,7 +84,7 @@ class Index extends Component
 
     private function resetForm(): void
     {
-        $this->client_id = $this->vehicle_id = null;
+        $this->client_id = $this->equipment_id = null;
         $this->km_entry = '0';
         $this->diagnosis = $this->valid_until = $this->notes = '';
         $this->tax_percentage = '0';
@@ -97,8 +97,8 @@ class Index extends Component
 
         $clients = Client::where('business_id', $business_id)->where('status', true)->orderBy('name')->get();
 
-        $vehicles_for_client = $this->client_id
-            ? Vehicle::where('client_id', $this->client_id)->where('status', true)->orderBy('plate')->get()
+        $equipment_for_client = $this->client_id
+            ? Equipment::where('client_id', $this->client_id)->where('status', true)->orderBy('plate')->get()
             : collect();
 
         $stats = [
@@ -110,6 +110,6 @@ class Index extends Component
         ];
 
         return view('livewire.admin.workshop.quotations.index',
-            compact('clients', 'vehicles_for_client', 'stats'));
+            compact('clients', 'equipment_for_client', 'stats'));
     }
 }

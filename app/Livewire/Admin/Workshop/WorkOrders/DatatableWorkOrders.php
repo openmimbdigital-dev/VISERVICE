@@ -18,8 +18,8 @@ class DatatableWorkOrders extends LivewireDatatable
     {
         return WorkOrder::where('work_orders.business_id', auth()->user()->business_id)
             ->leftJoin('clients', 'work_orders.client_id', '=', 'clients.id')
-            ->leftJoin('vehicles', 'work_orders.vehicle_id', '=', 'vehicles.id')
-            ->select('work_orders.*', 'clients.name as client_name', 'vehicles.plate as vehicle_plate')
+            ->leftJoin('equipment', 'work_orders.equipment_id', '=', 'equipment.id')
+            ->select('work_orders.*', 'clients.name as client_name', 'equipment.plate as equipment_plate')
             ->latest('work_orders.created_at');
     }
 
@@ -36,7 +36,7 @@ class DatatableWorkOrders extends LivewireDatatable
                 ->searchable()
                 ->sortable(),
 
-            Column::name('vehicle_plate')
+            Column::name('equipment_plate')
                 ->label('Placa')
                 ->searchable(),
 

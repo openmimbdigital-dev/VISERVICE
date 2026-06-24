@@ -7,14 +7,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class Vehicle extends Model
+class Equipment extends Model
 {
     use SoftDeletes;
 
+    protected $table = 'equipment';
+
     protected $fillable = [
         'business_id', 'client_id', 'plate', 'brand', 'model',
-        'year', 'color', 'fuel_type', 'engine_cc', 'vin',
-        'km_current', 'status', 'notes', 'created_by',
+        'year', 'km_current', 'status', 'notes', 'created_by',
     ];
 
     protected function casts(): array
@@ -61,17 +62,5 @@ class Vehicle extends Model
         $parts = array_filter([$this->brand, $this->model, $this->year]);
         $name = implode(' ', $parts);
         return $name ? "{$this->plate} — {$name}" : $this->plate;
-    }
-
-    public function getFuelTypeLabelAttribute(): string
-    {
-        return match ($this->fuel_type) {
-            'gasolina' => 'Gasolina',
-            'diesel'   => 'Diésel',
-            'gas'      => 'Gas',
-            'electrico' => 'Eléctrico',
-            'hibrido'  => 'Híbrido',
-            default    => 'Otro',
-        };
     }
 }

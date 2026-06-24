@@ -34,9 +34,9 @@ class Client extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    public function vehicles(): HasMany
+    public function equipment(): HasMany
     {
-        return $this->hasMany(Vehicle::class);
+        return $this->hasMany(Equipment::class);
     }
 
     public function quotations(): HasMany

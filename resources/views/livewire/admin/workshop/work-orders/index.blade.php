@@ -58,14 +58,14 @@
                     @error('client_id')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                 </div>
                 <div class="col-span-2">
-                    <label class="label-up">Vehículo *</label>
-                    <select wire:model="vehicle_id" class="form-select" {{ !$client_id ? 'disabled' : '' }}>
-                        <option value="">{{ $client_id ? 'Seleccionar vehículo' : 'Primero selecciona un cliente' }}</option>
-                        @foreach($vehicles_for_client as $v)
-                            <option value="{{ $v->id }}">{{ $v->plate }} — {{ $v->brand }} {{ $v->model }}</option>
+                    <label class="label-up">Equipo *</label>
+                    <select wire:model="equipment_id" class="form-select" {{ !$client_id ? 'disabled' : '' }}>
+                        <option value="">{{ $client_id ? 'Seleccionar equipo' : 'Primero selecciona un cliente' }}</option>
+                        @foreach($equipment_for_client as $e)
+                            <option value="{{ $e->id }}">{{ $e->plate }} — {{ $e->brand }} {{ $e->model }}</option>
                         @endforeach
                     </select>
-                    @error('vehicle_id')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                    @error('equipment_id')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                 </div>
                 <div>
                     <label class="label-up">Km al ingreso</label>

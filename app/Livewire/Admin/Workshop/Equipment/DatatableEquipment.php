@@ -1,25 +1,24 @@
 <?php
 
-namespace App\Livewire\Admin\Workshop\Vehicles;
+namespace App\Livewire\Admin\Workshop\Equipment;
 
-use App\Models\Vehicle;
+use App\Models\Equipment;
 use Arm092\LivewireDatatables\Column;
-use Arm092\LivewireDatatables\DateColumn;
 use Arm092\LivewireDatatables\Livewire\LivewireDatatable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
-class DatatableVehicles extends LivewireDatatable
+class DatatableEquipment extends LivewireDatatable
 {
     public bool $exportable = true;
     public ?int $perPage = 25;
 
     public function builder(): Builder
     {
-        return Vehicle::where('vehicles.business_id', auth()->user()->business_id)
-            ->leftJoin('clients', 'vehicles.client_id', '=', 'clients.id')
-            ->select('vehicles.*', 'clients.name as client_name')
-            ->orderBy('vehicles.plate');
+        return Equipment::where('equipment.business_id', auth()->user()->business_id)
+            ->leftJoin('clients', 'equipment.client_id', '=', 'clients.id')
+            ->select('equipment.*', 'clients.name as client_name')
+            ->orderBy('equipment.plate');
     }
 
     public function getColumns(): Model|array
@@ -33,17 +32,12 @@ class DatatableVehicles extends LivewireDatatable
             Column::callback(['brand', 'model', 'year'], function ($brand, $model, $year) {
                 $parts = array_filter([$brand, $model, $year]);
                 return $parts ? e(implode(' ', $parts)) : '<span class="text-slate-400">—</span>';
-            })->label('Vehículo'),
+            })->label('Equipo'),
 
             Column::name('client_name')
                 ->label('Cliente')
                 ->searchable()
                 ->sortable(),
-
-            Column::callback(['fuel_type'], function ($type) {
-                $labels = ['gasolina' => 'Gasolina', 'diesel' => 'Diesel', 'gas' => 'Gas', 'electrico' => 'Eléctrico', 'hibrido' => 'Híbrido', 'otro' => 'Otro'];
-                return e($labels[$type] ?? $type);
-            })->label('Combustible'),
 
             Column::callback(['km_current'], function ($km) {
                 return '<span class="tabular-nums">' . number_format($km) . ' km</span>';
@@ -58,26 +52,26 @@ class DatatableVehicles extends LivewireDatatable
             })->label('Estado')->filterable([1 => 'Activo', 0 => 'Inactivo']),
 
             Column::callback(['id'], function ($id) {
-                return view('livewire.admin.workshop.vehicles.actions', ['id' => $id]);
+                return view('livewire.admin.workshop.equipment.actions', ['id' => $id]);
             })->label('Acciones')->unsortable(),
         ];
     }
 
     public function openEditEvent(int $id): void
     {
-        $this->dispatch('open-vehicle-edit', id: $id);
+        $this->dispatch('open-equipment-edit', id: $id);
     }
 
     public function deleteRecord(int $id): void
     {
-        $vehicle = Vehicle::findOrFail($id);
-        if ($vehicle->workOrders()->exists()) {
+        $equipment = Equipment::findOrFail($id);
+        if ($equipment->workOrders()->exists()) {
             $this->dispatch('swal', ['title' => 'No se puede eliminar: tiene OTs asociadas', 'icon' => 'error']);
             return;
         }
-        $vehicle->delete();
-        $this->dispatch('swal', ['title' => 'Vehículo eliminado', 'icon' => 'warning']);
-        $this->dispatch('vehicle-deleted');
+        $equipment->delete();
+        $this->dispatch('swal', ['title' => 'Equipo eliminado', 'icon' => 'warning']);
+        $this->dispatch('equipment-deleted');
     }
 
     public function render()

@@ -32,7 +32,7 @@
                     </div>
                     <div class="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm text-slate-600">
                         <span><span class="font-medium text-slate-800">{{ $workOrder->client?->name }}</span></span>
-                        <span>{{ $workOrder->vehicle?->plate }} — {{ $workOrder->vehicle?->brand }} {{ $workOrder->vehicle?->model }} {{ $workOrder->vehicle?->year }}</span>
+                        <span>{{ $workOrder->equipment?->plate }} — {{ $workOrder->equipment?->brand }} {{ $workOrder->equipment?->model }} {{ $workOrder->equipment?->year }}</span>
                         <span>Km entrada: {{ number_format($workOrder->km_entry) }}</span>
                         @if($workOrder->estimated_delivery)
                         <span>Entrega est.: {{ $workOrder->estimated_delivery->format('d/m/Y') }}</span>
