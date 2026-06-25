@@ -40,6 +40,7 @@
         class="min-h-screen flex"
         x-data="{
             sidebarCollapsed: localStorage.getItem('sidebarCollapsed') === 'true',
+            mobileSidebarOpen: false,
             usersNavOpen: localStorage.getItem('sidebarNavUsersOpen') !== 'false',
             usersCollapsedOpen: false,
             subsNavOpen: localStorage.getItem('sidebarNavSubsOpen') !== 'false',
@@ -48,6 +49,8 @@
             workshopCollapsedOpen: false,
             catalogNavOpen: localStorage.getItem('sidebarNavCatalogOpen') !== 'false',
             catalogCollapsedOpen: false,
+            settingsNavOpen: localStorage.getItem('sidebarNavSettingsOpen') !== 'false',
+            settingsCollapsedOpen: false,
             toggleSidebar() {
                 this.sidebarCollapsed = !this.sidebarCollapsed;
                 localStorage.setItem('sidebarCollapsed', this.sidebarCollapsed);
@@ -55,6 +58,27 @@
                 this.subsCollapsedOpen = false;
                 this.workshopCollapsedOpen = false;
                 this.catalogCollapsedOpen = false;
+                this.settingsCollapsedOpen = false;
+            },
+            toggleMobileSidebar() {
+                this.mobileSidebarOpen = !this.mobileSidebarOpen;
+                if (this.mobileSidebarOpen) {
+                    this.usersCollapsedOpen = false;
+                    this.subsCollapsedOpen = false;
+                    this.workshopCollapsedOpen = false;
+                    this.catalogCollapsedOpen = false;
+                    this.settingsCollapsedOpen = false;
+                }
+            },
+            closeMobileSidebar() {
+                this.mobileSidebarOpen = false;
+            },
+            toggleSidebarFromHeader() {
+                if (window.matchMedia('(min-width: 1024px)').matches) {
+                    this.toggleSidebar();
+                } else {
+                    this.toggleMobileSidebar();
+                }
             },
             toggleUsersNav() {
                 this.usersNavOpen = !this.usersNavOpen;
@@ -76,6 +100,7 @@
                 this.usersCollapsedOpen = false;
                 this.workshopCollapsedOpen = false;
                 this.catalogCollapsedOpen = false;
+                this.settingsCollapsedOpen = false;
             },
             closeSubsCollapsedMenu() {
                 this.subsCollapsedOpen = false;
@@ -89,6 +114,7 @@
                 this.usersCollapsedOpen = false;
                 this.subsCollapsedOpen = false;
                 this.catalogCollapsedOpen = false;
+                this.settingsCollapsedOpen = false;
             },
             closeWorkshopCollapsedMenu() {
                 this.workshopCollapsedOpen = false;
@@ -102,9 +128,30 @@
                 this.usersCollapsedOpen = false;
                 this.subsCollapsedOpen = false;
                 this.workshopCollapsedOpen = false;
+                this.settingsCollapsedOpen = false;
             },
             closeCatalogCollapsedMenu() {
                 this.catalogCollapsedOpen = false;
+            },
+            toggleSettingsNav() {
+                this.settingsNavOpen = !this.settingsNavOpen;
+                localStorage.setItem('sidebarNavSettingsOpen', this.settingsNavOpen);
+            },
+            toggleSettingsCollapsedMenu() {
+                this.settingsCollapsedOpen = !this.settingsCollapsedOpen;
+                this.usersCollapsedOpen = false;
+                this.subsCollapsedOpen = false;
+                this.workshopCollapsedOpen = false;
+                this.catalogCollapsedOpen = false;
+            },
+            closeSettingsCollapsedMenu() {
+                this.settingsCollapsedOpen = false;
+            },
+            showSidebarLabels() {
+                return !this.sidebarCollapsed || this.mobileSidebarOpen;
+            },
+            showSidebarIconsOnly() {
+                return this.sidebarCollapsed && !this.mobileSidebarOpen;
             }
         }"
         x-init="
@@ -112,13 +159,31 @@
             @if (request()->routeIs('admin.subscriptions.*', 'admin.payments.*', 'admin.bank-accounts.*', 'admin.banks.*', 'admin.businesses.*', 'admin.finance.*')) subsNavOpen = true; @endif
             @if (request()->routeIs('admin.workshop.clients.*', 'admin.workshop.equipment.*', 'admin.workshop.quotations.*', 'admin.workshop.work-orders.*')) workshopNavOpen = true; @endif
             @if (request()->routeIs('admin.workshop.catalog.*')) catalogNavOpen = true; @endif
+            @if (request()->routeIs('admin.settings.*')) settingsNavOpen = true; @endif
         "
-        @keydown.escape.window="if (usersCollapsedOpen) closeUsersCollapsedMenu(); if (subsCollapsedOpen) closeSubsCollapsedMenu(); if (workshopCollapsedOpen) closeWorkshopCollapsedMenu(); if (catalogCollapsedOpen) closeCatalogCollapsedMenu()"
+        @keydown.escape.window="closeMobileSidebar(); if (usersCollapsedOpen) closeUsersCollapsedMenu(); if (subsCollapsedOpen) closeSubsCollapsedMenu(); if (workshopCollapsedOpen) closeWorkshopCollapsedMenu(); if (catalogCollapsedOpen) closeCatalogCollapsedMenu(); if (settingsCollapsedOpen) closeSettingsCollapsedMenu()"
     >
+        {{-- Overlay móvil / tablet --}}
+        <div
+            x-cloak
+            x-show="mobileSidebarOpen"
+            x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100"
+            x-transition:leave="transition ease-in duration-150"
+            x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0"
+            @click="closeMobileSidebar()"
+            class="fixed inset-0 z-30 bg-slate-900/60 backdrop-blur-sm lg:hidden"
+        ></div>
+
         {{-- Sidebar --}}
         <aside
-            class="relative z-40 flex flex-col bg-slate-900 text-slate-100 shrink-0 border-r border-slate-800 transition-[width] duration-200 ease-out overflow-x-visible overflow-y-visible"
-            :class="sidebarCollapsed ? 'w-[4.25rem]' : 'w-60'"
+            class="fixed inset-y-0 left-0 z-40 flex h-full flex-col border-r border-slate-800 bg-slate-900 text-slate-100 transition-[transform,width] duration-200 ease-out overflow-x-visible overflow-y-visible w-60 lg:relative lg:z-40 lg:h-auto lg:min-h-screen lg:shrink-0"
+            :class="[
+                mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
+                sidebarCollapsed ? 'lg:w-[4.25rem]' : 'lg:w-60',
+            ]"
         >
             <div class="h-14 flex items-center px-3 border-b border-slate-800/80 gap-2">
                 @if($isComercio && $businessLogo)
@@ -134,7 +199,7 @@
                          alt="VISERVICE"
                          class="h-8 w-8 shrink-0 rounded-lg object-contain bg-white/5 p-0.5">
                 @endif
-                <div class="min-w-0 flex-1" x-show="!sidebarCollapsed" x-transition.opacity>
+                <div class="min-w-0 flex-1" x-show="showSidebarLabels()" x-transition.opacity>
                     <p class="font-semibold text-white truncate text-sm">
                         {{ ($isComercio && $businessName) ? $businessName : 'VISERVICE' }}
                     </p>
@@ -142,7 +207,7 @@
                 </div>
             </div>
 
-            <nav class="flex-1 min-h-0 space-y-1 overflow-y-auto overflow-x-visible py-4 px-2">
+            <nav class="flex-1 min-h-0 space-y-1 overflow-y-auto overflow-x-visible py-4 px-2" @click="if ($event.target.closest('a[href]')) closeMobileSidebar()">
                 <a
                     href="{{ route('dashboard') }}"
                     wire:navigate
@@ -153,14 +218,14 @@
                     <svg class="h-5 w-5 shrink-0 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
                     </svg>
-                    <span class="truncate" x-show="!sidebarCollapsed" x-transition.opacity>Inicio</span>
+                    <span class="truncate" x-show="showSidebarLabels()" x-transition.opacity>Inicio</span>
                 </a>
 
                 @can('users.view')
                 {{-- Usuarios colapsado: clic despliega subopciones hacia abajo (solo iconos) --}}
                 <div
                     x-cloak
-                    x-show="sidebarCollapsed"
+                    x-show="showSidebarIconsOnly()"
                     class="relative"
                     @click.outside="closeUsersCollapsedMenu()"
                 >
@@ -217,7 +282,7 @@
                     </div>
                 </div>
 
-                <div x-show="!sidebarCollapsed" x-cloak class="space-y-0.5">
+                <div x-show="showSidebarLabels()" x-cloak class="space-y-0.5">
                     <button
                         type="button"
                         @click="toggleUsersNav()"
@@ -273,7 +338,7 @@
                 {{-- Colapsado: popup dropdown --}}
                 <div
                     x-cloak
-                    x-show="sidebarCollapsed"
+                    x-show="showSidebarIconsOnly()"
                     class="relative"
                     @click.outside="closeSubsCollapsedMenu()"
                 >
@@ -387,7 +452,7 @@
                 </div>
 
                 {{-- Expandido: acordeón --}}
-                <div x-show="!sidebarCollapsed" x-cloak class="space-y-0.5">
+                <div x-show="showSidebarLabels()" x-cloak class="space-y-0.5">
                     <button
                         type="button"
                         @click="toggleSubsNav()"
@@ -503,7 +568,7 @@
                 {{-- Mi Negocio (solo rol Comercio) --}}
                 @role('Comercio')
                 {{-- Colapsado --}}
-                <div x-cloak x-show="sidebarCollapsed">
+                <div x-cloak x-show="showSidebarIconsOnly()">
                     <a href="{{ route('comercio.business.edit') }}" wire:navigate
                         class="flex w-full items-center justify-center rounded-lg px-2.5 py-2.5 text-sm font-medium transition
                             {{ request()->routeIs('comercio.business.edit') ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white' }}"
@@ -514,7 +579,7 @@
                     </a>
                 </div>
                 {{-- Expandido --}}
-                <div x-show="!sidebarCollapsed" x-cloak>
+                <div x-show="showSidebarLabels()" x-cloak>
                     <a href="{{ route('comercio.business.edit') }}" wire:navigate
                         class="flex items-center gap-3 rounded-lg px-2.5 py-2.5 text-sm font-medium transition
                             {{ request()->routeIs('comercio.business.edit') ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white' }}">
@@ -528,7 +593,7 @@
 
                 {{-- === TALLER === --}}
                 {{-- Colapsado --}}
-                <div x-cloak x-show="sidebarCollapsed" class="relative" @click.outside="closeWorkshopCollapsedMenu()">
+                <div x-cloak x-show="showSidebarIconsOnly()" class="relative" @click.outside="closeWorkshopCollapsedMenu()">
                     <button type="button" @click.stop="toggleWorkshopCollapsedMenu()"
                         class="flex w-full items-center justify-center rounded-lg px-2.5 py-2.5 text-sm font-medium transition
                             {{ request()->routeIs('admin.workshop.clients.*','admin.workshop.equipment.*','admin.workshop.quotations.*','admin.workshop.work-orders.*') ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white' }}"
@@ -552,7 +617,7 @@
                 </div>
 
                 {{-- Expandido --}}
-                <div x-show="!sidebarCollapsed" x-cloak class="space-y-0.5">
+                <div x-show="showSidebarLabels()" x-cloak class="space-y-0.5">
                     <button type="button" @click="toggleWorkshopNav()"
                         class="w-full flex items-center gap-3 rounded-lg px-2.5 py-2.5 text-sm font-medium transition text-left
                             {{ request()->routeIs('admin.workshop.clients.*','admin.workshop.equipment.*','admin.workshop.quotations.*','admin.workshop.work-orders.*') ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white' }}">
@@ -579,7 +644,7 @@
 
                 {{-- === CATÁLOGO === --}}
                 {{-- Colapsado --}}
-                <div x-cloak x-show="sidebarCollapsed" class="relative" @click.outside="closeCatalogCollapsedMenu()">
+                <div x-cloak x-show="showSidebarIconsOnly()" class="relative" @click.outside="closeCatalogCollapsedMenu()">
                     <button type="button" @click.stop="toggleCatalogCollapsedMenu()"
                         class="flex w-full items-center justify-center rounded-lg px-2.5 py-2.5 text-sm font-medium transition
                             {{ request()->routeIs('admin.workshop.catalog.*') ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white' }}"
@@ -604,7 +669,7 @@
                 </div>
 
                 {{-- Expandido --}}
-                <div x-show="!sidebarCollapsed" x-cloak class="space-y-0.5">
+                <div x-show="showSidebarLabels()" x-cloak class="space-y-0.5">
                     <button type="button" @click="toggleCatalogNav()"
                         class="w-full flex items-center gap-3 rounded-lg px-2.5 py-2.5 text-sm font-medium transition text-left
                             {{ request()->routeIs('admin.workshop.catalog.*') ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white' }}">
@@ -629,9 +694,54 @@
                         </a>
                     </div>
                 </div>
+
+                @can('settings.view')
+                {{-- === CONFIGURACIÓN === --}}
+                {{-- Colapsado --}}
+                <div x-cloak x-show="showSidebarIconsOnly()" class="relative" @click.outside="closeSettingsCollapsedMenu()">
+                    <button type="button" @click.stop="toggleSettingsCollapsedMenu()"
+                        class="flex w-full items-center justify-center rounded-lg px-2.5 py-2.5 text-sm font-medium transition
+                            {{ request()->routeIs('admin.settings.*') ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white' }}"
+                        title="Configuración" :aria-expanded="settingsCollapsedOpen">
+                        <svg class="h-5 w-5 shrink-0 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                    </button>
+                    <div x-show="settingsCollapsedOpen" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0 -translate-y-0.5" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-75" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+                        class="absolute left-0 right-0 top-full z-[100] mt-1 flex flex-col gap-0.5 rounded-xl border border-slate-700/90 bg-slate-900 p-1 shadow-lg ring-1 ring-white/5">
+                        <a href="{{ route('admin.settings.equipment.index') }}" wire:navigate @click="closeSettingsCollapsedMenu()"
+                            class="flex items-center justify-center rounded-lg py-2.5 transition {{ request()->routeIs('admin.settings.equipment.*') ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
+                            title="Equipos">
+                            <svg class="h-5 w-5 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                        </a>
+                    </div>
+                </div>
+
+                {{-- Expandido --}}
+                <div x-show="showSidebarLabels()" x-cloak class="space-y-0.5">
+                    <button type="button" @click="toggleSettingsNav()"
+                        class="w-full flex items-center gap-3 rounded-lg px-2.5 py-2.5 text-sm font-medium transition text-left
+                            {{ request()->routeIs('admin.settings.*') ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white' }}">
+                        <svg class="h-5 w-5 shrink-0 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                        <span class="truncate flex-1">Configuración</span>
+                        <svg class="h-4 w-4 shrink-0 text-slate-400 transition-transform duration-200" :class="settingsNavOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    <div x-show="settingsNavOpen" class="mt-0.5 space-y-0.5 border-l border-slate-700/80 ml-4 pl-3">
+                        <a href="{{ route('admin.settings.equipment.index') }}" wire:navigate
+                            class="flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition {{ request()->routeIs('admin.settings.equipment.*') ? 'bg-slate-800/90 text-white font-medium' : 'text-slate-400 hover:bg-slate-800/60 hover:text-white' }}">
+                            <svg class="h-4 w-4 shrink-0 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                            <span class="truncate">Equipos</span>
+                        </a>
+                    </div>
+                </div>
+                @endcan
             </nav>
 
-            <div class="p-2 border-t border-slate-800/80">
+            <div class="hidden border-t border-slate-800/80 p-2 lg:block">
                 <button
                     type="button"
                     @click="toggleSidebar()"
@@ -641,25 +751,41 @@
                     <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"></path>
                     </svg>
-                    <span x-show="!sidebarCollapsed" class="truncate">Encoger</span>
+                    <span x-show="showSidebarLabels()" class="truncate">Encoger</span>
                 </button>
             </div>
         </aside>
 
         {{-- Main --}}
         <div class="flex-1 flex flex-col min-w-0 min-h-screen">
-            <header class="relative z-20 h-14 bg-white/95 backdrop-blur-sm border-b border-slate-200/80 flex items-center justify-between px-4 lg:px-6 shrink-0 shadow-sm">
+            <header class="relative z-20 flex h-14 shrink-0 items-center justify-between border-b border-slate-200/80 bg-white/95 px-4 shadow-sm backdrop-blur-sm lg:px-6">
 
-                {{-- Izquierda: título de la página actual --}}
-                <div class="min-w-0 flex items-center gap-3">
-                    {{-- Breadcrumb / título --}}
-                    <div class="flex items-center gap-2 min-w-0">
+                <div class="flex min-w-0 flex-1 items-center gap-3">
+                {{-- Botón menú lateral (móvil / tablet / escritorio) --}}
+                <button
+                    type="button"
+                    @click="toggleSidebarFromHeader()"
+                    class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
+                    :title="window.matchMedia('(min-width: 1024px)').matches ? (sidebarCollapsed ? 'Expandir menú' : 'Contraer menú') : (mobileSidebarOpen ? 'Cerrar menú' : 'Abrir menú')"
+                    :aria-label="window.matchMedia('(min-width: 1024px)').matches ? (sidebarCollapsed ? 'Expandir menú lateral' : 'Contraer menú lateral') : (mobileSidebarOpen ? 'Cerrar menú lateral' : 'Abrir menú lateral')"
+                    :aria-expanded="window.matchMedia('(min-width: 1024px)').matches ? !sidebarCollapsed : mobileSidebarOpen"
+                >
+                    <svg x-show="!mobileSidebarOpen" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                    </svg>
+                    <svg x-cloak x-show="mobileSidebarOpen" class="h-5 w-5 lg:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+
+                {{-- Breadcrumb / título --}}
+                    <div class="flex min-w-0 items-center gap-2">
                         <div class="hidden sm:flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-indigo-50">
                             <svg class="h-4 w-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
                             </svg>
                         </div>
-                        <h1 class="text-sm font-semibold text-slate-800 truncate">{{ $heading ?? $title ?? 'Inicio' }}</h1>
+                        <h1 class="truncate text-sm font-semibold text-slate-800">{{ $heading ?? $title ?? 'Inicio' }}</h1>
                     </div>
                 </div>
 
