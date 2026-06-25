@@ -24,6 +24,8 @@ use App\Livewire\Admin\Catalog\Services\Index as CatalogServicesIndex;
 use App\Livewire\Admin\Catalog\SpareParts\Index as CatalogSparePartsIndex;
 use App\Livewire\Admin\Settings\Equipment\Brands\Index as SettingsBrandsIndex;
 use App\Livewire\Admin\Settings\Equipment\Brands\Show as SettingsBrandsShow;
+use App\Livewire\Admin\Settings\Equipment\Models\Index as SettingsEquipmentModelsIndex;
+use App\Livewire\Admin\Settings\Equipment\Models\Show as SettingsEquipmentModelsShow;
 use App\Livewire\Admin\Settings\Equipment\Index as SettingsEquipmentIndex;
 use App\Livewire\Admin\Settings\Equipment\SectionIndex as SettingsEquipmentSectionIndex;
 use App\Livewire\Auth\RegisterWizard;
@@ -102,6 +104,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/equipos', SettingsEquipmentIndex::class)->name('equipment.index');
         Route::get('/equipos/marcas', SettingsBrandsIndex::class)->name('equipment.brands');
         Route::get('/equipos/marcas/{brand}', SettingsBrandsShow::class)->name('equipment.brands.show');
+        Route::get('/equipos/modelos', SettingsEquipmentModelsIndex::class)->name('equipment.models');
+        Route::get('/equipos/modelos/{equipmentModel}', SettingsEquipmentModelsShow::class)->name('equipment.models.show');
         Route::get('/equipos/{section}', SettingsEquipmentSectionIndex::class)->name('equipment.section');
     });
 });

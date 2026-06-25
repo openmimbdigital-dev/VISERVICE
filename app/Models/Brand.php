@@ -32,6 +32,11 @@ class Brand extends Model
         return $this->hasMany(Equipment::class, 'brand_id');
     }
 
+    public function equipmentModels(): HasMany
+    {
+        return $this->hasMany(EquipmentModel::class, 'brand_id');
+    }
+
     public function scopeActive($query)
     {
         return $query->where('active', true);
