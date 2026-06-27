@@ -14,6 +14,7 @@ return new class extends Migration
             $table->foreignId('client_id')->constrained('clients')->onDelete('cascade');
             $table->foreignId('brand_id')->nullable()->constrained('brands')->nullOnDelete();
             $table->foreignId('model_id')->nullable()->constrained('equipment_models')->nullOnDelete();
+            $table->foreignId('equipment_type_id')->nullable()->constrained('equipment_types')->nullOnDelete();
             $table->string('plate')->comment('Número de placa');
             $table->string('brand')->nullable()->comment('Marca');
             $table->string('model')->nullable()->comment('Modelo');
@@ -30,6 +31,7 @@ return new class extends Migration
             $table->index(['client_id', 'status']);
             $table->index(['brand_id', 'status']);
             $table->index(['model_id', 'status']);
+            $table->index(['equipment_type_id', 'status']);
         });
     }
 

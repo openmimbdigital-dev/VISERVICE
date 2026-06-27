@@ -14,7 +14,7 @@ class Equipment extends Model
     protected $table = 'equipment';
 
     protected $fillable = [
-        'business_id', 'client_id', 'brand_id', 'model_id',
+        'business_id', 'client_id', 'brand_id', 'model_id', 'equipment_type_id',
         'plate', 'brand', 'model', 'year', 'km_current',
         'status', 'notes', 'created_by',
     ];
@@ -46,6 +46,11 @@ class Equipment extends Model
     public function equipmentModel(): BelongsTo
     {
         return $this->belongsTo(EquipmentModel::class, 'model_id');
+    }
+
+    public function equipmentType(): BelongsTo
+    {
+        return $this->belongsTo(EquipmentType::class, 'equipment_type_id');
     }
 
     public function createdBy(): BelongsTo

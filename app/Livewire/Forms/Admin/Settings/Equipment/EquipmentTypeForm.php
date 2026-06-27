@@ -2,23 +2,23 @@
 
 namespace App\Livewire\Forms\Admin\Settings\Equipment;
 
-use App\Actions\Settings\Equipment\CreateOrUpdateBrandAction;
-use App\Models\Brand;
+use App\Actions\Settings\Equipment\CreateOrUpdateEquipmentTypeAction;
+use App\Models\EquipmentType;
 use Illuminate\Validation\Rule;
 use Livewire\Form;
 
-class BrandForm extends Form
+class EquipmentTypeForm extends Form
 {
-    public ?int $brand_id = null;
+    public ?int $equipment_type_id = null;
 
     public string $name   = '';
     public bool   $active = true;
 
-    public function setBrand(Brand $brand): void
+    public function setEquipmentType(EquipmentType $equipment_type): void
     {
-        $this->brand_id = $brand->id;
-        $this->name     = $brand->name;
-        $this->active   = $brand->active;
+        $this->equipment_type_id = $equipment_type->id;
+        $this->name              = $equipment_type->name;
+        $this->active            = $equipment_type->active;
     }
 
     public function isSuperAdmin(): bool
@@ -54,7 +54,7 @@ class BrandForm extends Form
                 'required',
                 'string',
                 'max:100',
-                Rule::unique('brands', 'name')->where($scope)->ignore($this->brand_id),
+                Rule::unique('equipment_types', 'name')->where($scope)->ignore($this->equipment_type_id),
                 function (string $attribute, mixed $value, \Closure $fail) use ($scope) {
                     $name = mb_strtolower(trim((string) $value));
 
@@ -63,34 +63,34 @@ class BrandForm extends Form
                         return;
                     }
 
-                    $query = Brand::query()->whereRaw('LOWER(TRIM(name)) = ?', [$name]);
+                    $query = EquipmentType::query()->whereRaw('LOWER(TRIM(name)) = ?', [$name]);
                     $scope($query);
 
-                    if ($this->brand_id) {
-                        $query->where('id', '!=', $this->brand_id);
+                    if ($this->equipment_type_id) {
+                        $query->where('id', '!=', $this->equipment_type_id);
                     }
 
                     if ($query->exists()) {
-                        $fail('Ya existe una marca con este nombre.');
+                        $fail('Ya existe un tipo con este nombre.');
                         return;
                     }
 
-                    $label = CreateOrUpdateBrandAction::normalizeLabel((string) $value);
+                    $label = CreateOrUpdateEquipmentTypeAction::normalizeLabel((string) $value);
 
                     if ($label === '') {
                         $fail('El nombre debe contener al menos una letra o número.');
                         return;
                     }
 
-                    $query = Brand::query()->where('label', $label);
+                    $query = EquipmentType::query()->where('label', $label);
                     $scope($query);
 
-                    if ($this->brand_id) {
-                        $query->where('id', '!=', $this->brand_id);
+                    if ($this->equipment_type_id) {
+                        $query->where('id', '!=', $this->equipment_type_id);
                     }
 
                     if ($query->exists()) {
-                        $fail('Ya existe una marca con un nombre equivalente.');
+                        $fail('Ya existe un tipo con un nombre equivalente.');
                     }
                 },
             ],
@@ -103,13 +103,13 @@ class BrandForm extends Form
         return [
             'name.required' => 'El nombre es obligatorio.',
             'name.max'      => 'El nombre no puede superar 100 caracteres.',
-            'name.unique'   => 'Ya existe una marca con este nombre.',
+            'name.unique'   => 'Ya existe un tipo con este nombre.',
         ];
     }
 
     public function isEditing(): bool
     {
-        return (bool) $this->brand_id;
+        return (bool) $this->equipment_type_id;
     }
 
     public function validated(): array

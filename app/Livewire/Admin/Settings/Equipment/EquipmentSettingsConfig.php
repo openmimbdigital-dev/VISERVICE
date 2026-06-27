@@ -11,6 +11,20 @@ class EquipmentSettingsConfig
     public static function sections(): array
     {
         return [
+            'types' => [
+                'key'                  => 'types',
+                'title'                => 'Tipos de equipo',
+                'description'          => 'Clasificación de equipos atendidos en el taller (motocicleta, automóvil, maquinaria, etc.).',
+                'button_text'          => 'Gestionar tipos',
+                'create_button_text'   => 'Nuevo tipo',
+                'route'                => 'admin.settings.equipment.types',
+                'datatable_component'  => 'admin.settings.equipment.types.datatable-equipment-types',
+                'card_bg'              => 'bg-violet-50/60 border-violet-100/80',
+                'icon_bg'              => 'bg-violet-100',
+                'icon_c'               => 'text-violet-600',
+                'btn_class'            => 'btn-primary',
+                'icon'                 => 'M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z',
+            ],
             'brands' => [
                 'key'                  => 'brands',
                 'title'                => 'Marcas',

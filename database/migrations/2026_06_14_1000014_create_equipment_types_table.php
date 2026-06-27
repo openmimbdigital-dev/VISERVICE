@@ -8,25 +8,23 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('equipment_models', function (Blueprint $table) {
+        Schema::create('equipment_types', function (Blueprint $table) {
             $table->id();
             $table->foreignId('business_id')->nullable()->constrained()->nullOnDelete();
-            $table->foreignId('brand_id')->constrained('brands')->cascadeOnDelete();
             $table->string('name');
             $table->string('label');
             $table->boolean('active')->default(true);
             $table->boolean('general')->default(false)->comment('Si es true, el registro aplica para todos los negocios');
             $table->timestamps();
 
-            $table->unique(['business_id', 'brand_id', 'name'], 'equipment_models_business_brand_name_unique');
-            $table->unique(['business_id', 'brand_id', 'label'], 'equipment_models_business_brand_label_unique');
-            $table->index(['business_id', 'brand_id', 'active']);
-            $table->index(['brand_id', 'active']);
+            $table->unique(['business_id', 'name'], 'equipment_types_business_id_name_unique');
+            $table->unique(['business_id', 'label'], 'equipment_types_business_id_label_unique');
+            $table->index(['business_id', 'active']);
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('equipment_models');
+        Schema::dropIfExists('equipment_types');
     }
 };

@@ -81,6 +81,27 @@ class EquipmentModelForm extends Form
                         return;
                     }
 
+                    $name = mb_strtolower(trim((string) $value));
+
+                    if ($name === '') {
+                        $fail('El nombre es obligatorio.');
+                        return;
+                    }
+
+                    $query = EquipmentModel::query()
+                        ->where('brand_id', $this->brand_id)
+                        ->whereRaw('LOWER(TRIM(name)) = ?', [$name]);
+                    $scope($query);
+
+                    if ($this->equipment_model_id) {
+                        $query->where('id', '!=', $this->equipment_model_id);
+                    }
+
+                    if ($query->exists()) {
+                        $fail('Ya existe un modelo con este nombre para la marca seleccionada.');
+                        return;
+                    }
+
                     $label = CreateOrUpdateEquipmentModelAction::normalizeLabel((string) $value);
 
                     if ($label === '') {
