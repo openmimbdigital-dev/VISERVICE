@@ -32,10 +32,14 @@ class Show extends Component
 
     public function delete(): void
     {
+        abort_unless(auth()->user()->can('settings.edit'), 403);
+
         if (! $this->equipment_model->canDelete()) {
-            $message = $this->equipment_model->hasDependencies()
-                ? 'No se puede eliminar: tiene equipos asociados'
-                : 'No tienes permiso para eliminar este modelo';
+            $message = $this->equipment_model->isGeneralReadonly()
+                ? 'No se puede eliminar: es un modelo general del sistema'
+                : ($this->equipment_model->hasDependencies()
+                    ? 'No se puede eliminar: tiene equipos asociados'
+                    : 'No tienes permiso para eliminar este modelo');
 
             $this->dispatch('swal', ['title' => $message, 'icon' => 'error']);
 
@@ -52,8 +56,9 @@ class Show extends Component
     public function render()
     {
         return view('livewire.admin.settings.equipment.models.show', [
-            'can_edit'   => $this->equipment_model->isEditableBy(),
-            'can_delete' => $this->equipment_model->canDelete(),
+            'can_edit'            => auth()->user()->can('settings.edit') && $this->equipment_model->isEditableBy(),
+            'can_delete'          => auth()->user()->can('settings.edit') && $this->equipment_model->canDelete(),
+            'is_general_readonly' => $this->equipment_model->isGeneralReadonly(),
         ]);
     }
 }

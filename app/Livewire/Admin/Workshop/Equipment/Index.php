@@ -39,8 +39,15 @@ class Index extends Component
         ];
     }
 
+    public function mount(): void
+    {
+        abort_unless(auth()->user()->can('workshop.equipment.view'), 403);
+    }
+
     public function openCreate(): void
     {
+        abort_unless(auth()->user()->can('workshop.equipment.create'), 403);
+
         $this->resetForm();
         $this->showModal = true;
     }
@@ -48,7 +55,9 @@ class Index extends Component
     #[On('open-equipment-edit')]
     public function openEdit(int $id): void
     {
-        $e = Equipment::findOrFail($id);
+        abort_unless(auth()->user()->can('workshop.equipment.edit'), 403);
+
+        $e = Equipment::query()->forAuthUser()->findOrFail($id);
         $this->editing_id = $e->id;
         $this->client_id  = $e->client_id;
         $this->plate      = $e->plate;
@@ -63,11 +72,19 @@ class Index extends Component
 
     public function save(): void
     {
+        abort_unless(
+            $this->editing_id
+                ? auth()->user()->can('workshop.equipment.edit')
+                : auth()->user()->can('workshop.equipment.create'),
+            403
+        );
+
         $this->validate();
-        $business_id = auth()->user()->business_id;
+
+        $client = Client::query()->forAuthUser()->findOrFail($this->client_id);
 
         $data = [
-            'business_id' => $business_id,
+            'business_id' => $client->business_id,
             'client_id'   => $this->client_id,
             'plate'       => strtoupper(trim($this->plate)),
             'brand'       => $this->brand ?: null,
@@ -80,7 +97,7 @@ class Index extends Component
         ];
 
         if ($this->editing_id) {
-            Equipment::findOrFail($this->editing_id)->update($data);
+            Equipment::query()->forAuthUser()->findOrFail($this->editing_id)->update($data);
             $this->dispatch('swal', ['title' => 'Equipo actualizado', 'icon' => 'success']);
         } else {
             Equipment::create($data);
@@ -112,13 +129,17 @@ class Index extends Component
 
     public function render()
     {
-        $business_id = auth()->user()->business_id;
+        $clients = Client::query()
+            ->forAuthUser()
+            ->where('status', true)
+            ->orderBy('name')
+            ->get();
 
-        $clients = Client::where('business_id', $business_id)->where('status', true)->orderBy('name')->get();
+        $equipment_query = Equipment::query()->forAuthUser();
 
         $stats = [
-            'total'  => Equipment::where('business_id', $business_id)->count(),
-            'active' => Equipment::where('business_id', $business_id)->where('status', true)->count(),
+            'total'  => (clone $equipment_query)->count(),
+            'active' => (clone $equipment_query)->where('status', true)->count(),
         ];
 
         return view('livewire.admin.workshop.equipment.index', compact('clients', 'stats'));

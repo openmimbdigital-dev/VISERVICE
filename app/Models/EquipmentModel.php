@@ -40,20 +40,23 @@ class EquipmentModel extends Model
 
     public function scopeActive($query)
     {
-        return $query->where('active', true);
+        $table = $query->getModel()->getTable();
+
+        return $query->where("{$table}.active", true);
     }
 
     public function scopeVisibleToUser(Builder $query, ?User $user = null): Builder
     {
         $user ??= auth()->user();
+        $table = $query->getModel()->getTable();
 
         if ($user?->hasRole('superAdmin')) {
             return $query;
         }
 
-        return $query->where(function (Builder $q) use ($user) {
-            $q->where('general', true)
-                ->orWhere('business_id', $user?->business_id);
+        return $query->where(function (Builder $q) use ($user, $table) {
+            $q->where("{$table}.general", true)
+                ->orWhere("{$table}.business_id", $user?->business_id);
         });
     }
 
@@ -66,6 +69,11 @@ class EquipmentModel extends Model
         }
 
         return ! $this->general && $this->business_id === $user?->business_id;
+    }
+
+    public function isGeneralReadonly(?User $user = null): bool
+    {
+        return $this->general && ! $this->isEditableBy($user);
     }
 
     public function hasDependencies(): bool

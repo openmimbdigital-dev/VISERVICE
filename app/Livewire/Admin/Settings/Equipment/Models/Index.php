@@ -27,6 +27,8 @@ class Index extends Component
 
     public function openCreate(): void
     {
+        abort_unless(auth()->user()->can('settings.edit'), 403);
+
         $this->form->reset();
         $this->form->active = true;
         $this->showModal    = true;
@@ -36,6 +38,8 @@ class Index extends Component
     #[On('open-equipment-model-edit')]
     public function openEdit(int $id): void
     {
+        abort_unless(auth()->user()->can('settings.edit'), 403);
+
         $equipment_model = EquipmentModel::findOrFail($id);
         abort_unless($equipment_model->isEditableBy(), 403);
 
@@ -57,7 +61,7 @@ class Index extends Component
 
     public function save(): void
     {
-        abort_unless(auth()->user()->can('settings.view'), 403);
+        abort_unless(auth()->user()->can('settings.edit'), 403);
 
         $was_editing = $this->form->isEditing();
 
@@ -82,6 +86,7 @@ class Index extends Component
             'config'         => EquipmentSettingsConfig::sectionOrFail('models'),
             'is_super_admin' => $this->form->isSuperAdmin(),
             'brands'         => Brand::query()->visibleToUser()->active()->orderBy('name')->get(),
+            'can_edit'       => auth()->user()->can('settings.edit'),
         ]);
     }
 }

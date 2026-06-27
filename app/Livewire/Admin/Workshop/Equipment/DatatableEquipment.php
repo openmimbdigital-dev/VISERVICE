@@ -15,15 +15,34 @@ class DatatableEquipment extends LivewireDatatable
 
     public function builder(): Builder
     {
-        return Equipment::where('equipment.business_id', auth()->user()->business_id)
+        $query = Equipment::query()
+            ->forAuthUser()
             ->leftJoin('clients', 'equipment.client_id', '=', 'clients.id')
-            ->select('equipment.*', 'clients.name as client_name')
-            ->orderBy('equipment.plate');
+            ->select('equipment.*', 'clients.name as client_name');
+
+        if (auth()->user()->hasRole('superAdmin')) {
+            return $query
+                ->leftJoin('businesses', 'equipment.business_id', '=', 'businesses.id')
+                ->addSelect('businesses.name as business_name')
+                ->orderBy('businesses.name')
+                ->orderBy('equipment.plate');
+        }
+
+        return $query->orderBy('equipment.plate');
     }
 
     public function getColumns(): Model|array
     {
-        return [
+        $columns = [];
+
+        if (auth()->user()->hasRole('superAdmin')) {
+            $columns[] = Column::raw('businesses.name AS business_name')
+                ->label('Comercio')
+                ->sortable()
+                ->searchable();
+        }
+
+        return array_merge($columns, [
             Column::name('plate')
                 ->label('Placa')
                 ->searchable()
@@ -54,7 +73,7 @@ class DatatableEquipment extends LivewireDatatable
             Column::callback(['id'], function ($id) {
                 return view('livewire.admin.workshop.equipment.actions', ['id' => $id]);
             })->label('Acciones')->unsortable(),
-        ];
+        ]);
     }
 
     public function openEditEvent(int $id): void
@@ -64,14 +83,23 @@ class DatatableEquipment extends LivewireDatatable
 
     public function deleteRecord(int $id): void
     {
-        $equipment = Equipment::findOrFail($id);
+        abort_unless(auth()->user()->can('workshop.equipment.delete'), 403);
+
+        $equipment = $this->findAuthorized($id);
+
         if ($equipment->workOrders()->exists()) {
             $this->dispatch('swal', ['title' => 'No se puede eliminar: tiene OTs asociadas', 'icon' => 'error']);
             return;
         }
+
         $equipment->delete();
         $this->dispatch('swal', ['title' => 'Equipo eliminado', 'icon' => 'warning']);
         $this->dispatch('equipment-deleted');
+    }
+
+    private function findAuthorized(int $id): Equipment
+    {
+        return Equipment::query()->forAuthUser()->where('equipment.id', $id)->firstOrFail();
     }
 
     public function render()

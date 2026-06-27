@@ -80,6 +80,15 @@ return [
                 'workshop.clients.deactivate' => 'Desactivar clientes',
             ],
         ],
+        'workshop_equipment' => [
+            'name' => 'Taller — Equipos',
+            'permissions' => [
+                'workshop.equipment.view' => 'Ver equipos',
+                'workshop.equipment.create' => 'Crear equipos',
+                'workshop.equipment.edit' => 'Editar equipos',
+                'workshop.equipment.delete' => 'Eliminar equipos',
+            ],
+        ],
     ],
 
     /*

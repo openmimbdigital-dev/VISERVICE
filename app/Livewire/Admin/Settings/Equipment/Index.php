@@ -10,6 +10,11 @@ use Livewire\Component;
 #[Title('Configuración — Equipos')]
 class Index extends Component
 {
+    public function mount(): void
+    {
+        abort_unless(auth()->user()->can('settings.view'), 403);
+    }
+
     public function render()
     {
         return view('livewire.admin.settings.equipment.index', [

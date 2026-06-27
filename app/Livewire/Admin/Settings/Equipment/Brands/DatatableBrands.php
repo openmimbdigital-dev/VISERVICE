@@ -20,16 +20,21 @@ class DatatableBrands extends LivewireDatatable
 
     public function builder(): Builder
     {
-        return Brand::query()
+        $query = Brand::query()
             ->visibleToUser()
-            ->leftJoin('businesses', 'brands.business_id', '=', 'businesses.id')
             ->select('brands.*')
             ->orderByDesc('brands.created_at');
+
+        if (auth()->user()->hasRole('superAdmin')) {
+            $query->leftJoin('businesses', 'brands.business_id', '=', 'businesses.id');
+        }
+
+        return $query;
     }
 
     public function getColumns(): Model|array
     {
-        return [
+        $columns = [
             Column::name('brands.name')
                 ->label('Nombre')
                 ->searchable()
@@ -42,13 +47,17 @@ class DatatableBrands extends LivewireDatatable
 
                 return '<span class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 ring-1 ring-slate-500/20">No</span>';
             })->label('General')->filterable([1 => 'Sí', 0 => 'No']),
+        ];
 
-            Column::callback(['businesses.name'], function ($business_name) {
+        if (auth()->user()->hasRole('superAdmin')) {
+            $columns[] = Column::callback(['businesses.name'], function ($business_name) {
                 return $business_name
                     ? e($business_name)
                     : '<span class="text-slate-400">—</span>';
-            })->label('Negocio'),
+            })->label('Negocio');
+        }
 
+        return array_merge($columns, [
             Column::callback(['brands.active'], function ($active) {
                 $label = $active ? 'Activo' : 'Inactivo';
                 $class = $active
@@ -62,12 +71,13 @@ class DatatableBrands extends LivewireDatatable
                 $brand = Brand::find($id);
 
                 return view('livewire.admin.settings.equipment.brands.actions', [
-                    'id'         => $id,
-                    'can_edit'   => $brand?->isEditableBy() ?? false,
-                    'can_delete' => $brand?->canDelete() ?? false,
+                    'id'                  => $id,
+                    'can_edit'            => auth()->user()->can('settings.edit') && ($brand?->isEditableBy() ?? false),
+                    'can_delete'          => auth()->user()->can('settings.edit') && ($brand?->canDelete() ?? false),
+                    'is_general_readonly' => $brand?->isGeneralReadonly() ?? false,
                 ]);
             })->label('Acciones')->unsortable(),
-        ];
+        ]);
     }
 
     public function openEditEvent(int $id): void
@@ -77,12 +87,16 @@ class DatatableBrands extends LivewireDatatable
 
     public function deleteRecord(int $id): void
     {
+        abort_unless(auth()->user()->can('settings.edit'), 403);
+
         $brand = Brand::findOrFail($id);
 
         if (! $brand->canDelete()) {
-            $message = $brand->hasDependencies()
-                ? 'No se puede eliminar: tiene equipos asociados'
-                : 'No tienes permiso para eliminar esta marca';
+            $message = $brand->isGeneralReadonly()
+                ? 'No se puede eliminar: es una marca general del sistema'
+                : ($brand->hasDependencies()
+                    ? 'No se puede eliminar: tiene equipos asociados'
+                    : 'No tienes permiso para eliminar esta marca');
 
             $this->dispatch('swal', ['title' => $message, 'icon' => 'error']);
 

@@ -18,6 +18,8 @@ class CreateOrUpdateBrandAction
      */
     public function handle(?int $brand_id, array $data): Brand
     {
+        abort_unless(auth()->user()->can('settings.edit'), 403);
+
         $user = auth()->user();
         $is_super_admin = $user->hasRole('superAdmin');
 

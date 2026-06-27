@@ -19,6 +19,8 @@ class CreateOrUpdateEquipmentModelAction
      */
     public function handle(?int $equipment_model_id, array $data): EquipmentModel
     {
+        abort_unless(auth()->user()->can('settings.edit'), 403);
+
         $user = auth()->user();
         $is_super_admin = $user->hasRole('superAdmin');
 

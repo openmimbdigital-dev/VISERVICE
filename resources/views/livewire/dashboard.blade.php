@@ -32,7 +32,7 @@
                 'icon_c'  => 'text-emerald-600',
                 'links'   => [
                     ['label' => 'Clientes',      'route' => 'admin.workshop.clients.index', 'permission' => 'workshop.clients.view'],
-                    ['label' => 'Equipos',     'route' => 'admin.workshop.equipment.index'],
+                    ['label' => 'Equipos',     'route' => 'admin.workshop.equipment.index', 'permission' => 'workshop.equipment.view'],
                     ['label' => 'Cotizaciones',  'route' => 'admin.workshop.quotations.index'],
                     ['label' => 'Órdenes (OT)',  'route' => 'admin.workshop.work-orders.index'],
                 ],

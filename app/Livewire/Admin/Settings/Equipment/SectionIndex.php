@@ -12,6 +12,8 @@ class SectionIndex extends Component
 
     public function mount(string $section): void
     {
+        abort_unless(auth()->user()->can('settings.view'), 403);
+
         $this->section = $section;
         EquipmentSettingsConfig::sectionOrFail($section);
     }

@@ -20,17 +20,22 @@ class DatatableEquipmentModels extends LivewireDatatable
 
     public function builder(): Builder
     {
-        return EquipmentModel::query()
+        $query = EquipmentModel::query()
             ->visibleToUser()
             ->leftJoin('brands', 'equipment_models.brand_id', '=', 'brands.id')
-            ->leftJoin('businesses', 'equipment_models.business_id', '=', 'businesses.id')
             ->select('equipment_models.*')
             ->orderByDesc('equipment_models.created_at');
+
+        if (auth()->user()->hasRole('superAdmin')) {
+            $query->leftJoin('businesses', 'equipment_models.business_id', '=', 'businesses.id');
+        }
+
+        return $query;
     }
 
     public function getColumns(): Model|array
     {
-        return [
+        $columns = [
             Column::name('equipment_models.name')
                 ->label('Nombre')
                 ->searchable()
@@ -49,13 +54,17 @@ class DatatableEquipmentModels extends LivewireDatatable
 
                 return '<span class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 ring-1 ring-slate-500/20">No</span>';
             })->label('General')->filterable([1 => 'Sí', 0 => 'No']),
+        ];
 
-            Column::callback(['businesses.name'], function ($business_name) {
+        if (auth()->user()->hasRole('superAdmin')) {
+            $columns[] = Column::callback(['businesses.name'], function ($business_name) {
                 return $business_name
                     ? e($business_name)
                     : '<span class="text-slate-400">—</span>';
-            })->label('Negocio'),
+            })->label('Negocio');
+        }
 
+        return array_merge($columns, [
             Column::callback(['equipment_models.active'], function ($active) {
                 $label = $active ? 'Activo' : 'Inactivo';
                 $class = $active
@@ -69,12 +78,13 @@ class DatatableEquipmentModels extends LivewireDatatable
                 $equipment_model = EquipmentModel::find($id);
 
                 return view('livewire.admin.settings.equipment.models.actions', [
-                    'id'         => $id,
-                    'can_edit'   => $equipment_model?->isEditableBy() ?? false,
-                    'can_delete' => $equipment_model?->canDelete() ?? false,
+                    'id'                  => $id,
+                    'can_edit'            => auth()->user()->can('settings.edit') && ($equipment_model?->isEditableBy() ?? false),
+                    'can_delete'          => auth()->user()->can('settings.edit') && ($equipment_model?->canDelete() ?? false),
+                    'is_general_readonly' => $equipment_model?->isGeneralReadonly() ?? false,
                 ]);
             })->label('Acciones')->unsortable(),
-        ];
+        ]);
     }
 
     public function openEditEvent(int $id): void
@@ -84,12 +94,16 @@ class DatatableEquipmentModels extends LivewireDatatable
 
     public function deleteRecord(int $id): void
     {
+        abort_unless(auth()->user()->can('settings.edit'), 403);
+
         $equipment_model = EquipmentModel::findOrFail($id);
 
         if (! $equipment_model->canDelete()) {
-            $message = $equipment_model->hasDependencies()
-                ? 'No se puede eliminar: tiene equipos asociados'
-                : 'No tienes permiso para eliminar este modelo';
+            $message = $equipment_model->isGeneralReadonly()
+                ? 'No se puede eliminar: es un modelo general del sistema'
+                : ($equipment_model->hasDependencies()
+                    ? 'No se puede eliminar: tiene equipos asociados'
+                    : 'No tienes permiso para eliminar este modelo');
 
             $this->dispatch('swal', ['title' => $message, 'icon' => 'error']);
 

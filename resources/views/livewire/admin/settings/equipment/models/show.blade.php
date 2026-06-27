@@ -27,17 +27,17 @@
                     </svg>
                     Volver
                 </a>
-                @if($can_edit)
+                @can('settings.edit')
                 <button type="button" wire:click="delete" wire:confirm="¿Eliminar este modelo?"
                     @disabled(! $can_delete)
-                    title="{{ $can_delete ? 'Eliminar modelo' : 'No se puede eliminar: tiene equipos asociados' }}"
+                    title="{{ $is_general_readonly ? 'Modelo general del sistema: no se puede eliminar' : ($can_delete ? 'Eliminar modelo' : 'No se puede eliminar: tiene equipos asociados') }}"
                     class="btn btn-danger btn-sm flex-1 sm:flex-none justify-center disabled:cursor-not-allowed disabled:opacity-50">
                     <svg class="mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                     </svg>
                     Eliminar
                 </button>
-                @endif
+                @endcan
             </div>
         </div>
     </header>
@@ -88,7 +88,11 @@
             <div class="px-5 py-5">
                 <p class="text-3xl font-bold text-slate-900">{{ $equipment_count }}</p>
                 <p class="mt-1 text-sm text-slate-600">Equipo(s) asociado(s)</p>
-                @if($equipment_count > 0)
+                @if($is_general_readonly)
+                <p class="mt-4 rounded-xl border border-indigo-100 bg-indigo-50 px-3.5 py-2.5 text-xs text-indigo-800">
+                    Modelo general del sistema. Los negocios pueden consultarlo pero no editarlo ni eliminarlo.
+                </p>
+                @elseif($equipment_count > 0)
                 <p class="mt-4 rounded-xl border border-amber-100 bg-amber-50 px-3.5 py-2.5 text-xs text-amber-800">
                     Este modelo está en uso y no puede eliminarse hasta que no tenga equipos asociados.
                 </p>

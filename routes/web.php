@@ -86,7 +86,9 @@ Route::middleware('auth')->group(function () {
         Route::middleware('permission:workshop.clients.edit')->group(function () {
             Route::get('/clientes/{client}/form', WorkshopClientsForm::class)->name('clients.form.edit');
         });
-        Route::get('/equipos', WorkshopEquipmentIndex::class)->name('equipment.index');
+        Route::middleware('permission:workshop.equipment.view')->group(function () {
+            Route::get('/equipos', WorkshopEquipmentIndex::class)->name('equipment.index');
+        });
         Route::get('/cotizaciones', WorkshopQuotationsIndex::class)->name('quotations.index');
         Route::get('/cotizaciones/{quotation}', WorkshopQuotationsShow::class)->name('quotations.show');
         Route::get('/ordenes', WorkshopWorkOrdersIndex::class)->name('work-orders.index');

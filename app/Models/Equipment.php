@@ -68,6 +68,17 @@ class Equipment extends Model
         return $query->where('status', true);
     }
 
+    public function scopeForAuthUser($query)
+    {
+        $user = auth()->user();
+
+        if ($user?->hasRole('superAdmin')) {
+            return $query;
+        }
+
+        return $query->where($query->getModel()->getTable() . '.business_id', $user->business_id);
+    }
+
     public function getDisplayNameAttribute(): string
     {
         $parts = array_filter([$this->brand, $this->model, $this->year]);

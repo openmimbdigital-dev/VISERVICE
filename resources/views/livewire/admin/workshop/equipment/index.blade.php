@@ -32,10 +32,12 @@
     <section class="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
         <div class="flex items-center justify-between border-b border-slate-100 bg-slate-50/80 px-5 py-4">
             <h2 class="font-semibold text-slate-800">Listado de equipos</h2>
+            @can('workshop.equipment.create')
             <button wire:click="openCreate" class="btn btn-primary btn-sm">
                 <svg class="mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                 Nuevo equipo
             </button>
+            @endcan
         </div>
         <div class="p-4">
             <livewire:admin.workshop.equipment.datatable-equipment />

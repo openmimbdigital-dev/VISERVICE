@@ -25,9 +25,11 @@
                     </svg>
                     Volver
                 </a>
+                @can('settings.edit')
                 <x-ui.create-button wire:click="openCreate" size="sm" class="flex-1 sm:flex-none justify-center">
                     {{ $config['create_button_text'] ?? 'Nuevo modelo' }}
                 </x-ui.create-button>
+                @endcan
             </div>
         </div>
     </header>
