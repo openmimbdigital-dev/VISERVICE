@@ -34,9 +34,9 @@ class FinalizeWorkOrderAction
                 'finalized_at'     => now(),
             ]);
 
-            // Actualiza km del vehículo con el km de salida
-            if ($km_exit && $km_exit > $workOrder->vehicle->km_current) {
-                $workOrder->vehicle->update(['km_current' => $km_exit]);
+            // Actualiza km del equipo con el km de salida
+            if ($km_exit && $km_exit > $workOrder->equipment->km_current) {
+                $workOrder->equipment->update(['km_current' => $km_exit]);
             }
 
             // Genera factura si no existe ninguna pendiente o pagada

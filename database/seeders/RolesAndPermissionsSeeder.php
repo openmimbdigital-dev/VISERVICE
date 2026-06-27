@@ -35,6 +35,12 @@ class RolesAndPermissionsSeeder extends Seeder
             'subscriptions.view', 'subscriptions.create', 'subscriptions.edit', 'subscriptions.cancel',
             'subscriptions.plans.view', 'subscriptions.plans.manage',
             'subscriptions.invoices.view', 'subscriptions.invoices.manage',
+            // Taller — Clientes
+            'workshop.clients.view', 'workshop.clients.create', 'workshop.clients.edit',
+            'workshop.clients.delete', 'workshop.clients.activate', 'workshop.clients.deactivate',
+            // Taller — Equipos
+            'workshop.equipment.view', 'workshop.equipment.create', 'workshop.equipment.edit',
+            'workshop.equipment.delete',
         ])->mapWithKeys(fn ($name) => [
             $name => Permission::firstOrCreate(['name' => $name, 'guard_name' => $guard]),
         ]);
@@ -55,8 +61,11 @@ class RolesAndPermissionsSeeder extends Seeder
             'users.view', 'users.create', 'users.edit',
             'businesses.view', 'businesses.create', 'businesses.edit',
             'reports.view', 'reports.export',
-            'settings.view',
+            'settings.view', 'settings.edit',
             'roles.view',
+            'workshop.clients.view', 'workshop.clients.create', 'workshop.clients.edit',
+            'workshop.clients.activate', 'workshop.clients.deactivate',
+            'workshop.equipment.view', 'workshop.equipment.create', 'workshop.equipment.edit',
         ])->values());
 
         // Comercio: propietario del negocio registrado vía onboarding
@@ -64,12 +73,16 @@ class RolesAndPermissionsSeeder extends Seeder
             'users.view', 'users.create', 'users.edit', 'users.delete',
             'businesses.view', 'businesses.edit',
             'reports.view', 'reports.export',
-            'settings.view',
+            'settings.view', 'settings.edit',
+            'workshop.clients.view', 'workshop.clients.create', 'workshop.clients.edit',
+            'workshop.clients.delete', 'workshop.clients.activate', 'workshop.clients.deactivate',
+            'workshop.equipment.view', 'workshop.equipment.create', 'workshop.equipment.edit',
+            'workshop.equipment.delete',
         ])->values());
 
         // Supervisor: solo lectura
         $supervisor->syncPermissions($perms->only([
-            'users.view', 'businesses.view', 'reports.view', 'settings.view', 'roles.view',
+            'users.view', 'businesses.view', 'reports.view', 'roles.view',
         ])->values());
 
         // Operador: mínimo

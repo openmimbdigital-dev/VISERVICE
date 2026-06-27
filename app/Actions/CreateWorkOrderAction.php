@@ -17,18 +17,18 @@ class CreateWorkOrderAction
      *
      * @param  int    $business_id
      * @param  int    $client_id
-     * @param  int    $vehicle_id
+     * @param  int    $equipment_id
      * @param  array  $data   Campos adicionales (quotation_id, km_entry, diagnosis, etc.)
      * @param  array  $items  Array de items
      * @return WorkOrder
      */
-    public function handle(int $business_id, int $client_id, int $vehicle_id, array $data, array $items = []): WorkOrder
+    public function handle(int $business_id, int $client_id, int $equipment_id, array $data, array $items = []): WorkOrder
     {
-        return DB::transaction(function () use ($business_id, $client_id, $vehicle_id, $data, $items) {
+        return DB::transaction(function () use ($business_id, $client_id, $equipment_id, $data, $items) {
             $workOrder = WorkOrder::create([
                 'business_id'       => $business_id,
                 'client_id'         => $client_id,
-                'vehicle_id'        => $vehicle_id,
+                'equipment_id'      => $equipment_id,
                 'quotation_id'      => $data['quotation_id'] ?? null,
                 'reference'         => WorkOrder::generateReference($business_id),
                 'status'            => 'abierta',
@@ -47,10 +47,10 @@ class CreateWorkOrderAction
 
             $workOrder->recalculateTotals();
 
-            // Actualiza el km del vehículo si es mayor al registrado
-            $vehicle = $workOrder->vehicle;
-            if ($workOrder->km_entry > $vehicle->km_current) {
-                $vehicle->update(['km_current' => $workOrder->km_entry]);
+            // Actualiza el km del equipo si es mayor al registrado
+            $equipment = $workOrder->equipment;
+            if ($workOrder->km_entry > $equipment->km_current) {
+                $equipment->update(['km_current' => $workOrder->km_entry]);
             }
 
             return $workOrder->fresh();

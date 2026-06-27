@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin\Workshop\Clients;
 
+use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
 use App\Models\Client;
 use Arm092\LivewireDatatables\Column;
 use Arm092\LivewireDatatables\DateColumn;
@@ -11,18 +12,38 @@ use Illuminate\Database\Eloquent\Model;
 
 class DatatableClients extends LivewireDatatable
 {
+    use ConfirmsDeletionWithLivewireAlert;
+
     public bool $exportable = true;
     public ?int $perPage = 25;
 
     public function builder(): Builder
     {
-        return Client::where('business_id', auth()->user()->business_id)
-            ->orderBy('name');
+        $query = Client::query()->forAuthUser();
+
+        if (auth()->user()->hasRole('superAdmin')) {
+            return $query
+                ->leftJoin('businesses', 'clients.business_id', '=', 'businesses.id')
+                ->select('clients.*')
+                ->orderBy('businesses.name')
+                ->orderBy('clients.name');
+        }
+
+        return $query->orderBy('clients.name');
     }
 
     public function getColumns(): Model|array
     {
-        return [
+        $columns = [];
+
+        if (auth()->user()->hasRole('superAdmin')) {
+            $columns[] = Column::raw('businesses.name AS business_name')
+                ->label('Comercio')
+                ->sortable()
+                ->searchable();
+        }
+
+        return array_merge($columns, [
             Column::name('name')
                 ->label('Nombre')
                 ->searchable()
@@ -52,34 +73,61 @@ class DatatableClients extends LivewireDatatable
                 ->label('Registro')
                 ->sortable(),
 
-            Column::callback(['id'], function ($id) {
-                return view('livewire.admin.workshop.clients.actions', ['id' => $id]);
+            Column::callback(['id', 'status'], function ($id, $status) {
+                return view('livewire.admin.workshop.clients.actions', [
+                    'id'     => $id,
+                    'status' => $status,
+                ]);
             })->label('Acciones')->unsortable(),
-        ];
-    }
-
-    public function openEditEvent(int $id): void
-    {
-        $this->dispatch('open-client-edit', id: $id);
+        ]);
     }
 
     public function toggleStatus(int $id): void
     {
-        $client = Client::findOrFail($id);
-        $client->update(['status' => !$client->status]);
+        $client = $this->findAuthorized($id);
+
+        if ($client->status) {
+            abort_unless(auth()->user()->can('workshop.clients.deactivate'), 403);
+        } else {
+            abort_unless(auth()->user()->can('workshop.clients.activate'), 403);
+        }
+
+        $client->update(['status' => ! $client->status]);
         $this->dispatch('swal', ['title' => 'Estado actualizado', 'icon' => 'success']);
     }
 
     public function deleteRecord(int $id): void
     {
-        $client = Client::findOrFail($id);
-        if ($client->workOrders()->exists() || $client->quotations()->exists()) {
-            $this->dispatch('swal', ['title' => 'No se puede eliminar: tiene OTs o cotizaciones asociadas', 'icon' => 'error']);
-            return;
+        abort_unless(auth()->user()->can('workshop.clients.delete'), 403);
+
+        $this->askDeleteConfirmation($id, '¿Estás seguro de querer eliminar este cliente?');
+    }
+
+    protected function onDeleteConfirmed(): void
+    {
+        try {
+            abort_unless(auth()->user()->can('workshop.clients.delete'), 403);
+
+            $client = $this->findAuthorized($this->delete_id);
+
+            if ($client->workOrders()->exists() || $client->quotations()->exists()) {
+                $this->alertDeleteError('No se puede eliminar: tiene OTs o cotizaciones asociadas.');
+
+                return;
+            }
+
+            $client->delete();
+
+            $this->alertDeleteSuccess('Cliente eliminado correctamente.');
+            $this->dispatch('client-deleted');
+        } catch (\Throwable) {
+            $this->alertDeleteError('No se pudo eliminar el cliente.');
         }
-        $client->delete();
-        $this->dispatch('swal', ['title' => 'Cliente eliminado', 'icon' => 'warning']);
-        $this->dispatch('client-deleted');
+    }
+
+    private function findAuthorized(int $id): Client
+    {
+        return Client::forAuthUser()->where('clients.id', $id)->firstOrFail();
     }
 
     public function render()

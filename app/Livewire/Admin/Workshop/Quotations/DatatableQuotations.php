@@ -18,8 +18,8 @@ class DatatableQuotations extends LivewireDatatable
     {
         return Quotation::where('quotations.business_id', auth()->user()->business_id)
             ->leftJoin('clients', 'quotations.client_id', '=', 'clients.id')
-            ->leftJoin('vehicles', 'quotations.vehicle_id', '=', 'vehicles.id')
-            ->select('quotations.*', 'clients.name as client_name', 'vehicles.plate as vehicle_plate')
+            ->leftJoin('equipment', 'quotations.equipment_id', '=', 'equipment.id')
+            ->select('quotations.*', 'clients.name as client_name', 'equipment.plate as equipment_plate')
             ->latest('quotations.created_at');
     }
 
@@ -36,7 +36,7 @@ class DatatableQuotations extends LivewireDatatable
                 ->searchable()
                 ->sortable(),
 
-            Column::name('vehicle_plate')
+            Column::name('equipment_plate')
                 ->label('Placa')
                 ->searchable(),
 

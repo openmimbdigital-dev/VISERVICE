@@ -20,7 +20,7 @@
                 <span class="inline-flex items-center rounded-full px-3 py-1 text-sm font-medium {{ $badge }}">{{ $quotation->status_label }}</span>
             </div>
             <p class="mt-1 text-sm text-slate-500">
-                {{ $quotation->client?->name }} &nbsp;·&nbsp; {{ $quotation->vehicle?->plate }} {{ $quotation->vehicle?->brand }} {{ $quotation->vehicle?->model }}
+                {{ $quotation->client?->name }} &nbsp;·&nbsp; {{ $quotation->equipment?->plate }} {{ $quotation->equipment?->brand }} {{ $quotation->equipment?->model }}
                 &nbsp;·&nbsp; Km: {{ number_format($quotation->km_entry) }}
             </p>
         </div>

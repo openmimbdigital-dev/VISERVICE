@@ -351,7 +351,7 @@ class Show extends Component
         $services    = ServiceCatalog::where('business_id', $business_id)->active()->orderBy('name')->get();
         $spare_parts = SparePartCatalog::where('business_id', $business_id)->active()->orderBy('name')->get();
 
-        $this->workOrder->load(['items', 'remissions', 'invoices', 'purchaseOrders.items', 'client', 'vehicle', 'quotation']);
+        $this->workOrder->load(['items', 'remissions', 'invoices', 'purchaseOrders.items', 'client', 'equipment', 'quotation']);
 
         return view('livewire.admin.workshop.work-orders.show', compact('services', 'spare_parts'));
     }

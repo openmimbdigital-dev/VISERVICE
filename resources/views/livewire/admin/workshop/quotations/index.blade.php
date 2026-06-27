@@ -41,13 +41,21 @@
     </section>
 
     {{-- Modal nueva cotización --}}
-    <div x-show="$wire.showModal" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none">
-        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" wire:click="closeModal"></div>
-        <div class="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl" @click.stop>
-            <h3 class="text-lg font-semibold text-slate-900">Nueva Cotización</h3>
-            <p class="mt-1 text-sm text-slate-500">La cotización se crea en borrador. Luego puedes agregar items en el detalle.</p>
-            <div class="mt-4 grid grid-cols-2 gap-4">
-                <div class="col-span-2">
+    <x-ui.modal x-show="$wire.showModal" x-cloak style="display:none">
+        <x-slot:backdrop>
+            <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" wire:click="closeModal"></div>
+        </x-slot:backdrop>
+
+        <div class="flex shrink-0 border-b border-slate-100 px-4 py-4 sm:px-6">
+            <div>
+                <h3 class="text-base font-semibold text-slate-900">Nueva Cotización</h3>
+                <p class="mt-1 text-sm text-slate-500">La cotización se crea en borrador. Luego puedes agregar items en el detalle.</p>
+            </div>
+        </div>
+
+        <div class="flex-1 overflow-y-auto px-4 py-5 sm:px-6">
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div class="sm:col-span-2">
                     <label class="label-up">Cliente *</label>
                     <select wire:model.live="client_id" class="form-select">
                         <option value="">Seleccionar cliente</option>
@@ -57,15 +65,15 @@
                     </select>
                     @error('client_id')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                 </div>
-                <div class="col-span-2">
-                    <label class="label-up">Vehículo *</label>
-                    <select wire:model="vehicle_id" class="form-select" {{ !$client_id ? 'disabled' : '' }}>
-                        <option value="">{{ $client_id ? 'Seleccionar vehículo' : 'Primero selecciona un cliente' }}</option>
-                        @foreach($vehicles_for_client as $v)
-                            <option value="{{ $v->id }}">{{ $v->plate }} — {{ $v->brand }} {{ $v->model }}</option>
+                <div class="sm:col-span-2">
+                    <label class="label-up">Equipo *</label>
+                    <select wire:model="equipment_id" class="form-select" {{ !$client_id ? 'disabled' : '' }}>
+                        <option value="">{{ $client_id ? 'Seleccionar equipo' : 'Primero selecciona un cliente' }}</option>
+                        @foreach($equipment_for_client as $e)
+                            <option value="{{ $e->id }}">{{ $e->plate }} — {{ $e->brand }} {{ $e->model }}</option>
                         @endforeach
                     </select>
-                    @error('vehicle_id')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                    @error('equipment_id')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                 </div>
                 <div>
                     <label class="label-up">Km al ingreso</label>
@@ -79,15 +87,16 @@
                     <label class="label-up">IVA (%)</label>
                     <input type="number" wire:model="tax_percentage" class="form-input" min="0" max="100" step="0.5" />
                 </div>
-                <div class="col-span-2">
+                <div class="sm:col-span-2">
                     <label class="label-up">Diagnóstico inicial</label>
                     <textarea wire:model="diagnosis" class="form-input" rows="2" placeholder="Descripción del problema"></textarea>
                 </div>
             </div>
-            <div class="mt-6 flex justify-end gap-3">
-                <button wire:click="closeModal" class="btn btn-outline-secondary">Cancelar</button>
-                <button wire:click="save" wire:loading.attr="disabled" class="btn btn-primary">Crear cotización</button>
-            </div>
         </div>
-    </div>
+
+        <div class="flex shrink-0 flex-col-reverse gap-2 border-t border-slate-100 px-4 py-4 sm:flex-row sm:justify-end sm:gap-3 sm:px-6">
+            <button type="button" wire:click="closeModal" class="btn btn-outline-secondary w-full justify-center sm:w-auto">Cancelar</button>
+            <button type="button" wire:click="save" wire:loading.attr="disabled" class="btn btn-primary w-full justify-center sm:w-auto">Crear cotización</button>
+        </div>
+    </x-ui.modal>
 </div>

@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('business_id')->constrained()->onDelete('cascade');
             $table->foreignId('client_id')->constrained('clients')->onDelete('cascade');
-            $table->foreignId('vehicle_id')->constrained('vehicles')->onDelete('cascade');
+            $table->foreignId('equipment_id')->constrained('equipment')->onDelete('cascade');
             $table->foreignId('quotation_id')->nullable()->constrained('quotations')->nullOnDelete();
             $table->string('reference')->comment('OT-YYYYMM-XXXX');
             $table->enum('status', ['abierta', 'en_proceso', 'finalizada', 'cancelada'])->default('abierta');
@@ -35,7 +35,7 @@ return new class extends Migration
             $table->unique(['business_id', 'reference']);
             $table->index(['business_id', 'status']);
             $table->index(['client_id', 'status']);
-            $table->index(['vehicle_id', 'status']);
+            $table->index(['equipment_id', 'status']);
             $table->index('created_at');
         });
     }

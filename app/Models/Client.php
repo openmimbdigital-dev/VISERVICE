@@ -34,9 +34,9 @@ class Client extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    public function vehicles(): HasMany
+    public function equipment(): HasMany
     {
-        return $this->hasMany(Vehicle::class);
+        return $this->hasMany(Equipment::class);
     }
 
     public function quotations(): HasMany
@@ -52,6 +52,17 @@ class Client extends Model
     public function scopeActive($query)
     {
         return $query->where('status', true);
+    }
+
+    public function scopeForAuthUser($query)
+    {
+        $user = auth()->user();
+
+        if ($user?->hasRole('superAdmin')) {
+            return $query;
+        }
+
+        return $query->where($query->getModel()->getTable() . '.business_id', $user->business_id);
     }
 
     public function getFullDocumentAttribute(): string

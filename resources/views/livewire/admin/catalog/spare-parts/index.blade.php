@@ -43,12 +43,21 @@
     </section>
 
     {{-- Modal crear/editar --}}
-    <div x-show="$wire.showModal" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none">
-        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" wire:click="closeModal"></div>
-        <div class="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl" @click.stop>
-            <h3 class="text-lg font-semibold text-slate-900">{{ $editing_id ? 'Editar repuesto' : 'Nuevo repuesto' }}</h3>
-            <div class="mt-4 grid grid-cols-2 gap-4">
-                <div class="col-span-2">
+    <x-ui.modal x-show="$wire.showModal" x-cloak style="display:none">
+        <x-slot:backdrop>
+            <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" wire:click="closeModal"></div>
+        </x-slot:backdrop>
+
+        <div class="flex shrink-0 items-center justify-between border-b border-slate-100 px-4 py-4 sm:px-6">
+            <h3 class="text-base font-semibold text-slate-900">{{ $editing_id ? 'Editar repuesto' : 'Nuevo repuesto' }}</h3>
+            <button type="button" wire:click="closeModal" class="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto px-4 py-5 sm:px-6">
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div class="sm:col-span-2">
                     <label class="label-up">Nombre *</label>
                     <input type="text" wire:model="name" class="form-input" />
                     @error('name')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
@@ -77,15 +86,16 @@
                 </div>
                 <div><label class="label-up">Stock actual</label><input type="number" wire:model="stock" class="form-input" min="0" /></div>
                 <div><label class="label-up">Stock mínimo</label><input type="number" wire:model="min_stock" class="form-input" min="0" /></div>
-                <div class="col-span-2">
+                <div class="sm:col-span-2">
                     <label class="label-up">Descripción</label>
                     <textarea wire:model="description" class="form-input" rows="2"></textarea>
                 </div>
             </div>
-            <div class="mt-6 flex justify-end gap-3">
-                <button wire:click="closeModal" class="btn btn-outline-secondary">Cancelar</button>
-                <button wire:click="save" wire:loading.attr="disabled" class="btn btn-primary">Guardar</button>
-            </div>
         </div>
-    </div>
+
+        <div class="flex shrink-0 flex-col-reverse gap-2 border-t border-slate-100 px-4 py-4 sm:flex-row sm:justify-end sm:gap-3 sm:px-6">
+            <button type="button" wire:click="closeModal" class="btn btn-outline-secondary w-full justify-center sm:w-auto">Cancelar</button>
+            <button type="button" wire:click="save" wire:loading.attr="disabled" class="btn btn-primary w-full justify-center sm:w-auto">Guardar</button>
+        </div>
+    </x-ui.modal>
 </div>

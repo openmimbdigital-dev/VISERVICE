@@ -31,8 +31,8 @@
                 'icon_bg' => 'bg-emerald-100',
                 'icon_c'  => 'text-emerald-600',
                 'links'   => [
-                    ['label' => 'Clientes',      'route' => 'admin.workshop.clients.index'],
-                    ['label' => 'Vehículos',     'route' => 'admin.workshop.vehicles.index'],
+                    ['label' => 'Clientes',      'route' => 'admin.workshop.clients.index', 'permission' => 'workshop.clients.view'],
+                    ['label' => 'Equipos',     'route' => 'admin.workshop.equipment.index', 'permission' => 'workshop.equipment.view'],
                     ['label' => 'Cotizaciones',  'route' => 'admin.workshop.quotations.index'],
                     ['label' => 'Órdenes (OT)',  'route' => 'admin.workshop.work-orders.index'],
                 ],
@@ -100,6 +100,7 @@
                 </div>
                 <div class="flex flex-col gap-1.5">
                     @foreach($mod['links'] as $link)
+                    @if(empty($link['permission']) || auth()->user()->can($link['permission']))
                     <a href="{{ route($link['route']) }}" wire:navigate
                         class="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-slate-700 bg-white border border-slate-200/80 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900 transition-all group">
                         <svg class="h-3.5 w-3.5 text-slate-400 group-hover:text-slate-600 transition shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -107,6 +108,7 @@
                         </svg>
                         {{ $link['label'] }}
                     </a>
+                    @endif
                     @endforeach
                 </div>
             </div>

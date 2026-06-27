@@ -13,7 +13,7 @@ class Quotation extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'business_id', 'client_id', 'vehicle_id', 'reference',
+        'business_id', 'client_id', 'equipment_id', 'reference',
         'status', 'diagnosis', 'km_entry', 'valid_until',
         'subtotal', 'tax_percentage', 'tax_amount', 'total',
         'notes', 'observations', 'created_by',
@@ -45,9 +45,9 @@ class Quotation extends Model
         return $this->belongsTo(Client::class);
     }
 
-    public function vehicle(): BelongsTo
+    public function equipment(): BelongsTo
     {
-        return $this->belongsTo(Vehicle::class);
+        return $this->belongsTo(Equipment::class);
     }
 
     public function createdBy(): BelongsTo

@@ -12,10 +12,10 @@ return new class extends Migration
             $table->id();
             $table->foreignId('business_id')->constrained()->onDelete('cascade');
             $table->foreignId('client_id')->constrained('clients')->onDelete('cascade');
-            $table->foreignId('vehicle_id')->constrained('vehicles')->onDelete('cascade');
+            $table->foreignId('equipment_id')->constrained('equipment')->onDelete('cascade');
             $table->string('reference')->comment('COT-YYYYMM-XXXX');
             $table->enum('status', ['borrador', 'enviada', 'aceptada', 'rechazada', 'vencida'])->default('borrador');
-            $table->text('diagnosis')->nullable()->comment('Diagnóstico inicial del vehículo');
+            $table->text('diagnosis')->nullable()->comment('Diagnóstico inicial del equipo');
             $table->unsignedInteger('km_entry')->default(0)->comment('Kilometraje al ingreso');
             $table->date('valid_until')->nullable()->comment('Fecha de vencimiento de la cotización');
             $table->decimal('subtotal', 12, 2)->default(0);

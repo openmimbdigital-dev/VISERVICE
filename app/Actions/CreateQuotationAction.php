@@ -16,18 +16,18 @@ class CreateQuotationAction
      *
      * @param  int    $business_id
      * @param  int    $client_id
-     * @param  int    $vehicle_id
+     * @param  int    $equipment_id
      * @param  array  $data        Campos adicionales de la cotización
      * @param  array  $items       Array de items: [description, item_type, quantity, unit_price, discount_percentage]
      * @return Quotation
      */
-    public function handle(int $business_id, int $client_id, int $vehicle_id, array $data, array $items = []): Quotation
+    public function handle(int $business_id, int $client_id, int $equipment_id, array $data, array $items = []): Quotation
     {
-        return DB::transaction(function () use ($business_id, $client_id, $vehicle_id, $data, $items) {
+        return DB::transaction(function () use ($business_id, $client_id, $equipment_id, $data, $items) {
             $quotation = Quotation::create([
                 'business_id'     => $business_id,
                 'client_id'       => $client_id,
-                'vehicle_id'      => $vehicle_id,
+                'equipment_id'    => $equipment_id,
                 'reference'       => Quotation::generateReference($business_id),
                 'status'          => 'borrador',
                 'diagnosis'       => $data['diagnosis'] ?? null,

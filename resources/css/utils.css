@@ -63,19 +63,53 @@
     text-overflow: ellipsis;
 }
 
-/* Botón de confirmación SweetAlert2 */
+/* SweetAlert2 — confirmación de eliminación (línea visual VISERVICE) */
+.swal-viservice-popup {
+    border-radius: 1rem !important;
+    padding: 1.5rem !important;
+    font-family: 'Inter', sans-serif !important;
+}
+
+.swal-viservice-title {
+    font-size: 1.125rem !important;
+    font-weight: 600 !important;
+    color: #0f172a !important;
+}
+
+.swal-viservice-html {
+    font-size: 0.875rem !important;
+    color: #475569 !important;
+}
+
 .swal-confirm-button {
-    background-color: blue !important;
-    color: white !important;
+    background-color: #e11d48 !important;
+    color: #ffffff !important;
     border: none !important;
+    border-radius: 0.75rem !important;
     box-shadow: none !important;
+    font-weight: 600 !important;
+    font-size: 0.875rem !important;
+    padding: 0.5rem 1rem !important;
+}
+
+.swal-confirm-button:hover {
+    background-color: #be123c !important;
 }
 
 .swal-cancel-button {
-    background-color: red !important;
-    color: white !important;
-    border: none !important;
+    background-color: #f1f5f9 !important;
+    color: #475569 !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 0.75rem !important;
     box-shadow: none !important;
+    font-weight: 600 !important;
+    font-size: 0.875rem !important;
+    padding: 0.5rem 1rem !important;
+}
+
+.swal-cancel-button:hover {
+    background-color: #e2e8f0 !important;
+    color: #334155 !important;
 }
 
 .custom-radio {
