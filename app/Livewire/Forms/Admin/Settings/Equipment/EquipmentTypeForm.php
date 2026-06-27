@@ -4,6 +4,7 @@ namespace App\Livewire\Forms\Admin\Settings\Equipment;
 
 use App\Actions\Settings\Equipment\CreateOrUpdateEquipmentTypeAction;
 use App\Models\EquipmentType;
+use App\Rules\NotConflictingWithGeneralCatalogName;
 use Illuminate\Validation\Rule;
 use Livewire\Form;
 
@@ -54,6 +55,7 @@ class EquipmentTypeForm extends Form
                 'required',
                 'string',
                 'max:100',
+                new NotConflictingWithGeneralCatalogName(EquipmentType::class, $this->equipment_type_id),
                 Rule::unique('equipment_types', 'name')->where($scope)->ignore($this->equipment_type_id),
                 function (string $attribute, mixed $value, \Closure $fail) use ($scope) {
                     $name = mb_strtolower(trim((string) $value));

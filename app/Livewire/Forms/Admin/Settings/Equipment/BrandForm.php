@@ -4,6 +4,7 @@ namespace App\Livewire\Forms\Admin\Settings\Equipment;
 
 use App\Actions\Settings\Equipment\CreateOrUpdateBrandAction;
 use App\Models\Brand;
+use App\Rules\NotConflictingWithGeneralCatalogName;
 use Illuminate\Validation\Rule;
 use Livewire\Form;
 
@@ -54,6 +55,7 @@ class BrandForm extends Form
                 'required',
                 'string',
                 'max:100',
+                new NotConflictingWithGeneralCatalogName(Brand::class, $this->brand_id),
                 Rule::unique('brands', 'name')->where($scope)->ignore($this->brand_id),
                 function (string $attribute, mixed $value, \Closure $fail) use ($scope) {
                     $name = mb_strtolower(trim((string) $value));

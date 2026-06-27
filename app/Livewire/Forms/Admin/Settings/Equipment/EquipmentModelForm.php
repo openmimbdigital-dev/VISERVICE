@@ -5,6 +5,7 @@ namespace App\Livewire\Forms\Admin\Settings\Equipment;
 use App\Actions\Settings\Equipment\CreateOrUpdateEquipmentModelAction;
 use App\Models\Brand;
 use App\Models\EquipmentModel;
+use App\Rules\NotConflictingWithGeneralCatalogName;
 use Illuminate\Validation\Rule;
 use Livewire\Form;
 
@@ -67,6 +68,7 @@ class EquipmentModelForm extends Form
                 'required',
                 'string',
                 'max:100',
+                new NotConflictingWithGeneralCatalogName(EquipmentModel::class, $this->equipment_model_id),
                 Rule::unique('equipment_models', 'name')
                     ->where(function ($query) use ($scope) {
                         $scope($query);
