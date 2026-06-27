@@ -40,17 +40,17 @@ class Equipment extends Model
 
     public function equipmentBrand(): BelongsTo
     {
-        return $this->belongsTo(Brand::class, 'brand_id');
+        return $this->belongsTo(Brand::class, 'brand_id')->withTrashed();
     }
 
     public function equipmentModel(): BelongsTo
     {
-        return $this->belongsTo(EquipmentModel::class, 'model_id');
+        return $this->belongsTo(EquipmentModel::class, 'model_id')->withTrashed();
     }
 
     public function equipmentType(): BelongsTo
     {
-        return $this->belongsTo(EquipmentType::class, 'equipment_type_id');
+        return $this->belongsTo(EquipmentType::class, 'equipment_type_id')->withTrashed();
     }
 
     public function createdBy(): BelongsTo

@@ -28,7 +28,7 @@
                     Volver
                 </a>
                 @can('settings.edit')
-                <button type="button" wire:click="delete" wire:confirm="¿Eliminar este tipo?"
+                <button type="button" wire:click="deleteRecord"
                     @disabled(! $can_delete)
                     title="{{ $is_general_readonly ? 'Tipo general del sistema: no se puede eliminar' : ($can_delete ? 'Eliminar tipo' : 'No se puede eliminar: tiene equipos asociados') }}"
                     class="btn btn-danger btn-sm flex-1 sm:flex-none justify-center disabled:cursor-not-allowed disabled:opacity-50">

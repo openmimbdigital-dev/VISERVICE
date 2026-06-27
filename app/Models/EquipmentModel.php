@@ -6,9 +6,11 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class EquipmentModel extends Model
 {
+    use SoftDeletes;
     protected $table = 'equipment_models';
 
     protected $fillable = [
@@ -30,7 +32,7 @@ class EquipmentModel extends Model
 
     public function brand(): BelongsTo
     {
-        return $this->belongsTo(Brand::class);
+        return $this->belongsTo(Brand::class)->withTrashed();
     }
 
     public function equipment(): HasMany

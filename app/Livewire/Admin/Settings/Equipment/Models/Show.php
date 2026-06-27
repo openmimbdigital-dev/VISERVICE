@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin\Settings\Equipment\Models;
 
+use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
 use App\Models\EquipmentModel;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -11,6 +12,8 @@ use Livewire\Component;
 #[Title('Configuración — Modelo')]
 class Show extends Component
 {
+    use ConfirmsDeletionWithLivewireAlert;
+
     public EquipmentModel $equipment_model;
 
     public int $equipment_count = 0;
@@ -30,27 +33,40 @@ class Show extends Component
         $this->equipment_count = $equipmentModel->equipment()->count();
     }
 
-    public function delete(): void
+    public function deleteRecord(): void
     {
         abort_unless(auth()->user()->can('settings.edit'), 403);
 
-        if (! $this->equipment_model->canDelete()) {
-            $message = $this->equipment_model->isGeneralReadonly()
-                ? 'No se puede eliminar: es un modelo general del sistema'
-                : ($this->equipment_model->hasDependencies()
-                    ? 'No se puede eliminar: tiene equipos asociados'
-                    : 'No tienes permiso para eliminar este modelo');
+        $this->askDeleteConfirmation($this->equipment_model->id, '¿Estás seguro de querer eliminar este modelo?');
+    }
 
-            $this->dispatch('swal', ['title' => $message, 'icon' => 'error']);
+    protected function onDeleteConfirmed(): void
+    {
+        try {
+            abort_unless(auth()->user()->can('settings.edit'), 403);
 
-            return;
+            $equipment_model = EquipmentModel::findOrFail($this->delete_id);
+
+            if (! $equipment_model->canDelete()) {
+                $message = $equipment_model->isGeneralReadonly()
+                    ? 'No se puede eliminar: es un modelo general del sistema.'
+                    : ($equipment_model->hasDependencies()
+                        ? 'No se puede eliminar: tiene equipos asociados.'
+                        : 'No tienes permiso para eliminar este modelo.');
+
+                $this->alertDeleteWarning($message);
+
+                return;
+            }
+
+            $equipment_model->delete();
+
+            $this->alertDeleteSuccess('Modelo eliminado correctamente.');
+
+            $this->redirect(route('admin.settings.equipment.models'), navigate: true);
+        } catch (\Throwable) {
+            $this->alertDeleteError('No se pudo eliminar el modelo.');
         }
-
-        $this->equipment_model->delete();
-
-        $this->dispatch('swal', ['title' => 'Modelo eliminado', 'icon' => 'warning']);
-
-        $this->redirect(route('admin.settings.equipment.models'), navigate: true);
     }
 
     public function render()

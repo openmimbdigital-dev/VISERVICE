@@ -16,9 +16,10 @@ return new class extends Migration
             $table->boolean('active')->default(true);
             $table->boolean('general')->default(false)->comment('Si es true, el registro aplica para todos los negocios');
             $table->timestamps();
+            $table->softDeletes();
 
-            $table->unique(['business_id', 'name'], 'brands_business_id_name_unique');
-            $table->unique(['business_id', 'label'], 'brands_business_id_label_unique');
+            $table->index(['business_id', 'name']);
+            $table->index(['business_id', 'label']);
             $table->index(['business_id', 'active']);
         });
     }

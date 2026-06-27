@@ -43,6 +43,8 @@ class BrandForm extends Form
         $general     = $this->resolvedGeneral();
 
         $scope = function ($query) use ($business_id, $general) {
+            $query->whereNull('deleted_at');
+
             if ($general) {
                 $query->whereNull('business_id')->where('general', true);
             } else {
