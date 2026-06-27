@@ -25,6 +25,7 @@ class DatabaseSeeder extends Seeder
             BanksSeeder::class,
             BankAccountsSeeder::class,
             EquipmentCatalogSeeder::class,
+            ClientsSeeder::class,
         ]);
     }
 }
