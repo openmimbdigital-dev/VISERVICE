@@ -214,7 +214,6 @@
                                 @if($deletable)
                                 <button
                                     wire:click="delete({{ $user->id }})"
-                                    wire:confirm="¿Eliminar a {{ $user->full_name }}? Esta acción no se puede deshacer."
                                     type="button"
                                     class="inline-flex items-center gap-1 rounded-lg bg-rose-50 px-2 py-1.5 text-xs font-medium text-rose-600 transition hover:bg-rose-100 hover:text-rose-700 sm:px-2.5"
                                     title="Eliminar usuario">

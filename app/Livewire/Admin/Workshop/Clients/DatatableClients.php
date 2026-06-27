@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin\Workshop\Clients;
 
+use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
 use App\Models\Client;
 use Arm092\LivewireDatatables\Column;
 use Arm092\LivewireDatatables\DateColumn;
@@ -11,6 +12,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class DatatableClients extends LivewireDatatable
 {
+    use ConfirmsDeletionWithLivewireAlert;
+
     public bool $exportable = true;
     public ?int $perPage = 25;
 
@@ -97,16 +100,29 @@ class DatatableClients extends LivewireDatatable
     {
         abort_unless(auth()->user()->can('workshop.clients.delete'), 403);
 
-        $client = $this->findAuthorized($id);
+        $this->askDeleteConfirmation($id, '¿Estás seguro de querer eliminar este cliente?');
+    }
 
-        if ($client->workOrders()->exists() || $client->quotations()->exists()) {
-            $this->dispatch('swal', ['title' => 'No se puede eliminar: tiene OTs o cotizaciones asociadas', 'icon' => 'error']);
-            return;
+    protected function onDeleteConfirmed(): void
+    {
+        try {
+            abort_unless(auth()->user()->can('workshop.clients.delete'), 403);
+
+            $client = $this->findAuthorized($this->delete_id);
+
+            if ($client->workOrders()->exists() || $client->quotations()->exists()) {
+                $this->alertDeleteError('No se puede eliminar: tiene OTs o cotizaciones asociadas.');
+
+                return;
+            }
+
+            $client->delete();
+
+            $this->alertDeleteSuccess('Cliente eliminado correctamente.');
+            $this->dispatch('client-deleted');
+        } catch (\Throwable) {
+            $this->alertDeleteError('No se pudo eliminar el cliente.');
         }
-
-        $client->delete();
-        $this->dispatch('swal', ['title' => 'Cliente eliminado', 'icon' => 'warning']);
-        $this->dispatch('client-deleted');
     }
 
     private function findAuthorized(int $id): Client

@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin\Settings\Equipment\Types;
 
+use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
 use App\Models\EquipmentType;
 use Arm092\LivewireDatatables\Column;
 use Arm092\LivewireDatatables\Livewire\LivewireDatatable;
@@ -11,6 +12,8 @@ use Livewire\Attributes\On;
 
 class DatatableEquipmentTypes extends LivewireDatatable
 {
+    use ConfirmsDeletionWithLivewireAlert;
+
     public bool $exportable = true;
 
     public ?int $perPage = 25;
@@ -89,23 +92,35 @@ class DatatableEquipmentTypes extends LivewireDatatable
     {
         abort_unless(auth()->user()->can('settings.edit'), 403);
 
-        $equipment_type = EquipmentType::findOrFail($id);
+        $this->askDeleteConfirmation($id, '¿Estás seguro de querer eliminar este tipo de equipo?');
+    }
 
-        if (! $equipment_type->canDelete()) {
-            $message = $equipment_type->isGeneralReadonly()
-                ? 'No se puede eliminar: es un tipo general del sistema'
-                : ($equipment_type->hasDependencies()
-                    ? 'No se puede eliminar: tiene equipos asociados'
-                    : 'No tienes permiso para eliminar este tipo');
+    protected function onDeleteConfirmed(): void
+    {
+        try {
+            abort_unless(auth()->user()->can('settings.edit'), 403);
 
-            $this->dispatch('swal', ['title' => $message, 'icon' => 'error']);
+            $equipment_type = EquipmentType::findOrFail($this->delete_id);
 
-            return;
+            if (! $equipment_type->canDelete()) {
+                $message = $equipment_type->isGeneralReadonly()
+                    ? 'No se puede eliminar: es un tipo general del sistema.'
+                    : ($equipment_type->hasDependencies()
+                        ? 'No se puede eliminar: tiene equipos asociados.'
+                        : 'No tienes permiso para eliminar este tipo.');
+
+                $this->alertDeleteWarning($message);
+
+                return;
+            }
+
+            $equipment_type->delete();
+
+            $this->alertDeleteSuccess('Tipo eliminado correctamente.');
+            $this->dispatch('equipment-type-deleted');
+        } catch (\Throwable) {
+            $this->alertDeleteError('No se pudo eliminar el tipo.');
         }
-
-        $equipment_type->delete();
-        $this->dispatch('swal', ['title' => 'Tipo eliminado', 'icon' => 'warning']);
-        $this->dispatch('equipment-type-deleted');
     }
 
     public function render()

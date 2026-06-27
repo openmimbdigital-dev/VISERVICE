@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin\Settings\Equipment\Brands;
 
+use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
 use App\Models\Brand;
 use Arm092\LivewireDatatables\Column;
 use Arm092\LivewireDatatables\Livewire\LivewireDatatable;
@@ -11,6 +12,8 @@ use Livewire\Attributes\On;
 
 class DatatableBrands extends LivewireDatatable
 {
+    use ConfirmsDeletionWithLivewireAlert;
+
     public bool $exportable = true;
 
     public ?int $perPage = 25;
@@ -89,23 +92,35 @@ class DatatableBrands extends LivewireDatatable
     {
         abort_unless(auth()->user()->can('settings.edit'), 403);
 
-        $brand = Brand::findOrFail($id);
+        $this->askDeleteConfirmation($id, '¿Estás seguro de querer eliminar esta marca?');
+    }
 
-        if (! $brand->canDelete()) {
-            $message = $brand->isGeneralReadonly()
-                ? 'No se puede eliminar: es una marca general del sistema'
-                : ($brand->hasDependencies()
-                    ? 'No se puede eliminar: tiene equipos asociados'
-                    : 'No tienes permiso para eliminar esta marca');
+    protected function onDeleteConfirmed(): void
+    {
+        try {
+            abort_unless(auth()->user()->can('settings.edit'), 403);
 
-            $this->dispatch('swal', ['title' => $message, 'icon' => 'error']);
+            $brand = Brand::findOrFail($this->delete_id);
 
-            return;
+            if (! $brand->canDelete()) {
+                $message = $brand->isGeneralReadonly()
+                    ? 'No se puede eliminar: es una marca general del sistema.'
+                    : ($brand->hasDependencies()
+                        ? 'No se puede eliminar: tiene equipos asociados.'
+                        : 'No tienes permiso para eliminar esta marca.');
+
+                $this->alertDeleteWarning($message);
+
+                return;
+            }
+
+            $brand->delete();
+
+            $this->alertDeleteSuccess('Marca eliminada correctamente.');
+            $this->dispatch('brand-deleted');
+        } catch (\Throwable) {
+            $this->alertDeleteError('No se pudo eliminar la marca.');
         }
-
-        $brand->delete();
-        $this->dispatch('swal', ['title' => 'Marca eliminada', 'icon' => 'warning']);
-        $this->dispatch('brand-deleted');
     }
 
     public function render()

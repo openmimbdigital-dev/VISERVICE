@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin\Settings\Equipment\Models;
 
+use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
 use App\Models\EquipmentModel;
 use Arm092\LivewireDatatables\Column;
 use Arm092\LivewireDatatables\Livewire\LivewireDatatable;
@@ -11,6 +12,8 @@ use Livewire\Attributes\On;
 
 class DatatableEquipmentModels extends LivewireDatatable
 {
+    use ConfirmsDeletionWithLivewireAlert;
+
     public bool $exportable = true;
 
     public ?int $perPage = 25;
@@ -96,23 +99,35 @@ class DatatableEquipmentModels extends LivewireDatatable
     {
         abort_unless(auth()->user()->can('settings.edit'), 403);
 
-        $equipment_model = EquipmentModel::findOrFail($id);
+        $this->askDeleteConfirmation($id, '¿Estás seguro de querer eliminar este modelo?');
+    }
 
-        if (! $equipment_model->canDelete()) {
-            $message = $equipment_model->isGeneralReadonly()
-                ? 'No se puede eliminar: es un modelo general del sistema'
-                : ($equipment_model->hasDependencies()
-                    ? 'No se puede eliminar: tiene equipos asociados'
-                    : 'No tienes permiso para eliminar este modelo');
+    protected function onDeleteConfirmed(): void
+    {
+        try {
+            abort_unless(auth()->user()->can('settings.edit'), 403);
 
-            $this->dispatch('swal', ['title' => $message, 'icon' => 'error']);
+            $equipment_model = EquipmentModel::findOrFail($this->delete_id);
 
-            return;
+            if (! $equipment_model->canDelete()) {
+                $message = $equipment_model->isGeneralReadonly()
+                    ? 'No se puede eliminar: es un modelo general del sistema.'
+                    : ($equipment_model->hasDependencies()
+                        ? 'No se puede eliminar: tiene equipos asociados.'
+                        : 'No tienes permiso para eliminar este modelo.');
+
+                $this->alertDeleteWarning($message);
+
+                return;
+            }
+
+            $equipment_model->delete();
+
+            $this->alertDeleteSuccess('Modelo eliminado correctamente.');
+            $this->dispatch('equipment-model-deleted');
+        } catch (\Throwable) {
+            $this->alertDeleteError('No se pudo eliminar el modelo.');
         }
-
-        $equipment_model->delete();
-        $this->dispatch('swal', ['title' => 'Modelo eliminado', 'icon' => 'warning']);
-        $this->dispatch('equipment-model-deleted');
     }
 
     public function render()

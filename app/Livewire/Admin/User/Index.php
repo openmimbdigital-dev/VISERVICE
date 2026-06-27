@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin\User;
 
+use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Attributes\Layout;
@@ -14,6 +15,7 @@ use Spatie\Permission\Models\Role;
 #[Title('Usuarios')]
 class Index extends Component
 {
+    use ConfirmsDeletionWithLivewireAlert;
     use WithPagination;
 
     // Filtros
@@ -237,15 +239,28 @@ class Index extends Component
     {
         abort_unless(auth()->user()->can('users.delete'), 403);
 
-        $user = $this->findAuthorized($id);
+        $this->askDeleteConfirmation($id, '¿Estás seguro de querer eliminar este usuario?');
+    }
 
-        if (! $this->canDelete($user)) {
-            $this->dispatch('swal', ['title' => 'Este usuario no puede eliminarse.', 'icon' => 'error']);
-            return;
+    protected function onDeleteConfirmed(): void
+    {
+        try {
+            abort_unless(auth()->user()->can('users.delete'), 403);
+
+            $user = $this->findAuthorized($this->delete_id);
+
+            if (! $this->canDelete($user)) {
+                $this->alertDeleteError('Este usuario no puede eliminarse.');
+
+                return;
+            }
+
+            $user->delete();
+
+            $this->alertDeleteSuccess('Usuario eliminado correctamente.');
+        } catch (\Throwable) {
+            $this->alertDeleteError('No se pudo eliminar el usuario.');
         }
-
-        $user->delete();
-        $this->dispatch('swal', ['title' => 'Usuario eliminado.', 'icon' => 'success']);
     }
 
     public function canDelete(User $user): bool
