@@ -15,16 +15,15 @@ class Equipment extends Model
 
     protected $fillable = [
         'business_id', 'client_id', 'brand_id', 'model_id', 'equipment_type_id',
-        'plate', 'brand_name', 'model_name','equipment_type_name', 'year', 'km_current',
+        'plate', 'brand_name', 'model_name','equipment_type_name', 'year',
         'status', 'notes', 'created_by',
     ];
 
     protected function casts(): array
     {
         return [
-            'status'     => 'boolean',
-            'year'       => 'integer',
-            'km_current' => 'integer',
+            'status' => 'boolean',
+            'year'   => 'integer',
         ];
     }
 
@@ -86,7 +85,7 @@ class Equipment extends Model
 
     public function getDisplayNameAttribute(): string
     {
-        $parts = array_filter([$this->brand, $this->model, $this->year]);
+        $parts = array_filter([$this->brand_name, $this->model_name, $this->year]);
         $name = implode(' ', $parts);
         return $name ? "{$this->plate} — {$name}" : $this->plate;
     }

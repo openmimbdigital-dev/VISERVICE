@@ -26,7 +26,11 @@
                     Volver
                 </a>
                 @can('workshop.equipment.create')
-                <x-ui.create-button wire:click="openCreate" size="sm" class="flex-1 sm:flex-none justify-center">
+                <x-ui.create-button
+                    :href="route('admin.workshop.equipment.form', $equipment_type)"
+                    size="sm"
+                    class="flex-1 sm:flex-none justify-center"
+                >
                     Nuevo equipo
                 </x-ui.create-button>
                 @endcan
@@ -55,62 +59,4 @@
             />
         </div>
     </section>
-
-    <x-ui.modal x-show="$wire.showModal" x-cloak style="display:none">
-        <x-slot:backdrop>
-            <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" wire:click="closeModal"></div>
-        </x-slot:backdrop>
-
-        <div class="flex shrink-0 items-center justify-between border-b border-slate-100 px-4 py-4 sm:px-6">
-            <h3 class="text-base font-semibold text-slate-900">{{ $editing_id ? 'Editar equipo' : 'Nuevo equipo' }}</h3>
-            <button type="button" wire:click="closeModal" class="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600">
-                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-            </button>
-        </div>
-
-        <div class="flex-1 space-y-4 overflow-y-auto px-4 py-5 sm:px-6">
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div class="sm:col-span-2">
-                    <label class="label-up">Cliente *</label>
-                    <select wire:model.live="client_id" class="form-select">
-                        <option value="">Seleccionar cliente</option>
-                        @foreach($clients as $c)
-                            <option value="{{ $c->id }}">{{ $c->name }}</option>
-                        @endforeach
-                    </select>
-                    @error('client_id')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
-                </div>
-                <div>
-                    <label class="label-up">Placa *</label>
-                    <input type="text" wire:model="plate" class="form-input uppercase" />
-                    @error('plate')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
-                </div>
-                <div>
-                    <label class="label-up">Marca</label>
-                    <input type="text" wire:model="brand" class="form-input" />
-                </div>
-                <div>
-                    <label class="label-up">Modelo</label>
-                    <input type="text" wire:model="model" class="form-input" />
-                </div>
-                <div>
-                    <label class="label-up">Año</label>
-                    <input type="number" wire:model="year" class="form-input" min="1900" max="{{ date('Y') + 1 }}" />
-                </div>
-                <div>
-                    <label class="label-up">Km actual</label>
-                    <input type="number" wire:model="km_current" class="form-input" min="0" />
-                </div>
-                <div class="sm:col-span-2">
-                    <label class="label-up">Notas</label>
-                    <textarea wire:model="notes" class="form-input" rows="2"></textarea>
-                </div>
-            </div>
-        </div>
-
-        <div class="flex shrink-0 flex-col-reverse gap-2 border-t border-slate-100 px-4 py-4 sm:flex-row sm:justify-end sm:gap-3 sm:px-6">
-            <button type="button" wire:click="closeModal" class="btn btn-outline-secondary w-full justify-center sm:w-auto">Cancelar</button>
-            <button type="button" wire:click="save" wire:loading.attr="disabled" class="btn btn-primary w-full justify-center sm:w-auto">Guardar</button>
-        </div>
-    </x-ui.modal>
 </div>

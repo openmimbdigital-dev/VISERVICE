@@ -62,8 +62,8 @@ class DatatableEquipment extends LivewireDatatable
                 ->searchable()
                 ->sortable(),
 
-            Column::callback(['brand', 'model', 'year'], function ($brand, $model, $year) {
-                $parts = array_filter([$brand, $model, $year]);
+            Column::callback(['equipment.brand_name', 'equipment.model_name', 'equipment.year'], function ($brand_name, $model_name, $year) {
+                $parts = array_filter([$brand_name, $model_name, $year]);
                 return $parts ? e(implode(' ', $parts)) : '<span class="text-slate-400">—</span>';
             })->label('Equipo'),
 
@@ -82,14 +82,12 @@ class DatatableEquipment extends LivewireDatatable
             })->label('Estado')->filterable([1 => 'Activo', 0 => 'Inactivo']),
 
             Column::callback(['id'], function ($id) {
-                return view('livewire.admin.workshop.equipment.actions', ['id' => $id]);
+                return view('livewire.admin.workshop.equipment.actions', [
+                    'id'                => $id,
+                    'equipment_type_id' => $this->equipment_type_id,
+                ]);
             })->label('Acciones')->unsortable(),
         ]);
-    }
-
-    public function openEditEvent(int $id): void
-    {
-        $this->dispatch('open-equipment-edit', id: $id);
     }
 
     public function deleteRecord(int $id): void
