@@ -65,8 +65,7 @@ class EquipmentType extends Model
         $business_id = $user?->business_id;
 
         if (! $business_id) {
-            return $query->where("{$table}.general", true)
-                ->whereDoesntHave('businesses');
+            return $query->whereRaw('0 = 1');
         }
 
         return $query->where(function (Builder $q) use ($business_id, $table) {
@@ -83,6 +82,38 @@ class EquipmentType extends Model
                         ->whereDoesntHave('businesses');
                 });
         });
+    }
+
+    /**
+     * Indica si el tipo está disponible para el usuario (p. ej. acceso directo por URL en taller).
+     */
+    public function isAccessibleToUser(?User $user = null): bool
+    {
+        $user ??= auth()->user();
+
+        if ($user?->hasRole('superAdmin')) {
+            return true;
+        }
+
+        $business_id = $user?->business_id;
+
+        if (! $business_id) {
+            return false;
+        }
+
+        if (! $this->general && (int) $this->business_id === (int) $business_id) {
+            return true;
+        }
+
+        if (! $this->general) {
+            return false;
+        }
+
+        if ($this->businesses()->where('businesses.id', $business_id)->exists()) {
+            return true;
+        }
+
+        return ! $this->businesses()->exists();
     }
 
     public function isEditableBy(?User $user = null): bool

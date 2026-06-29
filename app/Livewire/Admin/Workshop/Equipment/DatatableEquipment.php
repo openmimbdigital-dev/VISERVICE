@@ -7,11 +7,21 @@ use Arm092\LivewireDatatables\Column;
 use Arm092\LivewireDatatables\Livewire\LivewireDatatable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Livewire\Attributes\On;
 
 class DatatableEquipment extends LivewireDatatable
 {
     public bool $exportable = true;
+
     public ?int $perPage = 25;
+
+    public ?int $equipment_type_id = null;
+
+    #[On('equipment-saved')]
+    public function onEquipmentSaved(): void {}
+
+    #[On('equipment-deleted')]
+    public function onEquipmentDeleted(): void {}
 
     public function builder(): Builder
     {
@@ -19,6 +29,10 @@ class DatatableEquipment extends LivewireDatatable
             ->forAuthUser()
             ->leftJoin('clients', 'equipment.client_id', '=', 'clients.id')
             ->select('equipment.*', 'clients.name as client_name');
+
+        if ($this->equipment_type_id) {
+            $query->where('equipment.equipment_type_id', $this->equipment_type_id);
+        }
 
         if (auth()->user()->hasRole('superAdmin')) {
             return $query
@@ -58,9 +72,6 @@ class DatatableEquipment extends LivewireDatatable
                 ->searchable()
                 ->sortable(),
 
-            Column::callback(['km_current'], function ($km) {
-                return '<span class="tabular-nums">' . number_format($km) . ' km</span>';
-            })->label('Km actual')->sortable(),
 
             Column::callback(['status'], function ($status) {
                 $label = $status ? 'Activo' : 'Inactivo';

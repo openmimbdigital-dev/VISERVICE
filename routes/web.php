@@ -16,6 +16,7 @@ use App\Livewire\Comercio\Business\Edit as ComercioBusinessEdit;
 use App\Livewire\Admin\Workshop\Clients\Form as WorkshopClientsForm;
 use App\Livewire\Admin\Workshop\Clients\Index as WorkshopClientsIndex;
 use App\Livewire\Admin\Workshop\Equipment\Index as WorkshopEquipmentIndex;
+use App\Livewire\Admin\Workshop\Equipment\TypeIndex as WorkshopEquipmentTypeIndex;
 use App\Livewire\Admin\Workshop\Quotations\Index as WorkshopQuotationsIndex;
 use App\Livewire\Admin\Workshop\Quotations\Show as WorkshopQuotationsShow;
 use App\Livewire\Admin\Workshop\WorkOrders\Index as WorkshopWorkOrdersIndex;
@@ -93,6 +94,7 @@ Route::middleware('auth')->group(function () {
         });
         Route::middleware('permission:workshop.equipment.view')->group(function () {
             Route::get('/equipos', WorkshopEquipmentIndex::class)->name('equipment.index');
+            Route::get('/equipos/{equipmentType}', WorkshopEquipmentTypeIndex::class)->name('equipment.type');
         });
         Route::get('/cotizaciones', WorkshopQuotationsIndex::class)->name('quotations.index');
         Route::get('/cotizaciones/{quotation}', WorkshopQuotationsShow::class)->name('quotations.show');
