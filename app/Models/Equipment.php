@@ -15,7 +15,7 @@ class Equipment extends Model
 
     protected $fillable = [
         'business_id', 'client_id', 'brand_id', 'model_id', 'equipment_type_id',
-        'plate', 'brand', 'model', 'year', 'km_current',
+        'plate', 'brand_name', 'model_name','equipment_type_name', 'year', 'km_current',
         'status', 'notes', 'created_by',
     ];
 

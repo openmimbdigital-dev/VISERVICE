@@ -53,6 +53,18 @@ class EquipmentSettingsConfig
                 'btn_class'            => 'btn-primary',
                 'icon'                 => 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01',
             ],
+            'attributes' => [
+                'key'                  => 'attributes',
+                'title'                => 'Atributos',
+                'description'          => 'Campos personalizados por tipo de producto (select, texto, número, etc.) para caracterizar equipos y servicios.',
+                'button_text'          => 'Gestionar atributos',
+                'create_button_text'   => 'Nuevo atributo',
+                'card_bg'              => 'bg-emerald-50/60 border-emerald-100/80',
+                'icon_bg'              => 'bg-emerald-100',
+                'icon_c'               => 'text-emerald-600',
+                'btn_class'            => 'btn-primary',
+                'icon'                 => 'M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4',
+            ],
         ];
     }
 

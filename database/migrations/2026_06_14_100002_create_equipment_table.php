@@ -15,9 +15,10 @@ return new class extends Migration
             $table->foreignId('brand_id')->nullable()->constrained('brands')->nullOnDelete();
             $table->foreignId('model_id')->nullable()->constrained('equipment_models')->nullOnDelete();
             $table->foreignId('equipment_type_id')->nullable()->constrained('equipment_types')->nullOnDelete();
-            $table->string('plate')->comment('Número de placa');
-            $table->string('brand')->nullable()->comment('Marca');
-            $table->string('model')->nullable()->comment('Modelo');
+            $table->string('plate')->comment('Número para identificar un equipo');
+            $table->string('brand_name')->nullable()->comment('Marca');
+            $table->string('model_name')->nullable()->comment('Modelo');
+            $table->string('equipment_type_name')->nullable()->comment('Modelo');
             $table->unsignedSmallInteger('year')->nullable();
             $table->unsignedInteger('km_current')->default(0);
             $table->boolean('status')->default(true);
