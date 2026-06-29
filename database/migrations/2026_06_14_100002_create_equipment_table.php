@@ -17,6 +17,7 @@ return new class extends Migration
             $table->foreignId('equipment_type_id')->nullable()->constrained('equipment_types')->nullOnDelete();
             $table->string('plate')->comment('Número para identificar un equipo');
             $table->string('brand_name')->nullable()->comment('Marca');
+            $table->string('client_name')->nullable()->comment('Cliente');
             $table->string('model_name')->nullable()->comment('Modelo');
             $table->string('equipment_type_name')->nullable()->comment('Modelo');
             $table->unsignedSmallInteger('year')->nullable();

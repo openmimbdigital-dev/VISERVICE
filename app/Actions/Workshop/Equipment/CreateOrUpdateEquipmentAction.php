@@ -54,6 +54,7 @@ class CreateOrUpdateEquipmentAction
         $attributes = [
             'business_id'         => $business_id,
             'client_id'           => $client->id,
+            'client_name'         => $client->name,
             'brand_id'            => $data['brand_id'],
             'model_id'            => $data['model_id'],
             'equipment_type_id'   => $equipment_type->id,
