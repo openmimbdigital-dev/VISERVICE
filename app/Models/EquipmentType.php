@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -27,6 +28,12 @@ class EquipmentType extends Model
     public function business(): BelongsTo
     {
         return $this->belongsTo(Business::class);
+    }
+
+    public function businesses(): BelongsToMany
+    {
+        return $this->belongsToMany(Business::class, 'equipment_type_business')
+            ->withTimestamps();
     }
 
     public function equipment(): HasMany
@@ -55,9 +62,26 @@ class EquipmentType extends Model
             return $query;
         }
 
-        return $query->where(function (Builder $q) use ($user, $table) {
-            $q->where("{$table}.general", true)
-                ->orWhere("{$table}.business_id", $user?->business_id);
+        $business_id = $user?->business_id;
+
+        if (! $business_id) {
+            return $query->where("{$table}.general", true)
+                ->whereDoesntHave('businesses');
+        }
+
+        return $query->where(function (Builder $q) use ($business_id, $table) {
+            $q->where(function (Builder $q2) use ($business_id, $table) {
+                $q2->where("{$table}.general", false)
+                    ->where("{$table}.business_id", $business_id);
+            })
+                ->orWhere(function (Builder $q2) use ($business_id, $table) {
+                    $q2->where("{$table}.general", true)
+                        ->whereHas('businesses', fn (Builder $bq) => $bq->where('businesses.id', $business_id));
+                })
+                ->orWhere(function (Builder $q2) use ($table) {
+                    $q2->where("{$table}.general", true)
+                        ->whereDoesntHave('businesses');
+                });
         });
     }
 
@@ -65,11 +89,8 @@ class EquipmentType extends Model
     {
         $user ??= auth()->user();
 
-        if ($user?->hasRole('superAdmin')) {
-            return true;
-        }
-
-        return ! $this->general && $this->business_id === $user?->business_id;
+        return $user?->hasRole('superAdmin')
+            && $user->can('settings.equipment_types.edit');
     }
 
     public function isGeneralReadonly(?User $user = null): bool
@@ -84,6 +105,8 @@ class EquipmentType extends Model
 
     public function canDelete(?User $user = null): bool
     {
-        return $this->isEditableBy($user) && ! $this->hasDependencies();
+        return $this->isEditableBy($user)
+            && $user?->can('settings.equipment_types.delete')
+            && ! $this->hasDependencies();
     }
 }

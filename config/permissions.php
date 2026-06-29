@@ -45,6 +45,15 @@ return [
                 'settings.edit' => 'Editar configuración',
             ],
         ],
+        'settings_equipment_types' => [
+            'name' => 'Configuración — Tipos de equipo',
+            'permissions' => [
+                'settings.equipment_types.view'   => 'Ver tipos de equipo',
+                'settings.equipment_types.create' => 'Crear tipos de equipo',
+                'settings.equipment_types.edit'   => 'Editar tipos de equipo',
+                'settings.equipment_types.delete' => 'Eliminar tipos de equipo',
+            ],
+        ],
         'settings_attributes' => [
             'name' => 'Configuración — Atributos de equipo',
             'permissions' => [

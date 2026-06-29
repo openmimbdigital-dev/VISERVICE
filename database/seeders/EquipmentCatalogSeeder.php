@@ -6,6 +6,7 @@ use App\Actions\Settings\Equipment\CreateOrUpdateBrandAction;
 use App\Models\Brand;
 use App\Models\EquipmentModel;
 use App\Models\EquipmentType;
+use Database\Seeders\Support\EquipmentTypeBusinessSeeder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Seeder;
 
@@ -63,6 +64,8 @@ class EquipmentCatalogSeeder extends Seeder
             );
         }
 
+        $associated = EquipmentTypeBusinessSeeder::run();
+
         foreach ($models as $model) {
             $brand = Brand::query()
                 ->whereNull('business_id')
@@ -89,6 +92,10 @@ class EquipmentCatalogSeeder extends Seeder
         }
 
         $this->command->info('Catálogo de equipos: 5 marcas, 7 tipos y 5 modelos generales.');
+
+        if ($associated > 0) {
+            $this->command->info("Tipos de equipo: {$associated} asociación(es) con negocios activos.");
+        }
     }
 
     /**

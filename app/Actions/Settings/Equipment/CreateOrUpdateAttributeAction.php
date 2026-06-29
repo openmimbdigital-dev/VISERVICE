@@ -120,6 +120,10 @@ class CreateOrUpdateAttributeAction
             $visible_ids = EquipmentType::query()
                 ->where('active', true)
                 ->where('general', true)
+                ->where(function ($q) {
+                    $q->whereDoesntHave('businesses')
+                        ->orWhereHas('businesses');
+                })
                 ->pluck('id')
                 ->all();
 
@@ -146,7 +150,10 @@ class CreateOrUpdateAttributeAction
             $visible_ids = EquipmentType::query()
                 ->where('active', true)
                 ->where(function ($q) use ($business_id) {
-                    $q->where('general', true)
+                    $q->where(function ($q2) {
+                        $q2->where('general', true)->whereDoesntHave('businesses');
+                    })
+                        ->orWhereHas('businesses', fn ($bq) => $bq->where('businesses.id', $business_id))
                         ->orWhere('business_id', $business_id);
                 })
                 ->pluck('id')

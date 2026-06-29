@@ -11,40 +11,39 @@ class CreateOrUpdateEquipmentTypeAction
     use AsAction;
 
     /**
-     * Crea o actualiza un tipo de equipo.
+     * Crea o actualiza un tipo de equipo y sus negocios asociados.
      *
-     * @param  int|null  $equipment_type_id
-     * @param  array     $data  name, active
+     * @param  array{name: string, active: bool, business_ids: array<int>}  $data
      */
     public function handle(?int $equipment_type_id, array $data): EquipmentType
     {
-        abort_unless(auth()->user()->can('settings.edit'), 403);
+        abort_unless(auth()->user()?->hasRole('superAdmin'), 403);
 
-        $user = auth()->user();
-        $is_super_admin = $user->hasRole('superAdmin');
+        abort_unless(
+            auth()->user()->can($equipment_type_id ? 'settings.equipment_types.edit' : 'settings.equipment_types.create'),
+            403
+        );
 
         $attributes = [
-            'name'   => $data['name'],
-            'label'  => static::normalizeLabel($data['name']),
-            'active' => $data['active'],
+            'name'        => $data['name'],
+            'label'       => static::normalizeLabel($data['name']),
+            'active'      => $data['active'],
+            'business_id' => null,
+            'general'     => true,
         ];
 
         if ($equipment_type_id) {
             $equipment_type = EquipmentType::findOrFail($equipment_type_id);
-            abort_unless($equipment_type->isEditableBy($user), 403);
-
-            $attributes['business_id'] = $is_super_admin ? null : $user->business_id;
-            $attributes['general']     = $is_super_admin;
+            abort_unless($equipment_type->isEditableBy(), 403);
 
             $equipment_type->update($attributes);
-
-            return $equipment_type->fresh();
+        } else {
+            $equipment_type = EquipmentType::create($attributes);
         }
 
-        $attributes['business_id'] = $is_super_admin ? null : $user->business_id;
-        $attributes['general']     = $is_super_admin;
+        SyncEquipmentTypeBusinessesAction::run($equipment_type, $data['business_ids']);
 
-        return EquipmentType::create($attributes);
+        return $equipment_type->fresh(['businesses']);
     }
 
     public static function normalizeLabel(string $name): string

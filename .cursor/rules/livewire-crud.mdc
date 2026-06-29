@@ -1,0 +1,96 @@
+---
+description: Flujo CRUD Livewire — Form para validación, Action para persistencia
+globs: app/Livewire/**/*.php,app/Livewire/Forms/**/*.php,app/Actions/**/*.php,resources/views/livewire/**/*.blade.php
+alwaysApply: true
+---
+
+# CRUD con Livewire — VISERVICE
+
+Antes de crear o modificar un CRUD, **lee siempre** los archivos existentes del módulo (referencia: clientes, marcas, atributos):
+
+- Componente Livewire (`Index`, `Form`, `Show`, `Datatable*`)
+- Vista Blade asociada (`resources/views/livewire/...`)
+- `Livewire\Form` del módulo
+- `Action`(s) de persistencia
+- Modelo, rutas y permisos en `config/permissions.php`
+
+Replica la estructura y convenciones del módulo más cercano; no improvises un flujo distinto.
+
+---
+
+## Capas y responsabilidades
+
+| Capa | Responsabilidad |
+|------|-----------------|
+| **Componente Livewire** | Autorización (`mount`, `save`), UI, redirección, alertas, delegar a Form y Action |
+| **`Livewire\Form`** | Estado del formulario, `rules()`, `messages()`, `set*()`, `validated()` |
+| **Action** | Crear/actualizar/eliminar en BD, relaciones, reglas de negocio, transacciones |
+| **Blade** | Solo presentación; sin lógica de persistencia |
+
+---
+
+## Form (`app/Livewire/Forms/...`)
+
+- Una clase `*Form extends Form` por entidad.
+- Propiedades públicas en **snake_case**.
+- `rules()` y `messages()` en español.
+- `setModel($model)` para edición; `reset()` limpia todo.
+- `validated()` llama `$this->validate()` y devuelve solo datos listos para la Action.
+- **No** usar `DB::`, `Model::create()` ni `update()` dentro del Form.
+
+```php
+// ✅ Componente
+public function save(): void
+{
+    abort_unless(auth()->user()->can('...'), 403);
+
+    CreateOrUpdateClientAction::run(
+        $this->form->resolvedBusinessId(),
+        $this->form->client_id,
+        $this->form->validated()
+    );
+
+    $this->redirectRoute('...', navigate: true);
+}
+```
+
+---
+
+## Action (`app/Actions/...`)
+
+- Usar `Lorisleiva\Actions\Concerns\AsAction`.
+- Recibir datos **ya validados** desde `$form->validated()`.
+- Un Action por operación: `CreateOrUpdate*Action`, `Delete*Action`, `Sync*Action`.
+- Autorización de permisos en Action o en el componente antes de llamarla (consistente con el módulo).
+- Side effects (pivot, sync, archivos) van en la Action, no en el componente.
+
+```php
+// ❌ Persistencia en el componente Livewire
+public function save() {
+    Client::create($this->form->only([...]));
+}
+
+// ✅ Action dedicada
+CreateOrUpdateClientAction::run($business_id, $client_id, $this->form->validated());
+```
+
+---
+
+## Componente Livewire
+
+- `public *Form $form;` tipado.
+- `mount()`: permisos + cargar registro con `$this->form->set*()`.
+- `save()`: validar vía Form → llamar Action → feedback → redirect.
+- Usar `$this->redirectRoute(..., navigate: true)`, **no** `redirect()->route(..., navigate: true)`.
+- Datatables: lógica de listado en `Datatable*`, borrado vía `Delete*Action`.
+
+---
+
+## Checklist al terminar un CRUD
+
+- [ ] Form con reglas y mensajes en español
+- [ ] Action con persistencia y relaciones
+- [ ] Componente sin queries de escritura directas
+- [ ] Vistas alineadas con el módulo de referencia
+- [ ] Rutas con middleware de permisos Spatie
+- [ ] Textos de UI en español

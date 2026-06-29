@@ -21,12 +21,12 @@ class Index extends Component
 
     public function mount(): void
     {
-        abort_unless(auth()->user()->can('settings.view'), 403);
+        abort_unless(auth()->user()->can('settings.equipment_types.view'), 403);
     }
 
     public function openCreate(): void
     {
-        abort_unless(auth()->user()->can('settings.edit'), 403);
+        abort_unless(auth()->user()->can('settings.equipment_types.create'), 403);
 
         $this->form->reset();
         $this->form->active = true;
@@ -37,7 +37,7 @@ class Index extends Component
     #[On('open-equipment-type-edit')]
     public function openEdit(int $id): void
     {
-        abort_unless(auth()->user()->can('settings.edit'), 403);
+        abort_unless(auth()->user()->can('settings.equipment_types.edit'), 403);
 
         $equipment_type = EquipmentType::findOrFail($id);
         abort_unless($equipment_type->isEditableBy(), 403);
@@ -60,7 +60,10 @@ class Index extends Component
 
     public function save(): void
     {
-        abort_unless(auth()->user()->can('settings.edit'), 403);
+        abort_unless(
+            auth()->user()->can($this->form->isEditing() ? 'settings.equipment_types.edit' : 'settings.equipment_types.create'),
+            403
+        );
 
         $was_editing = $this->form->isEditing();
 
@@ -82,8 +85,8 @@ class Index extends Component
     public function render()
     {
         return view('livewire.admin.settings.equipment.types.index', [
-            'config'         => EquipmentSettingsConfig::sectionOrFail('types'),
-            'is_super_admin' => $this->form->isSuperAdmin(),
+            'config'     => EquipmentSettingsConfig::sectionOrFail('types'),
+            'businesses' => $this->form->getActiveBusinesses(),
         ]);
     }
 }

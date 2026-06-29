@@ -3,8 +3,10 @@
 namespace App\Livewire\Forms\Admin\Settings\Equipment;
 
 use App\Actions\Settings\Equipment\CreateOrUpdateEquipmentTypeAction;
+use App\Models\Business;
 use App\Models\EquipmentType;
 use App\Rules\NotConflictingWithGeneralCatalogName;
+use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Livewire\Form;
 
@@ -12,14 +14,33 @@ class EquipmentTypeForm extends Form
 {
     public ?int $equipment_type_id = null;
 
-    public string $name   = '';
-    public bool   $active = true;
+    public string $name = '';
+
+    public bool $active = true;
+
+    /** @var array<int> */
+    public array $business_ids = [];
 
     public function setEquipmentType(EquipmentType $equipment_type): void
     {
+        $equipment_type->load('businesses');
+
         $this->equipment_type_id = $equipment_type->id;
         $this->name              = $equipment_type->name;
         $this->active            = $equipment_type->active;
+        $this->business_ids      = $equipment_type->businesses
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+    }
+
+    public function reset(...$properties): void
+    {
+        parent::reset(...$properties);
+        $this->equipment_type_id = null;
+        $this->name              = '';
+        $this->active            = true;
+        $this->business_ids      = [];
     }
 
     public function isSuperAdmin(): bool
@@ -27,29 +48,22 @@ class EquipmentTypeForm extends Form
         return auth()->user()?->hasRole('superAdmin') ?? false;
     }
 
-    public function resolvedBusinessId(): ?int
+    public function getActiveBusinesses(): Collection
     {
-        return $this->isSuperAdmin() ? null : auth()->user()?->business_id;
-    }
-
-    public function resolvedGeneral(): bool
-    {
-        return $this->isSuperAdmin();
+        return Business::query()
+            ->where('status', true)
+            ->orderBy('name')
+            ->get(['id', 'name']);
     }
 
     public function rules(): array
     {
-        $business_id = $this->resolvedBusinessId();
-        $general     = $this->resolvedGeneral();
+        $active_business_ids = $this->getActiveBusinesses()->pluck('id')->all();
 
-        $scope = function ($query) use ($business_id, $general) {
-            $query->whereNull('deleted_at');
-
-            if ($general) {
-                $query->whereNull('business_id')->where('general', true);
-            } else {
-                $query->where('business_id', $business_id)->where('general', false);
-            }
+        $scope = function ($query) {
+            $query->whereNull('deleted_at')
+                ->whereNull('business_id')
+                ->where('general', true);
         };
 
         return [
@@ -64,6 +78,7 @@ class EquipmentTypeForm extends Form
 
                     if ($name === '') {
                         $fail('El nombre es obligatorio.');
+
                         return;
                     }
 
@@ -76,6 +91,7 @@ class EquipmentTypeForm extends Form
 
                     if ($query->exists()) {
                         $fail('Ya existe un tipo con este nombre.');
+
                         return;
                     }
 
@@ -83,6 +99,7 @@ class EquipmentTypeForm extends Form
 
                     if ($label === '') {
                         $fail('El nombre debe contener al menos una letra o número.');
+
                         return;
                     }
 
@@ -98,16 +115,21 @@ class EquipmentTypeForm extends Form
                     }
                 },
             ],
-            'active' => ['boolean'],
+            'active'        => ['boolean'],
+            'business_ids'  => ['required', 'array', 'min:1'],
+            'business_ids.*' => ['integer', Rule::in($active_business_ids)],
         ];
     }
 
     public function messages(): array
     {
         return [
-            'name.required' => 'El nombre es obligatorio.',
-            'name.max'      => 'El nombre no puede superar 100 caracteres.',
-            'name.unique'   => 'Ya existe un tipo con este nombre.',
+            'name.required'         => 'El nombre es obligatorio.',
+            'name.max'              => 'El nombre no puede superar 100 caracteres.',
+            'name.unique'           => 'Ya existe un tipo con este nombre.',
+            'business_ids.required' => 'Debe seleccionar al menos un negocio.',
+            'business_ids.min'      => 'Debe seleccionar al menos un negocio.',
+            'business_ids.*.in'     => 'Uno de los negocios seleccionados no es válido.',
         ];
     }
 
@@ -121,8 +143,9 @@ class EquipmentTypeForm extends Form
         $this->validate();
 
         return [
-            'name'   => trim($this->name),
-            'active' => $this->active,
+            'name'          => trim($this->name),
+            'active'        => $this->active,
+            'business_ids'  => array_map('intval', $this->business_ids),
         ];
     }
 }

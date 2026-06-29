@@ -4,19 +4,18 @@ namespace App\Livewire\Admin\Settings\Equipment\Types;
 
 use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
 use App\Livewire\Concerns\JoinsEquipmentUsageCount;
-use App\Livewire\Concerns\ResolvesCatalogDatatableRowPermissions;
 use App\Models\EquipmentType;
 use Arm092\LivewireDatatables\Column;
 use Arm092\LivewireDatatables\Livewire\LivewireDatatable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\On;
 
 class DatatableEquipmentTypes extends LivewireDatatable
 {
     use ConfirmsDeletionWithLivewireAlert;
     use JoinsEquipmentUsageCount;
-    use ResolvesCatalogDatatableRowPermissions;
 
     public bool $exportable = true;
 
@@ -27,25 +26,31 @@ class DatatableEquipmentTypes extends LivewireDatatable
 
     public function builder(): Builder
     {
+        $business_counts = DB::table('equipment_type_business')
+            ->select('equipment_type_id', DB::raw('COUNT(*) as assigned_businesses_count'))
+            ->groupBy('equipment_type_id');
+
         $query = EquipmentType::query()
-            ->visibleToUser()
             ->select('equipment_types.*');
 
         $this->joinEquipmentUsageCount($query, 'equipment_types', 'equipment_type_id');
 
-        $query->addSelect('equipment_usage.equipment_count')
-            ->orderByDesc('equipment_types.created_at');
+        $query->leftJoinSub(
+            $business_counts,
+            'business_assignments',
+            fn ($join) => $join->on('equipment_types.id', '=', 'business_assignments.equipment_type_id')
+        );
 
-        if (auth()->user()->hasRole('superAdmin')) {
-            $query->leftJoin('businesses', 'equipment_types.business_id', '=', 'businesses.id');
-        }
+        $query->addSelect('equipment_usage.equipment_count')
+            ->addSelect('business_assignments.assigned_businesses_count')
+            ->orderByDesc('equipment_types.created_at');
 
         return $query;
     }
 
     public function getColumns(): Model|array
     {
-        $columns = [
+        return [
             Column::name('equipment_types.name')
                 ->label('Nombre')
                 ->searchable()
@@ -58,17 +63,17 @@ class DatatableEquipmentTypes extends LivewireDatatable
 
                 return '<span class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 ring-1 ring-slate-500/20">No</span>';
             })->label('General')->filterable([1 => 'Sí', 0 => 'No']),
-        ];
 
-        if (auth()->user()->hasRole('superAdmin')) {
-            $columns[] = Column::callback(['businesses.name'], function ($business_name) {
-                return $business_name
-                    ? e($business_name)
-                    : '<span class="text-slate-400">—</span>';
-            })->label('Negocio');
-        }
+            Column::callback(['business_assignments.assigned_businesses_count'], function ($count) {
+                $count = (int) ($count ?? 0);
 
-        return array_merge($columns, [
+                if ($count === 0) {
+                    return '<span class="text-slate-500">Todos</span>';
+                }
+
+                return '<span class="text-slate-700">' . $count . ' negocio(s)</span>';
+            })->label('Negocios'),
+
             Column::callback(['equipment_types.active'], function ($active) {
                 $label = $active ? 'Activo' : 'Inactivo';
                 $class = $active
@@ -79,19 +84,21 @@ class DatatableEquipmentTypes extends LivewireDatatable
             })->label('Estado')->filterable([1 => 'Activo', 0 => 'Inactivo']),
 
             Column::callback(
-                ['equipment_types.id', 'equipment_types.general', 'equipment_types.business_id', 'equipment_usage.equipment_count'],
-                function ($id, $general, $business_id, $equipment_count) {
-                    $permissions = $this->catalogRowPermissions((bool) $general, $business_id, (int) $equipment_count);
+                ['equipment_types.id', 'equipment_usage.equipment_count'],
+                function ($id, $equipment_count) {
+                    $equipment_count = (int) $equipment_count;
+                    $can_edit        = auth()->user()->can('settings.equipment_types.edit');
+                    $can_delete      = auth()->user()->can('settings.equipment_types.delete') && $equipment_count === 0;
 
                     return view('livewire.admin.settings.equipment.types.actions', [
                         'id'                  => $id,
-                        'can_edit'            => $permissions['can_edit'],
-                        'can_delete'          => $permissions['can_delete'],
-                        'is_general_readonly' => $permissions['is_general_readonly'],
+                        'can_edit'            => $can_edit,
+                        'can_delete'          => $can_delete,
+                        'is_general_readonly' => false,
                     ]);
                 }
             )->label('Acciones')->unsortable(),
-        ]);
+        ];
     }
 
     public function openEditEvent(int $id): void
@@ -101,7 +108,7 @@ class DatatableEquipmentTypes extends LivewireDatatable
 
     public function deleteRecord(int $id): void
     {
-        abort_unless(auth()->user()->can('settings.edit'), 403);
+        abort_unless(auth()->user()->can('settings.equipment_types.delete'), 403);
 
         $this->askDeleteConfirmation($id, '¿Estás seguro de querer eliminar este tipo de equipo?');
     }
@@ -109,16 +116,14 @@ class DatatableEquipmentTypes extends LivewireDatatable
     protected function onDeleteConfirmed(): void
     {
         try {
-            abort_unless(auth()->user()->can('settings.edit'), 403);
+            abort_unless(auth()->user()->can('settings.equipment_types.delete'), 403);
 
             $equipment_type = EquipmentType::findOrFail($this->delete_id);
 
             if (! $equipment_type->canDelete()) {
-                $message = $equipment_type->isGeneralReadonly()
-                    ? 'No se puede eliminar: es un tipo general del sistema.'
-                    : ($equipment_type->hasDependencies()
-                        ? 'No se puede eliminar: tiene equipos asociados.'
-                        : 'No tienes permiso para eliminar este tipo.');
+                $message = $equipment_type->hasDependencies()
+                    ? 'No se puede eliminar: tiene equipos asociados.'
+                    : 'No tienes permiso para eliminar este tipo.';
 
                 $this->alertDeleteWarning($message);
 

@@ -109,8 +109,10 @@ Route::middleware('auth')->group(function () {
     // Configuración
     Route::middleware('permission:settings.view')->prefix('configuracion')->name('admin.settings.')->group(function () {
         Route::get('/equipos', SettingsEquipmentIndex::class)->name('equipment.index');
-        Route::get('/equipos/tipos', SettingsEquipmentTypesIndex::class)->name('equipment.types');
-        Route::get('/equipos/tipos/{equipmentType}', SettingsEquipmentTypesShow::class)->name('equipment.types.show');
+        Route::middleware('permission:settings.equipment_types.view')->group(function () {
+            Route::get('/equipos/tipos', SettingsEquipmentTypesIndex::class)->name('equipment.types');
+            Route::get('/equipos/tipos/{equipmentType}', SettingsEquipmentTypesShow::class)->name('equipment.types.show');
+        });
         Route::get('/equipos/marcas', SettingsBrandsIndex::class)->name('equipment.brands');
         Route::get('/equipos/marcas/{brand}', SettingsBrandsShow::class)->name('equipment.brands.show');
         Route::get('/equipos/modelos', SettingsEquipmentModelsIndex::class)->name('equipment.models');

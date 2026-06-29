@@ -18,6 +18,7 @@ class EquipmentSettingsConfig
                 'button_text'          => 'Gestionar tipos',
                 'create_button_text'   => 'Nuevo tipo',
                 'route'                => 'admin.settings.equipment.types',
+                'permission'           => 'settings.equipment_types.view',
                 'datatable_component'  => 'admin.settings.equipment.types.datatable-equipment-types',
                 'card_bg'              => 'bg-violet-50/60 border-violet-100/80',
                 'icon_bg'              => 'bg-violet-100',

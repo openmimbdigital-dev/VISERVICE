@@ -118,6 +118,12 @@ class Business extends Model
         return $this->hasMany(EquipmentType::class);
     }
 
+    public function assignedEquipmentTypes(): BelongsToMany
+    {
+        return $this->belongsToMany(EquipmentType::class, 'equipment_type_business')
+            ->withTimestamps();
+    }
+
     public function equipment(): HasMany
     {
         return $this->hasMany(Equipment::class);

@@ -183,7 +183,12 @@ class AttributeForm extends Form
 
         if ($this->isSuperAdmin()) {
             if ($this->general) {
-                return $query->where('general', true)->get(['id', 'name', 'general']);
+                return $query->where('general', true)
+                    ->where(function ($q) {
+                        $q->whereDoesntHave('businesses')
+                            ->orWhereHas('businesses');
+                    })
+                    ->get(['id', 'name', 'general']);
             }
 
             if (empty($this->business_ids)) {
@@ -193,7 +198,10 @@ class AttributeForm extends Form
             $business_ids = array_map('intval', $this->business_ids);
 
             return $query->where(function ($q) use ($business_ids) {
-                $q->where('general', true)
+                $q->where(function ($q2) {
+                    $q2->where('general', true)->whereDoesntHave('businesses');
+                })
+                    ->orWhereHas('businesses', fn ($bq) => $bq->whereIn('businesses.id', $business_ids))
                     ->orWhereIn('business_id', $business_ids);
             })->get(['id', 'name', 'general']);
         }
