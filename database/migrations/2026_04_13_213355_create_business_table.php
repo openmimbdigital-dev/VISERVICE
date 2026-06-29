@@ -42,6 +42,7 @@ return new class extends Migration
             $table->boolean('status')->default(true);
             $table->timestamps();
             $table->softDeletes();
+            $table->index('name', 'businesses_name_idx');
             // Claves foráneas
             $table->foreign('city_id')->references('id')->on('cities')->onDelete('set null');
             $table->foreign('country_id')->references('id')->on('countries')->onDelete('set null');

@@ -27,12 +27,10 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            $table->index(['business_id', 'plate']);
-            $table->index(['business_id', 'status']);
-            $table->index(['client_id', 'status']);
-            $table->index(['brand_id', 'status']);
-            $table->index(['model_id', 'status']);
-            $table->index(['equipment_type_id', 'status']);
+            $table->index(['business_id', 'deleted_at', 'plate'], 'equipment_business_deleted_plate_idx');
+            $table->index(['business_id', 'deleted_at', 'client_id'], 'equipment_business_deleted_client_idx');
+            $table->index(['business_id', 'deleted_at', 'status'], 'equipment_business_deleted_status_idx');
+            $table->index(['client_id', 'deleted_at', 'status'], 'equipment_client_deleted_status_idx');
         });
     }
 

@@ -24,9 +24,10 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            $table->index('status');
-            $table->index(['business_id', 'status']);
-            $table->index(['business_id', 'document_number']);
+            $table->index(['business_id', 'deleted_at', 'name'], 'clients_business_deleted_name_idx');
+            $table->index(['business_id', 'deleted_at', 'created_at'], 'clients_business_deleted_created_idx');
+            $table->index(['business_id', 'deleted_at', 'status'], 'clients_business_deleted_status_idx');
+            $table->index(['business_id', 'document_number', 'deleted_at'], 'clients_business_document_deleted_idx');
         });
     }
 

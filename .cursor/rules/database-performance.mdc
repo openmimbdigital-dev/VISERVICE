@@ -1,0 +1,145 @@
+---
+description: Rendimiento de BD y queries multi-tenant — 500 negocios, ~50k clientes, ~100k equipos
+globs: database/migrations/**/*.php,app/Models/**/*.php,app/Livewire/**/Datatable*.php,app/Actions/**/*.php
+alwaysApply: true
+---
+
+# Rendimiento de base de datos — VISERVICE
+
+Escala de referencia del proyecto:
+- **500 negocios** (multi-tenant por `business_id`)
+- **~100 clientes** por negocio → **~50 000 clientes**
+- **~200 equipos** por negocio → **~100 000 equipos**
+- Catálogos (marcas, tipos, modelos): bajo volumen por negocio, pero el superAdmin puede ver todos
+
+Toda migración nueva y toda query de listado **debe** seguir estas reglas.
+
+---
+
+## 1. Migraciones
+
+### Multi-tenant primero
+- Toda tabla de negocio lleva `business_id` con FK e índice.
+- Los índices compuestos **empiezan por `business_id`** cuando el acceso habitual es por negocio.
+
+### Soft deletes
+- Tablas con `SoftDeletes` → incluir `deleted_at` en índices de listado.
+- Patrón recomendado: `(business_id, deleted_at, <columna_orden>)`.
+- Ejemplo: `clients_business_deleted_name_idx` → `(business_id, deleted_at, name)`.
+
+### Índices de listado (datatables)
+| Tabla | Orden habitual | Índice sugerido |
+|-------|----------------|-----------------|
+| `clients` | `name` | `(business_id, deleted_at, name)` |
+| `clients` | `created_at` | `(business_id, deleted_at, created_at)` |
+| `equipment` | por cliente/placa | `(business_id, deleted_at, client_id)`, `(business_id, deleted_at, plate)` |
+| Catálogo (`brands`, `equipment_types`, `equipment_models`) | `created_at DESC` | `(business_id, deleted_at, created_at)`, `(deleted_at, created_at)` para superAdmin |
+| Catálogo general | `general = true` | `(general, deleted_at, active)` |
+
+### Evitar
+- Índices simples de baja cardinalidad (`status` booleano solo).
+- `SELECT *` en tablas grandes cuando no hace falta.
+- `unique` sin considerar soft delete (usar `(cols..., deleted_at)` o validación en app).
+- FK sin índice en la columna hija.
+
+### Nomenclatura
+- Índices con nombre explícito: `{tabla}_{columnas}_idx`.
+- Comentar en la migración si el índice sirve para un listado o filtro concreto.
+
+---
+
+## 2. Queries Eloquent / datatables
+
+### Scope de negocio obligatorio
+- Usuarios de negocio: **siempre** filtrar por `business_id` antes de ordenar o buscar.
+- Usar scopes existentes: `forAuthUser()`, `visibleToUser()`.
+- El superAdmin es la excepción (ve todos los registros).
+
+### Paginación
+- Datatables: `perPage` por defecto **25** (nunca cargar todo el dataset).
+- No usar `->get()` en listados que puedan superar unas pocas centenas de filas.
+
+### Sin N+1 en columnas de acciones
+- **Prohibido** `Model::find($id)` dentro de callbacks de columnas por fila.
+- Usar datos ya presentes en la fila (`general`, `business_id`, etc.).
+- Para conteos de dependencias en datatables: usar `JoinsEquipmentUsageCount` (subquery join), **no** `withCount()` en callbacks.
+- Trait de permisos: `ResolvesCatalogDatatableRowPermissions`.
+- Trait de conteo: `JoinsEquipmentUsageCount`.
+
+### arm092/livewire-datatables — columnas válidas
+
+El paquete arma el `SELECT` a partir de los nombres en `Column::name()` y `Column::callback()`. **Solo referenciar columnas que existan en el SQL resultante.**
+
+| Situación | Correcto | Incorrecto |
+|-----------|----------|------------|
+| Columna de la tabla principal | `brands.name`, `equipment_types.active` | `name` (se prefija mal en algunos contextos) |
+| Columna de tabla unida | `businesses.name` (con `leftJoin` en builder) | `business_name` sin `addSelect` previo |
+| Alias del `select`/`addSelect` | `Column::raw('brands.name AS brand_name')` | `Column::name('brand_name')` (el paquete lo prefija como `{tabla}.brand_name`) |
+| Conteo agregado | `equipment_usage.equipment_count` vía `joinEquipmentUsageCount` | `equipment_count` o `equipment_types.equipment_count` |
+| Join superAdmin | `businesses.name` + `leftJoin('businesses', ...)` en builder | Asumir que existe sin join |
+
+**Regla crítica:** `withCount()` genera el alias `equipment_count`, pero el paquete lo reescribe como `{tabla_principal}.equipment_count` en callbacks → **error 1054**. Para datatables usar siempre:
+
+```php
+$this->joinEquipmentUsageCount($query, 'equipment_types', 'equipment_type_id');
+$query->addSelect('equipment_usage.equipment_count');
+
+// En Column::callback:
+['equipment_types.id', 'equipment_types.general', 'equipment_types.business_id', 'equipment_usage.equipment_count']
+```
+
+**Columnas reales del catálogo (no inventar campos):**
+
+| Tabla | Campos listado | FK / relación con `equipment` |
+|-------|----------------|-------------------------------|
+| `brands` | `id`, `name`, `label`, `active`, `general`, `business_id`, `created_at`, `deleted_at` | `equipment.brand_id` |
+| `equipment_types` | `id`, `name`, `label`, `active`, `general`, `business_id`, `created_at`, `deleted_at` | `equipment.equipment_type_id` |
+| `equipment_models` | `id`, `name`, `label`, `active`, `general`, `business_id`, `brand_id`, `created_at`, `deleted_at` | `equipment.model_id` |
+| `brands` (join en modelos) | `brands.name` → exponer como `brand_name` con `addSelect` | — |
+
+### Joins
+- Preferir **un join** en el `builder()` (ej. marca en modelos) frente a relaciones lazy por fila.
+- `leftJoin` con `whereNull('{tabla}.deleted_at')` en tablas con soft delete.
+- `select('{tabla_principal}.*')` para evitar colisiones de columnas.
+
+### Orden compatible con índices
+- Negocio: `orderBy('clients.name')` con índice `(business_id, deleted_at, name)`.
+- Catálogo: `orderByDesc('{tabla}.created_at')` con índice `(business_id, deleted_at, created_at)`.
+- SuperAdmin + join a `businesses`: índice en `businesses.name`.
+
+### Búsquedas
+- `LIKE '%texto%'` no usa índices → aceptable solo con paginación y filtro previo por `business_id`.
+- Búsquedas por documento/placa: usar columnas indexadas (`document_number`, `plate`) con filtro de negocio.
+
+### Conteos y existencias
+- Listados en **datatables**: `JoinsEquipmentUsageCount` + columna `equipment_usage.equipment_count`.
+- Listados fuera de datatables: `withCount()` / `withExists()` está bien.
+- Acciones puntuales (borrar): `exists()` en una sola fila está bien.
+- Evitar `$model->relation()->count()` en loops.
+
+---
+
+## 3. Checklist antes de merge
+
+**Migración nueva**
+- [ ] ¿Tiene `business_id` + FK si es dato de negocio?
+- [ ] ¿Tiene `softDeletes()`? → índices incluyen `deleted_at`
+- [ ] ¿Hay listado ordenado/filtrado? → índice compuesto acorde
+- [ ] ¿Nombre de índice explícito?
+
+**Query / datatable nueva**
+- [ ] ¿Filtra por negocio (o scope) antes de ordenar?
+- [ ] ¿Paginada?
+- [ ] ¿Sin `find()` por fila en callbacks?
+- [ ] ¿Todas las columnas de `Column::callback()` existen en el SELECT (tabla, join o alias)?
+- [ ] ¿Conteos con `equipment_usage.equipment_count`, no `withCount` en datatables?
+- [ ] ¿`orderBy` alineado con un índice existente?
+
+---
+
+## 4. Referencias en el proyecto
+
+- Índices optimizados: migraciones `clients`, `equipment`, `brands`, `equipment_types`, `equipment_models`, `attributes`
+- Datatables optimizados: `DatatableClients`, `DatatableBrands`, `DatatableEquipmentTypes`, `DatatableEquipmentModels`
+- Permisos de fila sin N+1: `app/Livewire/Concerns/ResolvesCatalogDatatableRowPermissions.php`
+- Conteo de equipos en datatables: `app/Livewire/Concerns/JoinsEquipmentUsageCount.php`

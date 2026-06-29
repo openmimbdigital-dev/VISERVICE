@@ -27,9 +27,10 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            // Índices únicos para evitar duplicados en la misma posición
-            $table->unique(['type', 'name','deleted_at'], 'unique_attributes_name');
-
+            $table->unique(['type', 'name', 'deleted_at'], 'unique_attributes_name');
+            $table->index(['business_id', 'deleted_at', 'type'], 'attributes_business_deleted_type_idx');
+            $table->index(['business_id', 'deleted_at', 'created_at'], 'attributes_business_deleted_created_idx');
+            $table->index(['general', 'deleted_at'], 'attributes_general_deleted_idx');
         });
 
 
@@ -42,6 +43,10 @@ return new class extends Migration
 
             $table->softDeletes();
             $table->timestamps();
+
+            $table->index(['business_id', 'deleted_at'], 'apt_business_deleted_idx');
+            $table->index(['attribute_id', 'deleted_at'], 'apt_attribute_deleted_idx');
+            $table->index(['model_type', 'model_id', 'deleted_at'], 'apt_model_deleted_idx');
         });
     }
 

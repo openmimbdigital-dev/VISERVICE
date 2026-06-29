@@ -3,6 +3,8 @@
 namespace App\Livewire\Admin\Settings\Equipment\Types;
 
 use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
+use App\Livewire\Concerns\JoinsEquipmentUsageCount;
+use App\Livewire\Concerns\ResolvesCatalogDatatableRowPermissions;
 use App\Models\EquipmentType;
 use Arm092\LivewireDatatables\Column;
 use Arm092\LivewireDatatables\Livewire\LivewireDatatable;
@@ -13,6 +15,8 @@ use Livewire\Attributes\On;
 class DatatableEquipmentTypes extends LivewireDatatable
 {
     use ConfirmsDeletionWithLivewireAlert;
+    use JoinsEquipmentUsageCount;
+    use ResolvesCatalogDatatableRowPermissions;
 
     public bool $exportable = true;
 
@@ -25,7 +29,11 @@ class DatatableEquipmentTypes extends LivewireDatatable
     {
         $query = EquipmentType::query()
             ->visibleToUser()
-            ->select('equipment_types.*')
+            ->select('equipment_types.*');
+
+        $this->joinEquipmentUsageCount($query, 'equipment_types', 'equipment_type_id');
+
+        $query->addSelect('equipment_usage.equipment_count')
             ->orderByDesc('equipment_types.created_at');
 
         if (auth()->user()->hasRole('superAdmin')) {
@@ -70,16 +78,19 @@ class DatatableEquipmentTypes extends LivewireDatatable
                 return '<span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ' . $class . '">' . $label . '</span>';
             })->label('Estado')->filterable([1 => 'Activo', 0 => 'Inactivo']),
 
-            Column::callback(['equipment_types.id'], function ($id) {
-                $equipment_type = EquipmentType::find($id);
+            Column::callback(
+                ['equipment_types.id', 'equipment_types.general', 'equipment_types.business_id', 'equipment_usage.equipment_count'],
+                function ($id, $general, $business_id, $equipment_count) {
+                    $permissions = $this->catalogRowPermissions((bool) $general, $business_id, (int) $equipment_count);
 
-                return view('livewire.admin.settings.equipment.types.actions', [
-                    'id'                  => $id,
-                    'can_edit'            => auth()->user()->can('settings.edit') && ($equipment_type?->isEditableBy() ?? false),
-                    'can_delete'          => auth()->user()->can('settings.edit') && ($equipment_type?->canDelete() ?? false),
-                    'is_general_readonly' => $equipment_type?->isGeneralReadonly() ?? false,
-                ]);
-            })->label('Acciones')->unsortable(),
+                    return view('livewire.admin.settings.equipment.types.actions', [
+                        'id'                  => $id,
+                        'can_edit'            => $permissions['can_edit'],
+                        'can_delete'          => $permissions['can_delete'],
+                        'is_general_readonly' => $permissions['is_general_readonly'],
+                    ]);
+                }
+            )->label('Acciones')->unsortable(),
         ]);
     }
 

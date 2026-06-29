@@ -3,6 +3,8 @@
 namespace App\Livewire\Admin\Settings\Equipment\Models;
 
 use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
+use App\Livewire\Concerns\JoinsEquipmentUsageCount;
+use App\Livewire\Concerns\ResolvesCatalogDatatableRowPermissions;
 use App\Models\EquipmentModel;
 use Arm092\LivewireDatatables\Column;
 use Arm092\LivewireDatatables\Livewire\LivewireDatatable;
@@ -13,6 +15,8 @@ use Livewire\Attributes\On;
 class DatatableEquipmentModels extends LivewireDatatable
 {
     use ConfirmsDeletionWithLivewireAlert;
+    use JoinsEquipmentUsageCount;
+    use ResolvesCatalogDatatableRowPermissions;
 
     public bool $exportable = true;
 
@@ -25,8 +29,15 @@ class DatatableEquipmentModels extends LivewireDatatable
     {
         $query = EquipmentModel::query()
             ->visibleToUser()
-            ->leftJoin('brands', 'equipment_models.brand_id', '=', 'brands.id')
             ->select('equipment_models.*')
+            ->leftJoin('brands', function ($join) {
+                $join->on('equipment_models.brand_id', '=', 'brands.id')
+                    ->whereNull('brands.deleted_at');
+            });
+
+        $this->joinEquipmentUsageCount($query, 'equipment_models', 'model_id');
+
+        $query->addSelect('equipment_usage.equipment_count')
             ->orderByDesc('equipment_models.created_at');
 
         if (auth()->user()->hasRole('superAdmin')) {
@@ -44,11 +55,9 @@ class DatatableEquipmentModels extends LivewireDatatable
                 ->searchable()
                 ->sortable(),
 
-            Column::callback(['brands.name'], function ($brand_name) {
-                return $brand_name
-                    ? e($brand_name)
-                    : '<span class="text-slate-400">—</span>';
-            })->label('Marca'),
+            Column::raw('brands.name AS brand_name')
+                ->label('Marca')
+                ->searchable(),
 
             Column::callback(['equipment_models.general'], function ($general) {
                 if ($general) {
@@ -77,16 +86,19 @@ class DatatableEquipmentModels extends LivewireDatatable
                 return '<span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ' . $class . '">' . $label . '</span>';
             })->label('Estado')->filterable([1 => 'Activo', 0 => 'Inactivo']),
 
-            Column::callback(['equipment_models.id'], function ($id) {
-                $equipment_model = EquipmentModel::find($id);
+            Column::callback(
+                ['equipment_models.id', 'equipment_models.general', 'equipment_models.business_id', 'equipment_usage.equipment_count'],
+                function ($id, $general, $business_id, $equipment_count) {
+                    $permissions = $this->catalogRowPermissions((bool) $general, $business_id, (int) $equipment_count);
 
-                return view('livewire.admin.settings.equipment.models.actions', [
-                    'id'                  => $id,
-                    'can_edit'            => auth()->user()->can('settings.edit') && ($equipment_model?->isEditableBy() ?? false),
-                    'can_delete'          => auth()->user()->can('settings.edit') && ($equipment_model?->canDelete() ?? false),
-                    'is_general_readonly' => $equipment_model?->isGeneralReadonly() ?? false,
-                ]);
-            })->label('Acciones')->unsortable(),
+                    return view('livewire.admin.settings.equipment.models.actions', [
+                        'id'                  => $id,
+                        'can_edit'            => $permissions['can_edit'],
+                        'can_delete'          => $permissions['can_delete'],
+                        'is_general_readonly' => $permissions['is_general_readonly'],
+                    ]);
+                }
+            )->label('Acciones')->unsortable(),
         ]);
     }
 

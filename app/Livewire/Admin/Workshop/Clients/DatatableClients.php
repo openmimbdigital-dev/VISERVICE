@@ -15,16 +15,19 @@ class DatatableClients extends LivewireDatatable
     use ConfirmsDeletionWithLivewireAlert;
 
     public bool $exportable = true;
+
     public ?int $perPage = 25;
 
     public function builder(): Builder
     {
-        $query = Client::query()->forAuthUser();
+        $user  = auth()->user();
+        $query = Client::query()
+            ->forAuthUser()
+            ->select('clients.*');
 
-        if (auth()->user()->hasRole('superAdmin')) {
+        if ($user->hasRole('superAdmin')) {
             return $query
                 ->leftJoin('businesses', 'clients.business_id', '=', 'businesses.id')
-                ->select('clients.*')
                 ->orderBy('businesses.name')
                 ->orderBy('clients.name');
         }
