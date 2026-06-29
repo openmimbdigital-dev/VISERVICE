@@ -43,7 +43,7 @@ class EquipmentType extends Model
 
     public function attributeProductTypes(): MorphMany
     {
-        return $this->morphMany(AttributeProductType::class, 'model');
+        return $this->morphMany(AttributeEquipmentType::class, 'model');
     }
 
     public function scopeActive($query)

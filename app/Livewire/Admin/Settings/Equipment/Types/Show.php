@@ -4,7 +4,7 @@ namespace App\Livewire\Admin\Settings\Equipment\Types;
 
 use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
 use App\Models\Attribute;
-use App\Models\AttributeProductType;
+use App\Models\AttributeEquipmentType;
 use App\Models\EquipmentType;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Layout;
@@ -31,7 +31,7 @@ class Show extends Component
         $this->equipment_type = $equipmentType->load(['businesses']);
         $this->equipment_count = $equipmentType->equipment()->count();
 
-        $attribute_ids = AttributeProductType::query()
+        $attribute_ids = AttributeEquipmentType::query()
             ->where('model_type', EquipmentType::class)
             ->where('model_id', $equipmentType->id)
             ->pluck('attribute_id')

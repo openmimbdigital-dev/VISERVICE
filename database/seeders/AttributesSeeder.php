@@ -4,7 +4,7 @@ namespace Database\Seeders;
 
 use App\Enums\AttributeType;
 use App\Models\Attribute;
-use App\Models\AttributeProductType;
+use App\Models\AttributeEquipmentType;
 use App\Models\Business;
 use App\Models\EquipmentType;
 use Illuminate\Database\Seeder;
@@ -208,13 +208,13 @@ class AttributesSeeder extends Seeder
             $attribute->businesses()->sync([$business_id]);
         }
 
-        AttributeProductType::query()
+        AttributeEquipmentType::query()
             ->where('attribute_id', $attribute->id)
             ->where('model_type', EquipmentType::class)
             ->delete();
 
         foreach ($data['types'] as $equipment_type_id) {
-            AttributeProductType::create([
+            AttributeEquipmentType::create([
                 'attribute_id' => $attribute->id,
                 'model_id'     => $equipment_type_id,
                 'model_type'   => EquipmentType::class,

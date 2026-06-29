@@ -42,7 +42,7 @@ return new class extends Migration
             $table->index(['business_id', 'attribute_id'], 'attribute_business_business_idx');
         });
 
-        Schema::create('attribute_product_types', function (Blueprint $table) {
+        Schema::create('attribute_equipment_types', function (Blueprint $table) {
             $table->id();
             $table->foreignId('business_id')->nullable()->constrained('businesses')->nullOnDelete();
             $table->morphs('model');
@@ -56,6 +56,8 @@ return new class extends Migration
             $table->index(['attribute_id', 'deleted_at'], 'apt_attribute_deleted_idx');
             $table->index(['model_type', 'model_id', 'deleted_at'], 'apt_model_deleted_idx');
         });
+
+
     }
 
     /**
@@ -63,7 +65,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('attribute_product_types');
+        Schema::dropIfExists('attribute_equipment_types');
         Schema::dropIfExists('attribute_business');
         Schema::dropIfExists('attributes');
     }

@@ -4,7 +4,7 @@ namespace App\Actions\Settings\Equipment;
 
 use App\Enums\AttributeType;
 use App\Models\Attribute;
-use App\Models\AttributeProductType;
+use App\Models\AttributeEquipmentType;
 use App\Models\EquipmentType;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -104,7 +104,7 @@ class CreateOrUpdateAttributeAction
      */
     protected function syncEquipmentTypeRelations(Attribute $attribute, array $equipment_type_ids): void
     {
-        AttributeProductType::query()
+        AttributeEquipmentType::query()
             ->where('attribute_id', $attribute->id)
             ->where('model_type', EquipmentType::class)
             ->delete();
@@ -132,7 +132,7 @@ class CreateOrUpdateAttributeAction
                     continue;
                 }
 
-                AttributeProductType::create([
+                AttributeEquipmentType::create([
                     'attribute_id' => $attribute->id,
                     'model_id'     => $equipment_type_id,
                     'model_type'   => EquipmentType::class,
@@ -164,7 +164,7 @@ class CreateOrUpdateAttributeAction
                     continue;
                 }
 
-                AttributeProductType::create([
+                AttributeEquipmentType::create([
                     'attribute_id' => $attribute->id,
                     'model_id'     => $equipment_type_id,
                     'model_type'   => EquipmentType::class,

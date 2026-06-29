@@ -7,11 +7,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class AttributeProductType extends Model
+class AttributeEquipmentType extends Model
 {
     use SoftDeletes;
 
-    protected $table = 'attribute_product_types';
+    protected $table = 'attribute_equipment_types';
 
     protected $fillable = [
         'business_id',

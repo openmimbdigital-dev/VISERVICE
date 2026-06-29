@@ -51,7 +51,7 @@ class Attribute extends Model
 
     public function attributeProductTypes(): HasMany
     {
-        return $this->hasMany(AttributeProductType::class);
+        return $this->hasMany(AttributeEquipmentType::class);
     }
 
     public function scopeByType($query, AttributeType|string $type)

@@ -5,7 +5,7 @@ namespace App\Livewire\Admin\Settings\Equipment\Attributes;
 use App\Actions\Settings\Equipment\DeleteAttributeAction;
 use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
 use App\Models\Attribute;
-use App\Models\AttributeProductType;
+use App\Models\AttributeEquipmentType;
 use App\Models\EquipmentType;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Layout;
@@ -36,7 +36,7 @@ class Show extends Component
 
         $this->attribute = $attribute->load('businesses');
 
-        $type_ids = AttributeProductType::query()
+        $type_ids = AttributeEquipmentType::query()
             ->where('attribute_id', $attribute->id)
             ->where('model_type', EquipmentType::class)
             ->pluck('model_id')
