@@ -25,6 +25,8 @@ class EquipmentCatalogSeeder extends Seeder
             'Motocicleta',
             'Automóvil',
             'Camión',
+            'Tractocamión',
+            'Aire acondicionado',
             'Bicicleta',
             'Maquinaria agrícola',
         ];
@@ -86,7 +88,7 @@ class EquipmentCatalogSeeder extends Seeder
             );
         }
 
-        $this->command->info('Catálogo de equipos: 5 marcas, 5 tipos y 5 modelos generales.');
+        $this->command->info('Catálogo de equipos: 5 marcas, 7 tipos y 5 modelos generales.');
     }
 
     /**
