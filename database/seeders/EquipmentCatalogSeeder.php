@@ -6,6 +6,7 @@ use App\Actions\Settings\Equipment\CreateOrUpdateBrandAction;
 use App\Models\Brand;
 use App\Models\EquipmentModel;
 use App\Models\EquipmentType;
+use Database\Seeders\Support\BrandEquipmentTypeSeeder;
 use Database\Seeders\Support\EquipmentTypeBusinessSeeder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Seeder;
@@ -20,6 +21,7 @@ class EquipmentCatalogSeeder extends Seeder
             'Yamaha',
             'Ford',
             'Chevrolet',
+            'LG',
         ];
 
         $types = [
@@ -38,6 +40,9 @@ class EquipmentCatalogSeeder extends Seeder
             ['brand' => 'Yamaha', 'name' => 'FZ150'],
             ['brand' => 'Ford', 'name' => 'Ranger'],
             ['brand' => 'Chevrolet', 'name' => 'Spark'],
+            ['brand' => 'LG', 'name' => 'Dual Inverter 12.000 BTU'],
+            ['brand' => 'LG', 'name' => 'Dual Inverter 18.000 BTU'],
+            ['brand' => 'LG', 'name' => 'Art Cool 9.000 BTU'],
         ];
 
         foreach ($brands as $name) {
@@ -66,6 +71,8 @@ class EquipmentCatalogSeeder extends Seeder
 
         $associated = EquipmentTypeBusinessSeeder::run();
 
+        $brand_type_associations = BrandEquipmentTypeSeeder::run();
+
         foreach ($models as $model) {
             $brand = Brand::query()
                 ->whereNull('business_id')
@@ -91,10 +98,14 @@ class EquipmentCatalogSeeder extends Seeder
             );
         }
 
-        $this->command->info('Catálogo de equipos: 5 marcas, 7 tipos y 5 modelos generales.');
+        $this->command->info('Catálogo de equipos: 6 marcas, 7 tipos y 8 modelos generales.');
 
         if ($associated > 0) {
             $this->command->info("Tipos de equipo: {$associated} asociación(es) con negocios activos.");
+        }
+
+        if ($brand_type_associations > 0) {
+            $this->command->info("Marcas: {$brand_type_associations} asociación(es) con tipos de equipo.");
         }
     }
 

@@ -82,9 +82,10 @@ class Index extends Component
     public function render()
     {
         return view('livewire.admin.settings.equipment.brands.index', [
-            'config'         => EquipmentSettingsConfig::sectionOrFail('brands'),
-            'is_super_admin' => $this->form->isSuperAdmin(),
-            'can_edit'       => auth()->user()->can('settings.edit'),
+            'config'           => EquipmentSettingsConfig::sectionOrFail('brands'),
+            'is_super_admin'   => $this->form->isSuperAdmin(),
+            'can_edit'         => auth()->user()->can('settings.edit'),
+            'equipment_types'  => $this->form->getAvailableEquipmentTypes(),
         ]);
     }
 }

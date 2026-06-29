@@ -41,6 +41,12 @@ class EquipmentType extends Model
         return $this->hasMany(Equipment::class, 'equipment_type_id');
     }
 
+    public function brands(): BelongsToMany
+    {
+        return $this->belongsToMany(Brand::class, 'brand_equipment_type')
+            ->withTimestamps();
+    }
+
     public function attributeProductTypes(): MorphMany
     {
         return $this->morphMany(AttributeEquipmentType::class, 'model');

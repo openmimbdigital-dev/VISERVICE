@@ -134,7 +134,7 @@ class EquipmentForm extends Form
     {
         $business_id = $this->resolvedBusinessId();
 
-        if (! $business_id) {
+        if (! $business_id || ! $this->equipment_type_id) {
             return collect();
         }
 
@@ -143,6 +143,17 @@ class EquipmentForm extends Form
             ->where(function ($query) use ($business_id) {
                 $query->where('general', true)
                     ->orWhere('business_id', $business_id);
+            })
+            ->where(function ($query) {
+                $query->whereIn('id', function ($sub) {
+                    $sub->select('brand_id')
+                        ->from('brand_equipment_type')
+                        ->where('equipment_type_id', $this->equipment_type_id);
+                });
+
+                if ($this->brand_id) {
+                    $query->orWhere('id', $this->brand_id);
+                }
             })
             ->orderBy('name')
             ->get(['id', 'name']);

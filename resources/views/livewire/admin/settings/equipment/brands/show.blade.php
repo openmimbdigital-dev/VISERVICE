@@ -67,6 +67,25 @@
                     </dd>
                 </div>
                 <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt class="text-xs font-medium text-slate-500">Tipos de equipo</dt>
+                    <dd class="sm:col-span-2">
+                        @if($brand->equipmentTypes->isNotEmpty())
+                            <div class="flex flex-wrap gap-1.5">
+                                @foreach($brand->equipmentTypes as $equipment_type)
+                                    <span class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700 ring-1 ring-slate-500/20">
+                                        {{ $equipment_type->name }}
+                                        @if(! $equipment_type->active)
+                                            <span class="ml-1 text-slate-400">(inactivo)</span>
+                                        @endif
+                                    </span>
+                                @endforeach
+                            </div>
+                        @else
+                            <span class="text-sm text-slate-500">Sin tipos asociados</span>
+                        @endif
+                    </dd>
+                </div>
+                <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
                     <dt class="text-xs font-medium text-slate-500">Negocio</dt>
                     <dd class="text-sm text-slate-900 sm:col-span-2">{{ $brand->business?->name ?? '—' }}</dd>
                 </div>

@@ -29,7 +29,10 @@ class Show extends Component
 
         abort_unless($visible, 404);
 
-        $this->brand = $brand->load('business');
+        $this->brand = $brand->load([
+            'business',
+            'equipmentTypes' => fn ($query) => $query->orderBy('name'),
+        ]);
         $this->equipment_count = $brand->equipment()->count();
     }
 

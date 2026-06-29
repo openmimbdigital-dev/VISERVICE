@@ -14,7 +14,7 @@ class CreateOrUpdateBrandAction
      * Crea o actualiza una marca de equipo.
      *
      * @param  int|null  $brand_id
-     * @param  array     $data  name, active
+     * @param  array{name: string, active: bool, equipment_type_ids: array<int>}  $data
      */
     public function handle(?int $brand_id, array $data): Brand
     {
@@ -38,13 +38,19 @@ class CreateOrUpdateBrandAction
 
             $brand->update($attributes);
 
-            return $brand->fresh();
+            SyncBrandEquipmentTypesAction::run($brand, $data['equipment_type_ids']);
+
+            return $brand->fresh(['equipmentTypes']);
         }
 
         $attributes['business_id'] = $is_super_admin ? null : $user->business_id;
         $attributes['general']     = $is_super_admin;
 
-        return Brand::create($attributes);
+        $brand = Brand::create($attributes);
+
+        SyncBrandEquipmentTypesAction::run($brand, $data['equipment_type_ids']);
+
+        return $brand->fresh(['equipmentTypes']);
     }
 
     public static function normalizeLabel(string $name): string
