@@ -36,6 +36,8 @@ class AttributeForm extends Form
 
     public ?float $max_value = null;
 
+    public string $default_color = '#6366f1';
+
     public function setAttribute(Attribute $attribute): void
     {
         $attribute->load(['attributeProductTypes', 'businesses']);
@@ -50,6 +52,9 @@ class AttributeForm extends Form
         $this->min_value           = $attribute->min_value;
         $this->max_value           = $attribute->max_value;
         $this->options             = $attribute->options ?? [];
+        $this->default_color       = $attribute->type === AttributeType::COLOR
+            ? (string) ($attribute->options['default'] ?? '#6366f1')
+            : '#6366f1';
         $this->equipment_types     = $attribute->attributeProductTypes
             ->where('model_type', EquipmentType::class)
             ->pluck('model_id')
@@ -73,6 +78,7 @@ class AttributeForm extends Form
         $this->nullable_creation   = false;
         $this->min_value           = null;
         $this->max_value           = null;
+        $this->default_color       = '#6366f1';
     }
 
     public function isEditing(): bool
@@ -106,6 +112,11 @@ class AttributeForm extends Form
             'nullable_creation' => ['boolean'],
             'min_value' => ['nullable', 'numeric', 'required_with:max_value'],
             'max_value' => ['nullable', 'numeric', 'gte:min_value', 'required_with:min_value'],
+            'default_color' => [
+                'required_if:type,color',
+                'nullable',
+                'regex:/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/',
+            ],
         ];
 
         if ($this->isSuperAdmin()) {
@@ -137,6 +148,8 @@ class AttributeForm extends Form
             'business_ids.required'      => 'Debe seleccionar al menos un comercio.',
             'business_ids.min'           => 'Debe seleccionar al menos un comercio.',
             'business_ids.*.exists'        => 'Uno de los comercios seleccionados no es válido.',
+            'default_color.required_if'    => 'Debe seleccionar un color predeterminado.',
+            'default_color.regex'          => 'El color debe ser un código hexadecimal válido (ej. #6366f1).',
         ];
     }
 
@@ -147,12 +160,14 @@ class AttributeForm extends Form
         return [
             'name'              => trim($this->name),
             'type'              => $this->type,
-            'options'           => $this->options,
+            'options'           => $this->type === AttributeType::COLOR->value
+                ? ['default' => $this->default_color]
+                : $this->options,
             'equipment_types'   => array_map('intval', $this->equipment_types),
             'required'          => $this->required,
             'nullable_creation' => $this->nullable_creation,
-            'min_value'         => $this->min_value,
-            'max_value'         => $this->max_value,
+            'min_value'         => $this->type === AttributeType::NUMBER->value ? $this->min_value : null,
+            'max_value'         => $this->type === AttributeType::NUMBER->value ? $this->max_value : null,
             'general'           => $this->isSuperAdmin() ? $this->general : false,
             'business_ids'      => $this->isSuperAdmin() && ! $this->general
                 ? array_map('intval', $this->business_ids)

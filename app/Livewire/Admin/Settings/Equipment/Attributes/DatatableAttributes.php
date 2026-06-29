@@ -168,6 +168,7 @@ class DatatableAttributes extends LivewireDatatable
             'select'   => 'Lista desplegable',
             'radio'    => 'Botones de radio',
             'checkbox' => 'Casillas de verificación',
+            'color'    => 'Color',
             default    => $type,
         };
     }

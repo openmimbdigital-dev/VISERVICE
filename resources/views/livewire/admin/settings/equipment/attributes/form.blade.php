@@ -73,6 +73,7 @@
                             <option value="select">Lista desplegable</option>
                             <option value="radio">Botones de radio</option>
                             <option value="checkbox">Casillas de verificación</option>
+                            <option value="color">Color</option>
                         </select>
                         @error('form.type') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                     </div>
@@ -93,6 +94,22 @@
                     @empty
                     <p class="text-sm text-slate-500">Sin opciones. Agrega al menos una.</p>
                     @endforelse
+                </div>
+                @endif
+
+                @if($form->type === 'color')
+                <div>
+                    <label class="mb-1.5 block text-xs font-medium text-slate-700">Color predeterminado <span class="text-rose-500">*</span></label>
+                    <p class="mb-3 text-sm text-slate-600">Valor inicial que se usará al registrar equipos con este atributo.</p>
+                    <div class="flex flex-wrap items-center gap-3">
+                        <input wire:model.live="form.default_color" type="color"
+                            class="h-11 w-14 cursor-pointer rounded-lg border border-slate-200 bg-white p-1">
+                        <input wire:model="form.default_color" type="text" placeholder="#6366f1" maxlength="7"
+                            class="w-full max-w-[10rem] rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 font-mono text-sm uppercase focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('form.default_color') border-rose-400 bg-rose-50 @enderror">
+                        <span class="inline-flex h-8 w-8 rounded-full border border-slate-200 ring-1 ring-slate-900/10"
+                            style="background-color: {{ $form->default_color ?: '#6366f1' }}"></span>
+                    </div>
+                    @error('form.default_color') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                 </div>
                 @endif
 

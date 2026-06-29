@@ -10,4 +10,5 @@ enum AttributeType: string
     case TEXTAREA = 'textarea';
     case RADIO    = 'radio';
     case CHECKBOX = 'checkbox';
+    case COLOR    = 'color';
 }

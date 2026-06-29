@@ -76,6 +76,12 @@ class CreateOrUpdateAttributeAction
      */
     protected function formatOptions(string $type, array $options): ?array
     {
+        if ($type === AttributeType::COLOR->value) {
+            $default = trim((string) ($options['default'] ?? ''));
+
+            return $default !== '' ? ['default' => $default] : null;
+        }
+
         if (! in_array($type, ['select', 'radio', 'checkbox'], true) || empty($options)) {
             return null;
         }

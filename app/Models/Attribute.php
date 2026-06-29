@@ -131,6 +131,7 @@ class Attribute extends Model
             AttributeType::SELECT     => 'Lista desplegable',
             AttributeType::RADIO      => 'Botones de radio',
             AttributeType::CHECKBOX   => 'Casillas de verificación',
+            AttributeType::COLOR      => 'Color',
         };
     }
 

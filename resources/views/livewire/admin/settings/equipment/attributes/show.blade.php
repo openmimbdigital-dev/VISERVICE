@@ -105,6 +105,18 @@
                     </dd>
                 </div>
                 @endif
+                @if($attribute->type === \App\Enums\AttributeType::COLOR)
+                <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt class="text-xs font-medium text-slate-500">Color predeterminado</dt>
+                    <dd class="sm:col-span-2">
+                        <span class="inline-flex items-center gap-2 text-sm text-slate-900">
+                            <span class="inline-flex h-6 w-6 rounded-full border border-slate-200 ring-1 ring-slate-900/10"
+                                style="background-color: {{ $attribute->options['default'] ?? '#6366f1' }}"></span>
+                            <span class="font-mono uppercase">{{ $attribute->options['default'] ?? '—' }}</span>
+                        </span>
+                    </dd>
+                </div>
+                @endif
                 <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
                     <dt class="text-xs font-medium text-slate-500">Registrado</dt>
                     <dd class="text-sm text-slate-900 sm:col-span-2">{{ $attribute->created_at?->format('d/m/Y H:i') }}</dd>

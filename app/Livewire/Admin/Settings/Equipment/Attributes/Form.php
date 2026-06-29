@@ -45,6 +45,13 @@ class Form extends Component
                 array_intersect($this->form->equipment_types, $visible_ids)
             );
         }
+
+        if ($property === 'form.type') {
+            $this->form->options     = [];
+            $this->form->min_value   = null;
+            $this->form->max_value   = null;
+            $this->form->default_color = '#6366f1';
+        }
     }
 
     public function save()
