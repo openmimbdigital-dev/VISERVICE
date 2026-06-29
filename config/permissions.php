@@ -45,6 +45,15 @@ return [
                 'settings.edit' => 'Editar configuración',
             ],
         ],
+        'settings_attributes' => [
+            'name' => 'Configuración — Atributos de equipo',
+            'permissions' => [
+                'settings.attributes.view'   => 'Ver atributos de equipo',
+                'settings.attributes.create' => 'Crear atributos de equipo',
+                'settings.attributes.edit'   => 'Editar atributos de equipo',
+                'settings.attributes.delete' => 'Eliminar atributos de equipo',
+            ],
+        ],
         'roles' => [
             'name' => 'Gestión de Roles y Permisos',
             'permissions' => [

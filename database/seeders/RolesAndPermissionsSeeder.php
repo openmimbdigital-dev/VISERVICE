@@ -28,6 +28,9 @@ class RolesAndPermissionsSeeder extends Seeder
             'reports.view', 'reports.export',
             // Configuración
             'settings.view', 'settings.edit',
+            // Configuración — Atributos de equipo
+            'settings.attributes.view', 'settings.attributes.create',
+            'settings.attributes.edit', 'settings.attributes.delete',
             // Roles
             'roles.view', 'roles.create', 'roles.edit', 'roles.delete',
             'permissions.view', 'permissions.assign',
@@ -62,6 +65,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'businesses.view', 'businesses.create', 'businesses.edit',
             'reports.view', 'reports.export',
             'settings.view', 'settings.edit',
+            'settings.attributes.view', 'settings.attributes.create',
+            'settings.attributes.edit', 'settings.attributes.delete',
             'roles.view',
             'workshop.clients.view', 'workshop.clients.create', 'workshop.clients.edit',
             'workshop.clients.activate', 'workshop.clients.deactivate',
@@ -74,6 +79,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'businesses.view', 'businesses.edit',
             'reports.view', 'reports.export',
             'settings.view', 'settings.edit',
+            'settings.attributes.view', 'settings.attributes.create',
+            'settings.attributes.edit', 'settings.attributes.delete',
             'workshop.clients.view', 'workshop.clients.create', 'workshop.clients.edit',
             'workshop.clients.delete', 'workshop.clients.activate', 'workshop.clients.deactivate',
             'workshop.equipment.view', 'workshop.equipment.create', 'workshop.equipment.edit',

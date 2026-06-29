@@ -51,10 +51,16 @@ class AttributeProductType extends Model
         return $query->where('business_id', $business_id);
     }
 
+    public function scopeByEquipmentType($query, int $equipment_type_id)
+    {
+        return $query->where('model_type', EquipmentType::class)
+            ->where('model_id', $equipment_type_id);
+    }
+
+    /** @deprecated Usar scopeByEquipmentType */
     public function scopeByProductType($query, int $product_type_id)
     {
-        return $query->where('model_type', ProductType::class)
-            ->where('model_id', $product_type_id);
+        return $this->scopeByEquipmentType($query, $product_type_id);
     }
 
     public function scopeByAttribute($query, int $attribute_id)

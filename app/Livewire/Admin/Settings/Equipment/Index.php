@@ -18,7 +18,9 @@ class Index extends Component
     public function render()
     {
         return view('livewire.admin.settings.equipment.index', [
-            'sections' => EquipmentSettingsConfig::sections(),
+            'sections' => collect(EquipmentSettingsConfig::sections())
+                ->filter(fn (array $section) => auth()->user()->can($section['permission'] ?? 'settings.view'))
+                ->all(),
         ]);
     }
 }

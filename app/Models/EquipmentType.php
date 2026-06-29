@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class EquipmentType extends Model
@@ -31,6 +32,11 @@ class EquipmentType extends Model
     public function equipment(): HasMany
     {
         return $this->hasMany(Equipment::class, 'equipment_type_id');
+    }
+
+    public function attributeProductTypes(): MorphMany
+    {
+        return $this->morphMany(AttributeProductType::class, 'model');
     }
 
     public function scopeActive($query)

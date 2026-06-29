@@ -22,6 +22,9 @@ use App\Livewire\Admin\Workshop\WorkOrders\Index as WorkshopWorkOrdersIndex;
 use App\Livewire\Admin\Workshop\WorkOrders\Show as WorkshopWorkOrdersShow;
 use App\Livewire\Admin\Catalog\Services\Index as CatalogServicesIndex;
 use App\Livewire\Admin\Catalog\SpareParts\Index as CatalogSparePartsIndex;
+use App\Livewire\Admin\Settings\Equipment\Attributes\Form as SettingsAttributesForm;
+use App\Livewire\Admin\Settings\Equipment\Attributes\Index as SettingsAttributesIndex;
+use App\Livewire\Admin\Settings\Equipment\Attributes\Show as SettingsAttributesShow;
 use App\Livewire\Admin\Settings\Equipment\Brands\Index as SettingsBrandsIndex;
 use App\Livewire\Admin\Settings\Equipment\Brands\Show as SettingsBrandsShow;
 use App\Livewire\Admin\Settings\Equipment\Models\Index as SettingsEquipmentModelsIndex;
@@ -112,6 +115,18 @@ Route::middleware('auth')->group(function () {
         Route::get('/equipos/marcas/{brand}', SettingsBrandsShow::class)->name('equipment.brands.show');
         Route::get('/equipos/modelos', SettingsEquipmentModelsIndex::class)->name('equipment.models');
         Route::get('/equipos/modelos/{equipmentModel}', SettingsEquipmentModelsShow::class)->name('equipment.models.show');
+        Route::middleware('permission:settings.attributes.view')->group(function () {
+            Route::get('/equipos/atributos', SettingsAttributesIndex::class)->name('equipment.attributes.index');
+        });
+        Route::middleware('permission:settings.attributes.create')->group(function () {
+            Route::get('/equipos/atributos/crear', SettingsAttributesForm::class)->name('equipment.attributes.create');
+        });
+        Route::middleware('permission:settings.attributes.edit')->group(function () {
+            Route::get('/equipos/atributos/{attribute}/editar', SettingsAttributesForm::class)->name('equipment.attributes.edit');
+        });
+        Route::middleware('permission:settings.attributes.view')->group(function () {
+            Route::get('/equipos/atributos/{attribute}', SettingsAttributesShow::class)->name('equipment.attributes.show');
+        });
         Route::get('/equipos/{section}', SettingsEquipmentSectionIndex::class)->name('equipment.section');
     });
 });

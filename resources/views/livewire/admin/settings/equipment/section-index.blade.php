@@ -25,7 +25,7 @@
                     </svg>
                     Volver
                 </a>
-                @if(!empty($config['create_route']) && auth()->user()->can('settings.edit'))
+                @if(!empty($config['create_route']) && auth()->user()->can('settings.attributes.create'))
                 <a href="{{ route($config['create_route']) }}" wire:navigate class="btn btn-primary btn-sm">
                     <svg class="mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>

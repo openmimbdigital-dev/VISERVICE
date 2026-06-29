@@ -21,25 +21,33 @@ return new class extends Migration
             $table->integer('min_value')->nullable();
             $table->boolean('default')->default(false);
             $table->boolean('nullable_creation')->default(false);
-            $table->foreignId('business_id')->constrained('businesses')->onDelete('cascade');
-            $table->boolean('general')->default(true);
+            $table->boolean('general')->default(false);
             $table->json('options')->nullable();
             $table->timestamps();
             $table->softDeletes();
 
             $table->unique(['type', 'name', 'deleted_at'], 'unique_attributes_name');
-            $table->index(['business_id', 'deleted_at', 'type'], 'attributes_business_deleted_type_idx');
-            $table->index(['business_id', 'deleted_at', 'created_at'], 'attributes_business_deleted_created_idx');
             $table->index(['general', 'deleted_at'], 'attributes_general_deleted_idx');
+            $table->index(['deleted_at', 'type'], 'attributes_deleted_type_idx');
+            $table->index(['deleted_at', 'created_at'], 'attributes_deleted_created_idx');
         });
 
+        Schema::create('attribute_business', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('attribute_id')->constrained('attributes')->cascadeOnDelete();
+            $table->foreignId('business_id')->constrained('businesses')->cascadeOnDelete();
+            $table->timestamps();
+
+            $table->unique(['attribute_id', 'business_id'], 'attribute_business_unique');
+            $table->index(['business_id', 'attribute_id'], 'attribute_business_business_idx');
+        });
 
         Schema::create('attribute_product_types', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('business_id')->constrained('businesses');
-            $table->morphs('model'); // model_id, model_type
+            $table->foreignId('business_id')->nullable()->constrained('businesses')->nullOnDelete();
+            $table->morphs('model');
             $table->foreignId('attribute_id')->nullable()->constrained('attributes');
-            $table->boolean('general')->default(true);
+            $table->boolean('general')->default(false);
 
             $table->softDeletes();
             $table->timestamps();
@@ -56,6 +64,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('attribute_product_types');
+        Schema::dropIfExists('attribute_business');
         Schema::dropIfExists('attributes');
     }
 };
