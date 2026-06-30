@@ -33,6 +33,10 @@ class DatatableEquipmentTypes extends LivewireDatatable
         $query = EquipmentType::query()
             ->select('equipment_types.*');
 
+        if (! auth()->user()->hasRole('superAdmin')) {
+            $query->visibleToUser();
+        }
+
         $this->joinEquipmentUsageCount($query, 'equipment_types', 'equipment_type_id');
 
         $query->leftJoinSub(
@@ -118,7 +122,12 @@ class DatatableEquipmentTypes extends LivewireDatatable
         try {
             abort_unless(auth()->user()->can('settings.equipment_types.delete'), 403);
 
-            $equipment_type = EquipmentType::findOrFail($this->delete_id);
+            $equipment_type = EquipmentType::query()
+                ->when(
+                    ! auth()->user()->hasRole('superAdmin'),
+                    fn ($query) => $query->visibleToUser()
+                )
+                ->findOrFail($this->delete_id);
 
             if (! $equipment_type->canDelete()) {
                 $message = $equipment_type->hasDependencies()

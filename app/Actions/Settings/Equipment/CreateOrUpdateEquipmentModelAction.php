@@ -37,7 +37,7 @@ class CreateOrUpdateEquipmentModelAction
         ];
 
         if ($equipment_model_id) {
-            $equipment_model = EquipmentModel::findOrFail($equipment_model_id);
+            $equipment_model = EquipmentModel::query()->visibleToUser($user)->findOrFail($equipment_model_id);
             abort_unless($equipment_model->isEditableBy($user), 403);
 
             $attributes['business_id'] = $is_super_admin ? null : $user->business_id;

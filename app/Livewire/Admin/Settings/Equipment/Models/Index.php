@@ -40,7 +40,7 @@ class Index extends Component
     {
         abort_unless(auth()->user()->can('settings.edit'), 403);
 
-        $equipment_model = EquipmentModel::findOrFail($id);
+        $equipment_model = EquipmentModel::query()->visibleToUser()->findOrFail($id);
         abort_unless($equipment_model->isEditableBy(), 403);
 
         $this->form->setEquipmentModel($equipment_model);

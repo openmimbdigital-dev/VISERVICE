@@ -57,6 +57,18 @@ class Form extends Component
     public function save()
     {
         try {
+            abort_unless(
+                auth()->user()->can($this->form->isEditing() ? 'settings.attributes.edit' : 'settings.attributes.create'),
+                403
+            );
+
+            if ($this->form->isEditing()) {
+                abort_unless(
+                    Attribute::query()->forAuthUser()->whereKey($this->form->attribute_id)->exists(),
+                    404
+                );
+            }
+
             $was_editing = $this->form->isEditing();
 
             CreateOrUpdateAttributeAction::run(

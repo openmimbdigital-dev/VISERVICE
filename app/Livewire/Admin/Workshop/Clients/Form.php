@@ -23,9 +23,10 @@ class Form extends Component
         if ($client) {
             abort_unless(auth()->user()->can('workshop.clients.edit'), 403);
 
-            if (! auth()->user()->hasRole('superAdmin')) {
-                abort_unless($client->business_id === auth()->user()->business_id, 403);
-            }
+            abort_unless(
+                Client::query()->forAuthUser()->whereKey($client->id)->exists(),
+                404
+            );
 
             $this->form->setClient($client);
             $this->original_status = $client->status;

@@ -12,12 +12,21 @@ class CreateOrUpdateClientAction
     /**
      * Crea o actualiza un cliente del taller.
      *
-     * @param  int        $business_id
-     * @param  int|null   $client_id
-     * @param  array      $data  Datos ya validados del cliente
+     * @param  array  $data  Datos ya validados del cliente
      */
     public function handle(int $business_id, ?int $client_id, array $data): Client
     {
+        abort_unless(
+            auth()->user()->can($client_id ? 'workshop.clients.edit' : 'workshop.clients.create'),
+            403
+        );
+
+        $user = auth()->user();
+
+        if (! $user->hasRole('superAdmin')) {
+            abort_unless((int) $business_id === (int) $user->business_id, 403);
+        }
+
         $attributes = [
             'business_id'     => $business_id,
             'name'            => $data['name'],
@@ -32,7 +41,9 @@ class CreateOrUpdateClientAction
         ];
 
         if ($client_id) {
-            $client = Client::findOrFail($client_id);
+            $client = Client::query()->forAuthUser()->findOrFail($client_id);
+            abort_unless((int) $client->business_id === (int) $business_id, 403);
+
             $client->update($attributes);
 
             return $client->fresh();

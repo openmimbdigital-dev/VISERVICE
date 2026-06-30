@@ -2,6 +2,11 @@
 
 namespace App\Providers;
 
+use App\Models\Attribute;
+use App\Models\Brand;
+use App\Models\Client;
+use App\Models\Equipment;
+use App\Models\EquipmentModel;
 use App\Models\EquipmentType;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
@@ -21,11 +26,40 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Route::bind('client', fn (string $value) => Client::query()
+            ->forAuthUser()
+            ->whereKey($value)
+            ->firstOrFail());
+
+        Route::bind('equipment', fn (string $value) => Equipment::query()
+            ->forAuthUser()
+            ->whereKey($value)
+            ->firstOrFail());
+
+        Route::bind('brand', fn (string $value) => Brand::query()
+            ->visibleToUser()
+            ->whereKey($value)
+            ->firstOrFail());
+
+        Route::bind('equipmentModel', fn (string $value) => EquipmentModel::query()
+            ->visibleToUser()
+            ->whereKey($value)
+            ->firstOrFail());
+
+        Route::bind('attribute', fn (string $value) => Attribute::query()
+            ->forAuthUser()
+            ->whereKey($value)
+            ->firstOrFail());
+
         Route::bind('equipmentType', function (string $value) {
             $equipment_type = EquipmentType::query()->whereKey($value)->firstOrFail();
 
-            if (request()->routeIs('admin.workshop.equipment.type')
-                && ! $equipment_type->isAccessibleToUser()) {
+            if (request()->routeIs([
+                'admin.workshop.equipment.type',
+                'admin.workshop.equipment.form',
+                'admin.workshop.equipment.form.edit',
+                'admin.settings.equipment.types.show',
+            ]) && ! $equipment_type->isAccessibleToUser()) {
                 abort(404);
             }
 

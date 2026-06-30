@@ -86,6 +86,47 @@ CreateOrUpdateClientAction::run($business_id, $client_id, $this->form->validated
 
 ---
 
+## Aislamiento multi-tenant (obligatorio)
+
+Un usuario de negocio **no** puede ver, crear, editar ni eliminar registros de otro `business_id`. El **superAdmin** ve todos los negocios.
+
+### Scopes del modelo
+
+| Scope / método | Cuándo usar |
+|----------------|-------------|
+| `forAuthUser()` | Datos del negocio: `Client`, `Equipment`, `Attribute` |
+| `visibleToUser()` | Catálogo compartido: `Brand`, `EquipmentModel`, `EquipmentType` |
+| `isAccessibleToUser()` | Instancia de `EquipmentType` (taller / URL) |
+| `isEditableBy()` | Escritura en catálogo (marca, modelo, atributo) |
+
+### Dónde aplicar (defensa en profundidad)
+
+1. **`mount()` / Show / Form edit** — comprobar acceso antes de cargar el formulario:
+   ```php
+   abort_unless(
+       Client::query()->forAuthUser()->whereKey($client->id)->exists(),
+       404
+   );
+   ```
+2. **Datatable `builder()`** — filtrar listados con el scope correspondiente.
+3. **Datatable / Show delete** — `Model::query()->{scope}()->findOrFail($id)`, no `Model::findOrFail()`.
+4. **Action create/update** — revalidar tenant:
+   - Usuario no superAdmin: `abort_unless((int) $business_id === (int) auth()->user()->business_id, 403)`
+   - Update: cargar con scope + `abort_unless((int) $record->business_id === (int) $business_id, 403)`
+5. **Route model binding** — en `AppServiceProvider`: `{client}`, `{equipment}`, `{brand}`, `{equipmentModel}`, `{attribute}` con scope; `{equipmentType}` con `isAccessibleToUser()` en rutas de taller/configuración.
+
+### Form
+
+- `resolvedBusinessId()`: superAdmin → campo del form; negocio → `auth()->user()->business_id`.
+- Reglas `Rule::in()` / `exists` sobre colecciones ya filtradas por negocio (`getClients()`, `getBrands()`, etc.).
+
+### Action
+
+- Nunca confiar solo en el componente Livewire; repetir la verificación de tenant al persistir.
+- Relaciones (cliente, marca, modelo): resolver con scope + pertenencia al negocio/tipo.
+
+---
+
 ## Checklist al terminar un CRUD
 
 - [ ] Form con reglas y mensajes en español
@@ -94,3 +135,4 @@ CreateOrUpdateClientAction::run($business_id, $client_id, $this->form->validated
 - [ ] Vistas alineadas con el módulo de referencia
 - [ ] Rutas con middleware de permisos Spatie
 - [ ] Textos de UI en español
+- [ ] Aislamiento multi-tenant: scope en listados, mount, delete, Action y route binding

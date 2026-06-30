@@ -48,7 +48,7 @@ class Show extends Component
         try {
             abort_unless(auth()->user()->can('settings.edit'), 403);
 
-            $brand = Brand::findOrFail($this->delete_id);
+            $brand = Brand::query()->visibleToUser()->findOrFail($this->delete_id);
 
             if (! $brand->canDelete()) {
                 $message = $brand->isGeneralReadonly()

@@ -119,7 +119,7 @@ class DatatableEquipmentModels extends LivewireDatatable
         try {
             abort_unless(auth()->user()->can('settings.edit'), 403);
 
-            $equipment_model = EquipmentModel::findOrFail($this->delete_id);
+            $equipment_model = EquipmentModel::query()->visibleToUser()->findOrFail($this->delete_id);
 
             if (! $equipment_model->canDelete()) {
                 $message = $equipment_model->isGeneralReadonly()

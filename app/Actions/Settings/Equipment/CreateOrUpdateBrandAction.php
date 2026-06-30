@@ -30,7 +30,7 @@ class CreateOrUpdateBrandAction
         ];
 
         if ($brand_id) {
-            $brand = Brand::findOrFail($brand_id);
+            $brand = Brand::query()->visibleToUser($user)->findOrFail($brand_id);
             abort_unless($brand->isEditableBy($user), 403);
 
             $attributes['business_id'] = $is_super_admin ? null : $user->business_id;

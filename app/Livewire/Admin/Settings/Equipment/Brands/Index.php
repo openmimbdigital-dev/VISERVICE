@@ -39,7 +39,7 @@ class Index extends Component
     {
         abort_unless(auth()->user()->can('settings.edit'), 403);
 
-        $brand = Brand::findOrFail($id);
+        $brand = Brand::query()->visibleToUser()->findOrFail($id);
         abort_unless($brand->isEditableBy(), 403);
 
         $this->form->setBrand($brand);

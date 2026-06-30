@@ -32,10 +32,17 @@ class CreateOrUpdateEquipmentAction
             403
         );
 
+        $user = auth()->user();
+
+        if (! $user->hasRole('superAdmin')) {
+            abort_unless((int) $business_id === (int) $user->business_id, 403);
+        }
+
         $equipment_type = EquipmentType::query()->findOrFail($data['equipment_type_id']);
         abort_unless($equipment_type->isAccessibleToUser(), 403);
 
         $client = Client::query()
+            ->forAuthUser()
             ->where('business_id', $business_id)
             ->whereKey($data['client_id'])
             ->firstOrFail();
@@ -44,11 +51,23 @@ class CreateOrUpdateEquipmentAction
         $model_name = null;
 
         if ($data['brand_id']) {
-            $brand_name = Brand::query()->findOrFail($data['brand_id'])->name;
+            $brand = Brand::query()
+                ->visibleToUser()
+                ->whereHas('equipmentTypes', fn ($query) => $query->whereKey($equipment_type->id))
+                ->findOrFail($data['brand_id']);
+
+            $brand_name = $brand->name;
         }
 
         if ($data['model_id']) {
-            $model_name = EquipmentModel::query()->findOrFail($data['model_id'])->name;
+            abort_unless($data['brand_id'], 403);
+
+            $model = EquipmentModel::query()
+                ->visibleToUser()
+                ->where('brand_id', $data['brand_id'])
+                ->findOrFail($data['model_id']);
+
+            $model_name = $model->name;
         }
 
         $attributes = [
@@ -73,7 +92,7 @@ class CreateOrUpdateEquipmentAction
                 ->where('equipment_type_id', $equipment_type->id)
                 ->findOrFail($equipment_id);
 
-            abort_unless((int) $equipment->business_id === $business_id, 403);
+            abort_unless((int) $equipment->business_id === (int) $business_id, 403);
 
             $equipment->update($attributes);
 

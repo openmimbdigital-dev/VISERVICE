@@ -28,6 +28,8 @@ class Show extends Component
     {
         abort_unless(auth()->user()->can('settings.equipment_types.view'), 403);
 
+        abort_unless($equipmentType->isAccessibleToUser(), 404);
+
         $this->equipment_type = $equipmentType->load(['businesses']);
         $this->equipment_count = $equipmentType->equipment()->count();
 
@@ -58,7 +60,12 @@ class Show extends Component
         try {
             abort_unless(auth()->user()->can('settings.equipment_types.delete'), 403);
 
-            $equipment_type = EquipmentType::findOrFail($this->delete_id);
+            $equipment_type = EquipmentType::query()
+                ->when(
+                    ! auth()->user()->hasRole('superAdmin'),
+                    fn ($query) => $query->visibleToUser()
+                )
+                ->findOrFail($this->delete_id);
 
             if (! $equipment_type->canDelete()) {
                 $message = $equipment_type->hasDependencies()

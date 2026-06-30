@@ -50,9 +50,10 @@ class CreateOrUpdateAttributeAction
         ];
 
         if ($attribute_id) {
-            $attribute = Attribute::query()->findOrFail($attribute_id);
+            $attribute = Attribute::query()->forAuthUser()->findOrFail($attribute_id);
 
             abort_unless($attribute->isAccessibleBy(), 403);
+            abort_unless($attribute->isEditableBy(), 403);
 
             $attribute->update($attributes);
         } else {

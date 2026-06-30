@@ -39,7 +39,12 @@ class Index extends Component
     {
         abort_unless(auth()->user()->can('settings.equipment_types.edit'), 403);
 
-        $equipment_type = EquipmentType::findOrFail($id);
+        $equipment_type = EquipmentType::query()
+            ->when(
+                ! auth()->user()->hasRole('superAdmin'),
+                fn ($query) => $query->visibleToUser()
+            )
+            ->findOrFail($id);
         abort_unless($equipment_type->isEditableBy(), 403);
 
         $this->form->setEquipmentType($equipment_type);

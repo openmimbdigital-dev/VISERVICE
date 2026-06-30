@@ -45,6 +45,7 @@ class Show extends Component
         $this->equipment_types = $type_ids->isEmpty()
             ? collect()
             : EquipmentType::query()
+                ->visibleToUser()
                 ->whereIn('id', $type_ids)
                 ->orderBy('name')
                 ->get(['id', 'name']);
