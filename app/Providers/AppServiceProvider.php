@@ -56,6 +56,7 @@ class AppServiceProvider extends ServiceProvider
 
             if (request()->routeIs([
                 'admin.workshop.equipment.type',
+                'admin.workshop.equipment.show',
                 'admin.workshop.equipment.form',
                 'admin.workshop.equipment.form.edit',
                 'admin.settings.equipment.types.show',

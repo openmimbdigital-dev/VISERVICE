@@ -17,6 +17,7 @@ use App\Livewire\Admin\Workshop\Clients\Form as WorkshopClientsForm;
 use App\Livewire\Admin\Workshop\Clients\Index as WorkshopClientsIndex;
 use App\Livewire\Admin\Workshop\Equipment\Form as WorkshopEquipmentForm;
 use App\Livewire\Admin\Workshop\Equipment\Index as WorkshopEquipmentIndex;
+use App\Livewire\Admin\Workshop\Equipment\Show as WorkshopEquipmentShow;
 use App\Livewire\Admin\Workshop\Equipment\TypeIndex as WorkshopEquipmentTypeIndex;
 use App\Livewire\Admin\Workshop\Quotations\Index as WorkshopQuotationsIndex;
 use App\Livewire\Admin\Workshop\Quotations\Show as WorkshopQuotationsShow;
@@ -96,6 +97,7 @@ Route::middleware('auth')->group(function () {
         Route::middleware('permission:workshop.equipment.view')->group(function () {
             Route::get('/equipos', WorkshopEquipmentIndex::class)->name('equipment.index');
             Route::get('/equipos/{equipmentType}', WorkshopEquipmentTypeIndex::class)->name('equipment.type');
+            Route::get('/equipos/{equipmentType}/{equipment}', WorkshopEquipmentShow::class)->name('equipment.show');
         });
         Route::middleware('permission:workshop.equipment.create')->group(function () {
             Route::get('/equipos/{equipmentType}/crear', WorkshopEquipmentForm::class)->name('equipment.form');

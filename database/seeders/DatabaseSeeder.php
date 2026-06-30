@@ -27,6 +27,7 @@ class DatabaseSeeder extends Seeder
             EquipmentCatalogSeeder::class,
             AttributesSeeder::class,
             ClientsSeeder::class,
+            EquipmentSeeder::class,
         ]);
     }
 }

@@ -93,6 +93,32 @@ class Equipment extends Model
     {
         $parts = array_filter([$this->brand_name, $this->model_name, $this->year]);
         $name = implode(' ', $parts);
+
         return $name ? "{$this->plate} — {$name}" : $this->plate;
+    }
+
+    public function hasDependencies(): bool
+    {
+        return $this->workOrders()->exists() || $this->quotations()->exists();
+    }
+
+    public function dependencyBlockReason(): ?string
+    {
+        if ($this->workOrders()->exists()) {
+            return 'Tiene órdenes de trabajo asociadas.';
+        }
+
+        if ($this->quotations()->exists()) {
+            return 'Tiene cotizaciones asociadas.';
+        }
+
+        return null;
+    }
+
+    public function canDelete(?User $user = null): bool
+    {
+        $user ??= auth()->user();
+
+        return $user?->can('workshop.equipment.delete') && ! $this->hasDependencies();
     }
 }
