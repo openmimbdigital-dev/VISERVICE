@@ -57,6 +57,11 @@ class DatatableEquipment extends LivewireDatatable
         }
 
         return array_merge($columns, [
+            Column::name('equipment.id')
+                ->label('ID')
+                ->sortable()
+                ->searchable(),
+
             Column::name('plate')
                 ->label('Placa')
                 ->searchable()

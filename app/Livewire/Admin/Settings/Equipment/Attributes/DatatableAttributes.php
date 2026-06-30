@@ -5,10 +5,12 @@ namespace App\Livewire\Admin\Settings\Equipment\Attributes;
 use App\Actions\Settings\Equipment\DeleteAttributeAction;
 use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
 use App\Models\Attribute;
+use App\Models\EquipmentType;
 use Arm092\LivewireDatatables\Column;
 use Arm092\LivewireDatatables\Livewire\LivewireDatatable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\On;
 
 class DatatableAttributes extends LivewireDatatable
@@ -24,9 +26,28 @@ class DatatableAttributes extends LivewireDatatable
 
     public function builder(): Builder
     {
+        $equipment_type_names = DB::table('attribute_equipment_types')
+            ->join('equipment_types', function ($join) {
+                $join->on('equipment_types.id', '=', 'attribute_equipment_types.model_id')
+                    ->whereNull('equipment_types.deleted_at');
+            })
+            ->where('attribute_equipment_types.model_type', EquipmentType::class)
+            ->whereNull('attribute_equipment_types.deleted_at')
+            ->select(
+                'attribute_equipment_types.attribute_id',
+                DB::raw("GROUP_CONCAT(DISTINCT equipment_types.name ORDER BY equipment_types.name SEPARATOR ', ') as assigned_equipment_type_names")
+            )
+            ->groupBy('attribute_equipment_types.attribute_id');
+
         return Attribute::query()
             ->forAuthUser()
             ->select('attributes.*')
+            ->leftJoinSub(
+                $equipment_type_names,
+                'type_assignments',
+                fn ($join) => $join->on('attributes.id', '=', 'type_assignments.attribute_id')
+            )
+            ->addSelect('type_assignments.assigned_equipment_type_names')
             ->orderByDesc('attributes.created_at');
     }
 
@@ -41,6 +62,14 @@ class DatatableAttributes extends LivewireDatatable
             Column::callback(['attributes.type'], function ($type) {
                 return e($this->typeLabel((string) $type));
             })->label('Tipo'),
+
+            Column::callback(['type_assignments.assigned_equipment_type_names'], function ($names) {
+                if (! $names) {
+                    return '<span class="text-slate-400">—</span>';
+                }
+
+                return '<span class="text-slate-700">' . e($names) . '</span>';
+            })->label('Tipos de equipo')->unsortable(),
 
             Column::callback(['attributes.general'], function ($general) {
                 if ($general) {

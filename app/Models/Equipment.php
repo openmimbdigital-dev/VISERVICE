@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Equipment extends Model
@@ -65,6 +66,11 @@ class Equipment extends Model
     public function workOrders(): HasMany
     {
         return $this->hasMany(WorkOrder::class);
+    }
+
+    public function attributeValues(): MorphMany
+    {
+        return $this->morphMany(AttributeEquipmentType::class, 'model');
     }
 
     public function scopeActive($query)

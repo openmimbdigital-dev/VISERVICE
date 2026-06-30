@@ -18,7 +18,8 @@ class AttributeEquipmentType extends Model
         'model_id',
         'model_type',
         'attribute_id',
-        'general'
+        'general',
+        'value',
     ];
 
     protected function casts(): array

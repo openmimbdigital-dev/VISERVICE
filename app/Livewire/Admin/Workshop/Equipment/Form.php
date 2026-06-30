@@ -52,14 +52,18 @@ class Form extends Component
         if (! auth()->user()->hasRole('superAdmin')) {
             $this->form->business_id = auth()->user()->business_id;
         }
+
+        $this->form->hydrateAttributeDefaults();
     }
 
     public function updated($property): void
     {
         if ($property === 'form.business_id') {
-            $this->form->client_id = null;
-            $this->form->brand_id  = null;
-            $this->form->model_id  = null;
+            $this->form->client_id         = null;
+            $this->form->brand_id          = null;
+            $this->form->model_id            = null;
+            $this->form->attribute_values    = [];
+            $this->form->hydrateAttributeDefaults();
         }
 
         if ($property === 'form.brand_id') {
@@ -108,8 +112,9 @@ class Form extends Component
                 ? Business::where('status', true)->orderBy('name')->get(['id', 'name'])
                 : collect(),
             'clients'        => $this->form->getClients(),
-            'brands'         => $this->form->getBrands(),
-            'models'         => $this->form->getModels(),
+            'brands'           => $this->form->getBrands(),
+            'models'           => $this->form->getModels(),
+            'attribute_links'  => $this->form->getAttributeLinks(),
         ])->layoutData([
             'title' => ($this->form->isEditing() ? 'Editar' : 'Nuevo') . ' equipo — ' . $this->equipment_type->name,
         ]);

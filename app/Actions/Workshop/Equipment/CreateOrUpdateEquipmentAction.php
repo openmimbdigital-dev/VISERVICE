@@ -16,13 +16,14 @@ class CreateOrUpdateEquipmentAction
     /**
      * @param  array{
      *     client_id: int,
-     *     brand_id: int|null,
-     *     model_id: int|null,
+     *     brand_id: int,
+     *     model_id: int,
      *     equipment_type_id: int,
      *     plate: string,
-     *     year: int|null,
+     *     year: int,
      *     status: bool,
      *     notes: string|null,
+     *     attribute_values: array<int, mixed>,
      * }  $data
      */
     public function handle(int $business_id, ?int $equipment_id, array $data): Equipment
@@ -47,28 +48,19 @@ class CreateOrUpdateEquipmentAction
             ->whereKey($data['client_id'])
             ->firstOrFail();
 
-        $brand_name = null;
-        $model_name = null;
+        $brand = Brand::query()
+            ->visibleToUser()
+            ->whereHas('equipmentTypes', fn ($query) => $query->whereKey($equipment_type->id))
+            ->findOrFail($data['brand_id']);
 
-        if ($data['brand_id']) {
-            $brand = Brand::query()
-                ->visibleToUser()
-                ->whereHas('equipmentTypes', fn ($query) => $query->whereKey($equipment_type->id))
-                ->findOrFail($data['brand_id']);
+        $brand_name = $brand->name;
 
-            $brand_name = $brand->name;
-        }
+        $model = EquipmentModel::query()
+            ->visibleToUser()
+            ->where('brand_id', $data['brand_id'])
+            ->findOrFail($data['model_id']);
 
-        if ($data['model_id']) {
-            abort_unless($data['brand_id'], 403);
-
-            $model = EquipmentModel::query()
-                ->visibleToUser()
-                ->where('brand_id', $data['brand_id'])
-                ->findOrFail($data['model_id']);
-
-            $model_name = $model->name;
-        }
+        $model_name = $model->name;
 
         $attributes = [
             'business_id'         => $business_id,
@@ -95,12 +87,19 @@ class CreateOrUpdateEquipmentAction
             abort_unless((int) $equipment->business_id === (int) $business_id, 403);
 
             $equipment->update($attributes);
-
-            return $equipment->fresh();
+        } else {
+            $attributes['created_by'] = auth()->id();
+            $equipment                  = Equipment::create($attributes);
         }
 
-        $attributes['created_by'] = auth()->id();
+        SyncEquipmentAttributeValuesAction::run(
+            $equipment,
+            $business_id,
+            $equipment_type->id,
+            $data['attribute_values'] ?? [],
+            is_editing: (bool) $equipment_id
+        );
 
-        return Equipment::create($attributes);
+        return $equipment->fresh();
     }
 }

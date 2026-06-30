@@ -66,11 +66,11 @@
             </div>
 
             <div>
-                <label class="mb-1.5 block text-xs font-medium text-slate-700">Marca (catálogo)</label>
+                <label class="mb-1.5 block text-xs font-medium text-slate-700">Marca (catálogo) <span class="text-rose-500">*</span></label>
                 <select wire:model.live="form.brand_id"
                     @disabled($is_super_admin && ! $form->business_id)
                     class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 disabled:cursor-not-allowed disabled:opacity-60 @error('form.brand_id') border-rose-400 bg-rose-50 @enderror">
-                    <option value="">Sin marca del catálogo</option>
+                    <option value="">{{ $is_super_admin && ! $form->business_id ? 'Selecciona un negocio primero' : 'Seleccionar marca' }}</option>
                     @foreach($brands as $brand)
                         <option value="{{ $brand->id }}">{{ $brand->name }}</option>
                     @endforeach
@@ -79,7 +79,7 @@
             </div>
 
             <div>
-                <label class="mb-1.5 block text-xs font-medium text-slate-700">Modelo (catálogo)</label>
+                <label class="mb-1.5 block text-xs font-medium text-slate-700">Modelo (catálogo) <span class="text-rose-500">*</span></label>
                 <select wire:model.live="form.model_id"
                     @disabled(! $form->brand_id)
                     class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 disabled:cursor-not-allowed disabled:opacity-60 @error('form.model_id') border-rose-400 bg-rose-50 @enderror">
@@ -92,7 +92,7 @@
             </div>
 
             <div>
-                <label class="mb-1.5 block text-xs font-medium text-slate-700">Año</label>
+                <label class="mb-1.5 block text-xs font-medium text-slate-700">Año <span class="text-rose-500">*</span></label>
                 <input type="number" wire:model="form.year" min="1900" max="{{ date('Y') + 1 }}"
                     class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('form.year') border-rose-400 bg-rose-50 @enderror">
                 @error('form.year') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
@@ -117,6 +117,8 @@
                     class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('form.notes') border-rose-400 bg-rose-50 @enderror"></textarea>
                 @error('form.notes') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
             </div>
+
+            <x-ui.dynamic-attribute-fields :links="$attribute_links" wire-prefix="form.attribute_values" />
         </div>
 
         <div class="flex flex-col-reverse gap-2 border-t border-slate-100 px-4 py-4 sm:flex-row sm:justify-end sm:gap-3 sm:px-6">

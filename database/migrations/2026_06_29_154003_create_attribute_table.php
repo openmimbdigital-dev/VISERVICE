@@ -48,6 +48,7 @@ return new class extends Migration
             $table->morphs('model');
             $table->foreignId('attribute_id')->nullable()->constrained('attributes');
             $table->boolean('general')->default(false);
+            $table->text('value')->nullable();
 
             $table->softDeletes();
             $table->timestamps();

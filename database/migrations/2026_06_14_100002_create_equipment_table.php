@@ -21,7 +21,6 @@ return new class extends Migration
             $table->string('model_name')->nullable()->comment('Modelo');
             $table->string('equipment_type_name')->nullable()->comment('Modelo');
             $table->unsignedSmallInteger('year')->nullable();
-            $table->unsignedInteger('km_current')->default(0);
             $table->boolean('status')->default(true);
             $table->text('notes')->nullable();
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
