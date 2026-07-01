@@ -29,7 +29,7 @@ class Index extends Component
 
     public function mount(): void
     {
-        abort_unless(auth()->user()?->hasRole('superAdmin'), 403);
+        abort_unless(auth()->user()?->can('business_types.view'), 403);
     }
 
     public function updatingSearch(): void
@@ -44,6 +44,8 @@ class Index extends Component
 
     public function openCreate(): void
     {
+        abort_unless(auth()->user()?->can('business_types.create'), 403);
+
         $this->form->reset();
         $this->form->status = true;
         $this->showModal    = true;
@@ -52,6 +54,7 @@ class Index extends Component
 
     public function openEdit(int $id): void
     {
+        abort_unless(auth()->user()?->can('business_types.edit'), 403);
         $business_type = BusinessType::query()->findOrFail($id);
         $this->form->setBusinessType($business_type);
         $this->showModal = true;
@@ -60,6 +63,11 @@ class Index extends Component
 
     public function save(): void
     {
+        abort_unless(
+            auth()->user()?->can($this->form->isEditing() ? 'business_types.edit' : 'business_types.create'),
+            403
+        );
+
         $was_editing = $this->form->isEditing();
 
         CreateOrUpdateBusinessTypeAction::run(
@@ -77,6 +85,8 @@ class Index extends Component
 
     public function toggleStatus(int $id): void
     {
+        abort_unless(auth()->user()?->can('business_types.edit'), 403);
+
         $business_type = BusinessType::query()->findOrFail($id);
         $business_type->update(['status' => ! $business_type->status]);
 
@@ -86,11 +96,15 @@ class Index extends Component
 
     public function delete(int $id): void
     {
+        abort_unless(auth()->user()?->can('business_types.delete'), 403);
+
         $this->askDeleteConfirmation($id, '¿Eliminar este tipo de negocio?');
     }
 
     protected function onDeleteConfirmed(): void
     {
+        abort_unless(auth()->user()?->can('business_types.delete'), 403);
+
         try {
             DeleteBusinessTypeAction::run($this->delete_id);
             $this->alertDeleteSuccess('Tipo de negocio eliminado.');

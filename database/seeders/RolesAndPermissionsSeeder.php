@@ -9,6 +9,16 @@ use Spatie\Permission\PermissionRegistrar;
 
 class RolesAndPermissionsSeeder extends Seeder
 {
+    /** @return list<string> */
+    private function businessCatalogPermissions(): array
+    {
+        return [
+            'business_types.view', 'business_types.create', 'business_types.edit', 'business_types.delete',
+            'organization_types.view', 'organization_types.create', 'organization_types.edit', 'organization_types.delete',
+            'business_types.access.view', 'business_types.access.manage',
+        ];
+    }
+
     public function run(): void
     {
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
@@ -47,6 +57,8 @@ class RolesAndPermissionsSeeder extends Seeder
             // Taller — Equipos
             'workshop.equipment.view', 'workshop.equipment.create', 'workshop.equipment.edit',
             'workshop.equipment.delete',
+            // Negocios — Tipos y acceso
+            ...$this->businessCatalogPermissions(),
         ])->mapWithKeys(fn ($name) => [
             $name => Permission::firstOrCreate(['name' => $name, 'guard_name' => $guard]),
         ]);
@@ -77,6 +89,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'workshop.clients.view', 'workshop.clients.create', 'workshop.clients.edit',
             'workshop.clients.activate', 'workshop.clients.deactivate',
             'workshop.equipment.view', 'workshop.equipment.create', 'workshop.equipment.edit',
+            ...$this->businessCatalogPermissions(),
         ])->values());
 
         // Comercio: propietario del negocio registrado vía onboarding
@@ -91,6 +104,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'workshop.clients.delete', 'workshop.clients.activate', 'workshop.clients.deactivate',
             'workshop.equipment.view', 'workshop.equipment.create', 'workshop.equipment.edit',
             'workshop.equipment.delete',
+            ...$this->businessCatalogPermissions(),
         ])->values());
 
         // Supervisor: solo lectura
@@ -108,6 +122,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'users.view', 'users.create', 'users.edit', 'users.activate', 'users.deactivate',
             'businesses.view', 'businesses.edit',
             'reports.view', 'reports.export',
+            ...$this->businessCatalogPermissions(),
             ])->values());
 
         // Secretario: administración

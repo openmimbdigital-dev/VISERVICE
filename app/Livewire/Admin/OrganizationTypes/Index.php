@@ -32,7 +32,7 @@ class Index extends Component
 
     public function mount(): void
     {
-        abort_unless(auth()->user()?->hasRole('superAdmin'), 403);
+        abort_unless(auth()->user()?->can('organization_types.view'), 403);
     }
 
     public function updatingSearch(): void
@@ -52,6 +52,8 @@ class Index extends Component
 
     public function openCreate(): void
     {
+        abort_unless(auth()->user()?->can('organization_types.create'), 403);
+
         $this->form->reset();
         $this->form->active = true;
         $this->showModal    = true;
@@ -60,6 +62,8 @@ class Index extends Component
 
     public function openEdit(int $id): void
     {
+        abort_unless(auth()->user()?->can('organization_types.edit'), 403);
+
         $organization_type = OrganizationType::query()->with('business_type')->findOrFail($id);
         $this->form->setOrganizationType($organization_type);
         $this->showModal = true;
@@ -68,6 +72,11 @@ class Index extends Component
 
     public function save(): void
     {
+        abort_unless(
+            auth()->user()?->can($this->form->isEditing() ? 'organization_types.edit' : 'organization_types.create'),
+            403
+        );
+
         $was_editing = $this->form->isEditing();
 
         CreateOrUpdateOrganizationTypeAction::run(
@@ -85,6 +94,8 @@ class Index extends Component
 
     public function toggleActive(int $id): void
     {
+        abort_unless(auth()->user()?->can('organization_types.edit'), 403);
+
         $organization_type = OrganizationType::query()->findOrFail($id);
         $organization_type->update(['active' => ! $organization_type->active]);
 
@@ -94,11 +105,15 @@ class Index extends Component
 
     public function delete(int $id): void
     {
+        abort_unless(auth()->user()?->can('organization_types.delete'), 403);
+
         $this->askDeleteConfirmation($id, '¿Eliminar este tipo de organización?');
     }
 
     protected function onDeleteConfirmed(): void
     {
+        abort_unless(auth()->user()?->can('organization_types.delete'), 403);
+
         try {
             DeleteOrganizationTypeAction::run($this->delete_id);
             $this->alertDeleteSuccess('Tipo de organización eliminado.');

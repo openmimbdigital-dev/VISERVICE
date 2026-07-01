@@ -11,7 +11,7 @@ class DeleteBusinessTypeAction
 
     public function handle(int $business_type_id): void
     {
-        abort_unless(auth()->user()?->hasRole('superAdmin'), 403);
+        abort_unless(auth()->user()?->can('business_types.delete'), 403);
 
         $business_type = BusinessType::query()->findOrFail($business_type_id);
 

@@ -31,6 +31,31 @@ return [
                 'businesses.manage_addresses' => 'Gestionar direcciones',
             ],
         ],
+        'business_types' => [
+            'name' => 'Negocios — Tipos de negocio',
+            'permissions' => [
+                'business_types.view'   => 'Ver tipos de negocio',
+                'business_types.create' => 'Crear tipos de negocio',
+                'business_types.edit'   => 'Editar tipos de negocio',
+                'business_types.delete' => 'Eliminar tipos de negocio',
+            ],
+        ],
+        'organization_types' => [
+            'name' => 'Negocios — Tipos de organización',
+            'permissions' => [
+                'organization_types.view'   => 'Ver tipos de organización',
+                'organization_types.create' => 'Crear tipos de organización',
+                'organization_types.edit'   => 'Editar tipos de organización',
+                'organization_types.delete' => 'Eliminar tipos de organización',
+            ],
+        ],
+        'business_type_access' => [
+            'name' => 'Negocios — Acceso por tipo',
+            'permissions' => [
+                'business_types.access.view'   => 'Ver acceso por tipo de negocio',
+                'business_types.access.manage' => 'Gestionar acceso por tipo de negocio',
+            ],
+        ],
         'reports' => [
             'name' => 'Gestión de Reportes',
             'permissions' => [

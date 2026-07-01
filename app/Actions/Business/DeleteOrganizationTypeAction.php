@@ -11,7 +11,7 @@ class DeleteOrganizationTypeAction
 
     public function handle(int $organization_type_id): void
     {
-        abort_unless(auth()->user()?->hasRole('superAdmin'), 403);
+        abort_unless(auth()->user()?->can('organization_types.delete'), 403);
 
         $organization_type = OrganizationType::query()->findOrFail($organization_type_id);
 

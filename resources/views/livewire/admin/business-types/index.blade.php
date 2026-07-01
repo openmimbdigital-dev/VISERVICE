@@ -17,13 +17,19 @@
                 <p class="mt-2 max-w-xl text-sm text-slate-600">Administra los tipos disponibles al registrar negocios y configurar accesos.</p>
             </div>
             <div class="flex w-full shrink-0 flex-wrap gap-2 sm:w-auto">
+                @can('organization_types.view')
                 <a href="{{ route('admin.organization-types.index') }}" wire:navigate class="btn btn-outline-secondary btn-sm flex-1 sm:flex-none justify-center">Tipos de organización</a>
+                @endcan
+                @can('business_types.access.view')
                 <a href="{{ route('admin.business-types.access') }}" wire:navigate class="btn btn-outline-secondary btn-sm flex-1 sm:flex-none justify-center">
                     Acceso por tipo
                 </a>
+                @endcan
+                @can('business_types.create')
                 <x-ui.create-button wire:click="openCreate" class="w-full justify-center sm:w-auto">
                     Nuevo tipo
                 </x-ui.create-button>
+                @endcan
             </div>
         </div>
     </header>
@@ -103,6 +109,7 @@
                                 </td>
                                 <td class="px-3 py-4 sm:px-5">
                                     <div class="flex flex-wrap justify-end gap-1">
+                                        @can('business_types.edit')
                                         <button type="button" wire:click="openEdit({{ $type->id }})"
                                             class="rounded-lg p-2 text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-600" title="Editar">
                                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
@@ -111,11 +118,14 @@
                                             class="rounded-lg p-2 text-slate-400 transition hover:bg-amber-50 hover:text-amber-600" title="{{ $type->status ? 'Desactivar' : 'Activar' }}">
                                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
                                         </button>
+                                        @endcan
+                                        @can('business_types.delete')
                                         <button type="button" wire:click="delete({{ $type->id }})"
                                             @disabled($type->businesses_count > 0)
                                             class="rounded-lg p-2 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-40" title="Eliminar">
                                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                         </button>
+                                        @endcan
                                     </div>
                                 </td>
                             </tr>

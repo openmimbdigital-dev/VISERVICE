@@ -24,7 +24,7 @@ class Access extends Component
 
     public function mount(): void
     {
-        abort_unless(auth()->user()?->hasRole('superAdmin'), 403);
+        abort_unless(auth()->user()?->can('business_types.access.view'), 403);
 
         $first = BusinessType::query()->where('status', true)->orderBy('name')->first();
         $this->business_type_id = $first?->id;
@@ -60,7 +60,7 @@ class Access extends Component
 
     public function save(): void
     {
-        abort_unless(auth()->user()?->hasRole('superAdmin'), 403);
+        abort_unless(auth()->user()?->can('business_types.access.manage'), 403);
 
         $this->validate([
             'business_type_id'       => 'required|exists:business_types,id',
@@ -93,6 +93,8 @@ class Access extends Component
 
     public function toggleModule(string $module_key): void
     {
+        abort_unless(auth()->user()?->can('business_types.access.manage'), 403);
+
         $modules     = config('permissions.modules', []);
         $module_perms = array_keys($modules[$module_key]['permissions'] ?? []);
 

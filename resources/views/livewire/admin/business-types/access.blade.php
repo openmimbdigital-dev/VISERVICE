@@ -22,11 +22,13 @@
             </div>
             <div class="flex w-full shrink-0 flex-wrap gap-2 sm:w-auto">
                 <a href="{{ route('admin.business-types.index') }}" wire:navigate class="btn btn-outline-secondary btn-sm flex-1 sm:flex-none justify-center">Tipos de negocio</a>
+                @can('business_types.access.manage')
                 <button type="button" wire:click="save" wire:loading.attr="disabled"
                     class="inline-flex w-full flex-1 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-60 sm:w-auto sm:flex-none">
                     <svg wire:loading wire:target="save" class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
                     Guardar
                 </button>
+                @endcan
             </div>
         </div>
     </header>
@@ -66,7 +68,8 @@
                     @endphp
                     <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-100 px-3 py-3 transition hover:bg-slate-50">
                         <input type="checkbox" wire:model="selected_role_ids" value="{{ $role->id }}"
-                            class="mt-0.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500/20">
+                            @disabled(! auth()->user()->can('business_types.access.manage'))
+                            class="mt-0.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500/20 disabled:cursor-not-allowed disabled:opacity-50">
                         <span class="min-w-0">
                             <span class="block text-sm font-medium text-slate-900">{{ $role->name }}</span>
                             @if($isGlobal)
@@ -93,7 +96,8 @@
                     @endphp
                     <div class="rounded-xl border border-slate-100">
                         <button type="button" wire:click="toggleModule('{{ $module_key }}')"
-                            class="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-slate-50">
+                            @disabled(! auth()->user()->can('business_types.access.manage'))
+                            class="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60">
                             <span class="text-sm font-medium text-slate-900">{{ $module['name'] }}</span>
                             <span class="shrink-0 text-xs {{ $all_selected ? 'text-indigo-600' : 'text-slate-400' }}">
                                 {{ $selected_count }}/{{ count($module_perms) }}
@@ -103,7 +107,8 @@
                             @foreach($module['permissions'] as $perm_key => $perm_label)
                                 <label class="flex cursor-pointer items-center gap-2 py-1">
                                     <input type="checkbox" wire:model="selected_permissions" value="{{ $perm_key }}"
-                                        class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500/20">
+                                        @disabled(! auth()->user()->can('business_types.access.manage'))
+                                        class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500/20 disabled:cursor-not-allowed disabled:opacity-50">
                                     <span class="text-xs text-slate-600">{{ $perm_label }}</span>
                                 </label>
                             @endforeach

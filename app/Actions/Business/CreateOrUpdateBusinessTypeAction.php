@@ -12,7 +12,10 @@ class CreateOrUpdateBusinessTypeAction
     /** @param array{name: string, status: bool} $data */
     public function handle(?int $business_type_id, array $data): BusinessType
     {
-        abort_unless(auth()->user()?->hasRole('superAdmin'), 403);
+        abort_unless(
+            auth()->user()?->can($business_type_id ? 'business_types.edit' : 'business_types.create'),
+            403
+        );
 
         $attributes = [
             'name'   => $data['name'],

@@ -79,9 +79,18 @@ Route::middleware('auth')->group(function () {
         Route::get('/banks', AdminBanksIndex::class)->name('banks.index');
         Route::get('/businesses', AdminBusinessesIndex::class)->name('businesses.index');
         Route::get('/businesses/{business}', AdminBusinessesShow::class)->name('businesses.show');
-        Route::get('/business-types', AdminBusinessTypesIndex::class)->name('business-types.index');
-        Route::get('/business-types/access', AdminBusinessTypesAccess::class)->name('business-types.access');
-        Route::get('/organization-types', AdminOrganizationTypesIndex::class)->name('organization-types.index');
+    });
+
+    Route::prefix('admin')->name('admin.')->group(function () {
+        Route::middleware('permission:business_types.view')->group(function () {
+            Route::get('/business-types', AdminBusinessTypesIndex::class)->name('business-types.index');
+        });
+        Route::middleware('permission:business_types.access.view')->group(function () {
+            Route::get('/business-types/access', AdminBusinessTypesAccess::class)->name('business-types.access');
+        });
+        Route::middleware('permission:organization_types.view')->group(function () {
+            Route::get('/organization-types', AdminOrganizationTypesIndex::class)->name('organization-types.index');
+        });
     });
 
     // Rutas del Comercio
