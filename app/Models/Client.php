@@ -62,7 +62,13 @@ class Client extends Model
             return $query;
         }
 
-        return $query->where($query->getModel()->getTable() . '.business_id', $user->business_id);
+        $business_ids = $user->businessIds();
+
+        if ($business_ids === []) {
+            return $query->whereRaw('0 = 1');
+        }
+
+        return $query->whereIn($query->getModel()->getTable() . '.business_id', $business_ids);
     }
 
     public function getFullDocumentAttribute(): string

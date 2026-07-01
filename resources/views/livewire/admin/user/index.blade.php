@@ -142,7 +142,7 @@
                         {{-- Comercio (solo superAdmin) --}}
                         @role('superAdmin')
                         <td class="hidden px-3 py-4 md:table-cell sm:px-5">
-                            <span class="text-sm text-slate-600">{{ $user->business?->name ?? '—' }}</span>
+                            <span class="text-sm text-slate-600">{{ $user->businesses->pluck('name')->join(', ') ?: '—' }}</span>
                         </td>
                         @endrole
 

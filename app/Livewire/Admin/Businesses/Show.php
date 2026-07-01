@@ -156,7 +156,11 @@ class Show extends Component
         $user = $this->business->users()->findOrFail($userId);
 
         // No se puede desactivar al usuario principal (menor ID en el negocio)
-        $primaryId = $this->business->users()->orderBy('id')->value('id');
+        $primaryId = $this->business->users()
+            ->wherePivot('is_primary', true)
+            ->orderBy('users.id')
+            ->value('users.id')
+            ?? $this->business->users()->orderBy('users.id')->value('users.id');
         if ($user->id === $primaryId) {
             $this->dispatch('swal', ['title' => 'No se puede desactivar al usuario principal del comercio.', 'icon' => 'warning']);
             return;
@@ -177,7 +181,9 @@ class Show extends Component
             'subscriptions.invoices',
         ]);
 
-        $primaryUserId = $this->business->users->sortBy('id')->first()?->id;
+        $primaryUserId = $this->business->users
+            ->sortBy(fn (User $user) => [(int) ! (bool) $user->pivot->is_primary, $user->id])
+            ->first()?->id;
 
         return view('livewire.admin.businesses.show', [
             'cities'         => City::where('is_active', true)->orderBy('name')->get(),

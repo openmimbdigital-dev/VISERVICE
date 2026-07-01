@@ -121,9 +121,10 @@ class RegisterWizard extends Component
                 'username'     => $this->username,
                 'password'     => Hash::make($this->password),
                 'phone_number' => $this->user_phone ?: null,
-                'business_id'  => $business->id,
                 'status'       => true,
             ]);
+
+            $user->attachBusiness($business->id, is_primary: true);
 
             // 3. Asignar rol Comercio
             $user->assignRole('Comercio');

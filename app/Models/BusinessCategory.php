@@ -2,35 +2,31 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
-class BusinessType extends Model
+class BusinessCategory extends Model
 {
-    use HasFactory;
     use SoftDeletes;
-
     protected $fillable = [
         'name',
         'label',
-        'status',
+        'active',
     ];
 
     protected function casts(): array
     {
         return [
-            'status' => 'boolean',
+            'active' => 'boolean',
         ];
     }
 
     protected static function booted(): void
     {
-        static::saving(function (BusinessType $business_type) {
-            if ($business_type->isDirty('name') || blank($business_type->label)) {
-                $business_type->label = static::normalizeLabel($business_type->name);
+        static::saving(function (BusinessCategory $category) {
+            if ($category->isDirty('name') || blank($category->label)) {
+                $category->label = static::normalizeLabel($category->name);
             }
         });
     }
@@ -44,10 +40,5 @@ class BusinessType extends Model
         $label = preg_replace('/_+/', '_', $label) ?? '';
 
         return trim($label, '_');
-    }
-
-    public function businesses(): HasMany
-    {
-        return $this->hasMany(Business::class, 'business_type_id');
     }
 }

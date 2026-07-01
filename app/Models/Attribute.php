@@ -69,15 +69,15 @@ class Attribute extends Model
             return $query;
         }
 
-        $business_id = $user?->business_id;
+        $business_ids = $user->businessIds();
 
-        if (! $business_id) {
+        if ($business_ids === []) {
             return $query->where('general', true);
         }
 
-        return $query->where(function ($q) use ($business_id) {
+        return $query->where(function ($q) use ($business_ids) {
             $q->where('general', true)
-                ->orWhereHas('businesses', fn ($bq) => $bq->where('businesses.id', $business_id));
+                ->orWhereHas('businesses', fn ($bq) => $bq->whereIn('businesses.id', $business_ids));
         });
     }
 
@@ -93,8 +93,14 @@ class Attribute extends Model
             return true;
         }
 
+        $business_ids = $user->businessIds();
+
+        if ($business_ids === []) {
+            return false;
+        }
+
         return $this->businesses()
-            ->where('businesses.id', $user?->business_id)
+            ->whereIn('businesses.id', $business_ids)
             ->exists();
     }
 
@@ -110,8 +116,14 @@ class Attribute extends Model
             return false;
         }
 
+        $business_ids = $user->businessIds();
+
+        if ($business_ids === []) {
+            return false;
+        }
+
         return $this->businesses()
-            ->where('businesses.id', $user?->business_id)
+            ->whereIn('businesses.id', $business_ids)
             ->exists();
     }
 

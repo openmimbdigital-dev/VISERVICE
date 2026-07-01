@@ -4,6 +4,7 @@ namespace App\Livewire\Admin\User;
 
 use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -56,26 +57,49 @@ class Index extends Component
 
     private function baseQuery()
     {
-        $query = User::with('roles');
+        $query = User::with(['roles', 'businesses']);
 
         if (! $this->isSuperAdmin()) {
-            $query->where('business_id', auth()->user()->business_id);
+            $business_ids = auth()->user()->businessIds();
+
+            if ($business_ids === []) {
+                return $query->whereRaw('0 = 1');
+            }
+
+            $query->whereHas('businesses', fn ($q) => $q->whereIn('businesses.id', $business_ids));
         }
 
         return $query;
     }
 
-    // El usuario principal de un negocio es el de menor ID en ese business_id
     private function primaryIdForBusiness(?int $businessId): ?int
     {
-        if (! $businessId) return null;
+        if (! $businessId) {
+            return null;
+        }
 
-        return User::where('business_id', $businessId)->orderBy('id')->value('id');
+        $primary = DB::table('user_business')
+            ->where('business_id', $businessId)
+            ->where('is_primary', true)
+            ->orderBy('user_id')
+            ->value('user_id');
+
+        if ($primary) {
+            return (int) $primary;
+        }
+
+        return DB::table('user_business')
+            ->where('business_id', $businessId)
+            ->orderBy('user_id')
+            ->value('user_id');
     }
 
     private function isPrimaryUser(User $user): bool
     {
-        return $user->id === $this->primaryIdForBusiness($user->business_id);
+        return DB::table('user_business')
+            ->where('user_id', $user->id)
+            ->where('is_primary', true)
+            ->exists();
     }
 
     public function openCreate(): void
@@ -203,8 +227,15 @@ class Index extends Component
                 'phone_number' => $this->phone_number ?: null,
                 'status'       => $this->status,
                 'password'     => Hash::make($this->password),
-                'business_id'  => $this->isSuperAdmin() ? null : auth()->user()->business_id,
             ]);
+
+            if (! $this->isSuperAdmin()) {
+                $primary_business_id = auth()->user()->business_id;
+
+                if ($primary_business_id) {
+                    $user->attachBusiness($primary_business_id, is_primary: true);
+                }
+            }
             $user->assignRole($assignedRole);
 
             $this->dispatch('swal', ['title' => 'Usuario creado correctamente.', 'icon' => 'success']);
@@ -297,14 +328,18 @@ class Index extends Component
             ->paginate(15);
 
         // Pre-computar el ID del usuario principal por cada negocio presente en la página
-        $businessIds = $users->pluck('business_id')->filter()->unique()->values()->all();
+        $businessIds = $users->flatMap(fn (User $user) => $user->businesses->pluck('id'))
+            ->unique()
+            ->values()
+            ->all();
         $primaryUserIds = [];
-        if (! empty($businessIds)) {
-            $primaryUserIds = User::whereIn('business_id', $businessIds)
-                ->selectRaw('MIN(id) as id, business_id')
-                ->groupBy('business_id')
-                ->pluck('id')
-                ->all();
+
+        foreach ($businessIds as $businessId) {
+            $primaryId = $this->primaryIdForBusiness((int) $businessId);
+
+            if ($primaryId) {
+                $primaryUserIds[] = $primaryId;
+            }
         }
 
         $stats = [

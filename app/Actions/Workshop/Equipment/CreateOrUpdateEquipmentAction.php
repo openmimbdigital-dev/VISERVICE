@@ -36,7 +36,7 @@ class CreateOrUpdateEquipmentAction
         $user = auth()->user();
 
         if (! $user->hasRole('superAdmin')) {
-            abort_unless((int) $business_id === (int) $user->business_id, 403);
+            abort_unless($user->belongsToBusiness($business_id), 403);
         }
 
         $equipment_type = EquipmentType::query()->findOrFail($data['equipment_type_id']);

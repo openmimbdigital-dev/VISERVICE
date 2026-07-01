@@ -40,6 +40,10 @@ class Index extends Component
             ->when($this->search, fn ($q) => $q->where(fn ($s) =>
                 $s->where('name', 'like', "%{$this->search}%")
                   ->orWhere('nit', 'like', "%{$this->search}%")
+                  ->orWhereHas('business_type', fn ($t) =>
+                      $t->where('name', 'like', "%{$this->search}%")
+                        ->orWhere('label', 'like', '%' . BusinessType::normalizeLabel($this->search) . '%')
+                  )
             ))
             ->when($this->filter_type, fn ($q) => $q->where('business_type_id', $this->filter_type))
             ->when($this->filter_status !== '', fn ($q) => $q->where('status', (bool) $this->filter_status))

@@ -18,11 +18,10 @@ class UsersSeeder extends Seeder
         $medellin = $country ? City::where('code', 'MED')->where('country_id', $country->id)->first() : null;
         $cali     = $country ? City::where('code', 'CAL')->where('country_id', $country->id)->first() : null;
 
-        $b_transad    = Business::where('slug', 'transportes-transad')->first();
+        $b_transad     = Business::where('slug', 'transportes-transad')->first();
         $b_cargarapida = Business::where('slug', 'carga-rapida-sas')->first();
-        $b_valle      = Business::where('slug', 'transportes-del-valle')->first();
+        $b_valle       = Business::where('slug', 'transportes-del-valle')->first();
 
-        // ── SuperAdmin ──────────────────────────────────────────────────────
         $superAdmin = User::updateOrCreate(
             ['username' => 'superadmin'],
             [
@@ -37,12 +36,11 @@ class UsersSeeder extends Seeder
                 'document_number' => 1000000001,
                 'country_id'      => $country?->id,
                 'city_id'         => $bogota?->id,
-                'business_id'     => null,
             ]
         );
+        $superAdmin->businesses()->detach();
         $superAdmin->syncRoles(['superAdmin']);
 
-        // ── Administrador (empresa TRANSAD) ─────────────────────────────────
         $admin = User::updateOrCreate(
             ['username' => 'admin'],
             [
@@ -57,12 +55,13 @@ class UsersSeeder extends Seeder
                 'document_number' => 10245678,
                 'country_id'      => $country?->id,
                 'city_id'         => $bogota?->id,
-                'business_id'     => $b_transad?->id,
             ]
         );
+        if ($b_transad) {
+            $admin->businesses()->sync([$b_transad->id => ['is_primary' => true]]);
+        }
         $admin->syncRoles(['Administrador']);
 
-        // ── Supervisor (empresa TRANSAD) ────────────────────────────────────
         $supervisor = User::updateOrCreate(
             ['username' => 'supervisor'],
             [
@@ -77,12 +76,13 @@ class UsersSeeder extends Seeder
                 'document_number' => 20345678,
                 'country_id'      => $country?->id,
                 'city_id'         => $bogota?->id,
-                'business_id'     => $b_transad?->id,
             ]
         );
+        if ($b_transad) {
+            $supervisor->businesses()->sync([$b_transad->id => ['is_primary' => true]]);
+        }
         $supervisor->syncRoles(['Supervisor']);
 
-        // ── Operador (empresa Carga Rápida) ─────────────────────────────────
         $operador = User::updateOrCreate(
             ['username' => 'operador'],
             [
@@ -97,12 +97,13 @@ class UsersSeeder extends Seeder
                 'document_number' => 52987654,
                 'country_id'      => $country?->id,
                 'city_id'         => $medellin?->id,
-                'business_id'     => $b_cargarapida?->id,
             ]
         );
+        if ($b_cargarapida) {
+            $operador->businesses()->sync([$b_cargarapida->id => ['is_primary' => true]]);
+        }
         $operador->syncRoles(['Operador']);
 
-        // ── Admin Valle (empresa Transportes del Valle) ──────────────────────
         $adminValle = User::updateOrCreate(
             ['username' => 'admin.valle'],
             [
@@ -117,9 +118,11 @@ class UsersSeeder extends Seeder
                 'document_number' => 34567890,
                 'country_id'      => $country?->id,
                 'city_id'         => $cali?->id,
-                'business_id'     => $b_valle?->id,
             ]
         );
+        if ($b_valle) {
+            $adminValle->businesses()->sync([$b_valle->id => ['is_primary' => true]]);
+        }
         $adminValle->syncRoles(['Administrador']);
 
         $this->command->table(

@@ -63,8 +63,13 @@ class Brand extends Model
         }
 
         return $query->where(function (Builder $q) use ($user, $table) {
-            $q->where("{$table}.general", true)
-                ->orWhere("{$table}.business_id", $user?->business_id);
+            $business_ids = $user->businessIds();
+
+            $q->where("{$table}.general", true);
+
+            if ($business_ids !== []) {
+                $q->orWhereIn("{$table}.business_id", $business_ids);
+            }
         });
     }
 
@@ -76,7 +81,7 @@ class Brand extends Model
             return true;
         }
 
-        return ! $this->general && $this->business_id === $user?->business_id;
+        return ! $this->general && $user->belongsToBusiness($this->business_id);
     }
 
     public function isGeneralReadonly(?User $user = null): bool

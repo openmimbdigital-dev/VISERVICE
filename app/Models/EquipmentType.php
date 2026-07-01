@@ -68,20 +68,20 @@ class EquipmentType extends Model
             return $query;
         }
 
-        $business_id = $user?->business_id;
+        $business_ids = $user->businessIds();
 
-        if (! $business_id) {
+        if ($business_ids === []) {
             return $query->whereRaw('0 = 1');
         }
 
-        return $query->where(function (Builder $q) use ($business_id, $table) {
-            $q->where(function (Builder $q2) use ($business_id, $table) {
+        return $query->where(function (Builder $q) use ($business_ids, $table) {
+            $q->where(function (Builder $q2) use ($business_ids, $table) {
                 $q2->where("{$table}.general", false)
-                    ->where("{$table}.business_id", $business_id);
+                    ->whereIn("{$table}.business_id", $business_ids);
             })
-                ->orWhere(function (Builder $q2) use ($business_id, $table) {
+                ->orWhere(function (Builder $q2) use ($business_ids, $table) {
                     $q2->where("{$table}.general", true)
-                        ->whereHas('businesses', fn (Builder $bq) => $bq->where('businesses.id', $business_id));
+                        ->whereHas('businesses', fn (Builder $bq) => $bq->whereIn('businesses.id', $business_ids));
                 })
                 ->orWhere(function (Builder $q2) use ($table) {
                     $q2->where("{$table}.general", true)
@@ -101,13 +101,13 @@ class EquipmentType extends Model
             return true;
         }
 
-        $business_id = $user?->business_id;
+        $business_ids = $user->businessIds();
 
-        if (! $business_id) {
+        if ($business_ids === []) {
             return false;
         }
 
-        if (! $this->general && (int) $this->business_id === (int) $business_id) {
+        if (! $this->general && in_array((int) $this->business_id, $business_ids, true)) {
             return true;
         }
 
@@ -115,7 +115,7 @@ class EquipmentType extends Model
             return false;
         }
 
-        if ($this->businesses()->where('businesses.id', $business_id)->exists()) {
+        if ($this->businesses()->whereIn('businesses.id', $business_ids)->exists()) {
             return true;
         }
 

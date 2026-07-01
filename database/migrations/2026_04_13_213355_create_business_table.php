@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('business_types', function (Blueprint $table) {
             $table->id();
             $table->string('name');
+            $table->string('label')->unique();
             $table->boolean('status')->default(true);
             $table->timestamps();
             $table->softDeletes();
@@ -112,7 +113,6 @@ return new class extends Migration
             $table->integer('document_number')->nullable();
             $table->unsignedBigInteger('city_id')->nullable();
             $table->unsignedBigInteger('country_id')->nullable();
-            $table->unsignedBigInteger('business_id')->nullable();
             $table->softDeletes();
 
             // Índices para las claves foráneas
@@ -122,7 +122,6 @@ return new class extends Migration
             // Claves foráneas
             $table->foreign('city_id')->references('id')->on('cities')->onDelete('set null');
             $table->foreign('country_id')->references('id')->on('countries')->onDelete('set null');
-            $table->foreign('business_id')->references('id')->on('businesses')->onDelete('set null');
         });
     }
 

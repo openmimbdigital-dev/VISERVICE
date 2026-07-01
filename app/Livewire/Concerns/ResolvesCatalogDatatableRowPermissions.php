@@ -31,7 +31,7 @@ trait ResolvesCatalogDatatableRowPermissions
             ];
         }
 
-        $is_owner = ! $general && $business_id === $user->business_id;
+        $is_owner = ! $general && $business_id !== null && $user->belongsToBusiness($business_id);
 
         return [
             'can_edit'            => $is_owner,

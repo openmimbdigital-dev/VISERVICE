@@ -39,10 +39,10 @@ class Business extends Model
     protected function casts(): array
     {
         return [
-            'representative' => 'array',
-            'configurations' => 'array',
+            'representative'       => 'array',
+            'configurations'       => 'array',
             'configurations_value' => 'array',
-            'status' => 'boolean',
+            'status'               => 'boolean',
         ];
     }
 
@@ -76,9 +76,11 @@ class Business extends Model
         return $this->hasMany(BusinessAddress::class, 'business_id');
     }
 
-    public function users(): HasMany
+    public function users(): BelongsToMany
     {
-        return $this->hasMany(User::class, 'business_id');
+        return $this->belongsToMany(User::class, 'user_business')
+            ->withPivot('is_primary')
+            ->withTimestamps();
     }
 
     public function subscriptions(): HasMany

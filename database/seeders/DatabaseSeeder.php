@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             CountySeeder::class,
             CitySeeder::class,
             BussinnesTypeSeeder::class,
+            BusinessCategorySeeder::class,
             BussinnesSeeder::class,
             UsersSeeder::class,
             SubscriptionPlansSeeder::class,
