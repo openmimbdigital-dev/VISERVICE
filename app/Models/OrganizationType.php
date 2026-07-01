@@ -4,34 +4,35 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
-class BusinessType extends Model
+class OrganizationType extends Model
 {
     use HasFactory;
     use SoftDeletes;
 
     protected $fillable = [
+        'business_type_id',
         'name',
         'label',
-        'status',
+        'active',
     ];
 
     protected function casts(): array
     {
         return [
-            'status' => 'boolean',
+            'active' => 'boolean',
         ];
     }
 
     protected static function booted(): void
     {
-        static::saving(function (BusinessType $business_type) {
-            if ($business_type->isDirty('name') || blank($business_type->label)) {
-                $business_type->label = static::normalizeLabel($business_type->name);
+        static::saving(function (OrganizationType $organization_type) {
+            if ($organization_type->isDirty('name') || blank($organization_type->label)) {
+                $organization_type->label = static::normalizeLabel($organization_type->name);
             }
         });
     }
@@ -47,23 +48,13 @@ class BusinessType extends Model
         return trim($label, '_');
     }
 
+    public function business_type(): BelongsTo
+    {
+        return $this->belongsTo(BusinessType::class, 'business_type_id');
+    }
+
     public function businesses(): HasMany
     {
-        return $this->hasMany(Business::class, 'business_type_id');
-    }
-
-    public function organization_types(): HasMany
-    {
-        return $this->hasMany(OrganizationType::class, 'business_type_id');
-    }
-
-    public function roles(): BelongsToMany
-    {
-        return $this->belongsToMany(Role::class, 'business_type_role')->withTimestamps();
-    }
-
-    public function permissions(): BelongsToMany
-    {
-        return $this->belongsToMany(Permission::class, 'business_type_permission')->withTimestamps();
+        return $this->hasMany(Business::class, 'organization_type_id');
     }
 }

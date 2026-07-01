@@ -1,0 +1,24 @@
+<?php
+
+namespace App\Actions\Business;
+
+use App\Models\OrganizationType;
+use Lorisleiva\Actions\Concerns\AsAction;
+
+class DeleteOrganizationTypeAction
+{
+    use AsAction;
+
+    public function handle(int $organization_type_id): void
+    {
+        abort_unless(auth()->user()?->hasRole('superAdmin'), 403);
+
+        $organization_type = OrganizationType::query()->findOrFail($organization_type_id);
+
+        if ($organization_type->businesses()->exists()) {
+            abort(422, 'No se puede eliminar: hay negocios asociados a este tipo de organización.');
+        }
+
+        $organization_type->delete();
+    }
+}

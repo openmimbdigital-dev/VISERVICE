@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
+use App\Models\Permission;
+use App\Models\Role;
 use Illuminate\Database\Seeder;
-use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 class RolesAndPermissionsSeeder extends Seeder
@@ -58,6 +58,9 @@ class RolesAndPermissionsSeeder extends Seeder
         $comercio    = Role::firstOrCreate(['name' => 'Comercio',      'guard_name' => $guard]);
         $supervisor  = Role::firstOrCreate(['name' => 'Supervisor',    'guard_name' => $guard]);
         $operador    = Role::firstOrCreate(['name' => 'Operador',      'guard_name' => $guard]);
+        $pastor      = Role::firstOrCreate(['name' => 'Pastor',        'guard_name' => $guard]);
+        $secretario  = Role::firstOrCreate(['name' => 'Secretario',    'guard_name' => $guard]);
+        $lider       = Role::firstOrCreate(['name' => 'Lider de congregacion', 'guard_name' => $guard]);
 
         // superAdmin tiene todos los permisos
         $superAdmin->syncPermissions($perms->values());
@@ -98,6 +101,27 @@ class RolesAndPermissionsSeeder extends Seeder
         // Operador: mínimo
         $operador->syncPermissions($perms->only([
             'users.view', 'businesses.view', 'reports.view',
+        ])->values());
+
+        // Pastor: liderazgo pastoral
+        $pastor->syncPermissions($perms->only([
+            'users.view', 'users.create', 'users.edit', 'users.activate', 'users.deactivate',
+            'businesses.view', 'businesses.edit',
+            'reports.view', 'reports.export',
+            ])->values());
+
+        // Secretario: administración
+        $secretario->syncPermissions($perms->only([
+            'users.view', 'users.create', 'users.edit',
+            'businesses.view',
+            'reports.view',
+        ])->values());
+
+        // Líder de congregación: operación de campo
+        $lider->syncPermissions($perms->only([
+            'users.view',
+            'businesses.view',
+            'reports.view',
         ])->values());
 
         app()[PermissionRegistrar::class]->forgetCachedPermissions();

@@ -55,7 +55,7 @@ class MenuItem extends Model
             return false;
         }
 
-        if ($this->permission && ! $user->can($this->permission)) {
+        if ($this->permission && ! $user->canViaBusinessType($this->permission)) {
             return false;
         }
 

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\BusinessTypeAccess;
 use Illuminate\Database\Eloquent\Casts\Attribute as EloquentAttribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -102,6 +103,17 @@ class User extends Authenticatable
         }
 
         return $this->businesses()->where('businesses.id', $business_id)->exists();
+    }
+
+    public function canViaBusinessType(string $permission): bool
+    {
+        return BusinessTypeAccess::permissionEnabledForUser($this, $permission);
+    }
+
+    /** @return \Illuminate\Support\Collection<int, Role> */
+    public function assignableRoles(): \Illuminate\Support\Collection
+    {
+        return BusinessTypeAccess::assignableRolesForUser($this);
     }
 
     public function syncBusinesses(array $businesses): void

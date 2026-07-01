@@ -12,6 +12,9 @@ use App\Livewire\Admin\Banks\Index as AdminBanksIndex;
 use App\Livewire\Admin\Finance\Index as AdminFinanceIndex;
 use App\Livewire\Admin\Businesses\Index as AdminBusinessesIndex;
 use App\Livewire\Admin\Businesses\Show as AdminBusinessesShow;
+use App\Livewire\Admin\BusinessTypes\Access as AdminBusinessTypesAccess;
+use App\Livewire\Admin\BusinessTypes\Index as AdminBusinessTypesIndex;
+use App\Livewire\Admin\OrganizationTypes\Index as AdminOrganizationTypesIndex;
 use App\Livewire\Comercio\Business\Edit as ComercioBusinessEdit;
 use App\Livewire\Admin\Workshop\Clients\Form as WorkshopClientsForm;
 use App\Livewire\Admin\Workshop\Clients\Index as WorkshopClientsIndex;
@@ -76,6 +79,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/banks', AdminBanksIndex::class)->name('banks.index');
         Route::get('/businesses', AdminBusinessesIndex::class)->name('businesses.index');
         Route::get('/businesses/{business}', AdminBusinessesShow::class)->name('businesses.show');
+        Route::get('/business-types', AdminBusinessTypesIndex::class)->name('business-types.index');
+        Route::get('/business-types/access', AdminBusinessTypesAccess::class)->name('business-types.access');
+        Route::get('/organization-types', AdminOrganizationTypesIndex::class)->name('organization-types.index');
     });
 
     // Rutas del Comercio

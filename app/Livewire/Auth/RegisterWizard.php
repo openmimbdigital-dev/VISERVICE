@@ -5,6 +5,7 @@ namespace App\Livewire\Auth;
 use App\Models\BankAccount;
 use App\Models\Business;
 use App\Models\BusinessType;
+use App\Models\OrganizationType;
 use App\Models\City;
 use App\Models\Subscription;
 use App\Models\SubscriptionInvoice;
@@ -31,7 +32,7 @@ class RegisterWizard extends Component
 
     // Paso 1 — Datos del Comercio
     public string $business_name = '';
-    public ?int $business_type_id = null;
+    public ?int $organization_type_id = null;
     public string $business_nit = '';
     public string $business_phone = '';
     public string $business_email = '';
@@ -100,11 +101,14 @@ class RegisterWizard extends Component
                 $logoPath = $this->business_logo->store('business-logos', 'public');
             }
 
+            $organization_type = OrganizationType::query()->findOrFail($this->organization_type_id);
+
             $business = Business::create([
-                'name'             => $this->business_name,
-                'slug'             => $slug,
-                'nit'              => $this->business_nit,
-                'business_type_id' => $this->business_type_id,
+                'name'                 => $this->business_name,
+                'slug'                 => $slug,
+                'nit'                  => $this->business_nit,
+                'business_type_id'     => $organization_type->business_type_id,
+                'organization_type_id' => $organization_type->id,
                 'phone_number'     => $this->business_phone,
                 'email'            => $this->business_email ?: null,
                 'address'          => $this->business_address ?: null,
@@ -182,7 +186,7 @@ class RegisterWizard extends Component
         match ($this->step) {
             1 => $this->validate([
                 'business_name'    => 'required|string|min:3|max:150',
-                'business_type_id' => 'required|exists:business_types,id',
+                'organization_type_id' => 'required|exists:organization_types,id',
                 'business_nit'     => 'required|string|max:30|unique:businesses,nit',
                 'business_phone'   => 'required|string|max:20',
                 'business_email'   => 'nullable|email|max:150',
@@ -192,7 +196,7 @@ class RegisterWizard extends Component
             ], [
                 'business_name.required'    => 'El nombre del comercio es obligatorio.',
                 'business_name.min'         => 'El nombre debe tener al menos 3 caracteres.',
-                'business_type_id.required' => 'Selecciona el tipo de negocio.',
+                'organization_type_id.required' => 'Selecciona el tipo de organización.',
                 'business_nit.required'     => 'El NIT / RUT es obligatorio.',
                 'business_nit.unique'       => 'Ya existe un comercio registrado con este NIT.',
                 'business_phone.required'   => 'El teléfono del comercio es obligatorio.',
@@ -247,6 +251,11 @@ class RegisterWizard extends Component
 
         return view('livewire.auth.register-wizard', [
             'business_types' => BusinessType::where('status', true)->orderBy('name')->get(),
+            'organization_types' => OrganizationType::query()
+                ->where('active', true)
+                ->with('business_type')
+                ->orderBy('name')
+                ->get(),
             'cities'         => City::where('is_active', true)->orderBy('name')->get(),
             'plans'          => $plans,
             'bank_accounts'  => BankAccount::where('is_active', true)->get(),

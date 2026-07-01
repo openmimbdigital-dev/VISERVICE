@@ -91,15 +91,24 @@
                     {{-- Tipo de negocio + NIT --}}
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1.5">Tipo de negocio <span class="text-red-500">*</span></label>
-                            <select wire:model="business_type_id"
-                                class="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 px-4 text-sm text-slate-900 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition @error('business_type_id') border-red-400 @enderror">
+                            <label class="block text-sm font-medium text-slate-700 mb-1.5">Tipo de organización <span class="text-red-500">*</span></label>
+                            <select wire:model="organization_type_id"
+                                class="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 px-4 text-sm text-slate-900 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition @error('organization_type_id') border-red-400 @enderror">
                                 <option value="">Seleccionar...</option>
-                                @foreach($business_types as $type)
-                                    <option value="{{ $type->id }}">{{ $type->name }}</option>
+                                @foreach($business_types as $business_type)
+                                    @php
+                                        $options = $organization_types->where('business_type_id', $business_type->id);
+                                    @endphp
+                                    @if($options->isNotEmpty())
+                                        <optgroup label="{{ $business_type->name }}">
+                                            @foreach($options as $type)
+                                                <option value="{{ $type->id }}">{{ $type->name }}</option>
+                                            @endforeach
+                                        </optgroup>
+                                    @endif
                                 @endforeach
                             </select>
-                            @error('business_type_id') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                            @error('organization_type_id') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-slate-700 mb-1.5">NIT / RUT <span class="text-red-500">*</span></label>

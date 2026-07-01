@@ -107,6 +107,24 @@ return [
                 'workshop.equipment.delete' => 'Eliminar equipos',
             ],
         ],
+        'church_members' => [
+            'name' => 'Iglesia — Miembros',
+            'permissions' => [
+                'church.members.view'   => 'Ver miembros',
+                'church.members.create' => 'Crear miembros',
+                'church.members.edit'   => 'Editar miembros',
+                'church.members.delete' => 'Eliminar miembros',
+            ],
+        ],
+        'church_congregations' => [
+            'name' => 'Iglesia — Congregaciones',
+            'permissions' => [
+                'church.congregations.view'   => 'Ver congregaciones',
+                'church.congregations.create' => 'Crear congregaciones',
+                'church.congregations.edit'   => 'Editar congregaciones',
+                'church.congregations.delete' => 'Eliminar congregaciones',
+            ],
+        ],
     ],
 
     /*
@@ -141,6 +159,41 @@ return [
             'description' => 'Operación del sistema',
             'level' => 4,
         ],
+        'Pastor' => [
+            'name' => 'Pastor',
+            'description' => 'Liderazgo pastoral de la iglesia',
+            'level' => 2,
+        ],
+        'Secretario' => [
+            'name' => 'Secretario',
+            'description' => 'Gestión administrativa de la iglesia',
+            'level' => 3,
+        ],
+        'Lider de congregacion' => [
+            'name' => 'Líder de congregación',
+            'description' => 'Liderazgo de congregación o campo',
+            'level' => 3,
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Roles globales (disponibles en cualquier tipo de negocio)
+    |--------------------------------------------------------------------------
+    */
+
+    'global_roles' => [
+        'Comercio',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Roles de sistema (no se asignan por tipo de negocio)
+    |--------------------------------------------------------------------------
+    */
+
+    'system_roles' => [
+        'superAdmin',
     ],
 
     /*

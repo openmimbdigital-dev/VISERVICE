@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin\User;
 
 use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
+use App\Support\BusinessTypeAccess;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -10,7 +11,6 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithPagination;
-use Spatie\Permission\Models\Role;
 
 #[Layout('layouts.app')]
 #[Title('Usuarios')]
@@ -212,6 +212,11 @@ class Index extends Component
 
             // Solo superAdmin puede cambiar el rol al editar
             if ($this->isSuperAdmin() && $this->role) {
+                abort_unless(
+                    BusinessTypeAccess::roleAllowedForUser($this->role, $user),
+                    403,
+                    'El rol seleccionado no está permitido para el tipo de negocio del usuario.'
+                );
                 $user->syncRoles([$this->role]);
             }
 
@@ -236,6 +241,12 @@ class Index extends Component
                     $user->attachBusiness($primary_business_id, is_primary: true);
                 }
             }
+
+            abort_unless(
+                ! $this->isSuperAdmin() || BusinessTypeAccess::roleAllowedForUser($assignedRole, $user),
+                403,
+                'El rol seleccionado no está permitido para el tipo de negocio del usuario.'
+            );
             $user->assignRole($assignedRole);
 
             $this->dispatch('swal', ['title' => 'Usuario creado correctamente.', 'icon' => 'success']);
@@ -351,8 +362,14 @@ class Index extends Component
                 ->count(),
         ];
 
-        // superAdmin elige rol; Comercio no necesita selector (se asigna automáticamente)
-        $roles = $this->isSuperAdmin() ? Role::orderBy('name')->get() : collect();
+        $target_user = ($this->editing && $this->selected_id)
+            ? User::with('businesses')->find($this->selected_id)
+            : null;
+
+        // superAdmin elige rol filtrado por tipo de negocio del usuario
+        $roles = $this->isSuperAdmin()
+            ? BusinessTypeAccess::assignableRolesForUser($target_user)
+            : collect();
 
         return view('livewire.admin.user.index', compact('users', 'stats', 'roles', 'primaryUserIds'));
     }

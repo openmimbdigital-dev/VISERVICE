@@ -29,6 +29,8 @@ class Business extends Model
         'city_id',
         'country_id',
         'business_type_id',
+        'organization_type_id',
+        'business_category_id',
         'business_id',
         'representative',
         'configurations',
@@ -49,6 +51,16 @@ class Business extends Model
     public function business_type(): BelongsTo
     {
         return $this->belongsTo(BusinessType::class, 'business_type_id');
+    }
+
+    public function organization_type(): BelongsTo
+    {
+        return $this->belongsTo(OrganizationType::class, 'organization_type_id');
+    }
+
+    public function business_category(): BelongsTo
+    {
+        return $this->belongsTo(BusinessCategory::class, 'business_category_id');
     }
 
     public function city(): BelongsTo
