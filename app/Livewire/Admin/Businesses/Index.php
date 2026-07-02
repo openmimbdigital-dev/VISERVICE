@@ -20,6 +20,11 @@ class Index extends Component
     public string $filter_subscription = '';
     public string $filter_status = '';
 
+    public function mount(): void
+    {
+        abort_unless(auth()->user()?->can('businesses.view'), 403);
+    }
+
     public function updatingSearch(): void { $this->resetPage(); }
     public function updatingFilterType(): void { $this->resetPage(); }
     public function updatingFilterSubscription(): void { $this->resetPage(); }
@@ -28,6 +33,13 @@ class Index extends Component
     public function toggleStatus(int $id): void
     {
         $business = Business::findOrFail($id);
+
+        if ($business->status) {
+            abort_unless(auth()->user()?->can('businesses.deactivate'), 403);
+        } else {
+            abort_unless(auth()->user()?->can('businesses.activate'), 403);
+        }
+
         $business->update(['status' => ! $business->status]);
 
         $label = $business->fresh()->status ? 'activado' : 'desactivado';

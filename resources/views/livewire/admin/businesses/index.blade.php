@@ -152,6 +152,7 @@
                             </div>
                         </td>
                         <td class="px-5 py-4">
+                            @canany(['businesses.activate', 'businesses.deactivate'])
                             <button wire:click="toggleStatus({{ $business->id }})" type="button">
                                 @if($business->status)
                                     <span class="inline-flex items-center gap-1 text-xs font-medium bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full hover:bg-emerald-200 transition">
@@ -165,6 +166,19 @@
                                     </span>
                                 @endif
                             </button>
+                            @else
+                                @if($business->status)
+                                    <span class="inline-flex items-center gap-1 text-xs font-medium bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                        Activo
+                                    </span>
+                                @else
+                                    <span class="inline-flex items-center gap-1 text-xs font-medium bg-slate-100 text-slate-500 px-2.5 py-1 rounded-full">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                                        Inactivo
+                                    </span>
+                                @endif
+                            @endcanany
                         </td>
                         <td class="px-5 py-4">
                             <p class="text-sm text-slate-700">{{ $business->created_at->format('d/m/Y') }}</p>
@@ -173,18 +187,22 @@
                         <td class="px-5 py-4 text-right">
                             <div class="flex items-center justify-end gap-2">
                                 @if($business->latestSubscription?->status === 'pending')
+                                    @role('superAdmin')
                                     <a href="{{ route('admin.payments.index') }}" wire:navigate
                                         class="inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 px-2.5 py-1.5 rounded-lg transition"
                                         title="Ver pago pendiente">
                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                         Pago pendiente
                                     </a>
+                                    @endrole
                                 @endif
+                                @can('businesses.view')
                                 <a href="{{ route('admin.businesses.show', $business) }}" wire:navigate
                                     class="inline-flex items-center gap-1 text-xs font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1.5 rounded-lg transition">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                                     Ver detalle
                                 </a>
+                                @endcan
                             </div>
                         </td>
                     </tr>

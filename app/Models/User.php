@@ -107,7 +107,7 @@ class User extends Authenticatable
 
     public function canViaBusinessType(string $permission): bool
     {
-        return BusinessTypeAccess::permissionEnabledForUser($this, $permission);
+        return $this->can($permission);
     }
 
     /** @return \Illuminate\Support\Collection<int, Role> */

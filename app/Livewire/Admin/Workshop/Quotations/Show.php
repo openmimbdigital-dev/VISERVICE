@@ -17,6 +17,13 @@ class Show extends Component
 {
     public Quotation $quotation;
 
+    public function mount(Quotation $quotation): void
+    {
+        abort_unless(auth()->user()?->can('workshop.quotations.view'), 403);
+
+        $this->quotation = $quotation;
+    }
+
     // Modal item
     public bool   $showItemModal = false;
     public ?int   $editing_item_id = null;
@@ -40,11 +47,6 @@ class Show extends Component
             'item_unit_price'  => 'required|numeric|min:0',
             'item_discount'    => 'required|numeric|min:0|max:100',
         ];
-    }
-
-    public function mount(Quotation $quotation): void
-    {
-        $this->quotation = $quotation;
     }
 
     // ── Items ────────────────────────────────────────────────────────────────

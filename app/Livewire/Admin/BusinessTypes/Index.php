@@ -141,9 +141,6 @@ class Index extends Component
         return view('livewire.admin.business-types.index', [
             'business_types' => $query->paginate(15),
             'stats'          => $stats,
-            'label_preview'  => $this->form->name !== ''
-                ? BusinessType::normalizeLabel($this->form->name)
-                : '',
         ]);
     }
 }

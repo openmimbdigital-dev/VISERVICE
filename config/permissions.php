@@ -132,22 +132,30 @@ return [
                 'workshop.equipment.delete' => 'Eliminar equipos',
             ],
         ],
-        'church_members' => [
-            'name' => 'Iglesia — Miembros',
+        'workshop' => [
+            'name' => 'Taller',
             'permissions' => [
-                'church.members.view'   => 'Ver miembros',
-                'church.members.create' => 'Crear miembros',
-                'church.members.edit'   => 'Editar miembros',
-                'church.members.delete' => 'Eliminar miembros',
+                'workshop.view' => 'Ver módulo de taller',
             ],
         ],
-        'church_congregations' => [
-            'name' => 'Iglesia — Congregaciones',
+        'workshop_quotations' => [
+            'name' => 'Taller — Cotizaciones',
             'permissions' => [
-                'church.congregations.view'   => 'Ver congregaciones',
-                'church.congregations.create' => 'Crear congregaciones',
-                'church.congregations.edit'   => 'Editar congregaciones',
-                'church.congregations.delete' => 'Eliminar congregaciones',
+                'workshop.quotations.view' => 'Ver cotizaciones',
+            ],
+        ],
+        'workshop_work_orders' => [
+            'name' => 'Taller — Órdenes de trabajo',
+            'permissions' => [
+                'workshop.work-orders.view' => 'Ver órdenes de trabajo',
+            ],
+        ],
+        'workshop_catalog' => [
+            'name' => 'Catálogo',
+            'permissions' => [
+                'workshop.catalog.view'              => 'Ver módulo de catálogo',
+                'workshop.catalog.services.view'     => 'Ver servicios',
+                'workshop.catalog.spare-parts.view'  => 'Ver repuestos',
             ],
         ],
     ],
@@ -208,7 +216,6 @@ return [
     */
 
     'global_roles' => [
-        'Comercio',
     ],
 
     /*

@@ -13,7 +13,7 @@ class BusinessTypeAccess
     /** @return list<string> */
     public static function globalRoleNames(): array
     {
-        return config('permissions.global_roles', ['Comercio']);
+        return config('permissions.global_roles', []);
     }
 
     /** @return list<string> */
@@ -57,16 +57,31 @@ class BusinessTypeAccess
 
     public static function rolesQueryForBusinessTypes(array $business_type_ids): \Illuminate\Database\Eloquent\Builder
     {
-        $query = Role::query()->where('guard_name', 'web');
+        $query = Role::query()
+            ->where('guard_name', 'web')
+            ->whereNotIn('name', static::systemRoleNames());
+
+        $global = static::globalRoleNames();
 
         if ($business_type_ids === []) {
-            return $query->whereIn('name', static::globalRoleNames());
+            if ($global === []) {
+                return $query->whereRaw('0 = 1');
+            }
+
+            return $query->whereIn('name', $global);
         }
 
-        return $query->where(function ($q) use ($business_type_ids) {
-            $q->whereIn('name', static::globalRoleNames())
+        if ($global === []) {
+            return $query->whereHas(
+                'businessTypes',
+                fn ($bt) => $bt->whereIn('business_types.id', $business_type_ids)
+            );
+        }
+
+        return $query->where(function ($q) use ($business_type_ids, $global) {
+            $q->whereIn('name', $global)
                 ->orWhereHas('businessTypes', fn ($bt) => $bt->whereIn('business_types.id', $business_type_ids));
-        })->whereNotIn('name', static::systemRoleNames());
+        });
     }
 
     public static function assignableRolesForUser(?User $target_user): Collection
@@ -107,23 +122,98 @@ class BusinessTypeAccess
             ->exists();
     }
 
-    public static function permissionEnabledForUser(?User $user, string $permission): bool
+    public static function manageableRolesForUser(?User $user): Collection
     {
         if (! $user || $user->hasRole('superAdmin')) {
-            return true;
-        }
-
-        if (! $user->can($permission)) {
-            return false;
+            return Role::query()
+                ->where('guard_name', 'web')
+                ->orderBy('name')
+                ->get();
         }
 
         $type_id = static::primaryBusinessTypeId($user);
 
         if ($type_id === null) {
+            $global = static::globalRoleNames();
+
+            if ($global === []) {
+                return collect();
+            }
+
+            return Role::query()
+                ->where('guard_name', 'web')
+                ->whereIn('name', $global)
+                ->orderBy('name')
+                ->get();
+        }
+
+        return static::rolesQueryForBusinessTypes([$type_id])
+            ->orderBy('name')
+            ->get();
+    }
+
+    public static function roleManageableByUser(\Spatie\Permission\Models\Role $role, ?User $user): bool
+    {
+        if (! $user || $user->hasRole('superAdmin')) {
             return true;
         }
 
-        return static::permissionEnabledForBusinessType($permission, $type_id);
+        return static::manageableRolesForUser($user)->contains('id', $role->id);
+    }
+
+    /** @return list<string> */
+    public static function manageablePermissionNamesForUser(?User $user): array
+    {
+        if (! $user || $user->hasRole('superAdmin')) {
+            return Permission::query()
+                ->where('guard_name', 'web')
+                ->pluck('name')
+                ->all();
+        }
+
+        $type_id = static::primaryBusinessTypeId($user);
+
+        if ($type_id === null) {
+            return [];
+        }
+
+        return static::enabledPermissionNamesForBusinessType($type_id);
+    }
+
+    /** @return array<string, array{name: string, permissions: array<string, string>}> */
+    public static function manageableModulesForUser(?User $user): array
+    {
+        $modules = config('permissions.modules', []);
+
+        if (! $user || $user->hasRole('superAdmin')) {
+            return $modules;
+        }
+
+        $allowed = static::manageablePermissionNamesForUser($user);
+
+        return collect($modules)
+            ->map(function (array $module) use ($allowed) {
+                $permissions = array_filter(
+                    $module['permissions'],
+                    fn (string $label, string $name) => in_array($name, $allowed, true),
+                    ARRAY_FILTER_USE_BOTH
+                );
+
+                if ($permissions === []) {
+                    return null;
+                }
+
+                $module['permissions'] = $permissions;
+
+                return $module;
+            })
+            ->filter()
+            ->all();
+    }
+
+    public static function permissionEnabledForUser(?User $user, string $permission): bool
+    {
+        return (bool) $user?->can($permission);
     }
 
     /** @return list<string> */

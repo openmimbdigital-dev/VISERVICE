@@ -17,6 +17,11 @@ class Index extends Component
 {
     public bool   $showModal     = false;
 
+    public function mount(): void
+    {
+        abort_unless(auth()->user()?->can('workshop.quotations.view'), 403);
+    }
+
     public ?int  $client_id      = null;
     public ?int  $equipment_id   = null;
     public string $km_entry       = '0';

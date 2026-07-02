@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('business_types', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->string('label')->unique();
+            $table->string('name')->unique();
+            $table->string('label');
             $table->boolean('status')->default(true);
             $table->timestamps();
             $table->softDeletes();

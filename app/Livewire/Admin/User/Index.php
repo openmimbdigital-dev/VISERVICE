@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin\User;
 
 use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
+use App\Models\Role;
 use App\Support\BusinessTypeAccess;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -164,8 +165,10 @@ class Index extends Component
             'phone_number' => 'nullable|string|max:20',
         ];
 
-        // superAdmin elige el rol; Comercio lo asigna automáticamente
-        if ($this->isSuperAdmin()) {
+        // Rol obligatorio al crear; solo superAdmin puede cambiarlo al editar
+        if (! $this->editing) {
+            $rules['role'] = 'required|string|exists:roles,name';
+        } elseif ($this->isSuperAdmin()) {
             $rules['role'] = 'required|string|exists:roles,name';
         }
 
@@ -213,7 +216,7 @@ class Index extends Component
             // Solo superAdmin puede cambiar el rol al editar
             if ($this->isSuperAdmin() && $this->role) {
                 abort_unless(
-                    BusinessTypeAccess::roleAllowedForUser($this->role, $user),
+                    $this->isRoleAllowedForUser($this->role, $user),
                     403,
                     'El rol seleccionado no está permitido para el tipo de negocio del usuario.'
                 );
@@ -222,8 +225,6 @@ class Index extends Component
 
             $this->dispatch('swal', ['title' => 'Usuario actualizado correctamente.', 'icon' => 'success']);
         } else {
-            $assignedRole = $this->isSuperAdmin() ? $this->role : 'Comercio';
-
             $user = User::create([
                 'first_name'   => $this->first_name,
                 'last_name'    => $this->last_name,
@@ -242,12 +243,14 @@ class Index extends Component
                 }
             }
 
+            $user->load('businesses');
+
             abort_unless(
-                ! $this->isSuperAdmin() || BusinessTypeAccess::roleAllowedForUser($assignedRole, $user),
+                $this->isRoleAllowedForUser($this->role, $user),
                 403,
                 'El rol seleccionado no está permitido para el tipo de negocio del usuario.'
             );
-            $user->assignRole($assignedRole);
+            $user->assignRole($this->role);
 
             $this->dispatch('swal', ['title' => 'Usuario creado correctamente.', 'icon' => 'success']);
         }
@@ -319,6 +322,19 @@ class Index extends Component
         $this->showModal = false;
     }
 
+    private function isRoleAllowedForUser(string $role_name, User $user): bool
+    {
+        if ($this->isSuperAdmin() && $user->businesses->isEmpty()) {
+            return Role::query()
+                ->where('guard_name', 'web')
+                ->where('name', $role_name)
+                ->whereNotIn('name', BusinessTypeAccess::systemRoleNames())
+                ->exists();
+        }
+
+        return BusinessTypeAccess::roleAllowedForUser($role_name, $user);
+    }
+
     private function findAuthorized(int $id): User
     {
         return $this->baseQuery()->where('id', $id)->firstOrFail();
@@ -366,10 +382,15 @@ class Index extends Component
             ? User::with('businesses')->find($this->selected_id)
             : null;
 
-        // superAdmin elige rol filtrado por tipo de negocio del usuario
         $roles = $this->isSuperAdmin()
-            ? BusinessTypeAccess::assignableRolesForUser($target_user)
-            : collect();
+            ? ($target_user
+                ? BusinessTypeAccess::assignableRolesForUser($target_user)
+                : Role::query()
+                    ->where('guard_name', 'web')
+                    ->whereNotIn('name', BusinessTypeAccess::systemRoleNames())
+                    ->orderBy('name')
+                    ->get())
+            : BusinessTypeAccess::assignableRolesForUser(auth()->user());
 
         return view('livewire.admin.user.index', compact('users', 'stats', 'roles', 'primaryUserIds'));
     }

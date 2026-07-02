@@ -64,8 +64,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/admin/users', AdminUserIndex::class)->name('admin.users.index');
     });
 
-    // Gestión de roles (solo superAdmin)
-    Route::middleware('role:superAdmin')->group(function () {
+    // Gestión de roles
+    Route::middleware('permission:roles.view')->group(function () {
         Route::get('/admin/roles', AdminRolesIndex::class)->name('admin.roles.index');
     });
 
@@ -77,11 +77,13 @@ Route::middleware('auth')->group(function () {
         Route::get('/finanzas', AdminFinanceIndex::class)->name('finance.index');
         Route::get('/bank-accounts', AdminBankAccountsIndex::class)->name('bank-accounts.index');
         Route::get('/banks', AdminBanksIndex::class)->name('banks.index');
-        Route::get('/businesses', AdminBusinessesIndex::class)->name('businesses.index');
-        Route::get('/businesses/{business}', AdminBusinessesShow::class)->name('businesses.show');
     });
 
     Route::prefix('admin')->name('admin.')->group(function () {
+        Route::middleware('permission:businesses.view')->group(function () {
+            Route::get('/businesses', AdminBusinessesIndex::class)->name('businesses.index');
+            Route::get('/businesses/{business}', AdminBusinessesShow::class)->name('businesses.show');
+        });
         Route::middleware('permission:business_types.view')->group(function () {
             Route::get('/business-types', AdminBusinessTypesIndex::class)->name('business-types.index');
         });
@@ -120,16 +122,24 @@ Route::middleware('auth')->group(function () {
         Route::middleware('permission:workshop.equipment.edit')->group(function () {
             Route::get('/equipos/{equipmentType}/{equipment}/editar', WorkshopEquipmentForm::class)->name('equipment.form.edit');
         });
-        Route::get('/cotizaciones', WorkshopQuotationsIndex::class)->name('quotations.index');
-        Route::get('/cotizaciones/{quotation}', WorkshopQuotationsShow::class)->name('quotations.show');
-        Route::get('/ordenes', WorkshopWorkOrdersIndex::class)->name('work-orders.index');
-        Route::get('/ordenes/{workOrder}', WorkshopWorkOrdersShow::class)->name('work-orders.show');
+        Route::middleware('permission:workshop.quotations.view')->group(function () {
+            Route::get('/cotizaciones', WorkshopQuotationsIndex::class)->name('quotations.index');
+            Route::get('/cotizaciones/{quotation}', WorkshopQuotationsShow::class)->name('quotations.show');
+        });
+        Route::middleware('permission:workshop.work-orders.view')->group(function () {
+            Route::get('/ordenes', WorkshopWorkOrdersIndex::class)->name('work-orders.index');
+            Route::get('/ordenes/{workOrder}', WorkshopWorkOrdersShow::class)->name('work-orders.show');
+        });
     });
 
     // Catálogo
     Route::prefix('catalogo')->name('admin.workshop.catalog.')->group(function () {
-        Route::get('/servicios', CatalogServicesIndex::class)->name('services.index');
-        Route::get('/repuestos', CatalogSparePartsIndex::class)->name('spare-parts.index');
+        Route::middleware('permission:workshop.catalog.services.view')->group(function () {
+            Route::get('/servicios', CatalogServicesIndex::class)->name('services.index');
+        });
+        Route::middleware('permission:workshop.catalog.spare-parts.view')->group(function () {
+            Route::get('/repuestos', CatalogSparePartsIndex::class)->name('spare-parts.index');
+        });
     });
 
     // Configuración

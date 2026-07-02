@@ -161,17 +161,10 @@
             <div class="flex-1 space-y-4 overflow-y-auto px-4 py-5 sm:px-6">
                 <div>
                     <label class="mb-1.5 block text-xs font-medium text-slate-700">Nombre <span class="text-rose-500">*</span></label>
-                    <input type="text" wire:model.live="form.name"
+                    <input type="text" wire:model="form.name"
                         class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('form.name') border-rose-400 bg-rose-50 @enderror">
                     @error('form.name') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                 </div>
-
-                @if($label_preview)
-                    <div>
-                        <label class="mb-1.5 block text-xs font-medium text-slate-700">Etiqueta (automática)</label>
-                        <p class="rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 font-mono text-sm text-slate-600">{{ $label_preview }}</p>
-                    </div>
-                @endif
 
                 <div class="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
                     <div>

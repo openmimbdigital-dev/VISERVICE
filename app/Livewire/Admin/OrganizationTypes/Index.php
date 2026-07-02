@@ -154,9 +154,6 @@ class Index extends Component
             'organization_types' => $query->paginate(15),
             'business_types'     => BusinessType::query()->where('status', true)->orderBy('name')->get(),
             'stats'              => $stats,
-            'label_preview'      => $this->form->name !== ''
-                ? OrganizationType::normalizeLabel($this->form->name)
-                : '',
         ]);
     }
 }

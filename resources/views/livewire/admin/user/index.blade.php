@@ -320,9 +320,9 @@
                     </div>
                 </div>
 
-                {{-- Rol (solo superAdmin) y estado --}}
-                <div class="{{ auth()->user()->hasRole('superAdmin') ? 'grid grid-cols-1 gap-4 sm:grid-cols-2' : '' }}">
-                    @role('superAdmin')
+                {{-- Rol y estado --}}
+                <div class="{{ ((!$editing && auth()->user()->can('users.create')) || ($editing && auth()->user()->hasRole('superAdmin'))) ? 'grid grid-cols-1 gap-4 sm:grid-cols-2' : '' }}">
+                    @if((!$editing && auth()->user()->can('users.create')) || ($editing && auth()->user()->hasRole('superAdmin')))
                     <div>
                         <label class="block text-xs font-medium text-slate-700 mb-1.5">Rol <span class="text-rose-500">*</span></label>
                         <select wire:model="role"
@@ -334,7 +334,7 @@
                         </select>
                         @error('role') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                     </div>
-                    @endrole
+                    @endif
                     <div>
                         <label class="block text-xs font-medium text-slate-700 mb-1.5">Estado</label>
                         @if(! $editing || auth()->user()->can('users.activate') || auth()->user()->can('users.deactivate'))
@@ -357,9 +357,6 @@
                                 {{ $status ? 'Activo' : 'Inactivo' }}
                             </span>
                         </div>
-                        @endif
-                        @if(!auth()->user()->hasRole('superAdmin') && !$editing)
-                            <p class="text-[11px] text-slate-400 mt-1.5">El rol asignado será <span class="font-medium text-violet-600">Comercio</span> automáticamente.</p>
                         @endif
                     </div>
                 </div>

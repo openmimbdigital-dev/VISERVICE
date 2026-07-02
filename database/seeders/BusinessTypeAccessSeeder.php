@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\BusinessType;
+use App\Models\Permission;
 use App\Models\Role;
 use App\Support\BusinessTypeAccess;
 use Illuminate\Database\Seeder;
@@ -10,10 +11,24 @@ use Illuminate\Database\Seeder;
 class BusinessTypeAccessSeeder extends Seeder
 {
     /** @var list<string> */
-    private array $catalog_permissions = [
+    private array $business_catalog_permissions = [
         'business_types.view', 'business_types.create', 'business_types.edit', 'business_types.delete',
         'organization_types.view', 'organization_types.create', 'organization_types.edit', 'organization_types.delete',
         'business_types.access.view', 'business_types.access.manage',
+    ];
+
+    /** @var list<string> */
+    private array $workshop_module_permissions = [
+        'workshop.view',
+        'workshop.clients.view', 'workshop.clients.create', 'workshop.clients.edit',
+        'workshop.clients.delete', 'workshop.clients.activate', 'workshop.clients.deactivate',
+        'workshop.equipment.view', 'workshop.equipment.create', 'workshop.equipment.edit',
+        'workshop.equipment.delete',
+        'workshop.quotations.view',
+        'workshop.work-orders.view',
+        'workshop.catalog.view',
+        'workshop.catalog.services.view',
+        'workshop.catalog.spare-parts.view',
     ];
 
     /** @var list<string> */
@@ -25,11 +40,8 @@ class BusinessTypeAccessSeeder extends Seeder
         'settings.view', 'settings.edit',
         'settings.attributes.view', 'settings.attributes.create',
         'settings.attributes.edit', 'settings.attributes.delete',
-        'roles.view',
-        'workshop.clients.view', 'workshop.clients.create', 'workshop.clients.edit',
-        'workshop.clients.delete', 'workshop.clients.activate', 'workshop.clients.deactivate',
-        'workshop.equipment.view', 'workshop.equipment.create', 'workshop.equipment.edit',
-        'workshop.equipment.delete',
+        'roles.view', 'roles.create', 'roles.edit', 'roles.delete',
+        'permissions.view', 'permissions.assign',
     ];
 
     /** @var list<string> */
@@ -46,8 +58,7 @@ class BusinessTypeAccessSeeder extends Seeder
         'users.activate', 'users.deactivate',
         'businesses.view', 'businesses.edit',
         'reports.view', 'reports.export',
-        'church.members.view', 'church.members.create', 'church.members.edit', 'church.members.delete',
-        'church.congregations.view', 'church.congregations.create', 'church.congregations.edit', 'church.congregations.delete',
+        'roles.view', 'permissions.view',
     ];
 
     /** @var list<string> */
@@ -64,6 +75,7 @@ class BusinessTypeAccessSeeder extends Seeder
         'users.activate', 'users.deactivate',
         'businesses.view', 'businesses.edit',
         'reports.view', 'reports.export',
+        'roles.view', 'permissions.view',
     ];
 
     /** @var list<string> */
@@ -80,24 +92,34 @@ class BusinessTypeAccessSeeder extends Seeder
         $centro  = BusinessType::where('label', 'centro_educativo')->first();
 
         if ($taller) {
-            $this->syncType($taller, $this->workshop_roles, $this->withCatalogPermissions($this->workshop_base_permissions));
+            $this->syncType($taller, $this->workshop_roles, $this->tallerPermissions());
         }
 
         if ($iglesia) {
-            $this->syncType($iglesia, $this->church_roles, $this->withCatalogPermissions($this->church_base_permissions));
+            $this->syncType($iglesia, $this->church_roles, $this->withBusinessCatalogPermissions($this->church_base_permissions));
         }
 
         if ($centro) {
-            $this->syncType($centro, $this->education_roles, $this->withCatalogPermissions($this->education_base_permissions));
+            $this->syncType($centro, $this->education_roles, $this->withBusinessCatalogPermissions($this->education_base_permissions));
         }
 
         $this->command->info('Acceso por tipo de negocio sincronizado.');
     }
 
     /** @param list<string> $permissions @return list<string> */
-    private function withCatalogPermissions(array $permissions): array
+    private function withBusinessCatalogPermissions(array $permissions): array
     {
-        return array_values(array_unique([...$permissions, ...$this->catalog_permissions]));
+        return array_values(array_unique([...$permissions, ...$this->business_catalog_permissions]));
+    }
+
+    /** @return list<string> */
+    private function tallerPermissions(): array
+    {
+        return array_values(array_unique([
+            ...$this->workshop_base_permissions,
+            ...$this->workshop_module_permissions,
+            ...$this->business_catalog_permissions,
+        ]));
     }
 
     /** @param list<string> $role_names @param list<string> $permission_names */

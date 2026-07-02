@@ -15,6 +15,11 @@ class Index extends Component
     public bool  $showModal  = false;
     public ?int  $editing_id = null;
 
+    public function mount(): void
+    {
+        abort_unless(auth()->user()?->can('workshop.catalog.spare-parts.view'), 403);
+    }
+
     public string $code        = '';
     public string $name        = '';
     public string $description = '';

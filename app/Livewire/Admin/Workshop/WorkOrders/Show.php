@@ -67,6 +67,8 @@ class Show extends Component
 
     public function mount(WorkOrder $workOrder): void
     {
+        abort_unless(auth()->user()?->can('workshop.work-orders.view'), 403);
+
         $this->workOrder = $workOrder;
         $this->km_exit   = $workOrder->km_exit ?? '';
     }

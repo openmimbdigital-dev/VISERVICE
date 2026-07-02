@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('organization_types', function (Blueprint $table) {
             $table->id();
             $table->foreignId('business_type_id')->constrained()->cascadeOnDelete();
-            $table->string('name');
+            $table->string('name')->unique();
             $table->string('label');
             $table->boolean('active')->default(true);
             $table->timestamps();

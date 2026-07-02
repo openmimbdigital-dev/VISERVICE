@@ -6,11 +6,13 @@
             <h1 class="text-2xl font-bold text-slate-900">Roles y Permisos</h1>
             <p class="text-sm text-slate-500 mt-1">Define roles del sistema y controla qué puede hacer cada uno.</p>
         </div>
+        @can('roles.create')
         <button wire:click="openCreate" type="button"
             class="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 active:scale-[0.98] transition-all">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
             Nuevo rol
         </button>
+        @endcan
     </div>
 
     {{-- Stats --}}
@@ -45,7 +47,7 @@
     <div class="space-y-3">
         @foreach($roles as $role)
         @php
-            $isProtected  = in_array($role->name, ['superAdmin', 'Comercio']);
+            $isProtected  = $role->name === 'superAdmin';
             $isSuperAdmin = $role->name === 'superAdmin';
             $isExpanded   = $expandedRole === $role->id;
 
@@ -98,7 +100,7 @@
                 </div>
 
                 <div class="flex items-center gap-2 shrink-0">
-                    {{-- Toggle permisos --}}
+                    @can('permissions.view')
                     @if(!$isSuperAdmin)
                     <button wire:click="toggleExpand({{ $role->id }})" type="button"
                         class="inline-flex items-center gap-1.5 text-xs font-medium rounded-lg px-3 py-1.5 transition
@@ -109,15 +111,17 @@
                         Permisos
                     </button>
                     @endif
+                    @endcan
 
-                    {{-- Editar --}}
+                    @can('roles.view')
                     <button wire:click="openEdit({{ $role->id }})" type="button"
                         class="inline-flex items-center gap-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg px-3 py-1.5 transition">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                        {{ $isSuperAdmin ? 'Ver' : 'Editar' }}
+                        {{ ($isSuperAdmin || !auth()->user()->can('roles.edit')) ? 'Ver' : 'Editar' }}
                     </button>
+                    @endcan
 
-                    {{-- Eliminar --}}
+                    @can('roles.delete')
                     @if(!$isProtected)
                     <button wire:click="delete({{ $role->id }})"
                         wire:confirm="¿Seguro que deseas eliminar el rol «{{ $role->name }}»?"
@@ -132,29 +136,32 @@
                         Eliminar
                     </button>
                     @endif
+                    @endcan
                 </div>
             </div>
 
             {{-- Panel de permisos expandible --}}
             @if($isExpanded && !$isSuperAdmin)
             <div class="border-t border-slate-100 bg-slate-50/60 px-5 py-4">
-                @if($role->permissions_count === 0)
-                    <p class="text-sm text-slate-400 italic">Sin permisos asignados.</p>
-                @else
                 @php
+                    $visibleRolePerms = $role->permissions->filter(
+                        fn ($p) => in_array($p->name, $allowedPermNames, true)
+                    );
                     $permsByModule = [];
                     foreach ($modules as $moduleKey => $module) {
-                        $permsInModule = $role->permissions->filter(
+                        $permsInModule = $visibleRolePerms->filter(
                             fn ($p) => array_key_exists($p->name, $module['permissions'])
                         );
                         if ($permsInModule->isNotEmpty()) {
                             $permsByModule[$moduleKey] = ['module' => $module, 'perms' => $permsInModule];
                         }
                     }
-                    // Permisos que no están en ningún módulo
                     $allModulePerms = collect($modules)->flatMap(fn ($m) => array_keys($m['permissions']))->all();
-                    $otherPerms = $role->permissions->filter(fn ($p) => !in_array($p->name, $allModulePerms));
+                    $otherPerms = $visibleRolePerms->filter(fn ($p) => ! in_array($p->name, $allModulePerms, true));
                 @endphp
+                @if($visibleRolePerms->isEmpty())
+                    <p class="text-sm text-slate-400 italic">Sin permisos asignados.</p>
+                @else
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     @foreach($permsByModule as $data)
                     <div>
@@ -200,10 +207,14 @@
     {{-- Modal Crear / Editar --}}
     @if($showModal)
     @php
-        $editingRole      = $selected_id ? \Spatie\Permission\Models\Role::find($selected_id) : null;
+        $editingRole      = $selected_id ? \App\Models\Role::find($selected_id) : null;
         $isSuper          = $editingRole?->name === 'superAdmin';
-        $isProtected      = in_array($editingRole?->name, ['superAdmin', 'Comercio']); // nombre no editable
-        $isPermsProtected = $isSuper; // permisos bloqueados solo para superAdmin
+        $isProtected      = $editingRole?->name === 'superAdmin';
+        $isNameProtected  = $isProtected || ! auth()->user()->can('roles.edit');
+        $isPermsProtected = $isSuper || ! auth()->user()->can('permissions.assign');
+        $canSave          = $selected_id
+            ? (auth()->user()->can('roles.edit') || auth()->user()->can('permissions.assign'))
+            : auth()->user()->can('roles.create');
     @endphp
     <div class="fixed inset-0 z-50 flex items-start justify-center p-4 pt-16 bg-black/50 backdrop-blur-sm"
         x-on:keydown.escape.window="$wire.closeModal()">
@@ -234,6 +245,8 @@
                             <span class="text-sm text-slate-600 font-medium">{{ $name }}</span>
                             <span class="ml-auto text-xs text-slate-400">Rol protegido del sistema</span>
                         </div>
+                    @elseif($isNameProtected)
+                        <div class="rounded-xl border border-slate-200 bg-slate-50 py-2.5 px-4 text-sm text-slate-600 font-medium">{{ $name }}</div>
                     @else
                         <input wire:model="name" type="text" placeholder="Ej: Auditor"
                             class="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 px-4 text-sm text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition @error('name') border-red-400 bg-red-50 @enderror">
@@ -245,7 +258,7 @@
                 <div>
                     <div class="flex items-center justify-between mb-3">
                         <label class="text-sm font-medium text-slate-700">Permisos</label>
-                        @if(!$isSuper)
+                        @if(!$isPermsProtected)
                         <div class="flex items-center gap-2">
                             <button type="button"
                                 wire:click="$set('selectedPerms', {{ json_encode($allPermissions->pluck('name')->toArray()) }})"
@@ -308,7 +321,7 @@
                     class="rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition">
                     {{ $isSuper ? 'Cerrar' : 'Cancelar' }}
                 </button>
-                @if(!$isSuper)
+                @if($canSave && !$isSuper)
                 <button wire:click="save" type="button"
                     class="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>

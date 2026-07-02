@@ -46,6 +46,8 @@ class Show extends Component
 
     public function mount(Business $business): void
     {
+        abort_unless(auth()->user()?->can('businesses.view'), 403);
+
         $this->business = $business;
         $this->syncForm();
     }
@@ -76,6 +78,18 @@ class Show extends Component
 
     public function save(): void
     {
+        abort_unless(auth()->user()?->can('businesses.edit'), 403);
+
+        $previousStatus = (bool) $this->business->status;
+
+        if ($this->status !== $previousStatus) {
+            if ($previousStatus) {
+                abort_unless(auth()->user()?->can('businesses.deactivate'), 403);
+            } else {
+                abort_unless(auth()->user()?->can('businesses.activate'), 403);
+            }
+        }
+
         $this->validate([
             'name'             => 'required|string|min:3|max:150',
             'nit'              => 'required|string|max:30|unique:businesses,nit,' . $this->business->id,
@@ -113,7 +127,7 @@ class Show extends Component
             $logoPath = $this->new_logo->store('business-logos', 'public');
         }
 
-        $this->business->update([
+        $updateData = [
             'name'             => $this->name,
             'nit'              => $this->nit,
             'business_type_id' => $this->business_type_id,
@@ -125,14 +139,19 @@ class Show extends Component
             'facebook'         => $this->facebook ?: null,
             'instagram'        => $this->instagram ?: null,
             'twitter'          => $this->twitter ?: null,
-            'status'           => $this->status,
             'logo'             => $logoPath,
             'representative'   => array_filter([
                 'name'  => $this->rep_name,
                 'phone' => $this->rep_phone,
                 'email' => $this->rep_email,
             ]) ?: null,
-        ]);
+        ];
+
+        if ($this->status !== $previousStatus) {
+            $updateData['status'] = $this->status;
+        }
+
+        $this->business->update($updateData);
 
         $this->business->refresh();
         $this->current_logo = $this->business->logo ?? '';
@@ -144,6 +163,12 @@ class Show extends Component
 
     public function toggleStatus(): void
     {
+        if ($this->business->status) {
+            abort_unless(auth()->user()?->can('businesses.deactivate'), 403);
+        } else {
+            abort_unless(auth()->user()?->can('businesses.activate'), 403);
+        }
+
         $this->business->update(['status' => ! $this->business->status]);
         $this->business->refresh();
         $this->status = (bool) $this->business->status;
@@ -154,6 +179,12 @@ class Show extends Component
     public function toggleUserStatus(int $userId): void
     {
         $user = $this->business->users()->findOrFail($userId);
+
+        if ($user->status) {
+            abort_unless(auth()->user()?->can('users.deactivate'), 403);
+        } else {
+            abort_unless(auth()->user()?->can('users.activate'), 403);
+        }
 
         // No se puede desactivar al usuario principal (menor ID en el negocio)
         $primaryId = $this->business->users()

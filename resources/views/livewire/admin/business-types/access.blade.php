@@ -17,7 +17,7 @@
                 <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-indigo-600/90">Negocios</p>
                 <h1 class="mt-2 text-2xl font-bold tracking-tight text-slate-900">Acceso por tipo de negocio</h1>
                 <p class="mt-2 max-w-xl text-sm text-slate-600">
-                    Define qué roles y permisos estarán disponibles para cada tipo de negocio.
+                    Define qué roles y permisos estarán disponibles al gestionar roles en cada tipo de negocio.
                 </p>
             </div>
             <div class="flex w-full shrink-0 flex-wrap gap-2 sm:w-auto">
@@ -59,7 +59,7 @@
         <section class="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
             <div class="border-b border-slate-100 bg-slate-50/80 px-4 py-4 sm:px-5">
                 <h2 class="font-semibold text-slate-800">Roles habilitados</h2>
-                <p class="mt-1 text-xs text-slate-500">Solo estos roles podrán asignarse a usuarios de este tipo.</p>
+                <p class="mt-1 text-xs text-slate-500">Estos roles serán los únicos visibles en Roles y permisos para usuarios de este tipo.</p>
             </div>
             <div class="max-h-[28rem] space-y-2 overflow-y-auto p-4 sm:p-5">
                 @foreach($roles as $role)
@@ -85,7 +85,7 @@
         <section class="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
             <div class="border-b border-slate-100 bg-slate-50/80 px-4 py-4 sm:px-5">
                 <h2 class="font-semibold text-slate-800">Permisos habilitados</h2>
-                <p class="mt-1 text-xs text-slate-500">Módulos y acciones visibles para usuarios de este tipo.</p>
+                <p class="mt-1 text-xs text-slate-500">Solo estos permisos se mostrarán al editar roles de este tipo de negocio.</p>
             </div>
             <div class="max-h-[28rem] space-y-4 overflow-y-auto p-4 sm:p-5">
                 @foreach($modules as $module_key => $module)

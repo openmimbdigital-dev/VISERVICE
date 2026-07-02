@@ -19,6 +19,23 @@ class RolesAndPermissionsSeeder extends Seeder
         ];
     }
 
+    /** @return list<string> */
+    private function workshopAndCatalogPermissions(): array
+    {
+        return [
+            'workshop.view',
+            'workshop.clients.view', 'workshop.clients.create', 'workshop.clients.edit',
+            'workshop.clients.delete', 'workshop.clients.activate', 'workshop.clients.deactivate',
+            'workshop.equipment.view', 'workshop.equipment.create', 'workshop.equipment.edit',
+            'workshop.equipment.delete',
+            'workshop.quotations.view',
+            'workshop.work-orders.view',
+            'workshop.catalog.view',
+            'workshop.catalog.services.view',
+            'workshop.catalog.spare-parts.view',
+        ];
+    }
+
     public function run(): void
     {
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
@@ -57,6 +74,12 @@ class RolesAndPermissionsSeeder extends Seeder
             // Taller — Equipos
             'workshop.equipment.view', 'workshop.equipment.create', 'workshop.equipment.edit',
             'workshop.equipment.delete',
+            'workshop.view',
+            'workshop.quotations.view',
+            'workshop.work-orders.view',
+            'workshop.catalog.view',
+            'workshop.catalog.services.view',
+            'workshop.catalog.spare-parts.view',
             // Negocios — Tipos y acceso
             ...$this->businessCatalogPermissions(),
         ])->mapWithKeys(fn ($name) => [
@@ -85,10 +108,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'settings.view', 'settings.edit',
             'settings.attributes.view', 'settings.attributes.create',
             'settings.attributes.edit', 'settings.attributes.delete',
-            'roles.view',
-            'workshop.clients.view', 'workshop.clients.create', 'workshop.clients.edit',
-            'workshop.clients.activate', 'workshop.clients.deactivate',
-            'workshop.equipment.view', 'workshop.equipment.create', 'workshop.equipment.edit',
+            'roles.view', 'permissions.view',
             ...$this->businessCatalogPermissions(),
         ])->values());
 
@@ -100,16 +120,13 @@ class RolesAndPermissionsSeeder extends Seeder
             'settings.view', 'settings.edit',
             'settings.attributes.view', 'settings.attributes.create',
             'settings.attributes.edit', 'settings.attributes.delete',
-            'workshop.clients.view', 'workshop.clients.create', 'workshop.clients.edit',
-            'workshop.clients.delete', 'workshop.clients.activate', 'workshop.clients.deactivate',
-            'workshop.equipment.view', 'workshop.equipment.create', 'workshop.equipment.edit',
-            'workshop.equipment.delete',
+            ...$this->workshopAndCatalogPermissions(),
             ...$this->businessCatalogPermissions(),
         ])->values());
 
         // Supervisor: solo lectura
         $supervisor->syncPermissions($perms->only([
-            'users.view', 'businesses.view', 'reports.view', 'roles.view',
+            'users.view', 'businesses.view', 'reports.view', 'roles.view', 'permissions.view',
         ])->values());
 
         // Operador: mínimo
@@ -122,8 +139,11 @@ class RolesAndPermissionsSeeder extends Seeder
             'users.view', 'users.create', 'users.edit', 'users.activate', 'users.deactivate',
             'businesses.view', 'businesses.edit',
             'reports.view', 'reports.export',
-            ...$this->businessCatalogPermissions(),
-            ])->values());
+            'businesses.view', 'businesses.create', 'businesses.edit', 'businesses.delete',
+            'businesses.activate', 'businesses.deactivate',
+            'roles.view', 'roles.create',
+            'permissions.view', 'permissions.assign',
+        ])->values());
 
         // Secretario: administración
         $secretario->syncPermissions($perms->only([
