@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use App\Support\BusinessModuleAccess;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class MenuItem extends Model
 {
@@ -35,6 +37,11 @@ class MenuItem extends Model
         return $this->belongsTo(MenuSection::class, 'menu_section_id');
     }
 
+    public function businesses(): BelongsToMany
+    {
+        return $this->belongsToMany(Business::class, 'business_menu_item')->withTimestamps();
+    }
+
     public function activePattern(): string
     {
         return $this->active_route_pattern ?? $this->route_name;
@@ -56,6 +63,10 @@ class MenuItem extends Model
         }
 
         if ($this->permission && ! $user->can($this->permission)) {
+            return false;
+        }
+
+        if (! BusinessModuleAccess::menuItemEnabledForUser($user, $this)) {
             return false;
         }
 

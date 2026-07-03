@@ -8,6 +8,7 @@ use App\Models\Client;
 use App\Models\Equipment;
 use App\Models\EquipmentModel;
 use App\Models\EquipmentType;
+use App\Support\CurrentBusiness;
 use App\Support\SidebarMenuBuilder;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\View;
@@ -70,12 +71,19 @@ class AppServiceProvider extends ServiceProvider
         });
 
         View::composer('layouts.app', function ($view) {
-            $user    = auth()->user();
+            $user = auth()->user();
+
+            if ($user) {
+                $user->loadMissing('businesses');
+            }
+
             $builder = app(SidebarMenuBuilder::class);
 
             $view->with([
-                'sidebarMenuSections'   => $builder->build($user),
-                'sidebarActiveSlugs'    => $builder->activeSectionSlugs($user),
+                'sidebarMenuSections'  => $builder->build($user),
+                'sidebarActiveSlugs'   => $builder->activeSectionSlugs($user),
+                'currentBusiness'      => $user ? (CurrentBusiness::get() ?? $user->primaryBusiness()) : null,
+                'selectableBusinesses' => $user ? CurrentBusiness::selectableBusinessesFor($user) : collect(),
             ]);
         });
     }

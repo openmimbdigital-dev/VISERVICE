@@ -7,9 +7,9 @@ use Spatie\Permission\Models\Role as SpatieRole;
 
 class Role extends SpatieRole
 {
-    public function businessTypes(): BelongsToMany
+    public function businesses(): BelongsToMany
     {
-        return $this->belongsToMany(BusinessType::class, 'business_type_role')
+        return $this->belongsToMany(Business::class, 'business_role')
             ->withTimestamps();
     }
 }

@@ -2,10 +2,10 @@
 
 namespace App\Livewire\Admin\Roles;
 
-use App\Models\BusinessType;
+use App\Models\Business;
 use App\Models\Permission;
 use App\Models\Role;
-use App\Support\BusinessTypeAccess;
+use App\Support\BusinessAccess;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -50,14 +50,14 @@ class Index extends Component
     /** @return list<string> */
     private function allowedPermissionNames(): array
     {
-        return BusinessTypeAccess::manageablePermissionNamesForUser(auth()->user());
+        return BusinessAccess::manageablePermissionNamesForUser(auth()->user());
     }
 
     private function findManageableRole(int $id): Role
     {
         $role = Role::with('permissions')->findOrFail($id);
 
-        abort_unless(BusinessTypeAccess::roleManageableByUser($role, auth()->user()), 403);
+        abort_unless(BusinessAccess::roleManageableByUser($role, auth()->user()), 403);
 
         return $role;
     }
@@ -135,9 +135,9 @@ class Index extends Component
             $role = Role::create(['name' => $this->name, 'guard_name' => 'web']);
 
             if (! auth()->user()->hasRole('superAdmin')) {
-                $type_id = BusinessTypeAccess::primaryBusinessTypeId(auth()->user());
-                if ($type_id) {
-                    BusinessType::query()->find($type_id)?->roles()->syncWithoutDetaching([$role->id]);
+                $business_id = BusinessAccess::primaryBusinessId(auth()->user());
+                if ($business_id) {
+                    Business::query()->find($business_id)?->roles()->syncWithoutDetaching([$role->id]);
                 }
             }
 
@@ -194,7 +194,7 @@ class Index extends Component
     {
         $user = auth()->user();
 
-        $manageableRoleIds = BusinessTypeAccess::manageableRolesForUser($user)->pluck('id');
+        $manageableRoleIds = BusinessAccess::manageableRolesForUser($user)->pluck('id');
 
         $roles = Role::withCount(['permissions', 'users'])
             ->with('permissions')
@@ -203,7 +203,7 @@ class Index extends Component
             ->orderBy('id')
             ->get();
 
-        $modules            = BusinessTypeAccess::manageableModulesForUser($user);
+        $modules            = BusinessAccess::manageableModulesForUser($user);
         $allowedPermNames   = $this->allowedPermissionNames();
         $totalPerms         = count($allowedPermNames);
         $allPermissions     = Permission::query()

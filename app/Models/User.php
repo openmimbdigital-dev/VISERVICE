@@ -2,7 +2,8 @@
 
 namespace App\Models;
 
-use App\Support\BusinessTypeAccess;
+use App\Support\BusinessAccess;
+use App\Support\CurrentBusiness;
 use Illuminate\Database\Eloquent\Casts\Attribute as EloquentAttribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -113,7 +114,7 @@ class User extends Authenticatable
     /** @return \Illuminate\Support\Collection<int, Role> */
     public function assignableRoles(): \Illuminate\Support\Collection
     {
-        return BusinessTypeAccess::assignableRolesForUser($this);
+        return BusinessAccess::assignableRolesForUser($this);
     }
 
     public function syncBusinesses(array $businesses): void
@@ -136,12 +137,12 @@ class User extends Authenticatable
 
     protected function businessId(): EloquentAttribute
     {
-        return EloquentAttribute::get(fn () => $this->primaryBusiness()?->id);
+        return EloquentAttribute::get(fn () => CurrentBusiness::id() ?? $this->primaryBusiness()?->id);
     }
 
     protected function business(): EloquentAttribute
     {
-        return EloquentAttribute::get(fn () => $this->primaryBusiness());
+        return EloquentAttribute::get(fn () => CurrentBusiness::get() ?? $this->primaryBusiness());
     }
 
     public function getFullNameAttribute(): string

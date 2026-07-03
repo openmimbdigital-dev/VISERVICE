@@ -22,7 +22,7 @@
                 @endcan
                 @can('business_types.access.view')
                 <a href="{{ route('admin.business-types.access') }}" wire:navigate class="btn btn-outline-secondary btn-sm flex-1 sm:flex-none justify-center">
-                    Acceso por tipo
+                    Acceso por negocio
                 </a>
                 @endcan
                 @can('business_types.create')

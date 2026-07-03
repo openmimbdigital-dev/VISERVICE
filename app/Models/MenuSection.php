@@ -2,7 +2,10 @@
 
 namespace App\Models;
 
+use App\Support\BusinessModuleAccess;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class MenuSection extends Model
@@ -19,14 +22,16 @@ class MenuSection extends Model
         'permission',
         'sort_order',
         'active',
+        'assignable_to_business',
     ];
 
     protected function casts(): array
     {
         return [
-            'route_patterns' => 'array',
-            'sort_order'     => 'integer',
-            'active'         => 'boolean',
+            'route_patterns'         => 'array',
+            'sort_order'             => 'integer',
+            'active'                 => 'boolean',
+            'assignable_to_business' => 'boolean',
         ];
     }
 
@@ -38,6 +43,11 @@ class MenuSection extends Model
     public function activeItems(): HasMany
     {
         return $this->items()->where('active', true);
+    }
+
+    public function businesses(): BelongsToMany
+    {
+        return $this->belongsToMany(Business::class, 'business_menu_section')->withTimestamps();
     }
 
     public function isActiveForRequest(): bool
@@ -58,6 +68,10 @@ class MenuSection extends Model
         }
 
         if ($this->permission && ! $user->can($this->permission)) {
+            return false;
+        }
+
+        if (! BusinessModuleAccess::sectionEnabledForUser($user, $this)) {
             return false;
         }
 

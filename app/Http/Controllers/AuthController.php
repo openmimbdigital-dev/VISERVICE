@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Support\CurrentBusiness;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -55,6 +56,8 @@ class AuthController extends Controller
                 'username' => 'Tu cuenta está desactivada. Contacta al administrador.',
             ]);
         }
+
+        CurrentBusiness::initializeForUser($user);
 
         return redirect()->intended(route('dashboard'));
     }

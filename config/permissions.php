@@ -29,6 +29,7 @@ return [
                 'businesses.activate' => 'Activar empresas',
                 'businesses.deactivate' => 'Desactivar empresas',
                 'businesses.manage_addresses' => 'Gestionar direcciones',
+                'businesses.manage_modules'   => 'Gestionar módulos del negocio',
             ],
         ],
         'business_types' => [

@@ -2,13 +2,13 @@
 
 namespace App\Support;
 
-use App\Models\BusinessType;
+use App\Models\Business;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Support\Collection;
 
-class BusinessTypeAccess
+class BusinessAccess
 {
     /** @return list<string> */
     public static function globalRoleNames(): array
@@ -23,39 +23,23 @@ class BusinessTypeAccess
     }
 
     /** @return list<int> */
-    public static function businessTypeIdsForUser(?User $user): array
+    public static function businessIdsForUser(?User $user): array
     {
         if (! $user) {
             return [];
         }
 
-        if ($user->relationLoaded('businesses')) {
-            return $user->businesses
-                ->pluck('business_type_id')
-                ->filter()
-                ->map(fn ($id) => (int) $id)
-                ->unique()
-                ->values()
-                ->all();
-        }
-
-        return $user->businesses()
-            ->pluck('businesses.business_type_id')
-            ->filter()
-            ->map(fn ($id) => (int) $id)
-            ->unique()
-            ->values()
-            ->all();
+        return $user->businessIds();
     }
 
-    public static function primaryBusinessTypeId(?User $user): ?int
+    public static function primaryBusinessId(?User $user): ?int
     {
-        $business = $user?->primaryBusiness();
+        $id = $user?->primaryBusiness()?->id;
 
-        return $business?->business_type_id ? (int) $business->business_type_id : null;
+        return $id !== null ? (int) $id : null;
     }
 
-    public static function rolesQueryForBusinessTypes(array $business_type_ids): \Illuminate\Database\Eloquent\Builder
+    public static function rolesQueryForBusinesses(array $business_ids): \Illuminate\Database\Eloquent\Builder
     {
         $query = Role::query()
             ->where('guard_name', 'web')
@@ -63,7 +47,7 @@ class BusinessTypeAccess
 
         $global = static::globalRoleNames();
 
-        if ($business_type_ids === []) {
+        if ($business_ids === []) {
             if ($global === []) {
                 return $query->whereRaw('0 = 1');
             }
@@ -73,14 +57,14 @@ class BusinessTypeAccess
 
         if ($global === []) {
             return $query->whereHas(
-                'businessTypes',
-                fn ($bt) => $bt->whereIn('business_types.id', $business_type_ids)
+                'businesses',
+                fn ($b) => $b->whereIn('businesses.id', $business_ids)
             );
         }
 
-        return $query->where(function ($q) use ($business_type_ids, $global) {
+        return $query->where(function ($q) use ($business_ids, $global) {
             $q->whereIn('name', $global)
-                ->orWhereHas('businessTypes', fn ($bt) => $bt->whereIn('business_types.id', $business_type_ids));
+                ->orWhereHas('businesses', fn ($b) => $b->whereIn('businesses.id', $business_ids));
         });
     }
 
@@ -94,9 +78,9 @@ class BusinessTypeAccess
                 ->get();
         }
 
-        $type_ids = static::businessTypeIdsForUser($target_user);
+        $business_ids = static::businessIdsForUser($target_user);
 
-        return static::rolesQueryForBusinessTypes($type_ids)
+        return static::rolesQueryForBusinesses($business_ids)
             ->orderBy('name')
             ->get();
     }
@@ -110,18 +94,6 @@ class BusinessTypeAccess
         return static::assignableRolesForUser($target_user)->contains('name', $role_name);
     }
 
-    public static function permissionEnabledForBusinessType(string $permission, ?int $business_type_id): bool
-    {
-        if ($business_type_id === null) {
-            return true;
-        }
-
-        return BusinessType::query()
-            ->whereKey($business_type_id)
-            ->whereHas('permissions', fn ($q) => $q->where('name', $permission))
-            ->exists();
-    }
-
     public static function manageableRolesForUser(?User $user): Collection
     {
         if (! $user || $user->hasRole('superAdmin')) {
@@ -131,9 +103,9 @@ class BusinessTypeAccess
                 ->get();
         }
 
-        $type_id = static::primaryBusinessTypeId($user);
+        $business_id = static::primaryBusinessId($user);
 
-        if ($type_id === null) {
+        if ($business_id === null) {
             $global = static::globalRoleNames();
 
             if ($global === []) {
@@ -147,7 +119,7 @@ class BusinessTypeAccess
                 ->get();
         }
 
-        return static::rolesQueryForBusinessTypes([$type_id])
+        return static::rolesQueryForBusinesses([$business_id])
             ->orderBy('name')
             ->get();
     }
@@ -171,13 +143,13 @@ class BusinessTypeAccess
                 ->all();
         }
 
-        $type_id = static::primaryBusinessTypeId($user);
+        $business_id = static::primaryBusinessId($user);
 
-        if ($type_id === null) {
+        if ($business_id === null) {
             return [];
         }
 
-        return static::enabledPermissionNamesForBusinessType($type_id);
+        return static::enabledPermissionNamesForBusiness($business_id);
     }
 
     /** @return array<string, array{name: string, permissions: array<string, string>}> */
@@ -211,34 +183,29 @@ class BusinessTypeAccess
             ->all();
     }
 
-    public static function permissionEnabledForUser(?User $user, string $permission): bool
-    {
-        return (bool) $user?->can($permission);
-    }
-
     /** @return list<string> */
-    public static function enabledPermissionNamesForBusinessType(int $business_type_id): array
+    public static function enabledPermissionNamesForBusiness(int $business_id): array
     {
-        return BusinessType::query()
-            ->whereKey($business_type_id)
+        return Business::query()
+            ->whereKey($business_id)
             ->first()
             ?->permissions()
             ->pluck('name')
             ->all() ?? [];
     }
 
-    public static function syncBusinessTypeAccess(
-        BusinessType $business_type,
+    public static function syncBusinessAccess(
+        Business $business,
         array $role_ids,
         array $permission_names
     ): void {
-        $business_type->roles()->sync($role_ids);
+        $business->roles()->sync($role_ids);
 
         $permission_ids = Permission::query()
             ->where('guard_name', 'web')
             ->whereIn('name', $permission_names)
             ->pluck('id');
 
-        $business_type->permissions()->sync($permission_ids);
+        $business->permissions()->sync($permission_ids);
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\BusinessModuleAccess;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -147,5 +148,30 @@ class Business extends Model
     {
         return $this->belongsToMany(Attribute::class, 'attribute_business')
             ->withTimestamps();
+    }
+
+    public function roles(): BelongsToMany
+    {
+        return $this->belongsToMany(Role::class, 'business_role')->withTimestamps();
+    }
+
+    public function permissions(): BelongsToMany
+    {
+        return $this->belongsToMany(Permission::class, 'business_permission')->withTimestamps();
+    }
+
+    public function menuSections(): BelongsToMany
+    {
+        return $this->belongsToMany(MenuSection::class, 'business_menu_section')->withTimestamps();
+    }
+
+    public function menuItems(): BelongsToMany
+    {
+        return $this->belongsToMany(MenuItem::class, 'business_menu_item')->withTimestamps();
+    }
+
+    public function moduleOwner(): Business
+    {
+        return BusinessModuleAccess::moduleOwnerBusiness($this);
     }
 }

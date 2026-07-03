@@ -7,9 +7,9 @@ use Spatie\Permission\Models\Permission as SpatiePermission;
 
 class Permission extends SpatiePermission
 {
-    public function businessTypes(): BelongsToMany
+    public function businesses(): BelongsToMany
     {
-        return $this->belongsToMany(BusinessType::class, 'business_type_permission')
+        return $this->belongsToMany(Business::class, 'business_permission')
             ->withTimestamps();
     }
 }

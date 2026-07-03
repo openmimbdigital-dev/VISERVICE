@@ -67,7 +67,7 @@ class MenuSeeder extends Seeder
                 'name'             => 'Negocios',
                 'icon_svg_path'    => 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4',
                 'icon_color_class' => 'text-indigo-400',
-                'route_patterns'   => ['admin.businesses.*', 'admin.business-types.*', 'admin.organization-types.*'],
+                'route_patterns'   => ['admin.businesses.*', 'admin.business-types.*', 'admin.organization-types.*', 'admin.businesses.modules'],
                 'behavior'         => 'collapsible',
                 'sort_order'       => 25,
                 'items'            => [
@@ -96,12 +96,20 @@ class MenuSeeder extends Seeder
                         'sort_order'           => 25,
                     ],
                     [
-                        'name'                 => 'Acceso por tipo',
+                        'name'                 => 'Acceso por negocio',
                         'route_name'           => 'admin.business-types.access',
                         'active_route_pattern' => 'admin.business-types.access',
                         'icon_svg_path'        => 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z',
                         'permission'           => 'business_types.access.view',
                         'sort_order'           => 30,
+                    ],
+                    [
+                        'name'                 => 'Módulos por negocio',
+                        'route_name'           => 'admin.businesses.modules',
+                        'active_route_pattern' => 'admin.businesses.modules',
+                        'icon_svg_path'        => 'M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z',
+                        'role'                 => 'superAdmin',
+                        'sort_order'           => 35,
                     ],
                 ],
             ],
@@ -167,9 +175,22 @@ class MenuSeeder extends Seeder
             ],
         ];
 
+        $section_assignable = [
+            'usuarios'      => true,
+            'suscripciones' => false,
+            'negocios'      => false,
+            'mi-negocio'    => true,
+            'taller'        => true,
+            'catalogo'      => true,
+            'configuracion' => true,
+        ];
+
         foreach ($sections as $section_data) {
             $items = $section_data['items'];
             unset($section_data['items']);
+
+            $slug = $section_data['slug'];
+            $section_data['assignable_to_business'] = $section_assignable[$slug] ?? false;
 
             $section = MenuSection::query()->updateOrCreate(
                 ['slug' => $section_data['slug']],

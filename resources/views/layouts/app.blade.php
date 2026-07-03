@@ -30,10 +30,11 @@
             $parts = preg_split('/\s+/u', trim($displayName));
             $initials = mb_strtoupper(mb_substr($parts[0] ?? '', 0, 1) . mb_substr($parts[count($parts) - 1] ?? '', 0, 1));
         }
-        $business       = $u?->business ?? null;
+        $business       = $currentBusiness ?? $u?->business ?? null;
         $businessLogo   = ($business?->logo) ? \Illuminate\Support\Facades\Storage::disk('public')->url($business->logo) : null;
         $businessName   = $business?->name ?? null;
         $isComercio     = $u?->hasRole('Comercio') ?? false;
+        $showBusinessSwitcher = $u && ! $u->hasRole('superAdmin') && ($selectableBusinesses ?? collect())->count() > 1;
     @endphp
 
     <div
@@ -202,6 +203,22 @@
 
                 {{-- Derecha: acciones + perfil --}}
                 <div class="flex items-center gap-2">
+
+                    @if($showBusinessSwitcher ?? false)
+                    <form method="POST" action="{{ route('current-business.switch') }}" class="max-w-[10rem] sm:max-w-[11rem]">
+                        @csrf
+                        <select name="business_id" onchange="this.form.submit()"
+                            class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
+                            @foreach($selectableBusinesses as $selectableBusiness)
+                            <option value="{{ $selectableBusiness->id }}" @selected($currentBusiness?->id === $selectableBusiness->id)>{{ $selectableBusiness->name }}</option>
+                            @endforeach
+                        </select>
+                    </form>
+                    @elseif($businessName)
+                    <div class="hidden md:flex max-w-[11rem] items-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600">
+                        <span class="truncate">{{ $businessName }}</span>
+                    </div>
+                    @endif
 
                     {{-- Indicador live --}}
                     <div class="hidden md:flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1">

@@ -2,13 +2,13 @@
 
 namespace Database\Seeders;
 
+use App\Models\Business;
 use App\Models\BusinessType;
-use App\Models\Permission;
 use App\Models\Role;
-use App\Support\BusinessTypeAccess;
+use App\Support\BusinessAccess;
 use Illuminate\Database\Seeder;
 
-class BusinessTypeAccessSeeder extends Seeder
+class BusinessAccessSeeder extends Seeder
 {
     /** @var list<string> */
     private array $business_catalog_permissions = [
@@ -92,18 +92,18 @@ class BusinessTypeAccessSeeder extends Seeder
         $centro  = BusinessType::where('label', 'centro_educativo')->first();
 
         if ($taller) {
-            $this->syncType($taller, $this->workshop_roles, $this->tallerPermissions());
+            $this->syncBusinessesOfType($taller, $this->workshop_roles, $this->tallerPermissions());
         }
 
         if ($iglesia) {
-            $this->syncType($iglesia, $this->church_roles, $this->withBusinessCatalogPermissions($this->church_base_permissions));
+            $this->syncBusinessesOfType($iglesia, $this->church_roles, $this->withBusinessCatalogPermissions($this->church_base_permissions));
         }
 
         if ($centro) {
-            $this->syncType($centro, $this->education_roles, $this->withBusinessCatalogPermissions($this->education_base_permissions));
+            $this->syncBusinessesOfType($centro, $this->education_roles, $this->withBusinessCatalogPermissions($this->education_base_permissions));
         }
 
-        $this->command->info('Acceso por tipo de negocio sincronizado.');
+        $this->command->info('Acceso por negocio sincronizado.');
     }
 
     /** @param list<string> $permissions @return list<string> */
@@ -123,7 +123,7 @@ class BusinessTypeAccessSeeder extends Seeder
     }
 
     /** @param list<string> $role_names @param list<string> $permission_names */
-    private function syncType(BusinessType $type, array $role_names, array $permission_names): void
+    private function syncBusinessesOfType(BusinessType $type, array $role_names, array $permission_names): void
     {
         $role_ids = Role::query()
             ->where('guard_name', 'web')
@@ -131,6 +131,12 @@ class BusinessTypeAccessSeeder extends Seeder
             ->pluck('id')
             ->all();
 
-        BusinessTypeAccess::syncBusinessTypeAccess($type, $role_ids, $permission_names);
+        $businesses = Business::query()
+            ->where('business_type_id', $type->id)
+            ->get();
+
+        foreach ($businesses as $business) {
+            BusinessAccess::syncBusinessAccess($business, $role_ids, $permission_names);
+        }
     }
 }

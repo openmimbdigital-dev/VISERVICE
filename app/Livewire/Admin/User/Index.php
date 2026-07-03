@@ -4,7 +4,7 @@ namespace App\Livewire\Admin\User;
 
 use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
 use App\Models\Role;
-use App\Support\BusinessTypeAccess;
+use App\Support\BusinessAccess;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -328,11 +328,11 @@ class Index extends Component
             return Role::query()
                 ->where('guard_name', 'web')
                 ->where('name', $role_name)
-                ->whereNotIn('name', BusinessTypeAccess::systemRoleNames())
+                ->whereNotIn('name', BusinessAccess::systemRoleNames())
                 ->exists();
         }
 
-        return BusinessTypeAccess::roleAllowedForUser($role_name, $user);
+        return BusinessAccess::roleAllowedForUser($role_name, $user);
     }
 
     private function findAuthorized(int $id): User
@@ -384,13 +384,13 @@ class Index extends Component
 
         $roles = $this->isSuperAdmin()
             ? ($target_user
-                ? BusinessTypeAccess::assignableRolesForUser($target_user)
+                ? BusinessAccess::assignableRolesForUser($target_user)
                 : Role::query()
                     ->where('guard_name', 'web')
-                    ->whereNotIn('name', BusinessTypeAccess::systemRoleNames())
+                    ->whereNotIn('name', BusinessAccess::systemRoleNames())
                     ->orderBy('name')
                     ->get())
-            : BusinessTypeAccess::assignableRolesForUser(auth()->user());
+            : BusinessAccess::assignableRolesForUser(auth()->user());
 
         return view('livewire.admin.user.index', compact('users', 'stats', 'roles', 'primaryUserIds'));
     }

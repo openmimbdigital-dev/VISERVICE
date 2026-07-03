@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CurrentBusinessController;
 use App\Livewire\Admin\Dashboard;
 use App\Livewire\Admin\Roles\Index as AdminRolesIndex;
 use App\Livewire\Admin\User\Index as AdminUserIndex;
@@ -11,6 +12,7 @@ use App\Livewire\Admin\BankAccounts\Index as AdminBankAccountsIndex;
 use App\Livewire\Admin\Banks\Index as AdminBanksIndex;
 use App\Livewire\Admin\Finance\Index as AdminFinanceIndex;
 use App\Livewire\Admin\Businesses\Index as AdminBusinessesIndex;
+use App\Livewire\Admin\Businesses\ModuleAccess as AdminBusinessesModuleAccess;
 use App\Livewire\Admin\Businesses\Show as AdminBusinessesShow;
 use App\Livewire\Admin\BusinessTypes\Access as AdminBusinessTypesAccess;
 use App\Livewire\Admin\BusinessTypes\Index as AdminBusinessTypesIndex;
@@ -52,8 +54,9 @@ Route::middleware('guest')->group(function () {
     Route::get('/register', RegisterWizard::class)->name('register');
 });
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'ensure.business', 'business.module'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+    Route::post('/current-business', [CurrentBusinessController::class, 'switch'])->name('current-business.switch');
 
     Route::get('/pending-activation', fn () => view('auth.pending-activation'))->name('pending-activation');
 
@@ -82,7 +85,14 @@ Route::middleware('auth')->group(function () {
     Route::prefix('admin')->name('admin.')->group(function () {
         Route::middleware('permission:businesses.view')->group(function () {
             Route::get('/businesses', AdminBusinessesIndex::class)->name('businesses.index');
-            Route::get('/businesses/{business}', AdminBusinessesShow::class)->name('businesses.show');
+        });
+        Route::middleware('role:superAdmin')->group(function () {
+            Route::get('/businesses/modules', AdminBusinessesModuleAccess::class)->name('businesses.modules');
+        });
+        Route::middleware('permission:businesses.view')->group(function () {
+            Route::get('/businesses/{business}', AdminBusinessesShow::class)
+                ->whereNumber('business')
+                ->name('businesses.show');
         });
         Route::middleware('permission:business_types.view')->group(function () {
             Route::get('/business-types', AdminBusinessTypesIndex::class)->name('business-types.index');

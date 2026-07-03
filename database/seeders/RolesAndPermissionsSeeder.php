@@ -51,6 +51,7 @@ class RolesAndPermissionsSeeder extends Seeder
             // Empresas
             'businesses.view', 'businesses.create', 'businesses.edit', 'businesses.delete',
             'businesses.activate', 'businesses.deactivate', 'businesses.manage_addresses',
+            'businesses.manage_modules',
             // Reportes
             'reports.view', 'reports.export',
             // Configuración
