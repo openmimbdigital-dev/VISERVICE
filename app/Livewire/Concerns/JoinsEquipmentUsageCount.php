@@ -18,8 +18,21 @@ trait JoinsEquipmentUsageCount
     {
         $subquery = DB::table('equipment')
             ->select($equipment_foreign_key, DB::raw('COUNT(*) as equipment_count'))
-            ->whereNull('deleted_at')
-            ->groupBy($equipment_foreign_key);
+            ->whereNull('deleted_at');
+
+        $user = auth()->user();
+
+        if ($user && ! $user->hasRole('superAdmin')) {
+            $business_ids = $user->businessIds();
+
+            if ($business_ids === []) {
+                $subquery->whereRaw('0 = 1');
+            } else {
+                $subquery->whereIn('business_id', $business_ids);
+            }
+        }
+
+        $subquery->groupBy($equipment_foreign_key);
 
         return $query->leftJoinSub(
             $subquery,

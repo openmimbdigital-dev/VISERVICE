@@ -16,39 +16,40 @@ class DatatableWorkOrders extends LivewireDatatable
 
     public function builder(): Builder
     {
-        return WorkOrder::where('work_orders.business_id', auth()->user()->business_id)
+        return WorkOrder::query()
+            ->forAuthUser()
             ->leftJoin('clients', 'work_orders.client_id', '=', 'clients.id')
             ->leftJoin('equipment', 'work_orders.equipment_id', '=', 'equipment.id')
-            ->select('work_orders.*', 'clients.name as client_name', 'equipment.plate as equipment_plate')
-            ->latest('work_orders.created_at');
+            ->select('work_orders.*')
+            ->orderByDesc('work_orders.created_at');
     }
 
     public function getColumns(): Model|array
     {
         return [
-            Column::name('reference')
+            Column::name('work_orders.reference')
                 ->label('Referencia')
                 ->searchable()
                 ->sortable(),
 
-            Column::name('client_name')
+            Column::raw('clients.name AS client_name')
                 ->label('Cliente')
                 ->searchable()
                 ->sortable(),
 
-            Column::name('equipment_plate')
+            Column::raw('equipment.plate AS equipment_plate')
                 ->label('Placa')
                 ->searchable(),
 
-            Column::callback(['total'], function ($total) {
+            Column::callback(['work_orders.total'], function ($total) {
                 return '<span class="tabular-nums font-semibold">' . col_money($total) . '</span>';
             })->label('Total')->sortable(),
 
-            Column::callback(['estimated_delivery'], function ($date) {
+            Column::callback(['work_orders.estimated_delivery'], function ($date) {
                 return $date ? \Carbon\Carbon::parse($date)->format('d/m/Y') : '<span class="text-slate-400">—</span>';
             })->label('Entrega est.'),
 
-            Column::callback(['status'], function ($status) {
+            Column::callback(['work_orders.status'], function ($status) {
                 $map = [
                     'abierta'    => ['label' => 'Abierta',    'class' => 'bg-blue-50 text-blue-700 ring-1 ring-blue-600/20'],
                     'en_proceso' => ['label' => 'En proceso', 'class' => 'bg-yellow-50 text-yellow-700 ring-1 ring-yellow-600/20'],
@@ -66,7 +67,7 @@ class DatatableWorkOrders extends LivewireDatatable
                 ->label('Fecha')
                 ->sortable(),
 
-            Column::callback(['id'], function ($id) {
+            Column::callback(['work_orders.id'], function ($id) {
                 return view('livewire.admin.workshop.work-orders.actions', ['id' => $id]);
             })->label('Acciones')->unsortable(),
         ];

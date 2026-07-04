@@ -30,6 +30,8 @@ return new class extends Migration
             $table->index(['business_id', 'deleted_at', 'plate'], 'equipment_business_deleted_plate_idx');
             $table->index(['business_id', 'deleted_at', 'client_id'], 'equipment_business_deleted_client_idx');
             $table->index(['business_id', 'deleted_at', 'status'], 'equipment_business_deleted_status_idx');
+            $table->index(['business_id', 'deleted_at', 'equipment_type_id'], 'equipment_business_deleted_type_idx');
+            $table->index(['business_id', 'deleted_at', 'created_at'], 'equipment_business_deleted_created_idx');
             $table->index(['client_id', 'deleted_at', 'status'], 'equipment_client_deleted_status_idx');
         });
     }

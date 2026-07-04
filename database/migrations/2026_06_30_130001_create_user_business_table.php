@@ -16,6 +16,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->unique(['user_id', 'business_id'], 'user_business_unique_idx');
+            $table->index(['business_id', 'user_id'], 'user_business_business_user_idx');
             $table->index(['business_id', 'is_primary'], 'user_business_business_primary_idx');
         });
 

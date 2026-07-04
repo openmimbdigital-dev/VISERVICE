@@ -1,18 +1,23 @@
 ---
-description: Rendimiento de BD y queries multi-tenant — 500 negocios, ~50k clientes, ~100k equipos
+description: Rendimiento de BD y queries multi-tenant — 500 negocios, ~250k usuarios, ~250k equipos (talleres)
 globs: database/migrations/**/*.php,app/Models/**/*.php,app/Livewire/**/Datatable*.php,app/Actions/**/*.php
 alwaysApply: true
 ---
 
 # Rendimiento de base de datos — VISERVICE
 
-Escala de referencia del proyecto:
-- **500 negocios** (multi-tenant por `business_id`)
-- **~100 clientes** por negocio → **~50 000 clientes**
-- **~200 equipos** por negocio → **~100 000 equipos**
-- Catálogos (marcas, tipos, modelos): bajo volumen por negocio, pero el superAdmin puede ver todos
+## Escala de referencia
 
-Toda migración nueva y toda query de listado **debe** seguir estas reglas.
+| Entidad | Por negocio | Total estimado (500 negocios) |
+|---------|-------------|-------------------------------|
+| Negocios (colegios, talleres, iglesias) | 1 | **500** |
+| Usuarios | ~500 | **~250 000** |
+| Clientes (taller) | variable | **~50 000–250 000** |
+| Equipos (taller) | ~500 | **~250 000** (talleres) |
+| Cotizaciones / OTs | miles/año | **millones** acumuladas |
+| Catálogo (marcas, tipos, modelos) | bajo | superAdmin ve todos |
+
+Toda migración nueva y toda query de listado **debe** diseñarse para esta escala.
 
 ---
 
@@ -21,29 +26,50 @@ Toda migración nueva y toda query de listado **debe** seguir estas reglas.
 ### Multi-tenant primero
 - Toda tabla de negocio lleva `business_id` con FK e índice.
 - Los índices compuestos **empiezan por `business_id`** cuando el acceso habitual es por negocio.
+- **Nunca** índice solo en `created_at` o `status` en tablas multi-tenant.
 
 ### Soft deletes
 - Tablas con `SoftDeletes` → incluir `deleted_at` en índices de listado.
-- Patrón recomendado: `(business_id, deleted_at, <columna_orden>)`.
+- Patrón: `(business_id, deleted_at, <columna_orden|filtro>)`.
 - Ejemplo: `clients_business_deleted_name_idx` → `(business_id, deleted_at, name)`.
 
-### Índices de listado (datatables)
-| Tabla | Orden habitual | Índice sugerido |
-|-------|----------------|-----------------|
-| `clients` | `name` | `(business_id, deleted_at, name)` |
-| `clients` | `created_at` | `(business_id, deleted_at, created_at)` |
-| `equipment` | por cliente/placa | `(business_id, deleted_at, client_id)`, `(business_id, deleted_at, plate)` |
-| Catálogo (`brands`, `equipment_types`, `equipment_models`) | `created_at DESC` | `(business_id, deleted_at, created_at)`, `(deleted_at, created_at)` para superAdmin |
+### Índices de listado por tabla
+
+| Tabla | Uso | Índice |
+|-------|-----|--------|
+| `clients` | listado por nombre | `(business_id, deleted_at, name)` |
+| `clients` | listado por fecha | `(business_id, deleted_at, created_at)` |
+| `clients` | búsqueda documento | `(business_id, document_number, deleted_at)` |
+| `equipment` | listado por placa | `(business_id, deleted_at, plate)` |
+| `equipment` | filtro por cliente | `(business_id, deleted_at, client_id)` |
+| `equipment` | filtro por tipo | `(business_id, deleted_at, equipment_type_id)` |
+| `equipment` | placa única | `(business_id, plate, deleted_at)` UNIQUE |
+| `quotations` | datatable | `(business_id, deleted_at, created_at)` |
+| `quotations` | filtro estado | `(business_id, deleted_at, status)` |
+| `quotations` | búsqueda ref. | `(business_id, deleted_at, reference)` |
+| `quotations` | conteo por equipo | `(equipment_id, deleted_at)` |
+| `work_orders` | datatable | `(business_id, deleted_at, created_at)` |
+| `work_orders` | filtro estado | `(business_id, deleted_at, status)` |
+| `work_orders` | conteo por equipo | `(equipment_id, deleted_at, status)` |
+| `users` | listado superAdmin | `(deleted_at, status, created_at)` |
+| `user_business` | usuarios por negocio | `(business_id, user_id)` |
+| `subscriptions` | estado activo | `(business_id, deleted_at, status)` |
+| `subscriptions` | vencimiento | `(business_id, deleted_at, ends_at)` |
+| Catálogo (`brands`, `equipment_types`, `equipment_models`) | listado | `(business_id, deleted_at, created_at)` |
 | Catálogo general | `general = true` | `(general, deleted_at, active)` |
 
+### Tablas hijas (items)
+- Índice en FK padre: `(quotation_id, item_type)`, `(work_order_id, status)`.
+- No requieren `business_id` si el acceso siempre es vía padre con scope de negocio.
+
 ### Evitar
-- Índices simples de baja cardinalidad (`status` booleano solo).
-- `SELECT *` en tablas grandes cuando no hace falta.
-- `unique` sin considerar soft delete (usar `(cols..., deleted_at)` o validación en app).
+- Índices simples de baja cardinalidad (`status` solo, `created_at` solo).
+- `unique` sin considerar soft delete → usar `(cols..., deleted_at)` o validación en app.
 - FK sin índice en la columna hija.
+- Duplicar índice que ya cubre la FK (`user_id` en `user_business` unique).
 
 ### Nomenclatura
-- Índices con nombre explícito: `{tabla}_{columnas}_idx`.
+- Índices: `{tabla}_{columnas}_idx`.
 - Comentar en la migración si el índice sirve para un listado o filtro concreto.
 
 ---
@@ -51,71 +77,112 @@ Toda migración nueva y toda query de listado **debe** seguir estas reglas.
 ## 2. Queries Eloquent / datatables
 
 ### Scope de negocio obligatorio
-- Usuarios de negocio: **siempre** filtrar por `business_id` antes de ordenar o buscar.
-- Usar scopes existentes: `forAuthUser()`, `visibleToUser()`.
-- El superAdmin es la excepción (ve todos los registros).
+
+Usuarios de negocio: **siempre** filtrar por `business_id` antes de ordenar o buscar.
+
+| Scope | Modelos |
+|-------|---------|
+| `forAuthUser()` | `Client`, `Equipment`, `Attribute`, `Quotation`, `WorkOrder`, `Business` |
+| `visibleToUser()` | `Brand`, `EquipmentModel`, `EquipmentType` |
+
+Patrón `forAuthUser()` (multi-negocio vía `user_business`):
+
+```php
+public function scopeForAuthUser($query)
+{
+    $user = auth()->user();
+    if ($user?->hasRole('superAdmin')) return $query;
+    $business_ids = $user->businessIds();
+    if ($business_ids === []) return $query->whereRaw('0 = 1');
+    return $query->whereIn($query->getModel()->getTable().'.business_id', $business_ids);
+}
+```
+
+**Prohibido** en datatables de negocio: `where('business_id', auth()->user()->business_id)` — usar `forAuthUser()`.
+
+Usuarios: filtrar vía pivot, no columna directa:
+
+```php
+User::query()->whereHas('businesses', fn ($q) => $q->whereIn('businesses.id', $business_ids));
+```
+
+Route model binding: repetir scope en `AppServiceProvider` (`{client}`, `{equipment}`, `{quotation}`, `{workOrder}`, etc.).
 
 ### Paginación
-- Datatables: `perPage` por defecto **25** (nunca cargar todo el dataset).
-- No usar `->get()` en listados que puedan superar unas pocas centenas de filas.
+- Datatables: `perPage` **25** por defecto.
+- Listados Livewire manuales: paginar (ej. 15–25); nunca `->get()` en tablas grandes.
+- Selects en formularios: filtrar por negocio + `orderBy` indexado; aceptable `->get()` solo con filtro previo.
 
 ### Sin N+1 en columnas de acciones
 - **Prohibido** `Model::find($id)` dentro de callbacks de columnas por fila.
-- Usar datos ya presentes en la fila (`general`, `business_id`, etc.).
-- Para conteos de dependencias en datatables: usar `JoinsEquipmentUsageCount` (subquery join), **no** `withCount()` en callbacks.
-- Trait de permisos: `ResolvesCatalogDatatableRowPermissions`.
-- Trait de conteo: `JoinsEquipmentUsageCount`.
+- Usar datos ya presentes en la fila (`general`, `business_id`, conteos del join).
+- Trait permisos catálogo: `ResolvesCatalogDatatableRowPermissions`.
+- Trait conteo equipos catálogo: `JoinsEquipmentUsageCount`.
+
+### Subqueries de conteo (equipos, OTs, cotizaciones)
+
+Filtrar por negocio **dentro** de la subquery cuando el usuario no es superAdmin:
+
+```php
+$subquery = DB::table('work_orders')
+    ->select('equipment_id', DB::raw('COUNT(*) as work_orders_count'))
+    ->whereNull('deleted_at');
+
+if (! auth()->user()->hasRole('superAdmin')) {
+    $subquery->whereIn('business_id', auth()->user()->businessIds());
+}
+
+$subquery->groupBy('equipment_id');
+$query->leftJoinSub($subquery, 'equipment_work_orders', ...);
+```
+
+`JoinsEquipmentUsageCount` ya aplica este filtro automáticamente para usuarios de negocio.
 
 ### arm092/livewire-datatables — columnas válidas
 
-El paquete arma el `SELECT` a partir de los nombres en `Column::name()` y `Column::callback()`. **Solo referenciar columnas que existan en el SQL resultante.**
+El paquete prefija columnas sin tabla. **Solo referenciar columnas que existan en el SQL resultante.**
 
 | Situación | Correcto | Incorrecto |
 |-----------|----------|------------|
-| Columna de la tabla principal | `brands.name`, `equipment_types.active` | `name` (se prefija mal en algunos contextos) |
-| Columna de tabla unida | `businesses.name` (con `leftJoin` en builder) | `business_name` sin `addSelect` previo |
-| Alias del `select`/`addSelect` | `Column::raw('brands.name AS brand_name')` | `Column::name('brand_name')` (el paquete lo prefija como `{tabla}.brand_name`) |
-| Conteo agregado | `equipment_usage.equipment_count` vía `joinEquipmentUsageCount` | `equipment_count` o `equipment_types.equipment_count` |
-| Join superAdmin | `businesses.name` + `leftJoin('businesses', ...)` en builder | Asumir que existe sin join |
+| Columna tabla principal | `quotations.reference`, `clients.name` | `reference`, `name` |
+| Columna de join | `Column::raw('clients.name AS client_name')` | `Column::name('client_name')` |
+| Alias en select | `Column::raw('businesses.name AS business_name')` | `Column::name('business_name')` |
+| Conteo agregado | `equipment_usage.equipment_count` | `equipment_count` |
+| Callbacks | `['quotations.status', 'quotations.id']` | `['status', 'id']` sin prefijo |
 
-**Regla crítica:** `withCount()` genera el alias `equipment_count`, pero el paquete lo reescribe como `{tabla_principal}.equipment_count` en callbacks → **error 1054**. Para datatables usar siempre:
+**Regla crítica:** `withCount()` en datatables → error 1054. Usar subquery join:
 
 ```php
-$this->joinEquipmentUsageCount($query, 'equipment_types', 'equipment_type_id');
+$this->joinEquipmentUsageCount($query, 'brands', 'brand_id');
 $query->addSelect('equipment_usage.equipment_count');
-
-// En Column::callback:
-['equipment_types.id', 'equipment_types.general', 'equipment_types.business_id', 'equipment_usage.equipment_count']
+// Column::callback(['brands.id', ..., 'equipment_usage.equipment_count'], ...)
 ```
 
-**Columnas reales del catálogo (no inventar campos):**
-
-| Tabla | Campos listado | FK / relación con `equipment` |
-|-------|----------------|-------------------------------|
-| `brands` | `id`, `name`, `label`, `active`, `general`, `business_id`, `created_at`, `deleted_at` | `equipment.brand_id` |
-| `equipment_types` | `id`, `name`, `label`, `active`, `general`, `business_id`, `created_at`, `deleted_at` | `equipment.equipment_type_id` |
-| `equipment_models` | `id`, `name`, `label`, `active`, `general`, `business_id`, `brand_id`, `created_at`, `deleted_at` | `equipment.model_id` |
-| `brands` (join en modelos) | `brands.name` → exponer como `brand_name` con `addSelect` | — |
-
-### Joins
-- Preferir **un join** en el `builder()` (ej. marca en modelos) frente a relaciones lazy por fila.
-- `leftJoin` con `whereNull('{tabla}.deleted_at')` en tablas con soft delete.
-- `select('{tabla_principal}.*')` para evitar colisiones de columnas.
+### Joins en datatables de taller
+- Un `leftJoin` por tabla relacionada en `builder()`.
+- `select('{tabla_principal}.*')` — no mezclar alias en select si se usa `Column::raw`.
+- Orden alineado al índice: `orderByDesc('quotations.created_at')` con `(business_id, deleted_at, created_at)`.
 
 ### Orden compatible con índices
-- Negocio: `orderBy('clients.name')` con índice `(business_id, deleted_at, name)`.
-- Catálogo: `orderByDesc('{tabla}.created_at')` con índice `(business_id, deleted_at, created_at)`.
-- SuperAdmin + join a `businesses`: índice en `businesses.name`.
+- Negocio: `orderBy('clients.name')` → índice `(business_id, deleted_at, name)`.
+- Taller OT/cotizaciones: `orderByDesc('work_orders.created_at')` → `(business_id, deleted_at, created_at)`.
+- Catálogo: `orderByDesc('brands.created_at')` → `(business_id, deleted_at, created_at)`.
+- Equipos por tipo: `where equipment_type_id` + `orderBy plate` → `(business_id, deleted_at, equipment_type_id)`.
 
 ### Búsquedas
-- `LIKE '%texto%'` no usa índices → aceptable solo con paginación y filtro previo por `business_id`.
-- Búsquedas por documento/placa: usar columnas indexadas (`document_number`, `plate`) con filtro de negocio.
+- `LIKE '%texto%'` no usa índices → solo con paginación y filtro previo por `business_id`.
+- Referencias (`COT-`, `OT-`): prefijo exacto + índice `(business_id, deleted_at, reference)`.
+- Documento/placa: columnas indexadas con filtro de negocio.
 
 ### Conteos y existencias
-- Listados en **datatables**: `JoinsEquipmentUsageCount` + columna `equipment_usage.equipment_count`.
-- Listados fuera de datatables: `withCount()` / `withExists()` está bien.
-- Acciones puntuales (borrar): `exists()` en una sola fila está bien.
+- Datatables: subquery join con filtro de negocio.
+- Show / stats fuera de datatable: `withCount()` / `exists()` en query acotada.
+- Borrado puntual: `exists()` en una fila.
 - Evitar `$model->relation()->count()` en loops.
+
+### Generación de referencias secuenciales
+- Filtrar por `business_id` + prefijo mes (`where reference like 'OT-202607-%'`).
+- Índice `(business_id, deleted_at, reference)` acelera la búsqueda del último número.
 
 ---
 
@@ -124,22 +191,30 @@ $query->addSelect('equipment_usage.equipment_count');
 **Migración nueva**
 - [ ] ¿Tiene `business_id` + FK si es dato de negocio?
 - [ ] ¿Tiene `softDeletes()`? → índices incluyen `deleted_at`
-- [ ] ¿Hay listado ordenado/filtrado? → índice compuesto acorde
+- [ ] ¿Hay listado ordenado/filtrado? → índice compuesto con `business_id` primero
 - [ ] ¿Nombre de índice explícito?
+- [ ] ¿Evita índices sueltos en `created_at` / `status`?
 
 **Query / datatable nueva**
-- [ ] ¿Filtra por negocio (o scope) antes de ordenar?
+- [ ] ¿Filtra por negocio (`forAuthUser` / `visibleToUser` / `whereHas businesses`) antes de ordenar?
 - [ ] ¿Paginada?
 - [ ] ¿Sin `find()` por fila en callbacks?
-- [ ] ¿Todas las columnas de `Column::callback()` existen en el SELECT (tabla, join o alias)?
-- [ ] ¿Conteos con `equipment_usage.equipment_count`, no `withCount` en datatables?
+- [ ] ¿Columnas calificadas (`tabla.columna`) o `Column::raw` para joins?
+- [ ] ¿Subqueries de conteo filtradas por `business_id`?
 - [ ] ¿`orderBy` alineado con un índice existente?
+- [ ] ¿Route binding con scope de negocio?
 
 ---
 
 ## 4. Referencias en el proyecto
 
-- Índices optimizados: migraciones `clients`, `equipment`, `brands`, `equipment_types`, `equipment_models`, `attributes`
-- Datatables optimizados: `DatatableClients`, `DatatableBrands`, `DatatableEquipmentTypes`, `DatatableEquipmentModels`
-- Permisos de fila sin N+1: `app/Livewire/Concerns/ResolvesCatalogDatatableRowPermissions.php`
-- Conteo de equipos en datatables: `app/Livewire/Concerns/JoinsEquipmentUsageCount.php`
+**Migraciones con índices optimizados:** `clients`, `equipment`, `brands`, `equipment_types`, `equipment_models`, `attributes`, `quotations`, `work_orders`, `user_business`, `subscriptions`
+
+**Datatables de referencia:**
+- Taller: `DatatableClients`, `DatatableEquipment`, `DatatableQuotations`, `DatatableWorkOrders`
+- Catálogo: `DatatableBrands`, `DatatableEquipmentTypes`, `DatatableEquipmentModels`
+- Usuarios: `User/Index.php` (paginación + `whereHas businesses`)
+
+**Traits:** `ResolvesCatalogDatatableRowPermissions`, `JoinsEquipmentUsageCount`
+
+**Scopes:** `forAuthUser()` en `Client`, `Equipment`, `Quotation`, `WorkOrder`; `visibleToUser()` en catálogo

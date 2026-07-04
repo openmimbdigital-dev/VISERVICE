@@ -33,10 +33,14 @@ return new class extends Migration
             $table->softDeletes();
 
             $table->unique(['business_id', 'reference']);
-            $table->index(['business_id', 'status']);
-            $table->index(['client_id', 'status']);
-            $table->index(['equipment_id', 'status']);
-            $table->index('created_at');
+
+            // Listado datatable y conteos por equipo/cliente
+            $table->index(['business_id', 'deleted_at', 'created_at'], 'work_orders_business_deleted_created_idx');
+            $table->index(['business_id', 'deleted_at', 'status'], 'work_orders_business_deleted_status_idx');
+            $table->index(['business_id', 'deleted_at', 'reference'], 'work_orders_business_deleted_reference_idx');
+            $table->index(['client_id', 'deleted_at', 'status'], 'work_orders_client_deleted_status_idx');
+            $table->index(['equipment_id', 'deleted_at', 'status'], 'work_orders_equipment_deleted_status_idx');
+            $table->index(['quotation_id', 'deleted_at'], 'work_orders_quotation_deleted_idx');
         });
     }
 

@@ -9,6 +9,8 @@ use App\Models\Client;
 use App\Models\Equipment;
 use App\Models\EquipmentModel;
 use App\Models\EquipmentType;
+use App\Models\Quotation;
+use App\Models\WorkOrder;
 use App\Support\CurrentBusiness;
 use App\Support\SidebarMenuBuilder;
 use Illuminate\Support\Facades\Route;
@@ -56,6 +58,16 @@ class AppServiceProvider extends ServiceProvider
             ->firstOrFail());
 
         Route::bind('attribute', fn (string $value) => Attribute::query()
+            ->forAuthUser()
+            ->whereKey($value)
+            ->firstOrFail());
+
+        Route::bind('quotation', fn (string $value) => Quotation::query()
+            ->forAuthUser()
+            ->whereKey($value)
+            ->firstOrFail());
+
+        Route::bind('workOrder', fn (string $value) => WorkOrder::query()
             ->forAuthUser()
             ->whereKey($value)
             ->firstOrFail());

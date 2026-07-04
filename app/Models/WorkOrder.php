@@ -84,6 +84,23 @@ class WorkOrder extends Model
         return $this->hasOne(WorkOrderInvoice::class)->latestOfMany();
     }
 
+    public function scopeForAuthUser($query)
+    {
+        $user = auth()->user();
+
+        if ($user?->hasRole('superAdmin')) {
+            return $query;
+        }
+
+        $business_ids = $user->businessIds();
+
+        if ($business_ids === []) {
+            return $query->whereRaw('0 = 1');
+        }
+
+        return $query->whereIn($query->getModel()->getTable() . '.business_id', $business_ids);
+    }
+
     public function scopeOpen($query)
     {
         return $query->whereIn('status', ['abierta', 'en_proceso']);

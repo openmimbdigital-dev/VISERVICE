@@ -31,15 +31,30 @@ class DatatableEquipment extends LivewireDatatable
 
     public function builder(): Builder
     {
+        $user = auth()->user();
+
         $work_orders_count = DB::table('work_orders')
             ->select('equipment_id', DB::raw('COUNT(*) as work_orders_count'))
-            ->whereNull('deleted_at')
-            ->groupBy('equipment_id');
+            ->whereNull('deleted_at');
 
         $quotations_count = DB::table('quotations')
             ->select('equipment_id', DB::raw('COUNT(*) as quotations_count'))
-            ->whereNull('deleted_at')
-            ->groupBy('equipment_id');
+            ->whereNull('deleted_at');
+
+        if ($user && ! $user->hasRole('superAdmin')) {
+            $business_ids = $user->businessIds();
+
+            if ($business_ids === []) {
+                $work_orders_count->whereRaw('0 = 1');
+                $quotations_count->whereRaw('0 = 1');
+            } else {
+                $work_orders_count->whereIn('business_id', $business_ids);
+                $quotations_count->whereIn('business_id', $business_ids);
+            }
+        }
+
+        $work_orders_count->groupBy('equipment_id');
+        $quotations_count->groupBy('equipment_id');
 
         $query = Equipment::query()
             ->forAuthUser()

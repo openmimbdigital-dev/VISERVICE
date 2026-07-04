@@ -16,39 +16,40 @@ class DatatableQuotations extends LivewireDatatable
 
     public function builder(): Builder
     {
-        return Quotation::where('quotations.business_id', auth()->user()->business_id)
+        return Quotation::query()
+            ->forAuthUser()
             ->leftJoin('clients', 'quotations.client_id', '=', 'clients.id')
             ->leftJoin('equipment', 'quotations.equipment_id', '=', 'equipment.id')
-            ->select('quotations.*', 'clients.name as client_name', 'equipment.plate as equipment_plate')
-            ->latest('quotations.created_at');
+            ->select('quotations.*')
+            ->orderByDesc('quotations.created_at');
     }
 
     public function getColumns(): Model|array
     {
         return [
-            Column::name('reference')
+            Column::name('quotations.reference')
                 ->label('Referencia')
                 ->searchable()
                 ->sortable(),
 
-            Column::name('client_name')
+            Column::raw('clients.name AS client_name')
                 ->label('Cliente')
                 ->searchable()
                 ->sortable(),
 
-            Column::name('equipment_plate')
+            Column::raw('equipment.plate AS equipment_plate')
                 ->label('Placa')
                 ->searchable(),
 
-            Column::callback(['total'], function ($total) {
+            Column::callback(['quotations.total'], function ($total) {
                 return '<span class="tabular-nums font-semibold">' . col_money($total) . '</span>';
             })->label('Total')->sortable(),
 
-            Column::callback(['valid_until'], function ($date) {
+            Column::callback(['quotations.valid_until'], function ($date) {
                 return $date ? \Carbon\Carbon::parse($date)->format('d/m/Y') : '<span class="text-slate-400">—</span>';
             })->label('Válida hasta'),
 
-            Column::callback(['status'], function ($status) {
+            Column::callback(['quotations.status'], function ($status) {
                 $map = [
                     'borrador'  => ['label' => 'Borrador',  'class' => 'bg-slate-100 text-slate-600 ring-1 ring-slate-500/20'],
                     'enviada'   => ['label' => 'Enviada',   'class' => 'bg-blue-50 text-blue-700 ring-1 ring-blue-600/20'],
@@ -67,7 +68,7 @@ class DatatableQuotations extends LivewireDatatable
                 ->label('Fecha')
                 ->sortable(),
 
-            Column::callback(['id'], function ($id) {
+            Column::callback(['quotations.id'], function ($id) {
                 return view('livewire.admin.workshop.quotations.actions', ['id' => $id]);
             })->label('Acciones')->unsortable(),
         ];

@@ -23,7 +23,9 @@ return new class extends Migration
             $table->softDeletes();
 
             $table->unique(['business_id', 'reference']);
-            $table->index(['work_order_id', 'status']);
+            $table->index(['business_id', 'deleted_at', 'created_at'], 'remissions_business_deleted_created_idx');
+            $table->index(['business_id', 'deleted_at', 'status'], 'remissions_business_deleted_status_idx');
+            $table->index(['work_order_id', 'deleted_at', 'status'], 'remissions_work_order_deleted_status_idx');
         });
     }
 

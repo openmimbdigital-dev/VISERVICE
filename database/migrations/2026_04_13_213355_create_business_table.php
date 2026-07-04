@@ -115,6 +115,9 @@ return new class extends Migration
             $table->unsignedBigInteger('country_id')->nullable();
             $table->softDeletes();
 
+            // Listado usuarios (superAdmin) y filtros por estado/fecha
+            $table->index(['deleted_at', 'status', 'created_at'], 'users_deleted_status_created_idx');
+
             // Índices para las claves foráneas
             $table->index('city_id');
             $table->index('country_id');
