@@ -26,6 +26,7 @@ class DatabaseSeeder extends Seeder
             BusinessMenuModuleSeeder::class,
             BusinessAccessSeeder::class,
             UsersSeeder::class,
+            TeamPositionSeeder::class,
             SubscriptionPlansSeeder::class,
             BanksSeeder::class,
             BankAccountsSeeder::class,

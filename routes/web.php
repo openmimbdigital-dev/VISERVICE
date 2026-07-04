@@ -18,6 +18,8 @@ use App\Livewire\Admin\Businesses\Show as AdminBusinessesShow;
 use App\Livewire\Admin\BusinessTypes\Access as AdminBusinessTypesAccess;
 use App\Livewire\Admin\BusinessTypes\Index as AdminBusinessTypesIndex;
 use App\Livewire\Admin\OrganizationTypes\Index as AdminOrganizationTypesIndex;
+use App\Livewire\Admin\TeamPositions\Index as AdminTeamPositionsIndex;
+use App\Livewire\Admin\TeamPositions\Show as AdminTeamPositionsShow;
 use App\Livewire\Comercio\Business\Edit as ComercioBusinessEdit;
 use App\Livewire\Admin\Workshop\Clients\Form as WorkshopClientsForm;
 use App\Livewire\Admin\Workshop\Clients\Index as WorkshopClientsIndex;
@@ -109,6 +111,12 @@ Route::middleware(['auth', 'ensure.business', 'business.module'])->group(functio
         });
         Route::middleware('permission:organization_types.view')->group(function () {
             Route::get('/organization-types', AdminOrganizationTypesIndex::class)->name('organization-types.index');
+        });
+        Route::middleware('permission:team_positions.view')->group(function () {
+            Route::get('/team-positions', AdminTeamPositionsIndex::class)->name('team-positions.index');
+            Route::get('/team-positions/{teamPosition}', AdminTeamPositionsShow::class)
+                ->whereNumber('teamPosition')
+                ->name('team-positions.show');
         });
     });
 

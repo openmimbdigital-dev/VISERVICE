@@ -57,6 +57,15 @@ return [
                 'business_types.access.manage' => 'Gestionar acceso por tipo de negocio',
             ],
         ],
+        'team_positions' => [
+            'name' => 'Negocios — Cargos del equipo',
+            'permissions' => [
+                'team_positions.view'   => 'Ver cargos del equipo',
+                'team_positions.create' => 'Crear cargos del equipo',
+                'team_positions.edit'   => 'Editar cargos del equipo',
+                'team_positions.delete' => 'Eliminar cargos del equipo',
+            ],
+        ],
         'reports' => [
             'name' => 'Gestión de Reportes',
             'permissions' => [

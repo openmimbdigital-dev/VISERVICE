@@ -43,7 +43,7 @@
                     </li>
                 </ol>
                 <p class="rounded-xl border border-indigo-200/60 bg-white/60 px-3 py-2.5 text-xs text-indigo-800">
-                    <strong>En esta pantalla</strong> defines la capa 2: marcas módulos (secciones) y submódulos (ítems) por negocio raíz. Las sucursales hijas <strong>heredan</strong> la configuración del padre. El superAdmin no está sujeto a esta capa. Las secciones de plataforma (Suscripciones, Negocios) no requieren asignación aquí.
+                    <strong>En esta pantalla</strong> defines la capa 2: marcas módulos (secciones) y submódulos (ítems) por negocio raíz. Las sucursales hijas <strong>heredan</strong> la configuración del padre. El superAdmin no está sujeto a esta capa. Solo <strong>Suscripciones</strong> es sección de plataforma. La sección <strong>Negocios</strong> y sus ítems (p. ej. <em>Cargos del equipo</em>) se asignan aquí.
                 </p>
             </div>
         </div>

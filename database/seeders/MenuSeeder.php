@@ -67,7 +67,7 @@ class MenuSeeder extends Seeder
                 'name'             => 'Negocios',
                 'icon_svg_path'    => 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4',
                 'icon_color_class' => 'text-indigo-400',
-                'route_patterns'   => ['admin.businesses.*', 'admin.business-types.*', 'admin.organization-types.*', 'admin.businesses.modules'],
+                'route_patterns'   => ['admin.businesses.*', 'admin.business-types.*', 'admin.organization-types.*', 'admin.businesses.modules', 'admin.team-positions.*'],
                 'behavior'         => 'collapsible',
                 'sort_order'       => 25,
                 'items'            => [
@@ -110,6 +110,14 @@ class MenuSeeder extends Seeder
                         'icon_svg_path'        => 'M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z',
                         'role'                 => 'superAdmin',
                         'sort_order'           => 35,
+                    ],
+                    [
+                        'name'                 => 'Cargos del equipo',
+                        'route_name'           => 'admin.team-positions.index',
+                        'active_route_pattern' => 'admin.team-positions.*',
+                        'icon_svg_path'        => 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z',
+                        'permission'           => 'team_positions.view',
+                        'sort_order'           => 40,
                     ],
                 ],
             ],
@@ -164,7 +172,7 @@ class MenuSeeder extends Seeder
         $section_assignable = [
             'usuarios'      => true,
             'suscripciones' => false,
-            'negocios'      => false,
+            'negocios'      => true,
             'mi-negocio'    => true,
             'taller'        => true,
             'configuracion' => true,
@@ -201,5 +209,15 @@ class MenuSeeder extends Seeder
                 ->where('route_name', 'admin.businesses.index')
                 ->delete();
         }
+
+        // Sección independiente reemplazada por ítem dentro de Negocios
+        $legacy_cargos = MenuSection::query()->where('slug', 'cargos-equipo')->first();
+        if ($legacy_cargos) {
+            MenuItem::query()->where('menu_section_id', $legacy_cargos->id)->delete();
+            $legacy_cargos->businesses()->detach();
+            $legacy_cargos->delete();
+        }
+
+        $this->command?->info('Menú sincronizado.');
     }
 }

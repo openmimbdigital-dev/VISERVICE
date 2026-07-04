@@ -10,6 +10,7 @@ use App\Models\Equipment;
 use App\Models\EquipmentModel;
 use App\Models\EquipmentType;
 use App\Models\Quotation;
+use App\Models\TeamPosition;
 use App\Models\WorkOrder;
 use App\Support\CurrentBusiness;
 use App\Support\SidebarMenuBuilder;
@@ -69,6 +70,11 @@ class AppServiceProvider extends ServiceProvider
 
         Route::bind('workOrder', fn (string $value) => WorkOrder::query()
             ->forAuthUser()
+            ->whereKey($value)
+            ->firstOrFail());
+
+        Route::bind('teamPosition', fn (string $value) => TeamPosition::query()
+            ->visibleToUser()
             ->whereKey($value)
             ->firstOrFail());
 

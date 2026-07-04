@@ -17,6 +17,14 @@ class BusinessAccessSeeder extends Seeder
         'business_types.access.view', 'business_types.access.manage',
     ];
 
+    /** @return list<string> */
+    private function teamPositionPermissions(): array
+    {
+        return [
+            'team_positions.view', 'team_positions.create', 'team_positions.edit', 'team_positions.delete',
+        ];
+    }
+
     /** @var list<string> */
     private array $workshop_module_permissions = [
         'workshop.view',
@@ -110,7 +118,11 @@ class BusinessAccessSeeder extends Seeder
     /** @param list<string> $permissions @return list<string> */
     private function withBusinessCatalogPermissions(array $permissions): array
     {
-        return array_values(array_unique([...$permissions, ...$this->business_catalog_permissions]));
+        return array_values(array_unique([
+            ...$permissions,
+            ...$this->business_catalog_permissions,
+            ...$this->teamPositionPermissions(),
+        ]));
     }
 
     /** @return list<string> */
@@ -120,6 +132,7 @@ class BusinessAccessSeeder extends Seeder
             ...$this->workshop_base_permissions,
             ...$this->workshop_module_permissions,
             ...$this->business_catalog_permissions,
+            ...$this->teamPositionPermissions(),
         ]));
     }
 

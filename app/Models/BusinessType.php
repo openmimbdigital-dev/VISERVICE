@@ -55,4 +55,9 @@ class BusinessType extends Model
     {
         return $this->hasMany(OrganizationType::class, 'business_type_id');
     }
+
+    public function team_positions(): HasMany
+    {
+        return $this->hasMany(TeamPosition::class, 'business_type_id');
+    }
 }

@@ -125,6 +125,11 @@ class Business extends Model
         return $this->hasMany(Brand::class);
     }
 
+    public function team_positions(): HasMany
+    {
+        return $this->hasMany(TeamPosition::class);
+    }
+
     public function equipmentModels(): HasMany
     {
         return $this->hasMany(EquipmentModel::class);

@@ -20,6 +20,14 @@ class RolesAndPermissionsSeeder extends Seeder
     }
 
     /** @return list<string> */
+    private function teamPositionPermissions(): array
+    {
+        return [
+            'team_positions.view', 'team_positions.create', 'team_positions.edit', 'team_positions.delete',
+        ];
+    }
+
+    /** @return list<string> */
     private function workshopPermissions(): array
     {
         return [
@@ -83,6 +91,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'workshop.work-orders.view',
             // Negocios — Tipos y acceso
             ...$this->businessCatalogPermissions(),
+            // Negocios — Cargos del equipo
+            ...$this->teamPositionPermissions(),
         ])->mapWithKeys(fn ($name) => [
             $name => Permission::firstOrCreate(['name' => $name, 'guard_name' => $guard]),
         ]);
@@ -119,6 +129,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'workshop.work-orders.view',
             'workshop.clients.view', 'workshop.clients.create', 'workshop.clients.edit',
             'workshop.clients.delete', 'workshop.clients.activate', 'workshop.clients.deactivate',
+            ...$this->teamPositionPermissions(),
 
         ])->values());
 
@@ -135,11 +146,13 @@ class RolesAndPermissionsSeeder extends Seeder
             'settings.model_equipment.view', 'settings.model_equipment.create',
             'settings.model_equipment.edit', 'settings.model_equipment.delete',
             ...$this->workshopPermissions(),
+            ...$this->teamPositionPermissions(),
         ])->values());
 
         // Supervisor: solo lectura
         $supervisor->syncPermissions($perms->only([
             'users.view', 'businesses.view', 'reports.view', 'roles.view', 'permissions.view',
+            'team_positions.view',
         ])->values());
 
         // Operador: mínimo
@@ -156,6 +169,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'businesses.activate', 'businesses.deactivate',
             'roles.view', 'roles.create',
             'permissions.view', 'permissions.assign',
+            ...$this->teamPositionPermissions(),
         ])->values());
 
         // Secretario: administración
@@ -163,6 +177,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'users.view', 'users.create', 'users.edit',
             'businesses.view',
             'reports.view',
+            'team_positions.view', 'team_positions.create', 'team_positions.edit',
         ])->values());
 
         // Líder de congregación: operación de campo

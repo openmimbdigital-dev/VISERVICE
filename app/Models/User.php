@@ -37,6 +37,8 @@ class User extends Authenticatable
         'document_number',
         'city_id',
         'country_id',
+        'team_position_id',
+        'name_team_position',
     ];
 
     protected $hidden = [
@@ -53,6 +55,25 @@ class User extends Authenticatable
         ];
     }
 
+    protected static function booted(): void
+    {
+        static::saving(function (User $user) {
+            if ($user->isDirty('team_position_id')) {
+                if ($user->team_position_id === null) {
+                    $user->name_team_position = null;
+
+                    return;
+                }
+
+                $team_position = TeamPosition::query()
+                    ->whereKey($user->team_position_id)
+                    ->first(['name']);
+
+                $user->name_team_position = $team_position?->name;
+            }
+        });
+    }
+
     public function city(): BelongsTo
     {
         return $this->belongsTo(City::class, 'city_id');
@@ -61,6 +82,11 @@ class User extends Authenticatable
     public function country(): BelongsTo
     {
         return $this->belongsTo(Country::class, 'country_id');
+    }
+
+    public function team_position(): BelongsTo
+    {
+        return $this->belongsTo(TeamPosition::class, 'team_position_id');
     }
 
     public function businesses(): BelongsToMany

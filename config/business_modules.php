@@ -7,6 +7,5 @@ return [
     */
     'platform_section_slugs' => [
         'suscripciones',
-        'negocios',
     ],
 ];
