@@ -21,12 +21,12 @@ class Index extends Component
 
     public function mount(): void
     {
-        abort_unless(auth()->user()->can('settings.view'), 403);
+        abort_unless(auth()->user()->can('settings.brands.view'), 403);
     }
 
     public function openCreate(): void
     {
-        abort_unless(auth()->user()->can('settings.edit'), 403);
+        abort_unless(auth()->user()->can('settings.brands.create'), 403);
 
         $this->form->reset();
         $this->form->active = true;
@@ -37,7 +37,7 @@ class Index extends Component
     #[On('open-brand-edit')]
     public function openEdit(int $id): void
     {
-        abort_unless(auth()->user()->can('settings.edit'), 403);
+        abort_unless(auth()->user()->can('settings.brands.edit'), 403);
 
         $brand = Brand::query()->visibleToUser()->findOrFail($id);
         abort_unless($brand->isEditableBy(), 403);
@@ -60,7 +60,10 @@ class Index extends Component
 
     public function save(): void
     {
-        abort_unless(auth()->user()->can('settings.edit'), 403);
+        abort_unless(
+            auth()->user()->can($this->form->isEditing() ? 'settings.brands.edit' : 'settings.brands.create'),
+            403
+        );
 
         $was_editing = $this->form->isEditing();
 
@@ -84,7 +87,7 @@ class Index extends Component
         return view('livewire.admin.settings.equipment.brands.index', [
             'config'           => EquipmentSettingsConfig::sectionOrFail('brands'),
             'is_super_admin'   => $this->form->isSuperAdmin(),
-            'can_edit'         => auth()->user()->can('settings.edit'),
+            'can_edit'         => auth()->user()->can('settings.brands.edit'),
             'equipment_types'  => $this->form->getAvailableEquipmentTypes(),
         ]);
     }

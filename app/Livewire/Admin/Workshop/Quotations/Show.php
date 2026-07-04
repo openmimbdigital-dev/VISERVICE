@@ -5,8 +5,6 @@ namespace App\Livewire\Admin\Workshop\Quotations;
 use App\Actions\AcceptQuotationAction;
 use App\Models\Quotation;
 use App\Models\QuotationItem;
-use App\Models\ServiceCatalog;
-use App\Models\SparePartCatalog;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -32,7 +30,6 @@ class Show extends Component
     public string $item_quantity       = '1';
     public string $item_unit_price     = '0';
     public string $item_discount       = '0';
-    public ?int   $catalog_item_id     = null;
 
     // Modal rechazo
     public bool   $showRejectModal     = false;
@@ -66,28 +63,7 @@ class Show extends Component
         $this->item_quantity      = $item->quantity;
         $this->item_unit_price    = $item->unit_price;
         $this->item_discount      = $item->discount_percentage;
-        $this->catalog_item_id    = $item->catalog_item_id;
         $this->showItemModal      = true;
-    }
-
-    public function fillFromCatalog(int $catalogId, string $type): void
-    {
-        $this->catalog_item_id = $catalogId;
-        if ($type === 'servicio') {
-            $s = ServiceCatalog::find($catalogId);
-            if ($s) {
-                $this->item_description = $s->name;
-                $this->item_unit_price  = $s->default_price;
-                $this->item_type        = 'servicio';
-            }
-        } else {
-            $p = SparePartCatalog::find($catalogId);
-            if ($p) {
-                $this->item_description = $p->name;
-                $this->item_unit_price  = $p->unit_price;
-                $this->item_type        = 'repuesto';
-            }
-        }
     }
 
     public function saveItem(): void
@@ -106,10 +82,6 @@ class Show extends Component
             'unit_price'          => $price,
             'discount_percentage' => $discount,
             'subtotal'            => $subtotal,
-            'catalog_item_id'     => $this->catalog_item_id,
-            'catalog_item_type'   => $this->catalog_item_id
-                ? ($this->item_type === 'servicio' ? 'services_catalog' : 'spare_parts_catalog')
-                : null,
         ];
 
         if ($this->editing_item_id) {
@@ -144,7 +116,6 @@ class Show extends Component
         $this->item_quantity    = '1';
         $this->item_unit_price  = '0';
         $this->item_discount    = '0';
-        $this->catalog_item_id  = null;
         $this->resetValidation();
     }
 
@@ -191,12 +162,6 @@ class Show extends Component
 
     public function render()
     {
-        $business_id = auth()->user()->business_id;
-
-        $services    = ServiceCatalog::where('business_id', $business_id)->active()->orderBy('name')->get();
-        $spare_parts = SparePartCatalog::where('business_id', $business_id)->active()->orderBy('name')->get();
-
-        return view('livewire.admin.workshop.quotations.show',
-            compact('services', 'spare_parts'));
+        return view('livewire.admin.workshop.quotations.show');
     }
 }

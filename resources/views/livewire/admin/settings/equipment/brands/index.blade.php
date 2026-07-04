@@ -25,7 +25,7 @@
                     </svg>
                     Volver
                 </a>
-                @can('settings.edit')
+                @can('settings.brands.create')
                 <x-ui.create-button wire:click="openCreate" size="sm" class="flex-1 sm:flex-none justify-center">
                     {{ $config['create_button_text'] ?? 'Nueva marca' }}
                 </x-ui.create-button>

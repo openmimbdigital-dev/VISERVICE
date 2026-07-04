@@ -41,8 +41,6 @@ class AcceptQuotationAction
                     'quantity'            => $item->quantity,
                     'unit_price'          => $item->unit_price,
                     'discount_percentage' => $item->discount_percentage,
-                    'catalog_item_id'     => $item->catalog_item_id,
-                    'catalog_item_type'   => $item->catalog_item_type,
                 ])->toArray()
             );
         });

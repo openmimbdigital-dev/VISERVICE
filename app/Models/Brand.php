@@ -78,10 +78,12 @@ class Brand extends Model
         $user ??= auth()->user();
 
         if ($user?->hasRole('superAdmin')) {
-            return true;
+            return $user->can('settings.brands.edit');
         }
 
-        return ! $this->general && $user->belongsToBusiness($this->business_id);
+        return ! $this->general
+            && $user->belongsToBusiness($this->business_id)
+            && $user->can('settings.brands.edit');
     }
 
     public function isGeneralReadonly(?User $user = null): bool
@@ -96,6 +98,8 @@ class Brand extends Model
 
     public function canDelete(?User $user = null): bool
     {
-        return $this->isEditableBy($user) && ! $this->hasDependencies();
+        return $this->isEditableBy($user)
+            && $user?->can('settings.brands.delete')
+            && ! $this->hasDependencies();
     }
 }

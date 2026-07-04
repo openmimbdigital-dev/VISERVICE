@@ -27,7 +27,7 @@
                     </svg>
                     Volver
                 </a>
-                @can('settings.edit')
+                @can('settings.brands.delete')
                 <button type="button" wire:click="deleteRecord"
                     @disabled(! $can_delete)
                     title="{{ $is_general_readonly ? 'Marca general del sistema: no se puede eliminar' : ($can_delete ? 'Eliminar marca' : 'No se puede eliminar: tiene equipos asociados') }}"

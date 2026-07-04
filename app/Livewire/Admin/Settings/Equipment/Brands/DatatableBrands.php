@@ -81,7 +81,13 @@ class DatatableBrands extends LivewireDatatable
             Column::callback(
                 ['brands.id', 'brands.general', 'brands.business_id', 'equipment_usage.equipment_count'],
                 function ($id, $general, $business_id, $equipment_count) {
-                    $permissions = $this->catalogRowPermissions((bool) $general, $business_id, (int) $equipment_count);
+                    $permissions = $this->catalogRowPermissions(
+                        (bool) $general,
+                        $business_id,
+                        (int) $equipment_count,
+                        'settings.brands.edit',
+                        'settings.brands.delete',
+                    );
 
                 return view('livewire.admin.settings.equipment.brands.actions', [
                     'id'                  => $id,
@@ -100,7 +106,7 @@ class DatatableBrands extends LivewireDatatable
 
     public function deleteRecord(int $id): void
     {
-        abort_unless(auth()->user()->can('settings.edit'), 403);
+        abort_unless(auth()->user()->can('settings.brands.delete'), 403);
 
         $this->askDeleteConfirmation($id, '¿Estás seguro de querer eliminar esta marca?');
     }
@@ -108,7 +114,7 @@ class DatatableBrands extends LivewireDatatable
     protected function onDeleteConfirmed(): void
     {
         try {
-            abort_unless(auth()->user()->can('settings.edit'), 403);
+            abort_unless(auth()->user()->can('settings.brands.delete'), 403);
 
             $brand = Brand::query()->visibleToUser()->findOrFail($this->delete_id);
 

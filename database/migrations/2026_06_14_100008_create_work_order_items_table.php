@@ -19,8 +19,6 @@ return new class extends Migration
             $table->decimal('subtotal', 12, 2)->default(0);
             $table->enum('status', ['pendiente', 'en_proceso', 'completado', 'cancelado'])->default('pendiente');
             $table->text('technician_notes')->nullable();
-            $table->unsignedBigInteger('catalog_item_id')->nullable();
-            $table->string('catalog_item_type')->nullable();
             $table->timestamps();
 
             $table->index(['work_order_id', 'item_type']);

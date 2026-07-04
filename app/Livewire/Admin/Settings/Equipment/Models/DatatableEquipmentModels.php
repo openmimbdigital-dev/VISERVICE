@@ -89,7 +89,13 @@ class DatatableEquipmentModels extends LivewireDatatable
             Column::callback(
                 ['equipment_models.id', 'equipment_models.general', 'equipment_models.business_id', 'equipment_usage.equipment_count'],
                 function ($id, $general, $business_id, $equipment_count) {
-                    $permissions = $this->catalogRowPermissions((bool) $general, $business_id, (int) $equipment_count);
+                    $permissions = $this->catalogRowPermissions(
+                        (bool) $general,
+                        $business_id,
+                        (int) $equipment_count,
+                        'settings.model_equipment.edit',
+                        'settings.model_equipment.delete',
+                    );
 
                     return view('livewire.admin.settings.equipment.models.actions', [
                         'id'                  => $id,
@@ -109,7 +115,7 @@ class DatatableEquipmentModels extends LivewireDatatable
 
     public function deleteRecord(int $id): void
     {
-        abort_unless(auth()->user()->can('settings.edit'), 403);
+        abort_unless(auth()->user()->can('settings.model_equipment.delete'), 403);
 
         $this->askDeleteConfirmation($id, '¿Estás seguro de querer eliminar este modelo?');
     }
@@ -117,7 +123,7 @@ class DatatableEquipmentModels extends LivewireDatatable
     protected function onDeleteConfirmed(): void
     {
         try {
-            abort_unless(auth()->user()->can('settings.edit'), 403);
+            abort_unless(auth()->user()->can('settings.model_equipment.delete'), 403);
 
             $equipment_model = EquipmentModel::query()->visibleToUser()->findOrFail($this->delete_id);
 

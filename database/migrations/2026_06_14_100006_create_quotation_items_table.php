@@ -17,8 +17,6 @@ return new class extends Migration
             $table->decimal('unit_price', 12, 2)->default(0);
             $table->decimal('discount_percentage', 5, 2)->default(0);
             $table->decimal('subtotal', 12, 2)->default(0);
-            $table->unsignedBigInteger('catalog_item_id')->nullable()->comment('ID del item del catálogo si aplica');
-            $table->string('catalog_item_type')->nullable()->comment('services_catalog | spare_parts_catalog');
             $table->timestamps();
 
             $table->index(['quotation_id', 'item_type']);

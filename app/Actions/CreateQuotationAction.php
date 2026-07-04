@@ -64,8 +64,6 @@ class CreateQuotationAction
             'unit_price'          => $price,
             'discount_percentage' => $discount,
             'subtotal'            => $subtotal,
-            'catalog_item_id'     => $item['catalog_item_id'] ?? null,
-            'catalog_item_type'   => $item['catalog_item_type'] ?? null,
         ]);
     }
 }

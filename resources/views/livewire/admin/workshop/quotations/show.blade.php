@@ -168,22 +168,6 @@
                             <option value="otro">Otro</option>
                         </select>
                     </div>
-                    <div>
-                        <label class="label-up">Desde catálogo</label>
-                        <select wire:model.live="catalog_item_id" class="form-select"
-                            wire:change="fillFromCatalog($event.target.value, '{{ $item_type }}')">
-                            <option value="">Escribir manualmente</option>
-                            @if($item_type === 'servicio')
-                                @foreach($services as $svc)
-                                    <option value="{{ $svc->id }}">{{ $svc->name }}</option>
-                                @endforeach
-                            @else
-                                @foreach($spare_parts as $sp)
-                                    <option value="{{ $sp->id }}">{{ $sp->name }}</option>
-                                @endforeach
-                            @endif
-                        </select>
-                    </div>
                     <div class="col-span-2">
                         <label class="label-up">Descripción *</label>
                         <input type="text" wire:model="item_description" class="form-input" />

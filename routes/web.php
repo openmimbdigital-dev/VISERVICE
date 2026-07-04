@@ -29,8 +29,6 @@ use App\Livewire\Admin\Workshop\Quotations\Index as WorkshopQuotationsIndex;
 use App\Livewire\Admin\Workshop\Quotations\Show as WorkshopQuotationsShow;
 use App\Livewire\Admin\Workshop\WorkOrders\Index as WorkshopWorkOrdersIndex;
 use App\Livewire\Admin\Workshop\WorkOrders\Show as WorkshopWorkOrdersShow;
-use App\Livewire\Admin\Catalog\Services\Index as CatalogServicesIndex;
-use App\Livewire\Admin\Catalog\SpareParts\Index as CatalogSparePartsIndex;
 use App\Livewire\Admin\Settings\Equipment\Attributes\Form as SettingsAttributesForm;
 use App\Livewire\Admin\Settings\Equipment\Attributes\Index as SettingsAttributesIndex;
 use App\Livewire\Admin\Settings\Equipment\Attributes\Show as SettingsAttributesShow;
@@ -151,16 +149,6 @@ Route::middleware(['auth', 'ensure.business', 'business.module'])->group(functio
         });
     });
 
-    // Catálogo
-    Route::prefix('catalogo')->name('admin.workshop.catalog.')->group(function () {
-        Route::middleware('permission:workshop.catalog.services.view')->group(function () {
-            Route::get('/servicios', CatalogServicesIndex::class)->name('services.index');
-        });
-        Route::middleware('permission:workshop.catalog.spare-parts.view')->group(function () {
-            Route::get('/repuestos', CatalogSparePartsIndex::class)->name('spare-parts.index');
-        });
-    });
-
     // Configuración
     Route::middleware('permission:settings.view')->prefix('configuracion')->name('admin.settings.')->group(function () {
         Route::get('/equipos', SettingsEquipmentIndex::class)->name('equipment.index');
@@ -168,10 +156,14 @@ Route::middleware(['auth', 'ensure.business', 'business.module'])->group(functio
             Route::get('/equipos/tipos', SettingsEquipmentTypesIndex::class)->name('equipment.types');
             Route::get('/equipos/tipos/{equipmentType}', SettingsEquipmentTypesShow::class)->name('equipment.types.show');
         });
-        Route::get('/equipos/marcas', SettingsBrandsIndex::class)->name('equipment.brands');
-        Route::get('/equipos/marcas/{brand}', SettingsBrandsShow::class)->name('equipment.brands.show');
-        Route::get('/equipos/modelos', SettingsEquipmentModelsIndex::class)->name('equipment.models');
-        Route::get('/equipos/modelos/{equipmentModel}', SettingsEquipmentModelsShow::class)->name('equipment.models.show');
+        Route::middleware('permission:settings.brands.view')->group(function () {
+            Route::get('/equipos/marcas', SettingsBrandsIndex::class)->name('equipment.brands');
+            Route::get('/equipos/marcas/{brand}', SettingsBrandsShow::class)->name('equipment.brands.show');
+        });
+        Route::middleware('permission:settings.model_equipment.view')->group(function () {
+            Route::get('/equipos/modelos', SettingsEquipmentModelsIndex::class)->name('equipment.models');
+            Route::get('/equipos/modelos/{equipmentModel}', SettingsEquipmentModelsShow::class)->name('equipment.models.show');
+        });
         Route::middleware('permission:settings.attributes.view')->group(function () {
             Route::get('/equipos/atributos', SettingsAttributesIndex::class)->name('equipment.attributes.index');
         });

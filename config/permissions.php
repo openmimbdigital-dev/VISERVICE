@@ -89,6 +89,24 @@ return [
                 'settings.attributes.delete' => 'Eliminar atributos de equipo',
             ],
         ],
+        'settings_brands' => [
+            'name' => 'Configuración — Marcas de equipo',
+            'permissions' => [
+                'settings.brands.view'   => 'Ver marcas de equipo',
+                'settings.brands.create' => 'Crear marcas de equipo',
+                'settings.brands.edit'   => 'Editar marcas de equipo',
+                'settings.brands.delete' => 'Eliminar marcas de equipo',
+            ],
+        ],
+        'settings_model_equipment' => [
+            'name' => 'Configuración — Modelos de equipo',
+            'permissions' => [
+                'settings.model_equipment.view'   => 'Ver modelos de equipo',
+                'settings.model_equipment.create' => 'Crear modelos de equipo',
+                'settings.model_equipment.edit'   => 'Editar modelos de equipo',
+                'settings.model_equipment.delete' => 'Eliminar modelos de equipo',
+            ],
+        ],
         'roles' => [
             'name' => 'Gestión de Roles y Permisos',
             'permissions' => [
@@ -149,14 +167,6 @@ return [
             'name' => 'Taller — Órdenes de trabajo',
             'permissions' => [
                 'workshop.work-orders.view' => 'Ver órdenes de trabajo',
-            ],
-        ],
-        'workshop_catalog' => [
-            'name' => 'Catálogo',
-            'permissions' => [
-                'workshop.catalog.view'              => 'Ver módulo de catálogo',
-                'workshop.catalog.services.view'     => 'Ver servicios',
-                'workshop.catalog.spare-parts.view'  => 'Ver repuestos',
             ],
         ],
     ],

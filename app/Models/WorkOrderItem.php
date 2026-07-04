@@ -11,7 +11,6 @@ class WorkOrderItem extends Model
         'work_order_id', 'item_type', 'description',
         'quantity', 'unit_price', 'discount_percentage',
         'subtotal', 'status', 'technician_notes',
-        'catalog_item_id', 'catalog_item_type',
     ];
 
     protected function casts(): array

@@ -26,9 +26,6 @@ class BusinessAccessSeeder extends Seeder
         'workshop.equipment.delete',
         'workshop.quotations.view',
         'workshop.work-orders.view',
-        'workshop.catalog.view',
-        'workshop.catalog.services.view',
-        'workshop.catalog.spare-parts.view',
     ];
 
     /** @var list<string> */
@@ -40,6 +37,10 @@ class BusinessAccessSeeder extends Seeder
         'settings.view', 'settings.edit',
         'settings.attributes.view', 'settings.attributes.create',
         'settings.attributes.edit', 'settings.attributes.delete',
+        'settings.brands.view', 'settings.brands.create',
+        'settings.brands.edit', 'settings.brands.delete',
+        'settings.model_equipment.view', 'settings.model_equipment.create',
+        'settings.model_equipment.edit', 'settings.model_equipment.delete',
         'roles.view', 'roles.create', 'roles.edit', 'roles.delete',
         'permissions.view', 'permissions.assign',
     ];

@@ -72,10 +72,12 @@ class EquipmentModel extends Model
         $user ??= auth()->user();
 
         if ($user?->hasRole('superAdmin')) {
-            return true;
+            return $user->can('settings.model_equipment.edit');
         }
 
-        return ! $this->general && $user->belongsToBusiness($this->business_id);
+        return ! $this->general
+            && $user->belongsToBusiness($this->business_id)
+            && $user->can('settings.model_equipment.edit');
     }
 
     public function isGeneralReadonly(?User $user = null): bool
@@ -90,6 +92,8 @@ class EquipmentModel extends Model
 
     public function canDelete(?User $user = null): bool
     {
-        return $this->isEditableBy($user) && ! $this->hasDependencies();
+        return $this->isEditableBy($user)
+            && $user?->can('settings.model_equipment.delete')
+            && ! $this->hasDependencies();
     }
 }

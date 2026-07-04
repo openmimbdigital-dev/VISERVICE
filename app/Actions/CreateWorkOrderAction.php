@@ -73,8 +73,6 @@ class CreateWorkOrderAction
             'discount_percentage' => $discount,
             'subtotal'            => $subtotal,
             'status'              => 'pendiente',
-            'catalog_item_id'     => $item['catalog_item_id'] ?? null,
-            'catalog_item_type'   => $item['catalog_item_type'] ?? null,
         ]);
     }
 }

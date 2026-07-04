@@ -10,7 +10,7 @@ class QuotationItem extends Model
     protected $fillable = [
         'quotation_id', 'item_type', 'description',
         'quantity', 'unit_price', 'discount_percentage',
-        'subtotal', 'catalog_item_id', 'catalog_item_type',
+        'subtotal',
     ];
 
     protected function casts(): array

@@ -20,7 +20,7 @@ class RolesAndPermissionsSeeder extends Seeder
     }
 
     /** @return list<string> */
-    private function workshopAndCatalogPermissions(): array
+    private function workshopPermissions(): array
     {
         return [
             'workshop.view',
@@ -30,9 +30,6 @@ class RolesAndPermissionsSeeder extends Seeder
             'workshop.equipment.delete',
             'workshop.quotations.view',
             'workshop.work-orders.view',
-            'workshop.catalog.view',
-            'workshop.catalog.services.view',
-            'workshop.catalog.spare-parts.view',
         ];
     }
 
@@ -59,6 +56,12 @@ class RolesAndPermissionsSeeder extends Seeder
             // Configuración — Atributos de equipo
             'settings.attributes.view', 'settings.attributes.create',
             'settings.attributes.edit', 'settings.attributes.delete',
+            // Configuración — Marcas de equipo
+            'settings.brands.view', 'settings.brands.create',
+            'settings.brands.edit', 'settings.brands.delete',
+            // Configuración — Modelos de equipo
+            'settings.model_equipment.view', 'settings.model_equipment.create',
+            'settings.model_equipment.edit', 'settings.model_equipment.delete',
             // Configuración — Tipos de equipo (solo superAdmin)
             'settings.equipment_types.view', 'settings.equipment_types.create',
             'settings.equipment_types.edit', 'settings.equipment_types.delete',
@@ -78,9 +81,6 @@ class RolesAndPermissionsSeeder extends Seeder
             'workshop.view',
             'workshop.quotations.view',
             'workshop.work-orders.view',
-            'workshop.catalog.view',
-            'workshop.catalog.services.view',
-            'workshop.catalog.spare-parts.view',
             // Negocios — Tipos y acceso
             ...$this->businessCatalogPermissions(),
         ])->mapWithKeys(fn ($name) => [
@@ -109,7 +109,17 @@ class RolesAndPermissionsSeeder extends Seeder
             'settings.view', 'settings.edit',
             'settings.attributes.view', 'settings.attributes.create',
             'settings.attributes.edit', 'settings.attributes.delete',
+            'settings.brands.view', 'settings.brands.create',
+            'settings.brands.edit', 'settings.brands.delete',
+            'settings.model_equipment.view', 'settings.model_equipment.create',
+            'settings.model_equipment.edit', 'settings.model_equipment.delete',
             'roles.view', 'permissions.view',
+            'workshop.view',
+            'workshop.quotations.view',
+            'workshop.work-orders.view',
+            'workshop.clients.view', 'workshop.clients.create', 'workshop.clients.edit',
+            'workshop.clients.delete', 'workshop.clients.activate', 'workshop.clients.deactivate',
+
         ])->values());
 
         // Comercio: propietario del negocio registrado vía onboarding
@@ -120,7 +130,11 @@ class RolesAndPermissionsSeeder extends Seeder
             'settings.view', 'settings.edit',
             'settings.attributes.view', 'settings.attributes.create',
             'settings.attributes.edit', 'settings.attributes.delete',
-            ...$this->workshopAndCatalogPermissions(),
+            'settings.brands.view', 'settings.brands.create',
+            'settings.brands.edit', 'settings.brands.delete',
+            'settings.model_equipment.view', 'settings.model_equipment.create',
+            'settings.model_equipment.edit', 'settings.model_equipment.delete',
+            ...$this->workshopPermissions(),
         ])->values());
 
         // Supervisor: solo lectura

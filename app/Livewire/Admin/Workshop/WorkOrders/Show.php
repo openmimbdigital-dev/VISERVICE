@@ -8,8 +8,6 @@ use App\Actions\RegisterInvoicePaymentAction;
 use App\Models\Remission;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
-use App\Models\ServiceCatalog;
-use App\Models\SparePartCatalog;
 use App\Models\WorkOrder;
 use App\Models\WorkOrderInvoice;
 use App\Models\WorkOrderItem;
@@ -33,7 +31,6 @@ class Show extends Component
     public string $item_discount      = '0';
     public string $item_status        = 'pendiente';
     public string $item_notes         = '';
-    public ?int   $catalog_item_id    = null;
 
     // ── Finalizar ────────────────────────────────────────────────────────────
     public bool   $showFinalizeModal     = false;
@@ -92,20 +89,7 @@ class Show extends Component
         $this->item_discount    = $item->discount_percentage;
         $this->item_status      = $item->status;
         $this->item_notes       = $item->technician_notes ?? '';
-        $this->catalog_item_id  = $item->catalog_item_id;
         $this->showItemModal    = true;
-    }
-
-    public function fillFromCatalog(int $catalogId, string $type): void
-    {
-        $this->catalog_item_id = $catalogId;
-        if ($type === 'servicio') {
-            $s = ServiceCatalog::find($catalogId);
-            if ($s) { $this->item_description = $s->name; $this->item_unit_price = $s->default_price; $this->item_type = 'servicio'; }
-        } else {
-            $p = SparePartCatalog::find($catalogId);
-            if ($p) { $this->item_description = $p->name; $this->item_unit_price = $p->unit_price; $this->item_type = 'repuesto'; }
-        }
     }
 
     public function saveItem(): void
@@ -124,10 +108,6 @@ class Show extends Component
             'subtotal'            => $subtotal,
             'status'              => $this->item_status,
             'technician_notes'    => $this->item_notes ?: null,
-            'catalog_item_id'     => $this->catalog_item_id,
-            'catalog_item_type'   => $this->catalog_item_id
-                ? ($this->item_type === 'servicio' ? 'services_catalog' : 'spare_parts_catalog')
-                : null,
         ];
 
         if ($this->editing_item_id) {
@@ -162,7 +142,7 @@ class Show extends Component
 
     private function resetItemForm(): void
     {
-        $this->editing_item_id = $this->catalog_item_id = null;
+        $this->editing_item_id = null;
         $this->item_type = 'servicio';
         $this->item_description = $this->item_notes = '';
         $this->item_quantity = '1';
@@ -349,12 +329,8 @@ class Show extends Component
 
     public function render()
     {
-        $business_id = auth()->user()->business_id;
-        $services    = ServiceCatalog::where('business_id', $business_id)->active()->orderBy('name')->get();
-        $spare_parts = SparePartCatalog::where('business_id', $business_id)->active()->orderBy('name')->get();
-
         $this->workOrder->load(['items', 'remissions', 'invoices', 'purchaseOrders.items', 'client', 'equipment', 'quotation']);
 
-        return view('livewire.admin.workshop.work-orders.show', compact('services', 'spare_parts'));
+        return view('livewire.admin.workshop.work-orders.show');
     }
 }

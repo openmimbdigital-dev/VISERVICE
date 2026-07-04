@@ -9,13 +9,18 @@ trait ResolvesCatalogDatatableRowPermissions
      *
      * @return array{can_edit: bool, can_delete: bool, is_general_readonly: bool}
      */
-    protected function catalogRowPermissions(bool $general, mixed $business_id, mixed $equipment_count = 0): array
-    {
+    protected function catalogRowPermissions(
+        bool $general,
+        mixed $business_id,
+        mixed $equipment_count = 0,
+        string $edit_permission = 'settings.edit',
+        string $delete_permission = 'settings.edit',
+    ): array {
         $business_id     = $business_id !== null && $business_id !== '' ? (int) $business_id : null;
         $equipment_count = (int) $equipment_count;
         $user            = auth()->user();
 
-        if (! $user?->can('settings.edit')) {
+        if (! $user?->can($edit_permission) && ! $user?->can($delete_permission)) {
             return [
                 'can_edit'            => false,
                 'can_delete'          => false,
@@ -25,8 +30,8 @@ trait ResolvesCatalogDatatableRowPermissions
 
         if ($user->hasRole('superAdmin')) {
             return [
-                'can_edit'            => true,
-                'can_delete'          => $equipment_count === 0,
+                'can_edit'            => $user->can($edit_permission),
+                'can_delete'          => $user->can($delete_permission) && $equipment_count === 0,
                 'is_general_readonly' => false,
             ];
         }
@@ -34,8 +39,8 @@ trait ResolvesCatalogDatatableRowPermissions
         $is_owner = ! $general && $business_id !== null && $user->belongsToBusiness($business_id);
 
         return [
-            'can_edit'            => $is_owner,
-            'can_delete'          => $is_owner && $equipment_count === 0,
+            'can_edit'            => $is_owner && $user->can($edit_permission),
+            'can_delete'          => $is_owner && $user->can($delete_permission) && $equipment_count === 0,
             'is_general_readonly' => $general,
         ];
     }
