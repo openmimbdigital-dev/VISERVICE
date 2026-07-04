@@ -1,0 +1,110 @@
+<?php
+
+namespace App\Actions\Business;
+
+use App\Models\Business;
+use App\Models\City;
+use App\Models\OrganizationType;
+use App\Support\BusinessLogoStorage;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Str;
+use Lorisleiva\Actions\Concerns\AsAction;
+
+class CreateOrUpdateBusinessAction
+{
+    use AsAction;
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    public function handle(
+        ?int $business_id,
+        array $data,
+        ?UploadedFile $logo_file = null,
+        bool $remove_logo = false,
+        bool $update_status = false
+    ): Business {
+        abort_unless(
+            auth()->user()?->can($business_id ? 'businesses.edit' : 'businesses.create'),
+            403
+        );
+
+        $organization_type = OrganizationType::query()
+            ->where('active', true)
+            ->findOrFail($data['organization_type_id']);
+
+        $country_id = null;
+
+        if (! empty($data['city_id'])) {
+            $country_id = City::query()->whereKey($data['city_id'])->value('country_id');
+        }
+
+        $attributes = [
+            'name'                 => $data['name'],
+            'nit'                  => $data['nit'],
+            'organization_type_id' => $organization_type->id,
+            'business_type_id'     => $organization_type->business_type_id,
+            'phone_number'         => $data['phone_number'],
+            'email'                => $data['email'],
+            'address'              => $data['address'],
+            'city_id'              => $data['city_id'],
+            'country_id'           => $country_id,
+            'website'              => $data['website'],
+            'facebook'             => $data['facebook'],
+            'instagram'            => $data['instagram'],
+            'twitter'              => $data['twitter'],
+            'representative'       => $data['representative'],
+        ];
+
+        if ($business_id) {
+            $business = Business::query()->forAuthUser()->findOrFail($business_id);
+
+            if ($update_status) {
+                $attributes['status'] = $data['status'];
+            }
+
+            $business->update($attributes);
+
+            $this->syncLogo($business, $logo_file, $remove_logo);
+
+            return $business->fresh();
+        }
+
+        $slug = Str::slug($data['name']);
+
+        if (Business::where('slug', $slug)->exists()) {
+            $slug .= '-' . Str::lower(Str::random(5));
+        }
+
+        $attributes['slug']   = $slug;
+        $attributes['status'] = $data['status'];
+        $attributes['logo']   = null;
+
+        $business = Business::create($attributes);
+
+        $user = auth()->user();
+
+        if ($user && ! $user->hasRole('superAdmin') && ! $user->belongsToBusiness($business->id)) {
+            $user->attachBusiness((int) $business->id, is_primary: $user->businessIds() === []);
+        }
+
+        $this->syncLogo($business, $logo_file, $remove_logo);
+
+        return $business->fresh();
+    }
+
+    private function syncLogo(Business $business, ?UploadedFile $logo_file, bool $remove_logo): void
+    {
+        if ($remove_logo) {
+            BusinessLogoStorage::deleteForBusiness($business->id, $business->logo);
+            $business->update(['logo' => null]);
+
+            return;
+        }
+
+        if ($logo_file) {
+            $path = BusinessLogoStorage::store($business->id, $logo_file, $business->logo);
+            $business->update(['logo' => $path]);
+        }
+    }
+}

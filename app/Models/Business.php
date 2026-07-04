@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Support\BusinessModuleAccess;
+use App\Support\BusinessLogoStorage;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -173,5 +175,32 @@ class Business extends Model
     public function moduleOwner(): Business
     {
         return BusinessModuleAccess::moduleOwnerBusiness($this);
+    }
+
+    protected function logoUrl(): Attribute
+    {
+        return Attribute::get(fn () => BusinessLogoStorage::url($this->logo));
+    }
+
+    protected function logoInitials(): Attribute
+    {
+        return Attribute::get(fn () => strtoupper(mb_substr($this->name, 0, 2)));
+    }
+
+    public function scopeForAuthUser($query)
+    {
+        $user = auth()->user();
+
+        if ($user?->hasRole('superAdmin')) {
+            return $query;
+        }
+
+        $business_ids = $user->businessIds();
+
+        if ($business_ids === []) {
+            return $query->whereRaw('0 = 1');
+        }
+
+        return $query->whereIn($query->getModel()->getTable() . '.id', $business_ids);
     }
 }

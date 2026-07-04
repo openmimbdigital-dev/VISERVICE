@@ -3,7 +3,7 @@
 namespace App\Livewire\Comercio\Business;
 
 use App\Models\City;
-use Illuminate\Support\Facades\Storage;
+use App\Support\BusinessLogoStorage;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -22,7 +22,7 @@ class Edit extends Component
     public string $address = '';
     public ?int $city_id = null;
     public string $website = '';
-    public string $current_logo = '';
+    public ?string $current_logo_url = null;
     public $new_logo = null;
     public bool $remove_logo = false;
 
@@ -32,14 +32,14 @@ class Edit extends Component
 
         abort_unless($business, 403, 'No tienes un comercio asociado.');
 
-        $this->name         = $business->name;
-        $this->nit          = $business->nit;
-        $this->phone_number = $business->phone_number ?? '';
-        $this->email        = $business->email ?? '';
-        $this->address      = $business->address ?? '';
-        $this->city_id      = $business->city_id;
-        $this->website      = $business->website ?? '';
-        $this->current_logo = $business->logo ?? '';
+        $this->name             = $business->name;
+        $this->nit              = $business->nit;
+        $this->phone_number     = $business->phone_number ?? '';
+        $this->email            = $business->email ?? '';
+        $this->address          = $business->address ?? '';
+        $this->city_id          = $business->city_id;
+        $this->website          = $business->website ?? '';
+        $this->current_logo_url = $business->logo_url;
     }
 
     public function save(): void
@@ -65,18 +65,16 @@ class Edit extends Component
 
         $business = auth()->user()->business;
 
-        $logoPath = $business->logo;
-
-        if ($this->remove_logo && $logoPath) {
-            Storage::disk('public')->delete($logoPath);
-            $logoPath = null;
+        if ($this->remove_logo) {
+            BusinessLogoStorage::deleteForBusiness($business->id, $business->logo);
+            $business->update(['logo' => null]);
+            $this->current_logo_url = null;
         }
 
         if ($this->new_logo) {
-            if ($logoPath) {
-                Storage::disk('public')->delete($logoPath);
-            }
-            $logoPath = $this->new_logo->store('business-logos', 'public');
+            $path = BusinessLogoStorage::store($business->id, $this->new_logo, $business->logo);
+            $business->update(['logo' => $path]);
+            $this->current_logo_url = $business->fresh()->logo_url;
         }
 
         $business->update([
@@ -86,12 +84,10 @@ class Edit extends Component
             'address'      => $this->address ?: null,
             'city_id'      => $this->city_id,
             'website'      => $this->website ?: null,
-            'logo'         => $logoPath,
         ]);
 
-        $this->current_logo = $logoPath ?? '';
-        $this->new_logo     = null;
-        $this->remove_logo  = false;
+        $this->new_logo    = null;
+        $this->remove_logo = false;
 
         $this->dispatch('swal', ['title' => 'Información del negocio actualizada.', 'icon' => 'success']);
     }

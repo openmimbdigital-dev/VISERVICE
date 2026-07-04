@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Models\Attribute;
 use App\Models\Brand;
+use App\Models\Business;
 use App\Models\Client;
 use App\Models\Equipment;
 use App\Models\EquipmentModel;
@@ -30,6 +31,11 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Route::bind('client', fn (string $value) => Client::query()
+            ->forAuthUser()
+            ->whereKey($value)
+            ->firstOrFail());
+
+        Route::bind('business', fn (string $value) => Business::query()
             ->forAuthUser()
             ->whereKey($value)
             ->firstOrFail());

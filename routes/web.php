@@ -12,6 +12,7 @@ use App\Livewire\Admin\BankAccounts\Index as AdminBankAccountsIndex;
 use App\Livewire\Admin\Banks\Index as AdminBanksIndex;
 use App\Livewire\Admin\Finance\Index as AdminFinanceIndex;
 use App\Livewire\Admin\Businesses\Index as AdminBusinessesIndex;
+use App\Livewire\Admin\Businesses\Form as AdminBusinessesForm;
 use App\Livewire\Admin\Businesses\ModuleAccess as AdminBusinessesModuleAccess;
 use App\Livewire\Admin\Businesses\Show as AdminBusinessesShow;
 use App\Livewire\Admin\BusinessTypes\Access as AdminBusinessTypesAccess;
@@ -86,8 +87,16 @@ Route::middleware(['auth', 'ensure.business', 'business.module'])->group(functio
         Route::middleware('permission:businesses.view')->group(function () {
             Route::get('/businesses', AdminBusinessesIndex::class)->name('businesses.index');
         });
+        Route::middleware('permission:businesses.create')->group(function () {
+            Route::get('/businesses/form', AdminBusinessesForm::class)->name('businesses.form');
+        });
         Route::middleware('role:superAdmin')->group(function () {
             Route::get('/businesses/modules', AdminBusinessesModuleAccess::class)->name('businesses.modules');
+        });
+        Route::middleware('permission:businesses.edit')->group(function () {
+            Route::get('/businesses/{business}/form', AdminBusinessesForm::class)
+                ->whereNumber('business')
+                ->name('businesses.form.edit');
         });
         Route::middleware('permission:businesses.view')->group(function () {
             Route::get('/businesses/{business}', AdminBusinessesShow::class)

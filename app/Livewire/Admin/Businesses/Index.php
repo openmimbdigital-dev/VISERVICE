@@ -32,7 +32,7 @@ class Index extends Component
 
     public function toggleStatus(int $id): void
     {
-        $business = Business::findOrFail($id);
+        $business = Business::query()->forAuthUser()->findOrFail($id);
 
         if ($business->status) {
             abort_unless(auth()->user()?->can('businesses.deactivate'), 403);
@@ -48,7 +48,11 @@ class Index extends Component
 
     public function render()
     {
-        $businesses = Business::with(['business_type', 'city', 'users', 'latestSubscription.plan'])
+        $user = auth()->user();
+        $base_query = Business::query()->forAuthUser();
+
+        $businesses = (clone $base_query)
+            ->with(['business_type', 'city', 'users', 'latestSubscription.plan'])
             ->when($this->search, fn ($q) => $q->where(fn ($s) =>
                 $s->where('name', 'like', "%{$this->search}%")
                   ->orWhere('nit', 'like', "%{$this->search}%")
@@ -72,15 +76,28 @@ class Index extends Component
             ->paginate(15);
 
         $stats = [
-            'total'   => Business::count(),
-            'active'  => Business::where('status', true)->count(),
-            'pending' => Business::whereHas('subscriptions', fn ($q) => $q->where('status', 'pending'))->count(),
+            'total'   => (clone $base_query)->count(),
+            'active'  => (clone $base_query)->where('status', true)->count(),
+            'pending' => (clone $base_query)->whereHas('subscriptions', fn ($q) => $q->where('status', 'pending'))->count(),
         ];
+
+        $business_types_query = BusinessType::query()->where('status', true);
+
+        if ($user && ! $user->hasRole('superAdmin')) {
+            $business_ids = $user->businessIds();
+
+            $business_types_query->when(
+                $business_ids !== [],
+                fn ($q) => $q->whereHas('businesses', fn ($b) => $b->whereIn('businesses.id', $business_ids)),
+                fn ($q) => $q->whereRaw('0 = 1')
+            );
+        }
 
         return view('livewire.admin.businesses.index', [
             'businesses'     => $businesses,
-            'business_types' => BusinessType::where('status', true)->orderBy('name')->get(),
+            'business_types' => $business_types_query->orderBy('name')->get(),
             'stats'          => $stats,
+            'shows_all'      => $user?->hasRole('superAdmin') ?? false,
         ]);
     }
 }

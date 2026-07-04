@@ -11,6 +11,7 @@ use App\Models\Subscription;
 use App\Models\SubscriptionInvoice;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
+use App\Support\BusinessLogoStorage;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -96,11 +97,6 @@ class RegisterWizard extends Component
                 $slug .= '-' . Str::random(5);
             }
 
-            $logoPath = null;
-            if ($this->business_logo) {
-                $logoPath = $this->business_logo->store('business-logos', 'public');
-            }
-
             $organization_type = OrganizationType::query()->findOrFail($this->organization_type_id);
 
             $business = Business::create([
@@ -109,13 +105,18 @@ class RegisterWizard extends Component
                 'nit'                  => $this->business_nit,
                 'business_type_id'     => $organization_type->business_type_id,
                 'organization_type_id' => $organization_type->id,
-                'phone_number'     => $this->business_phone,
-                'email'            => $this->business_email ?: null,
-                'address'          => $this->business_address ?: null,
-                'city_id'          => $this->business_city_id ?: null,
-                'logo'             => $logoPath,
-                'status'           => true,
+                'phone_number'         => $this->business_phone,
+                'email'                => $this->business_email ?: null,
+                'address'              => $this->business_address ?: null,
+                'city_id'              => $this->business_city_id ?: null,
+                'logo'                 => null,
+                'status'               => true,
             ]);
+
+            if ($this->business_logo) {
+                $logo_path = BusinessLogoStorage::store($business->id, $this->business_logo);
+                $business->update(['logo' => $logo_path]);
+            }
 
             // 2. Crear el usuario
             $user = User::create([

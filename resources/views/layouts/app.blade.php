@@ -30,10 +30,11 @@
             $parts = preg_split('/\s+/u', trim($displayName));
             $initials = mb_strtoupper(mb_substr($parts[0] ?? '', 0, 1) . mb_substr($parts[count($parts) - 1] ?? '', 0, 1));
         }
-        $business       = $currentBusiness ?? $u?->business ?? null;
-        $businessLogo   = ($business?->logo) ? \Illuminate\Support\Facades\Storage::disk('public')->url($business->logo) : null;
-        $businessName   = $business?->name ?? null;
-        $isComercio     = $u?->hasRole('Comercio') ?? false;
+        $business         = $currentBusiness ?? $u?->business ?? null;
+        $businessLogo     = $business?->logo_url;
+        $businessInitials = $business?->logo_initials;
+        $businessName     = $business?->name ?? null;
+        $isComercio       = $u?->hasRole('Comercio') ?? false;
         $showBusinessSwitcher = $u && ! $u->hasRole('superAdmin') && ($selectableBusinesses ?? collect())->count() > 1;
     @endphp
 
@@ -114,13 +115,13 @@
             ]"
         >
             <div class="h-14 flex items-center px-3 border-b border-slate-800/80 gap-2">
-                @if($isComercio && $businessLogo)
+                @if($business && $businessLogo)
                     <img src="{{ $businessLogo }}"
                          alt="{{ $businessName }}"
                          class="h-8 w-8 shrink-0 rounded-lg object-cover ring-1 ring-white/10">
-                @elseif($isComercio && $businessName)
-                    <span class="h-8 w-8 shrink-0 flex items-center justify-center rounded-lg bg-violet-600 text-white text-xs font-bold ring-1 ring-white/10">
-                        {{ strtoupper(substr($businessName, 0, 2)) }}
+                @elseif($business && $businessName)
+                    <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-violet-600 text-xs font-bold text-white ring-1 ring-white/10">
+                        {{ $businessInitials }}
                     </span>
                 @else
                     <img src="{{ asset('images/logo-initial.png') }}"
@@ -129,7 +130,7 @@
                 @endif
                 <div class="min-w-0 flex-1" x-show="showSidebarLabels()" x-transition.opacity>
                     <p class="font-semibold text-white truncate text-sm">
-                        {{ ($isComercio && $businessName) ? $businessName : 'VISERVICE' }}
+                        {{ ($business && $businessName) ? $businessName : 'VISERVICE' }}
                     </p>
                     <p class="text-[11px] text-slate-400 truncate">Panel de control</p>
                 </div>
@@ -236,9 +237,13 @@
                             @click="open = !open"
                             class="flex items-center gap-2.5 rounded-xl pl-1 pr-3 py-1 hover:bg-slate-100 active:bg-slate-200 transition-all border border-transparent hover:border-slate-200"
                         >
-                            @if($isComercio && $businessLogo)
+                            @if($business && $businessLogo)
                                 <img src="{{ $businessLogo }}" alt="{{ $businessName }}"
                                      class="h-8 w-8 rounded-full object-cover shadow-sm ring-1 ring-slate-200">
+                            @elseif($business && $businessName)
+                                <span class="flex h-8 w-8 items-center justify-center rounded-full bg-violet-600 text-xs font-bold text-white shadow-sm ring-1 ring-slate-200">
+                                    {{ $businessInitials }}
+                                </span>
                             @else
                                 <span class="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-indigo-700 text-white text-xs font-bold shadow-sm">
                                     {{ $initials }}
@@ -273,9 +278,13 @@
                             {{-- Header del dropdown --}}
                             <div class="px-4 py-4 bg-gradient-to-br from-indigo-600 to-indigo-800">
                                 <div class="flex items-center gap-3">
-                                    @if($isComercio && $businessLogo)
+                                    @if($business && $businessLogo)
                                         <img src="{{ $businessLogo }}" alt="{{ $businessName }}"
                                              class="h-10 w-10 shrink-0 rounded-full object-cover ring-2 ring-white/30">
+                                    @elseif($business && $businessName)
+                                        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20 text-sm font-bold text-white ring-2 ring-white/30">
+                                            {{ $businessInitials }}
+                                        </span>
                                     @else
                                         <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20 text-white font-bold text-sm">
                                             {{ $initials }}

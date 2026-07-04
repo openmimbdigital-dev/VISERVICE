@@ -110,7 +110,6 @@ class RolesAndPermissionsSeeder extends Seeder
             'settings.attributes.view', 'settings.attributes.create',
             'settings.attributes.edit', 'settings.attributes.delete',
             'roles.view', 'permissions.view',
-            ...$this->businessCatalogPermissions(),
         ])->values());
 
         // Comercio: propietario del negocio registrado vía onboarding
@@ -122,7 +121,6 @@ class RolesAndPermissionsSeeder extends Seeder
             'settings.attributes.view', 'settings.attributes.create',
             'settings.attributes.edit', 'settings.attributes.delete',
             ...$this->workshopAndCatalogPermissions(),
-            ...$this->businessCatalogPermissions(),
         ])->values());
 
         // Supervisor: solo lectura
