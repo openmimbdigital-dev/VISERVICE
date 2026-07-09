@@ -66,6 +66,24 @@ return [
                 'team_positions.delete' => 'Eliminar cargos del equipo',
             ],
         ],
+        'business_payment_methods' => [
+            'name' => 'Negocios — Métodos de pago',
+            'permissions' => [
+                'business_payment_methods.view'   => 'Ver métodos de pago del negocio',
+                'business_payment_methods.create' => 'Crear métodos de pago del negocio',
+                'business_payment_methods.edit'   => 'Editar métodos de pago del negocio',
+                'business_payment_methods.delete' => 'Eliminar métodos de pago del negocio',
+            ],
+        ],
+        'business_bank_accounts' => [
+            'name' => 'Negocios — Datos bancarios',
+            'permissions' => [
+                'business_bank_accounts.view'   => 'Ver cuentas bancarias del negocio',
+                'business_bank_accounts.create' => 'Crear cuentas bancarias del negocio',
+                'business_bank_accounts.edit'   => 'Editar cuentas bancarias del negocio',
+                'business_bank_accounts.delete' => 'Eliminar cuentas bancarias del negocio',
+            ],
+        ],
         'reports' => [
             'name' => 'Gestión de Reportes',
             'permissions' => [

@@ -33,6 +33,7 @@ class DatabaseSeeder extends Seeder
             EquipmentCatalogSeeder::class,
             ItemCatalogSeeder::class,
             ItemsSeeder::class,
+            BusinessPaymentSettingsSeeder::class,
             AttributesSeeder::class,
             ClientsSeeder::class,
             EquipmentSeeder::class,

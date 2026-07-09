@@ -20,6 +20,10 @@ use App\Livewire\Admin\BusinessTypes\Index as AdminBusinessTypesIndex;
 use App\Livewire\Admin\OrganizationTypes\Index as AdminOrganizationTypesIndex;
 use App\Livewire\Admin\TeamPositions\Index as AdminTeamPositionsIndex;
 use App\Livewire\Admin\TeamPositions\Show as AdminTeamPositionsShow;
+use App\Livewire\Admin\Businesses\PaymentMethods\Index as AdminBusinessPaymentMethodsIndex;
+use App\Livewire\Admin\Businesses\PaymentMethods\Show as AdminBusinessPaymentMethodsShow;
+use App\Livewire\Admin\Businesses\BankAccounts\Index as AdminBusinessBankAccountsIndex;
+use App\Livewire\Admin\Businesses\BankAccounts\Show as AdminBusinessBankAccountsShow;
 use App\Livewire\Comercio\Business\Edit as ComercioBusinessEdit;
 use App\Livewire\Admin\Workshop\Clients\Form as WorkshopClientsForm;
 use App\Livewire\Admin\Workshop\Clients\Index as WorkshopClientsIndex;
@@ -130,6 +134,18 @@ Route::middleware(['auth', 'ensure.business', 'business.module'])->group(functio
             Route::get('/team-positions/{teamPosition}', AdminTeamPositionsShow::class)
                 ->whereNumber('teamPosition')
                 ->name('team-positions.show');
+        });
+        Route::middleware('permission:business_payment_methods.view')->group(function () {
+            Route::get('/metodos-pago', AdminBusinessPaymentMethodsIndex::class)->name('business-payment-methods.index');
+            Route::get('/metodos-pago/{paymentMethod}', AdminBusinessPaymentMethodsShow::class)
+                ->whereNumber('paymentMethod')
+                ->name('business-payment-methods.show');
+        });
+        Route::middleware('permission:business_bank_accounts.view')->group(function () {
+            Route::get('/datos-bancarios', AdminBusinessBankAccountsIndex::class)->name('business-bank-accounts.index');
+            Route::get('/datos-bancarios/{bankAccount}', AdminBusinessBankAccountsShow::class)
+                ->whereNumber('bankAccount')
+                ->name('business-bank-accounts.show');
         });
     });
 

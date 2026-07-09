@@ -25,6 +25,15 @@ class BusinessAccessSeeder extends Seeder
         ];
     }
 
+    /** @return list<string> */
+    private function businessPaymentSettingsPermissions(): array
+    {
+        return [
+            'business_payment_methods.view', 'business_payment_methods.create', 'business_payment_methods.edit', 'business_payment_methods.delete',
+            'business_bank_accounts.view', 'business_bank_accounts.create', 'business_bank_accounts.edit', 'business_bank_accounts.delete',
+        ];
+    }
+
     /** @var list<string> */
     private array $workshop_module_permissions = [
         'workshop.view',
@@ -141,6 +150,7 @@ class BusinessAccessSeeder extends Seeder
             ...$permissions,
             ...$this->business_catalog_permissions,
             ...$this->teamPositionPermissions(),
+            ...$this->businessPaymentSettingsPermissions(),
             ...$this->catalogItemsPermissions(),
             ...$this->catalogProductsSettingsPermissions(),
         ]));
@@ -154,6 +164,7 @@ class BusinessAccessSeeder extends Seeder
             ...$this->workshop_module_permissions,
             ...$this->business_catalog_permissions,
             ...$this->teamPositionPermissions(),
+            ...$this->businessPaymentSettingsPermissions(),
             ...$this->catalogItemsPermissions(),
             ...$this->catalogProductsSettingsPermissions(),
         ]));

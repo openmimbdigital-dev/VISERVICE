@@ -28,6 +28,15 @@ class RolesAndPermissionsSeeder extends Seeder
     }
 
     /** @return list<string> */
+    private function businessPaymentSettingsPermissions(): array
+    {
+        return [
+            'business_payment_methods.view', 'business_payment_methods.create', 'business_payment_methods.edit', 'business_payment_methods.delete',
+            'business_bank_accounts.view', 'business_bank_accounts.create', 'business_bank_accounts.edit', 'business_bank_accounts.delete',
+        ];
+    }
+
+    /** @return list<string> */
     private function catalogItemsPermissions(): array
     {
         return [
@@ -112,6 +121,8 @@ class RolesAndPermissionsSeeder extends Seeder
             ...$this->businessCatalogPermissions(),
             // Negocios — Cargos del equipo
             ...$this->teamPositionPermissions(),
+            // Negocios — Pagos y bancos
+            ...$this->businessPaymentSettingsPermissions(),
             // Catálogo — Productos y servicios
             ...$this->catalogItemsPermissions(),
             ...$this->catalogProductsSettingsPermissions(),
@@ -130,8 +141,11 @@ class RolesAndPermissionsSeeder extends Seeder
         $secretario  = Role::firstOrCreate(['name' => 'Secretario',    'guard_name' => $guard]);
         $lider       = Role::firstOrCreate(['name' => 'Lider de congregacion', 'guard_name' => $guard]);
 
-        // superAdmin tiene todos los permisos
+        // superAdmin: todos los permisos del sistema
         $superAdmin->syncPermissions($perms->values());
+
+        // Administrador y Comercio: métodos de pago y datos bancarios del negocio
+        $business_payment_settings = $this->businessPaymentSettingsPermissions();
 
         // Administrador: todo menos suscripciones (las gestiona solo el superAdmin)
         $admin->syncPermissions($perms->only([
@@ -152,9 +166,9 @@ class RolesAndPermissionsSeeder extends Seeder
             'workshop.clients.view', 'workshop.clients.create', 'workshop.clients.edit',
             'workshop.clients.delete', 'workshop.clients.activate', 'workshop.clients.deactivate',
             ...$this->teamPositionPermissions(),
+            ...$business_payment_settings,
             ...$this->catalogItemsPermissions(),
             ...$this->catalogProductsSettingsPermissions(),
-
         ])->values());
 
         // Comercio: propietario del negocio registrado vía onboarding
@@ -171,6 +185,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'settings.model_equipment.edit', 'settings.model_equipment.delete',
             ...$this->workshopPermissions(),
             ...$this->teamPositionPermissions(),
+            ...$business_payment_settings,
             ...$this->catalogItemsPermissions(),
             ...$this->catalogProductsSettingsPermissions(),
         ])->values());

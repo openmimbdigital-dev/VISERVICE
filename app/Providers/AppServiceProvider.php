@@ -4,7 +4,8 @@ namespace App\Providers;
 
 use App\Models\Attribute;
 use App\Models\Brand;
-use App\Models\Business;
+use App\Models\BusinessBankAccount;
+use App\Models\BusinessPaymentMethod;
 use App\Models\Client;
 use App\Models\Equipment;
 use App\Models\EquipmentModel;
@@ -98,6 +99,16 @@ class AppServiceProvider extends ServiceProvider
             ->firstOrFail());
 
         Route::bind('item', fn (string $value) => Item::query()
+            ->forAuthUser()
+            ->whereKey($value)
+            ->firstOrFail());
+
+        Route::bind('paymentMethod', fn (string $value) => BusinessPaymentMethod::query()
+            ->visibleToUser()
+            ->whereKey($value)
+            ->firstOrFail());
+
+        Route::bind('bankAccount', fn (string $value) => BusinessBankAccount::query()
             ->forAuthUser()
             ->whereKey($value)
             ->firstOrFail());
