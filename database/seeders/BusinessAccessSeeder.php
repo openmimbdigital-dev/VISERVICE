@@ -53,6 +53,25 @@ class BusinessAccessSeeder extends Seeder
         'permissions.view', 'permissions.assign',
     ];
 
+    /** @return list<string> */
+    private function catalogItemsPermissions(): array
+    {
+        return [
+            'catalog.view',
+            'catalog.items.view', 'catalog.items.create', 'catalog.items.edit', 'catalog.items.delete',
+        ];
+    }
+
+    /** @return list<string> */
+    private function catalogProductsSettingsPermissions(): array
+    {
+        return [
+            'settings.item_types.view', 'settings.item_types.create', 'settings.item_types.edit', 'settings.item_types.delete',
+            'settings.item_categories.view', 'settings.item_categories.create', 'settings.item_categories.edit', 'settings.item_categories.delete',
+            'settings.units.view', 'settings.units.create', 'settings.units.edit', 'settings.units.delete',
+        ];
+    }
+
     /** @var list<string> */
     private array $workshop_roles = [
         'Administrador',
@@ -122,6 +141,8 @@ class BusinessAccessSeeder extends Seeder
             ...$permissions,
             ...$this->business_catalog_permissions,
             ...$this->teamPositionPermissions(),
+            ...$this->catalogItemsPermissions(),
+            ...$this->catalogProductsSettingsPermissions(),
         ]));
     }
 
@@ -133,6 +154,8 @@ class BusinessAccessSeeder extends Seeder
             ...$this->workshop_module_permissions,
             ...$this->business_catalog_permissions,
             ...$this->teamPositionPermissions(),
+            ...$this->catalogItemsPermissions(),
+            ...$this->catalogProductsSettingsPermissions(),
         ]));
     }
 

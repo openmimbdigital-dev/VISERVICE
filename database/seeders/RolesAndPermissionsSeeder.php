@@ -28,6 +28,25 @@ class RolesAndPermissionsSeeder extends Seeder
     }
 
     /** @return list<string> */
+    private function catalogItemsPermissions(): array
+    {
+        return [
+            'catalog.view',
+            'catalog.items.view', 'catalog.items.create', 'catalog.items.edit', 'catalog.items.delete',
+        ];
+    }
+
+    /** @return list<string> */
+    private function catalogProductsSettingsPermissions(): array
+    {
+        return [
+            'settings.item_types.view', 'settings.item_types.create', 'settings.item_types.edit', 'settings.item_types.delete',
+            'settings.item_categories.view', 'settings.item_categories.create', 'settings.item_categories.edit', 'settings.item_categories.delete',
+            'settings.units.view', 'settings.units.create', 'settings.units.edit', 'settings.units.delete',
+        ];
+    }
+
+    /** @return list<string> */
     private function workshopPermissions(): array
     {
         return [
@@ -93,6 +112,9 @@ class RolesAndPermissionsSeeder extends Seeder
             ...$this->businessCatalogPermissions(),
             // Negocios — Cargos del equipo
             ...$this->teamPositionPermissions(),
+            // Catálogo — Productos y servicios
+            ...$this->catalogItemsPermissions(),
+            ...$this->catalogProductsSettingsPermissions(),
         ])->mapWithKeys(fn ($name) => [
             $name => Permission::firstOrCreate(['name' => $name, 'guard_name' => $guard]),
         ]);
@@ -130,6 +152,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'workshop.clients.view', 'workshop.clients.create', 'workshop.clients.edit',
             'workshop.clients.delete', 'workshop.clients.activate', 'workshop.clients.deactivate',
             ...$this->teamPositionPermissions(),
+            ...$this->catalogItemsPermissions(),
+            ...$this->catalogProductsSettingsPermissions(),
 
         ])->values());
 
@@ -147,6 +171,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'settings.model_equipment.edit', 'settings.model_equipment.delete',
             ...$this->workshopPermissions(),
             ...$this->teamPositionPermissions(),
+            ...$this->catalogItemsPermissions(),
+            ...$this->catalogProductsSettingsPermissions(),
         ])->values());
 
         // Supervisor: solo lectura

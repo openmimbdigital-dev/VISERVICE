@@ -134,6 +134,26 @@ class MenuSeeder extends Seeder
                 'items'            => [],
             ],
             [
+                'slug'             => 'catalogo',
+                'name'             => 'Catálogo',
+                'icon_svg_path'    => 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4',
+                'icon_color_class' => 'text-amber-400',
+                'route_patterns'   => ['admin.catalog.*'],
+                'behavior'         => 'collapsible',
+                'permission'       => 'catalog.view',
+                'sort_order'       => 35,
+                'items'            => [
+                    [
+                        'name'                 => 'Productos y servicios',
+                        'route_name'           => 'admin.catalog.items.index',
+                        'active_route_pattern' => 'admin.catalog.items.*',
+                        'icon_svg_path'        => 'M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4',
+                        'permission'           => 'catalog.items.view',
+                        'sort_order'           => 10,
+                    ],
+                ],
+            ],
+            [
                 'slug'             => 'taller',
                 'name'             => 'Taller',
                 'icon_svg_path'    => 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z | M15 12a3 3 0 11-6 0 3 3 0 016 0z',
@@ -165,6 +185,7 @@ class MenuSeeder extends Seeder
                 'sort_order'       => 60,
                 'items'            => [
                     ['name' => 'Equipos', 'route_name' => 'admin.settings.equipment.index', 'active_route_pattern' => 'admin.settings.equipment.*', 'icon_svg_path' => 'M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z', 'sort_order' => 10],
+                    ['name' => 'Productos y servicios', 'route_name' => 'admin.settings.catalog-products.index', 'active_route_pattern' => 'admin.settings.catalog-products.*', 'icon_svg_path' => 'M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4', 'sort_order' => 20],
                 ],
             ],
         ];
@@ -174,6 +195,7 @@ class MenuSeeder extends Seeder
             'suscripciones' => false,
             'negocios'      => true,
             'mi-negocio'    => true,
+            'catalogo'      => true,
             'taller'        => true,
             'configuracion' => true,
         ];

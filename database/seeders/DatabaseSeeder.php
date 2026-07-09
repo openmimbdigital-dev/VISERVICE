@@ -31,6 +31,8 @@ class DatabaseSeeder extends Seeder
             BanksSeeder::class,
             BankAccountsSeeder::class,
             EquipmentCatalogSeeder::class,
+            ItemCatalogSeeder::class,
+            ItemsSeeder::class,
             AttributesSeeder::class,
             ClientsSeeder::class,
             EquipmentSeeder::class,

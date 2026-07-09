@@ -178,6 +178,43 @@ return [
                 'workshop.work-orders.view' => 'Ver órdenes de trabajo',
             ],
         ],
+        'catalog' => [
+            'name' => 'Catálogo — Productos y servicios',
+            'permissions' => [
+                'catalog.view'         => 'Ver módulo de catálogo',
+                'catalog.items.view'   => 'Ver productos y servicios',
+                'catalog.items.create' => 'Crear productos y servicios',
+                'catalog.items.edit'   => 'Editar productos y servicios',
+                'catalog.items.delete' => 'Eliminar productos y servicios',
+            ],
+        ],
+        'settings_item_types' => [
+            'name' => 'Configuración — Tipos de producto',
+            'permissions' => [
+                'settings.item_types.view'   => 'Ver tipos de producto',
+                'settings.item_types.create' => 'Crear tipos de producto',
+                'settings.item_types.edit'   => 'Editar tipos de producto',
+                'settings.item_types.delete' => 'Eliminar tipos de producto',
+            ],
+        ],
+        'settings_item_categories' => [
+            'name' => 'Configuración — Categorías de producto',
+            'permissions' => [
+                'settings.item_categories.view'   => 'Ver categorías de producto',
+                'settings.item_categories.create' => 'Crear categorías de producto',
+                'settings.item_categories.edit'   => 'Editar categorías de producto',
+                'settings.item_categories.delete' => 'Eliminar categorías de producto',
+            ],
+        ],
+        'settings_units' => [
+            'name' => 'Configuración — Unidades de medida',
+            'permissions' => [
+                'settings.units.view'   => 'Ver unidades de medida',
+                'settings.units.create' => 'Crear unidades de medida',
+                'settings.units.edit'   => 'Editar unidades de medida',
+                'settings.units.delete' => 'Eliminar unidades de medida',
+            ],
+        ],
     ],
 
     /*

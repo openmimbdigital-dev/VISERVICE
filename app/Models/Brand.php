@@ -46,9 +46,20 @@ class Brand extends Model
             ->withTimestamps();
     }
 
+    public function items(): HasMany
+    {
+        return $this->hasMany(Item::class, 'brand_id');
+    }
+
     public function brandUsages(): HasMany
     {
         return $this->hasMany(BrandUsage::class);
+    }
+
+    public function itemCategories(): BelongsToMany
+    {
+        return $this->belongsToMany(ItemCategory::class, 'brand_item_category')
+            ->withTimestamps();
     }
 
     public function scopeActive($query)
@@ -98,7 +109,28 @@ class Brand extends Model
 
     public function hasDependencies(): bool
     {
-        return $this->equipment()->exists();
+        return $this->equipment()->exists() || $this->items()->exists();
+    }
+
+    public function hasEquipmentUsage(): bool
+    {
+        return $this->brandUsages()
+            ->where('type', \App\Enums\BrandUsageType::Equipment)
+            ->exists();
+    }
+
+    public function hasItemsUsage(): bool
+    {
+        return $this->brandUsages()
+            ->where('type', \App\Enums\BrandUsageType::Items)
+            ->exists();
+    }
+
+    public function scopeForItemsCatalog(Builder $query): Builder
+    {
+        return $query->whereHas('brandUsages', function (Builder $usage_query) {
+            $usage_query->where('type', \App\Enums\BrandUsageType::Items);
+        });
     }
 
     public function canDelete(?User $user = null): bool

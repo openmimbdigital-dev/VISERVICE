@@ -127,6 +127,17 @@ Un usuario de negocio **no** puede ver, crear, editar ni eliminar registros de o
 
 ---
 
+## Métodos con un solo propósito
+
+- Cada método público/protegido debe hacer **una sola cosa** (autorizar, cargar datos, validar, persistir, renderizar).
+- **No** sobrecargar métodos con lógica de validación + persistencia + side effects en el mismo bloque.
+- Componente Livewire: `mount()` solo autoriza y carga estado; `save()` delega a Form + Action; la eliminación va en `Delete*Action` o `onDeleteConfirmed()` mínimo.
+- Actions: un Action por operación (`CreateOrUpdate*`, `Delete*`, `Sync*`); no mezclar create/update de entidades distintas.
+- Form: `rules()`, `messages()`, `validated()` y helpers de consulta (`get*()`) separados; sin queries de escritura.
+- Formularios complejos: vista dedicada (`Form.php` + `form.blade.php`), no modal sobrecargado.
+
+---
+
 ## Checklist al terminar un CRUD
 
 - [ ] Form con reglas y mensajes en español

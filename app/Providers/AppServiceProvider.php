@@ -9,8 +9,12 @@ use App\Models\Client;
 use App\Models\Equipment;
 use App\Models\EquipmentModel;
 use App\Models\EquipmentType;
+use App\Models\Item;
+use App\Models\ItemCategory;
+use App\Models\ItemType;
 use App\Models\Quotation;
 use App\Models\TeamPosition;
+use App\Models\Unit;
 use App\Models\WorkOrder;
 use App\Support\CurrentBusiness;
 use App\Support\SidebarMenuBuilder;
@@ -75,6 +79,26 @@ class AppServiceProvider extends ServiceProvider
 
         Route::bind('teamPosition', fn (string $value) => TeamPosition::query()
             ->visibleToUser()
+            ->whereKey($value)
+            ->firstOrFail());
+
+        Route::bind('itemType', fn (string $value) => ItemType::query()
+            ->visibleToUser()
+            ->whereKey($value)
+            ->firstOrFail());
+
+        Route::bind('itemCategory', fn (string $value) => ItemCategory::query()
+            ->visibleToUser()
+            ->whereKey($value)
+            ->firstOrFail());
+
+        Route::bind('unit', fn (string $value) => Unit::query()
+            ->visibleToUser()
+            ->whereKey($value)
+            ->firstOrFail());
+
+        Route::bind('item', fn (string $value) => Item::query()
+            ->forAuthUser()
             ->whereKey($value)
             ->firstOrFail());
 

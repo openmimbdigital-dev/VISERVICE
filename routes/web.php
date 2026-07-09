@@ -42,6 +42,19 @@ use App\Livewire\Admin\Settings\Equipment\Types\Index as SettingsEquipmentTypesI
 use App\Livewire\Admin\Settings\Equipment\Types\Show as SettingsEquipmentTypesShow;
 use App\Livewire\Admin\Settings\Equipment\Index as SettingsEquipmentIndex;
 use App\Livewire\Admin\Settings\Equipment\SectionIndex as SettingsEquipmentSectionIndex;
+use App\Livewire\Admin\Settings\Catalog\Index as SettingsCatalogProductsIndex;
+use App\Livewire\Admin\Settings\Catalog\ItemTypes\Index as SettingsItemTypesIndex;
+use App\Livewire\Admin\Settings\Catalog\ItemTypes\Show as SettingsItemTypesShow;
+use App\Livewire\Admin\Settings\Catalog\ItemCategories\Index as SettingsItemCategoriesIndex;
+use App\Livewire\Admin\Settings\Catalog\ItemCategories\Show as SettingsItemCategoriesShow;
+use App\Livewire\Admin\Settings\Catalog\Units\Index as SettingsUnitsIndex;
+use App\Livewire\Admin\Settings\Catalog\Units\Show as SettingsUnitsShow;
+use App\Livewire\Admin\Settings\Catalog\Brands\Form as SettingsCatalogBrandsForm;
+use App\Livewire\Admin\Settings\Catalog\Brands\Index as SettingsCatalogBrandsIndex;
+use App\Livewire\Admin\Settings\Catalog\Brands\Show as SettingsCatalogBrandsShow;
+use App\Livewire\Admin\Catalog\Items\Form as CatalogItemsForm;
+use App\Livewire\Admin\Catalog\Items\Index as CatalogItemsIndex;
+use App\Livewire\Admin\Catalog\Items\Show as CatalogItemsShow;
 use App\Livewire\Auth\RegisterWizard;
 use Illuminate\Support\Facades\Route;
 
@@ -185,5 +198,52 @@ Route::middleware(['auth', 'ensure.business', 'business.module'])->group(functio
             Route::get('/equipos/atributos/{attribute}', SettingsAttributesShow::class)->name('equipment.attributes.show');
         });
         Route::get('/equipos/{section}', SettingsEquipmentSectionIndex::class)->name('equipment.section');
+
+        // Configuración — Productos y servicios (directorios)
+        Route::get('/productos-servicios', SettingsCatalogProductsIndex::class)->name('catalog-products.index');
+
+        Route::middleware('permission:settings.item_types.view')->group(function () {
+            Route::get('/productos-servicios/tipos', SettingsItemTypesIndex::class)->name('catalog-products.item-types.index');
+            Route::get('/productos-servicios/tipos/{itemType}', SettingsItemTypesShow::class)->name('catalog-products.item-types.show');
+        });
+
+        Route::middleware('permission:settings.item_categories.view')->group(function () {
+            Route::get('/productos-servicios/categorias', SettingsItemCategoriesIndex::class)->name('catalog-products.item-categories.index');
+            Route::get('/productos-servicios/categorias/{itemCategory}', SettingsItemCategoriesShow::class)->name('catalog-products.item-categories.show');
+        });
+
+        Route::middleware('permission:settings.units.view')->group(function () {
+            Route::get('/productos-servicios/unidades', SettingsUnitsIndex::class)->name('catalog-products.units.index');
+            Route::get('/productos-servicios/unidades/{unit}', SettingsUnitsShow::class)->name('catalog-products.units.show');
+        });
+
+        Route::middleware('permission:settings.brands.view')->group(function () {
+            Route::get('/productos-servicios/marcas', SettingsCatalogBrandsIndex::class)->name('catalog-products.brands.index');
+        });
+        Route::middleware('permission:settings.brands.create')->group(function () {
+            Route::get('/productos-servicios/marcas/crear', SettingsCatalogBrandsForm::class)->name('catalog-products.brands.create');
+        });
+        Route::middleware('permission:settings.brands.edit')->group(function () {
+            Route::get('/productos-servicios/marcas/{brand}/editar', SettingsCatalogBrandsForm::class)->name('catalog-products.brands.edit');
+        });
+        Route::middleware('permission:settings.brands.view')->group(function () {
+            Route::get('/productos-servicios/marcas/{brand}', SettingsCatalogBrandsShow::class)->name('catalog-products.brands.show');
+        });
+    });
+
+    // Catálogo — Productos y servicios
+    Route::middleware('permission:catalog.view')->prefix('catalogo')->name('admin.catalog.')->group(function () {
+        Route::middleware('permission:catalog.items.view')->group(function () {
+            Route::get('/productos', CatalogItemsIndex::class)->name('items.index');
+        });
+        Route::middleware('permission:catalog.items.create')->group(function () {
+            Route::get('/productos/crear', CatalogItemsForm::class)->name('items.create');
+        });
+        Route::middleware('permission:catalog.items.edit')->group(function () {
+            Route::get('/productos/{item}/editar', CatalogItemsForm::class)->name('items.edit');
+        });
+        Route::middleware('permission:catalog.items.view')->group(function () {
+            Route::get('/productos/{item}', CatalogItemsShow::class)->name('items.show');
+        });
     });
 });
