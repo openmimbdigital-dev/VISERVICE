@@ -3,7 +3,9 @@
 namespace Database\Seeders;
 
 use App\Actions\Settings\Equipment\CreateOrUpdateBrandAction;
+use App\Enums\BrandUsageType;
 use App\Models\Brand;
+use App\Models\BrandUsage;
 use App\Models\EquipmentModel;
 use App\Models\EquipmentType;
 use Database\Seeders\Support\BrandEquipmentTypeSeeder;
@@ -57,6 +59,22 @@ class EquipmentCatalogSeeder extends Seeder
             );
         }
 
+        $brand_usage_count = 0;
+
+        Brand::query()
+            ->whereNull('business_id')
+            ->where('general', true)
+            ->whereNull('deleted_at')
+            ->pluck('id')
+            ->each(function (int $brand_id) use (&$brand_usage_count) {
+                BrandUsage::query()->firstOrCreate([
+                    'brand_id' => $brand_id,
+                    'type'     => BrandUsageType::Equipment,
+                ]);
+
+                $brand_usage_count++;
+            });
+
         foreach ($types as $name) {
             $this->seedCatalogRecord(
                 EquipmentType::class,
@@ -106,6 +124,10 @@ class EquipmentCatalogSeeder extends Seeder
 
         if ($brand_type_associations > 0) {
             $this->command->info("Marcas: {$brand_type_associations} asociación(es) con tipos de equipo.");
+        }
+
+        if ($brand_usage_count > 0) {
+            $this->command->info("Marcas: {$brand_usage_count} registro(s) de uso (equipment).");
         }
     }
 

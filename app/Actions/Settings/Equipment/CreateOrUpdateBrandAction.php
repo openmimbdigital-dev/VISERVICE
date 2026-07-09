@@ -13,7 +13,6 @@ class CreateOrUpdateBrandAction
     /**
      * Crea o actualiza una marca de equipo.
      *
-     * @param  int|null  $brand_id
      * @param  array{name: string, active: bool, equipment_type_ids: array<int>}  $data
      */
     public function handle(?int $brand_id, array $data): Brand

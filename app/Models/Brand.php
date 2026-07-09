@@ -46,6 +46,11 @@ class Brand extends Model
             ->withTimestamps();
     }
 
+    public function brandUsages(): HasMany
+    {
+        return $this->hasMany(BrandUsage::class);
+    }
+
     public function scopeActive($query)
     {
         $table = $query->getModel()->getTable();
