@@ -50,6 +50,21 @@
                     @error('form.name') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                 </div>
 
+                <div class="sm:col-span-2">
+                    <label class="mb-1.5 block text-xs font-medium text-slate-700">Eslogan / línea comercial</label>
+                    <input type="text" wire:model="form.tagline" placeholder="Ej. Su taller de confianza"
+                        class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('form.tagline') border-rose-400 bg-rose-50 @enderror">
+                    @error('form.tagline') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                    <p class="mt-1 text-xs text-slate-500">Aparece en cotizaciones y documentos del negocio.</p>
+                </div>
+
+                <div>
+                    <label class="mb-1.5 block text-xs font-medium text-slate-700">Régimen tributario</label>
+                    <input type="text" wire:model="form.tax_regime" placeholder="Ej. Responsable de IVA"
+                        class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('form.tax_regime') border-rose-400 bg-rose-50 @enderror">
+                    @error('form.tax_regime') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                </div>
+
                 <div>
                     <label class="mb-1.5 block text-xs font-medium text-slate-700">NIT <span class="text-rose-500">*</span></label>
                     <input type="text" wire:model="form.nit"
@@ -96,6 +111,7 @@
                         class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('form.website') border-rose-400 bg-rose-50 @enderror">
                     @error('form.website') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                 </div>
+
             </div>
 
             <div>

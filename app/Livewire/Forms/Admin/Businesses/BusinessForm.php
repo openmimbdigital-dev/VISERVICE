@@ -26,6 +26,10 @@ class BusinessForm extends Form
 
     public string $website = '';
 
+    public string $tagline = '';
+
+    public string $tax_regime = '';
+
     public string $facebook = '';
 
     public string $instagram = '';
@@ -51,6 +55,8 @@ class BusinessForm extends Form
         $this->address              = $business->address ?? '';
         $this->city_id              = $business->city_id;
         $this->website              = $business->website ?? '';
+        $this->tagline              = $business->tagline ?? '';
+        $this->tax_regime           = $business->tax_regime ?? '';
         $this->facebook             = $business->facebook ?? '';
         $this->instagram            = $business->instagram ?? '';
         $this->twitter              = $business->twitter ?? '';
@@ -79,6 +85,8 @@ class BusinessForm extends Form
             'address'      => ['nullable', 'string', 'max:255'],
             'city_id'      => ['nullable', 'integer', 'exists:cities,id'],
             'website'      => ['nullable', 'url', 'max:255'],
+            'tagline'      => ['nullable', 'string', 'max:200'],
+            'tax_regime'   => ['nullable', 'string', 'max:80'],
             'facebook'     => ['nullable', 'string', 'max:255'],
             'instagram'    => ['nullable', 'string', 'max:255'],
             'twitter'      => ['nullable', 'string', 'max:255'],
@@ -122,6 +130,8 @@ class BusinessForm extends Form
             'address'              => $this->address ?: null,
             'city_id'              => $this->city_id,
             'website'              => $this->website ?: null,
+            'tagline'              => $this->tagline ?: null,
+            'tax_regime'           => $this->tax_regime ?: null,
             'facebook'             => $this->facebook ?: null,
             'instagram'            => $this->instagram ?: null,
             'twitter'              => $this->twitter ?: null,

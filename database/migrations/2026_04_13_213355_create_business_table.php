@@ -27,6 +27,8 @@ return new class extends Migration
             $table->string('email')->nullable();
             $table->string('slug')->unique();
             $table->string('nit')->unique();
+            $table->string('tagline', 200)->nullable()->comment('Eslogan o línea comercial');
+            $table->string('tax_regime', 80)->nullable()->comment('Régimen tributario, ej. Responsable de IVA');
             $table->string('logo')->nullable();
             $table->string('website')->nullable();
             $table->string('facebook')->nullable();

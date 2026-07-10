@@ -2,17 +2,26 @@
 
 namespace App\Livewire\Admin\Workshop\Quotations;
 
+use App\Actions\Workshop\DeleteQuotationAction;
+use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
 use App\Models\Quotation;
 use Arm092\LivewireDatatables\Column;
 use Arm092\LivewireDatatables\DateColumn;
 use Arm092\LivewireDatatables\Livewire\LivewireDatatable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Livewire\Attributes\On;
 
 class DatatableQuotations extends LivewireDatatable
 {
+    use ConfirmsDeletionWithLivewireAlert;
+
     public bool $exportable = true;
+
     public ?int $perPage = 25;
+
+    #[On('quotation-saved')]
+    public function onSaved(): void {}
 
     public function builder(): Builder
     {
@@ -50,28 +59,41 @@ class DatatableQuotations extends LivewireDatatable
             })->label('Válida hasta'),
 
             Column::callback(['quotations.status'], function ($status) {
-                $map = [
-                    'borrador'  => ['label' => 'Borrador',  'class' => 'bg-slate-100 text-slate-600 ring-1 ring-slate-500/20'],
-                    'enviada'   => ['label' => 'Enviada',   'class' => 'bg-blue-50 text-blue-700 ring-1 ring-blue-600/20'],
-                    'aceptada'  => ['label' => 'Aceptada',  'class' => 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20'],
-                    'rechazada' => ['label' => 'Rechazada', 'class' => 'bg-red-50 text-red-700 ring-1 ring-red-600/20'],
-                    'vencida'   => ['label' => 'Vencida',   'class' => 'bg-orange-50 text-orange-700 ring-1 ring-orange-600/20'],
-                ];
-                $s = $map[$status] ?? ['label' => $status, 'class' => 'bg-slate-100 text-slate-600'];
-                return '<span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ' . $s['class'] . '">' . $s['label'] . '</span>';
-            })->label('Estado')->filterable([
-                'borrador' => 'Borrador', 'enviada' => 'Enviada',
-                'aceptada' => 'Aceptada', 'rechazada' => 'Rechazada', 'vencida' => 'Vencida',
-            ]),
+                return '<span class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 ring-1 ring-slate-500/20">Borrador</span>';
+            })->label('Estado'),
 
             DateColumn::name('quotations.created_at')
                 ->label('Fecha')
                 ->sortable(),
 
-            Column::callback(['quotations.id'], function ($id) {
-                return view('livewire.admin.workshop.quotations.actions', ['id' => $id]);
+            Column::callback(['quotations.id', 'quotations.status'], function ($id, $status) {
+                $can_delete = $status === 'borrador'
+                    && auth()->user()->can('workshop.quotations.delete');
+
+                return view('livewire.admin.workshop.quotations.actions', [
+                    'id'         => $id,
+                    'status'     => $status,
+                    'can_delete' => $can_delete,
+                ]);
             })->label('Acciones')->unsortable(),
         ];
+    }
+
+    public function deleteRecord(int $id): void
+    {
+        abort_unless(auth()->user()->can('workshop.quotations.delete'), 403);
+        $this->askDeleteConfirmation($id, '¿Eliminar esta cotización?');
+    }
+
+    protected function onDeleteConfirmed(): void
+    {
+        try {
+            DeleteQuotationAction::run($this->delete_id);
+            $this->alertDeleteSuccess('Cotización eliminada correctamente.');
+            $this->dispatch('quotation-deleted');
+        } catch (\Throwable $e) {
+            $this->alertDeleteError($e->getMessage() ?: 'No se pudo eliminar la cotización.');
+        }
     }
 
     public function render()

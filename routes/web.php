@@ -31,8 +31,12 @@ use App\Livewire\Admin\Workshop\Equipment\Form as WorkshopEquipmentForm;
 use App\Livewire\Admin\Workshop\Equipment\Index as WorkshopEquipmentIndex;
 use App\Livewire\Admin\Workshop\Equipment\Show as WorkshopEquipmentShow;
 use App\Livewire\Admin\Workshop\Equipment\TypeIndex as WorkshopEquipmentTypeIndex;
+use App\Livewire\Admin\Workshop\Quotations\Form as WorkshopQuotationsForm;
 use App\Livewire\Admin\Workshop\Quotations\Index as WorkshopQuotationsIndex;
+use App\Livewire\Admin\Workshop\Quotations\PrintView as WorkshopQuotationsPrint;
 use App\Livewire\Admin\Workshop\Quotations\Show as WorkshopQuotationsShow;
+use App\Livewire\Admin\Workshop\QuotationServiceTypes\Index as WorkshopQuotationServiceTypesIndex;
+use App\Livewire\Admin\Workshop\QuotationServiceTypes\Show as WorkshopQuotationServiceTypesShow;
 use App\Livewire\Admin\Workshop\WorkOrders\Index as WorkshopWorkOrdersIndex;
 use App\Livewire\Admin\Workshop\WorkOrders\Show as WorkshopWorkOrdersShow;
 use App\Livewire\Admin\Settings\Equipment\Attributes\Form as SettingsAttributesForm;
@@ -178,7 +182,20 @@ Route::middleware(['auth', 'ensure.business', 'business.module'])->group(functio
         });
         Route::middleware('permission:workshop.quotations.view')->group(function () {
             Route::get('/cotizaciones', WorkshopQuotationsIndex::class)->name('quotations.index');
+        });
+        Route::middleware('permission:workshop.quotations.create')->group(function () {
+            Route::get('/cotizaciones/form', WorkshopQuotationsForm::class)->name('quotations.form');
+        });
+        Route::middleware('permission:workshop.quotations.edit')->group(function () {
+            Route::get('/cotizaciones/{quotation}/form', WorkshopQuotationsForm::class)->name('quotations.form.edit');
+        });
+        Route::middleware('permission:workshop.quotations.view')->group(function () {
+            Route::get('/cotizaciones/{quotation}/imprimir', WorkshopQuotationsPrint::class)->name('quotations.print');
             Route::get('/cotizaciones/{quotation}', WorkshopQuotationsShow::class)->name('quotations.show');
+        });
+        Route::middleware('permission:workshop.quotation_service_types.view')->group(function () {
+            Route::get('/tipos-servicio', WorkshopQuotationServiceTypesIndex::class)->name('quotation-service-types.index');
+            Route::get('/tipos-servicio/{quotationServiceType}', WorkshopQuotationServiceTypesShow::class)->name('quotation-service-types.show');
         });
         Route::middleware('permission:workshop.work-orders.view')->group(function () {
             Route::get('/ordenes', WorkshopWorkOrdersIndex::class)->name('work-orders.index');

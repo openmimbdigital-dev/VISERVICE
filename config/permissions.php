@@ -187,7 +187,19 @@ return [
         'workshop_quotations' => [
             'name' => 'Taller — Cotizaciones',
             'permissions' => [
-                'workshop.quotations.view' => 'Ver cotizaciones',
+                'workshop.quotations.view'   => 'Ver cotizaciones',
+                'workshop.quotations.create' => 'Crear cotizaciones',
+                'workshop.quotations.edit'   => 'Editar cotizaciones',
+                'workshop.quotations.delete' => 'Eliminar cotizaciones',
+            ],
+        ],
+        'workshop_quotation_service_types' => [
+            'name' => 'Taller — Tipos de servicio',
+            'permissions' => [
+                'workshop.quotation_service_types.view'   => 'Ver tipos de servicio',
+                'workshop.quotation_service_types.create' => 'Crear tipos de servicio',
+                'workshop.quotation_service_types.edit'   => 'Editar tipos de servicio',
+                'workshop.quotation_service_types.delete' => 'Eliminar tipos de servicio',
             ],
         ],
         'workshop_work_orders' => [

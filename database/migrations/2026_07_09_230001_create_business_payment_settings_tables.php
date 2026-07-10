@@ -45,10 +45,26 @@ return new class extends Migration
             $table->index(['business_id', 'deleted_at', 'active'], 'business_bank_accounts_business_deleted_active_idx');
             $table->index(['business_id', 'deleted_at', 'is_default'], 'business_bank_accounts_business_deleted_default_idx');
         });
+
+        if (Schema::hasTable('quotations')) {
+            Schema::table('quotations', function (Blueprint $table) {
+                $table->foreign('business_payment_method_id')
+                    ->references('id')->on('business_payment_methods')->nullOnDelete();
+                $table->foreign('business_bank_account_id')
+                    ->references('id')->on('business_bank_accounts')->nullOnDelete();
+            });
+        }
     }
 
     public function down(): void
     {
+        if (Schema::hasTable('quotations')) {
+            Schema::table('quotations', function (Blueprint $table) {
+                $table->dropForeign(['business_payment_method_id']);
+                $table->dropForeign(['business_bank_account_id']);
+            });
+        }
+
         Schema::dropIfExists('business_bank_accounts');
         Schema::dropIfExists('business_payment_methods');
     }

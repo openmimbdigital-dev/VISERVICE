@@ -96,10 +96,22 @@ return new class extends Migration
             $table->index(['business_id', 'item_type_id', 'deleted_at'], 'items_business_type_deleted_idx');
             $table->index(['business_id', 'item_category_id', 'deleted_at'], 'items_business_category_deleted_idx');
         });
+
+        Schema::table('quotation_items', function (Blueprint $table) {
+            $table->foreign('item_id')->references('id')->on('items')->nullOnDelete();
+            $table->foreign('item_type_id')->references('id')->on('item_types')->nullOnDelete();
+            $table->foreign('item_category_id')->references('id')->on('item_categories')->nullOnDelete();
+        });
     }
 
     public function down(): void
     {
+        Schema::table('quotation_items', function (Blueprint $table) {
+            $table->dropForeign(['item_id']);
+            $table->dropForeign(['item_type_id']);
+            $table->dropForeign(['item_category_id']);
+        });
+
         Schema::dropIfExists('items');
         Schema::dropIfExists('brand_item_category');
         Schema::dropIfExists('units');

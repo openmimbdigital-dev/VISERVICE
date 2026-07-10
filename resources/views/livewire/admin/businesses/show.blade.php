@@ -31,6 +31,9 @@
                             </span>
                         @endif
                     </div>
+                    @if($business->tagline)
+                    <p class="mt-1 text-sm italic text-slate-600">{{ $business->tagline }}</p>
+                    @endif
                     <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-500">
                         @if($business->nit)
                             <span>NIT: <span class="font-medium text-slate-700">{{ $business->nit }}</span></span>
@@ -98,6 +101,14 @@
                 <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
                     <dt class="text-xs font-medium text-slate-500">NIT</dt>
                     <dd class="text-sm text-slate-900 sm:col-span-2">{{ $business->nit ?? '—' }}</dd>
+                </div>
+                <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt class="text-xs font-medium text-slate-500">Eslogan</dt>
+                    <dd class="text-sm text-slate-900 sm:col-span-2">{{ $business->tagline ?? '—' }}</dd>
+                </div>
+                <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt class="text-xs font-medium text-slate-500">Régimen tributario</dt>
+                    <dd class="text-sm text-slate-900 sm:col-span-2">{{ $business->tax_regime ?? '—' }}</dd>
                 </div>
                 <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
                     <dt class="text-xs font-medium text-slate-500">Tipo de organización</dt>

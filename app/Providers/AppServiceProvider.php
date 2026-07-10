@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Models\Attribute;
 use App\Models\Brand;
+use App\Models\Business;
 use App\Models\BusinessBankAccount;
 use App\Models\BusinessPaymentMethod;
 use App\Models\Client;
@@ -14,6 +15,7 @@ use App\Models\Item;
 use App\Models\ItemCategory;
 use App\Models\ItemType;
 use App\Models\Quotation;
+use App\Models\QuotationServiceType;
 use App\Models\TeamPosition;
 use App\Models\Unit;
 use App\Models\WorkOrder;
@@ -70,6 +72,11 @@ class AppServiceProvider extends ServiceProvider
 
         Route::bind('quotation', fn (string $value) => Quotation::query()
             ->forAuthUser()
+            ->whereKey($value)
+            ->firstOrFail());
+
+        Route::bind('quotationServiceType', fn (string $value) => QuotationServiceType::query()
+            ->visibleToUser()
             ->whereKey($value)
             ->firstOrFail());
 

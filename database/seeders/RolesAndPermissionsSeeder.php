@@ -56,6 +56,29 @@ class RolesAndPermissionsSeeder extends Seeder
     }
 
     /** @return list<string> */
+    private function quotationServiceTypePermissions(): array
+    {
+        return [
+            'workshop.quotation_service_types.view',
+            'workshop.quotation_service_types.create',
+            'workshop.quotation_service_types.edit',
+            'workshop.quotation_service_types.delete',
+        ];
+    }
+
+    /** @return list<string> */
+    private function quotationPermissions(): array
+    {
+        return [
+            'workshop.quotations.view',
+            'workshop.quotations.create',
+            'workshop.quotations.edit',
+            'workshop.quotations.delete',
+            ...$this->quotationServiceTypePermissions(),
+        ];
+    }
+
+    /** @return list<string> */
     private function workshopPermissions(): array
     {
         return [
@@ -64,7 +87,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'workshop.clients.delete', 'workshop.clients.activate', 'workshop.clients.deactivate',
             'workshop.equipment.view', 'workshop.equipment.create', 'workshop.equipment.edit',
             'workshop.equipment.delete',
-            'workshop.quotations.view',
+            ...$this->quotationPermissions(),
             'workshop.work-orders.view',
         ];
     }
@@ -115,7 +138,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'workshop.equipment.view', 'workshop.equipment.create', 'workshop.equipment.edit',
             'workshop.equipment.delete',
             'workshop.view',
-            'workshop.quotations.view',
+            ...$this->quotationPermissions(),
             'workshop.work-orders.view',
             // Negocios — Tipos y acceso
             ...$this->businessCatalogPermissions(),
@@ -160,11 +183,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'settings.model_equipment.view', 'settings.model_equipment.create',
             'settings.model_equipment.edit', 'settings.model_equipment.delete',
             'roles.view', 'permissions.view',
-            'workshop.view',
-            'workshop.quotations.view',
-            'workshop.work-orders.view',
-            'workshop.clients.view', 'workshop.clients.create', 'workshop.clients.edit',
-            'workshop.clients.delete', 'workshop.clients.activate', 'workshop.clients.deactivate',
+            ...$this->workshopPermissions(),
             ...$this->teamPositionPermissions(),
             ...$business_payment_settings,
             ...$this->catalogItemsPermissions(),

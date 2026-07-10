@@ -50,6 +50,8 @@ class CreateOrUpdateBusinessAction
             'city_id'              => $data['city_id'],
             'country_id'           => $country_id,
             'website'              => $data['website'],
+            'tagline'              => $data['tagline'] ?? null,
+            'tax_regime'           => $data['tax_regime'] ?? null,
             'facebook'             => $data['facebook'],
             'instagram'            => $data['instagram'],
             'twitter'              => $data['twitter'],

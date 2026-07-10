@@ -23,6 +23,8 @@ class Business extends Model
         'email',
         'slug',
         'nit',
+        'tagline',
+        'tax_regime',
         'logo',
         'website',
         'facebook',

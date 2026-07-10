@@ -22,6 +22,8 @@ class Edit extends Component
     public string $address = '';
     public ?int $city_id = null;
     public string $website = '';
+    public string $tagline = '';
+    public string $tax_regime = '';
     public ?string $current_logo_url = null;
     public $new_logo = null;
     public bool $remove_logo = false;
@@ -39,6 +41,8 @@ class Edit extends Component
         $this->address          = $business->address ?? '';
         $this->city_id          = $business->city_id;
         $this->website          = $business->website ?? '';
+        $this->tagline          = $business->tagline ?? '';
+        $this->tax_regime       = $business->tax_regime ?? '';
         $this->current_logo_url = $business->logo_url;
     }
 
@@ -51,6 +55,8 @@ class Edit extends Component
             'address'      => 'nullable|string|max:255',
             'city_id'      => 'nullable|exists:cities,id',
             'website'      => 'nullable|url|max:255',
+            'tagline'      => 'nullable|string|max:200',
+            'tax_regime'   => 'nullable|string|max:80',
             'new_logo'     => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ], [
             'name.required'        => 'El nombre del comercio es obligatorio.',
@@ -84,6 +90,8 @@ class Edit extends Component
             'address'      => $this->address ?: null,
             'city_id'      => $this->city_id,
             'website'      => $this->website ?: null,
+            'tagline'      => $this->tagline ?: null,
+            'tax_regime'   => $this->tax_regime ?: null,
         ]);
 
         $this->new_logo    = null;

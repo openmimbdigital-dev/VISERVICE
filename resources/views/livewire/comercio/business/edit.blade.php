@@ -127,6 +127,18 @@
                     @error('website') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                 </div>
 
+                <div class="sm:col-span-2">
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Eslogan / línea comercial</label>
+                    <input wire:model="tagline" type="text" placeholder="Ej. Su taller de confianza"
+                        class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Régimen tributario</label>
+                    <input wire:model="tax_regime" type="text" placeholder="Ej. Responsable de IVA"
+                        class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition">
+                </div>
+
                 {{-- Ciudad --}}
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1.5">Ciudad</label>

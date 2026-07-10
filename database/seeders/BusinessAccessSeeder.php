@@ -34,16 +34,34 @@ class BusinessAccessSeeder extends Seeder
         ];
     }
 
-    /** @var list<string> */
-    private array $workshop_module_permissions = [
-        'workshop.view',
-        'workshop.clients.view', 'workshop.clients.create', 'workshop.clients.edit',
-        'workshop.clients.delete', 'workshop.clients.activate', 'workshop.clients.deactivate',
-        'workshop.equipment.view', 'workshop.equipment.create', 'workshop.equipment.edit',
-        'workshop.equipment.delete',
-        'workshop.quotations.view',
-        'workshop.work-orders.view',
-    ];
+    /** @return list<string> */
+    private function quotationModulePermissions(): array
+    {
+        return [
+            'workshop.quotations.view',
+            'workshop.quotations.create',
+            'workshop.quotations.edit',
+            'workshop.quotations.delete',
+            'workshop.quotation_service_types.view',
+            'workshop.quotation_service_types.create',
+            'workshop.quotation_service_types.edit',
+            'workshop.quotation_service_types.delete',
+        ];
+    }
+
+    /** @return list<string> */
+    private function workshopModulePermissions(): array
+    {
+        return array_values(array_unique([
+            'workshop.view',
+            'workshop.clients.view', 'workshop.clients.create', 'workshop.clients.edit',
+            'workshop.clients.delete', 'workshop.clients.activate', 'workshop.clients.deactivate',
+            'workshop.equipment.view', 'workshop.equipment.create', 'workshop.equipment.edit',
+            'workshop.equipment.delete',
+            ...$this->quotationModulePermissions(),
+            'workshop.work-orders.view',
+        ]));
+    }
 
     /** @var list<string> */
     private array $workshop_base_permissions = [
@@ -161,7 +179,7 @@ class BusinessAccessSeeder extends Seeder
     {
         return array_values(array_unique([
             ...$this->workshop_base_permissions,
-            ...$this->workshop_module_permissions,
+            ...$this->workshopModulePermissions(),
             ...$this->business_catalog_permissions,
             ...$this->teamPositionPermissions(),
             ...$this->businessPaymentSettingsPermissions(),
