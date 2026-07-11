@@ -15,8 +15,6 @@ class DeleteQuotationAction
 
         $quotation = Quotation::query()->forAuthUser()->findOrFail($quotation_id);
 
-        abort_unless($quotation->canDelete(), 403, 'No se puede eliminar esta cotización.');
-
         $quotation->delete();
     }
 }

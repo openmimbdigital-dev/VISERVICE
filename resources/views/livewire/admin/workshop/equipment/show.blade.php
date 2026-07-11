@@ -8,7 +8,7 @@
         <span class="text-slate-300">/</span>
         <a href="{{ route('admin.workshop.equipment.type', $equipment_type) }}" wire:navigate class="rounded px-1.5 py-0.5 hover:bg-slate-200/60">{{ $equipment_type->name }}</a>
         <span class="text-slate-300">/</span>
-        <span class="font-semibold text-slate-900">{{ $equipment->plate }}</span>
+        <span class="font-semibold text-slate-900">{{ $equipment->name ?: $equipment->plate }}</span>
     </nav>
 
     <header class="mb-8">
@@ -16,7 +16,7 @@
             <div class="min-w-0 flex-1 border-l-4 border-indigo-600 pl-4 sm:pl-5">
                 <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-indigo-600/90">Taller · Equipos</p>
                 <div class="mt-2 flex flex-wrap items-center gap-3">
-                    <h1 class="text-2xl font-bold tracking-tight text-slate-900">{{ $equipment->plate }}</h1>
+                    <h1 class="text-2xl font-bold tracking-tight text-slate-900">{{ $equipment->name ?: $equipment->plate }}</h1>
                     <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium {{ $equipment->status ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20' : 'bg-slate-100 text-slate-600 ring-1 ring-slate-500/20' }}">
                         {{ $equipment->status ? 'Activo' : 'Inactivo' }}
                     </span>
@@ -61,6 +61,10 @@
                 <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
                     <dt class="text-xs font-medium text-slate-500">ID</dt>
                     <dd class="font-mono text-sm text-slate-900 sm:col-span-2">{{ $equipment->id }}</dd>
+                </div>
+                <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt class="text-xs font-medium text-slate-500">Nombre</dt>
+                    <dd class="text-sm font-medium text-slate-900 sm:col-span-2">{{ $equipment->name ?: '—' }}</dd>
                 </div>
                 <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
                     <dt class="text-xs font-medium text-slate-500">Placa</dt>

@@ -99,7 +99,7 @@ Route::middleware(['auth', 'ensure.business', 'business.module'])->group(functio
         Route::get('/subscriptions', AdminSubscriptionsIndex::class)->name('subscriptions.index');
         Route::get('/subscriptions/plans', AdminSubscriptionPlansIndex::class)->name('subscriptions.plans.index');
         Route::get('/payments', AdminPaymentsIndex::class)->name('payments.index');
-        Route::get('/finanzas', AdminFinanceIndex::class)->name('finance.index');
+        Route::get('/finance', AdminFinanceIndex::class)->name('finance.index');
         Route::get('/bank-accounts', AdminBankAccountsIndex::class)->name('bank-accounts.index');
         Route::get('/banks', AdminBanksIndex::class)->name('banks.index');
     });
@@ -140,143 +140,145 @@ Route::middleware(['auth', 'ensure.business', 'business.module'])->group(functio
                 ->name('team-positions.show');
         });
         Route::middleware('permission:business_payment_methods.view')->group(function () {
-            Route::get('/metodos-pago', AdminBusinessPaymentMethodsIndex::class)->name('business-payment-methods.index');
-            Route::get('/metodos-pago/{paymentMethod}', AdminBusinessPaymentMethodsShow::class)
+            Route::get('/payment-methods', AdminBusinessPaymentMethodsIndex::class)->name('business-payment-methods.index');
+            Route::get('/payment-methods/{paymentMethod}', AdminBusinessPaymentMethodsShow::class)
                 ->whereNumber('paymentMethod')
                 ->name('business-payment-methods.show');
         });
         Route::middleware('permission:business_bank_accounts.view')->group(function () {
-            Route::get('/datos-bancarios', AdminBusinessBankAccountsIndex::class)->name('business-bank-accounts.index');
-            Route::get('/datos-bancarios/{bankAccount}', AdminBusinessBankAccountsShow::class)
+            Route::get('/business-bank-accounts', AdminBusinessBankAccountsIndex::class)->name('business-bank-accounts.index');
+            Route::get('/business-bank-accounts/{bankAccount}', AdminBusinessBankAccountsShow::class)
                 ->whereNumber('bankAccount')
                 ->name('business-bank-accounts.show');
         });
     });
 
     // Rutas del Comercio
-    Route::middleware('role:Comercio')->prefix('comercio')->name('comercio.')->group(function () {
-        Route::get('/mi-negocio', ComercioBusinessEdit::class)->name('business.edit');
+    Route::middleware('role:Comercio')->prefix('merchant')->name('merchant.')->group(function () {
+        Route::get('/my-business', ComercioBusinessEdit::class)->name('business.edit');
     });
 
     // Módulo Taller — Clientes
-    Route::prefix('taller')->name('admin.workshop.')->group(function () {
+    Route::prefix('workshop')->name('admin.workshop.')->group(function () {
         Route::middleware('permission:workshop.clients.view')->group(function () {
-            Route::get('/clientes', WorkshopClientsIndex::class)->name('clients.index');
+            Route::get('/clients', WorkshopClientsIndex::class)->name('clients.index');
         });
         Route::middleware('permission:workshop.clients.create')->group(function () {
-            Route::get('/clientes/form', WorkshopClientsForm::class)->name('clients.form');
+            Route::get('/clients/form', WorkshopClientsForm::class)->name('clients.form');
         });
         Route::middleware('permission:workshop.clients.edit')->group(function () {
-            Route::get('/clientes/{client}/form', WorkshopClientsForm::class)->name('clients.form.edit');
+            Route::get('/clients/{client}/form', WorkshopClientsForm::class)->name('clients.form.edit');
         });
         Route::middleware('permission:workshop.equipment.view')->group(function () {
-            Route::get('/equipos', WorkshopEquipmentIndex::class)->name('equipment.index');
-            Route::get('/equipos/{equipmentType}', WorkshopEquipmentTypeIndex::class)->name('equipment.type');
-            Route::get('/equipos/{equipmentType}/{equipment}', WorkshopEquipmentShow::class)->name('equipment.show');
+            Route::get('/equipment', WorkshopEquipmentIndex::class)->name('equipment.index');
+            Route::get('/equipment/{equipmentType}', WorkshopEquipmentTypeIndex::class)->name('equipment.type');
         });
         Route::middleware('permission:workshop.equipment.create')->group(function () {
-            Route::get('/equipos/{equipmentType}/crear', WorkshopEquipmentForm::class)->name('equipment.form');
+            Route::get('/equipment/{equipmentType}/create', WorkshopEquipmentForm::class)->name('equipment.form');
         });
         Route::middleware('permission:workshop.equipment.edit')->group(function () {
-            Route::get('/equipos/{equipmentType}/{equipment}/editar', WorkshopEquipmentForm::class)->name('equipment.form.edit');
+            Route::get('/equipment/{equipmentType}/{equipment}/edit', WorkshopEquipmentForm::class)->name('equipment.form.edit');
+        });
+        Route::middleware('permission:workshop.equipment.view')->group(function () {
+            Route::get('/equipment/{equipmentType}/{equipment}', WorkshopEquipmentShow::class)->name('equipment.show');
         });
         Route::middleware('permission:workshop.quotations.view')->group(function () {
-            Route::get('/cotizaciones', WorkshopQuotationsIndex::class)->name('quotations.index');
+            Route::get('/quotations', WorkshopQuotationsIndex::class)->name('quotations.index');
         });
         Route::middleware('permission:workshop.quotations.create')->group(function () {
-            Route::get('/cotizaciones/form', WorkshopQuotationsForm::class)->name('quotations.form');
+            Route::get('/quotations/form', WorkshopQuotationsForm::class)->name('quotations.form');
         });
         Route::middleware('permission:workshop.quotations.edit')->group(function () {
-            Route::get('/cotizaciones/{quotation}/form', WorkshopQuotationsForm::class)->name('quotations.form.edit');
+            Route::get('/quotations/{quotation}/form', WorkshopQuotationsForm::class)->name('quotations.form.edit');
         });
         Route::middleware('permission:workshop.quotations.view')->group(function () {
-            Route::get('/cotizaciones/{quotation}/imprimir', WorkshopQuotationsPrint::class)->name('quotations.print');
-            Route::get('/cotizaciones/{quotation}', WorkshopQuotationsShow::class)->name('quotations.show');
+            Route::get('/quotations/{quotation}/print', WorkshopQuotationsPrint::class)->name('quotations.print');
+            Route::get('/quotations/{quotation}', WorkshopQuotationsShow::class)->name('quotations.show');
         });
         Route::middleware('permission:workshop.quotation_service_types.view')->group(function () {
-            Route::get('/tipos-servicio', WorkshopQuotationServiceTypesIndex::class)->name('quotation-service-types.index');
-            Route::get('/tipos-servicio/{quotationServiceType}', WorkshopQuotationServiceTypesShow::class)->name('quotation-service-types.show');
+            Route::get('/service-types', WorkshopQuotationServiceTypesIndex::class)->name('quotation-service-types.index');
+            Route::get('/service-types/{quotationServiceType}', WorkshopQuotationServiceTypesShow::class)->name('quotation-service-types.show');
         });
         Route::middleware('permission:workshop.work-orders.view')->group(function () {
-            Route::get('/ordenes', WorkshopWorkOrdersIndex::class)->name('work-orders.index');
-            Route::get('/ordenes/{workOrder}', WorkshopWorkOrdersShow::class)->name('work-orders.show');
+            Route::get('/work-orders', WorkshopWorkOrdersIndex::class)->name('work-orders.index');
+            Route::get('/work-orders/{workOrder}', WorkshopWorkOrdersShow::class)->name('work-orders.show');
         });
     });
 
     // Configuración
-    Route::middleware('permission:settings.view')->prefix('configuracion')->name('admin.settings.')->group(function () {
-        Route::get('/equipos', SettingsEquipmentIndex::class)->name('equipment.index');
+    Route::middleware('permission:settings.view')->prefix('settings')->name('admin.settings.')->group(function () {
+        Route::get('/equipment', SettingsEquipmentIndex::class)->name('equipment.index');
         Route::middleware('permission:settings.equipment_types.view')->group(function () {
-            Route::get('/equipos/tipos', SettingsEquipmentTypesIndex::class)->name('equipment.types');
-            Route::get('/equipos/tipos/{equipmentType}', SettingsEquipmentTypesShow::class)->name('equipment.types.show');
+            Route::get('/equipment/types', SettingsEquipmentTypesIndex::class)->name('equipment.types');
+            Route::get('/equipment/types/{equipmentType}', SettingsEquipmentTypesShow::class)->name('equipment.types.show');
         });
         Route::middleware('permission:settings.brands.view')->group(function () {
-            Route::get('/equipos/marcas', SettingsBrandsIndex::class)->name('equipment.brands');
-            Route::get('/equipos/marcas/{brand}', SettingsBrandsShow::class)->name('equipment.brands.show');
+            Route::get('/equipment/brands', SettingsBrandsIndex::class)->name('equipment.brands');
+            Route::get('/equipment/brands/{brand}', SettingsBrandsShow::class)->name('equipment.brands.show');
         });
         Route::middleware('permission:settings.model_equipment.view')->group(function () {
-            Route::get('/equipos/modelos', SettingsEquipmentModelsIndex::class)->name('equipment.models');
-            Route::get('/equipos/modelos/{equipmentModel}', SettingsEquipmentModelsShow::class)->name('equipment.models.show');
+            Route::get('/equipment/models', SettingsEquipmentModelsIndex::class)->name('equipment.models');
+            Route::get('/equipment/models/{equipmentModel}', SettingsEquipmentModelsShow::class)->name('equipment.models.show');
         });
         Route::middleware('permission:settings.attributes.view')->group(function () {
-            Route::get('/equipos/atributos', SettingsAttributesIndex::class)->name('equipment.attributes.index');
+            Route::get('/equipment/attributes', SettingsAttributesIndex::class)->name('equipment.attributes.index');
         });
         Route::middleware('permission:settings.attributes.create')->group(function () {
-            Route::get('/equipos/atributos/crear', SettingsAttributesForm::class)->name('equipment.attributes.create');
+            Route::get('/equipment/attributes/create', SettingsAttributesForm::class)->name('equipment.attributes.create');
         });
         Route::middleware('permission:settings.attributes.edit')->group(function () {
-            Route::get('/equipos/atributos/{attribute}/editar', SettingsAttributesForm::class)->name('equipment.attributes.edit');
+            Route::get('/equipment/attributes/{attribute}/edit', SettingsAttributesForm::class)->name('equipment.attributes.edit');
         });
         Route::middleware('permission:settings.attributes.view')->group(function () {
-            Route::get('/equipos/atributos/{attribute}', SettingsAttributesShow::class)->name('equipment.attributes.show');
+            Route::get('/equipment/attributes/{attribute}', SettingsAttributesShow::class)->name('equipment.attributes.show');
         });
-        Route::get('/equipos/{section}', SettingsEquipmentSectionIndex::class)->name('equipment.section');
+        Route::get('/equipment/{section}', SettingsEquipmentSectionIndex::class)->name('equipment.section');
 
         // Configuración — Productos y servicios (directorios)
-        Route::get('/productos-servicios', SettingsCatalogProductsIndex::class)->name('catalog-products.index');
+        Route::get('/catalog-products', SettingsCatalogProductsIndex::class)->name('catalog-products.index');
 
         Route::middleware('permission:settings.item_types.view')->group(function () {
-            Route::get('/productos-servicios/tipos', SettingsItemTypesIndex::class)->name('catalog-products.item-types.index');
-            Route::get('/productos-servicios/tipos/{itemType}', SettingsItemTypesShow::class)->name('catalog-products.item-types.show');
+            Route::get('/catalog-products/types', SettingsItemTypesIndex::class)->name('catalog-products.item-types.index');
+            Route::get('/catalog-products/types/{itemType}', SettingsItemTypesShow::class)->name('catalog-products.item-types.show');
         });
 
         Route::middleware('permission:settings.item_categories.view')->group(function () {
-            Route::get('/productos-servicios/categorias', SettingsItemCategoriesIndex::class)->name('catalog-products.item-categories.index');
-            Route::get('/productos-servicios/categorias/{itemCategory}', SettingsItemCategoriesShow::class)->name('catalog-products.item-categories.show');
+            Route::get('/catalog-products/categories', SettingsItemCategoriesIndex::class)->name('catalog-products.item-categories.index');
+            Route::get('/catalog-products/categories/{itemCategory}', SettingsItemCategoriesShow::class)->name('catalog-products.item-categories.show');
         });
 
         Route::middleware('permission:settings.units.view')->group(function () {
-            Route::get('/productos-servicios/unidades', SettingsUnitsIndex::class)->name('catalog-products.units.index');
-            Route::get('/productos-servicios/unidades/{unit}', SettingsUnitsShow::class)->name('catalog-products.units.show');
+            Route::get('/catalog-products/units', SettingsUnitsIndex::class)->name('catalog-products.units.index');
+            Route::get('/catalog-products/units/{unit}', SettingsUnitsShow::class)->name('catalog-products.units.show');
         });
 
         Route::middleware('permission:settings.brands.view')->group(function () {
-            Route::get('/productos-servicios/marcas', SettingsCatalogBrandsIndex::class)->name('catalog-products.brands.index');
+            Route::get('/catalog-products/brands', SettingsCatalogBrandsIndex::class)->name('catalog-products.brands.index');
         });
         Route::middleware('permission:settings.brands.create')->group(function () {
-            Route::get('/productos-servicios/marcas/crear', SettingsCatalogBrandsForm::class)->name('catalog-products.brands.create');
+            Route::get('/catalog-products/brands/create', SettingsCatalogBrandsForm::class)->name('catalog-products.brands.create');
         });
         Route::middleware('permission:settings.brands.edit')->group(function () {
-            Route::get('/productos-servicios/marcas/{brand}/editar', SettingsCatalogBrandsForm::class)->name('catalog-products.brands.edit');
+            Route::get('/catalog-products/brands/{brand}/edit', SettingsCatalogBrandsForm::class)->name('catalog-products.brands.edit');
         });
         Route::middleware('permission:settings.brands.view')->group(function () {
-            Route::get('/productos-servicios/marcas/{brand}', SettingsCatalogBrandsShow::class)->name('catalog-products.brands.show');
+            Route::get('/catalog-products/brands/{brand}', SettingsCatalogBrandsShow::class)->name('catalog-products.brands.show');
         });
     });
 
     // Catálogo — Productos y servicios
-    Route::middleware('permission:catalog.view')->prefix('catalogo')->name('admin.catalog.')->group(function () {
+    Route::middleware('permission:catalog.view')->prefix('catalog')->name('admin.catalog.')->group(function () {
         Route::middleware('permission:catalog.items.view')->group(function () {
-            Route::get('/productos', CatalogItemsIndex::class)->name('items.index');
+            Route::get('/items', CatalogItemsIndex::class)->name('items.index');
         });
         Route::middleware('permission:catalog.items.create')->group(function () {
-            Route::get('/productos/crear', CatalogItemsForm::class)->name('items.create');
+            Route::get('/items/create', CatalogItemsForm::class)->name('items.create');
         });
         Route::middleware('permission:catalog.items.edit')->group(function () {
-            Route::get('/productos/{item}/editar', CatalogItemsForm::class)->name('items.edit');
+            Route::get('/items/{item}/edit', CatalogItemsForm::class)->name('items.edit');
         });
         Route::middleware('permission:catalog.items.view')->group(function () {
-            Route::get('/productos/{item}', CatalogItemsShow::class)->name('items.show');
+            Route::get('/items/{item}', CatalogItemsShow::class)->name('items.show');
         });
     });
 });

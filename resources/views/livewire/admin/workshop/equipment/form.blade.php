@@ -58,6 +58,13 @@
                 @error('form.client_id') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
             </div>
 
+            <div class="md:col-span-2">
+                <label class="mb-1.5 block text-xs font-medium text-slate-700">Nombre del equipo <span class="text-rose-500">*</span></label>
+                <input type="text" wire:model="form.name" placeholder="Ej. Camión principal, Unidad 01"
+                    class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('form.name') border-rose-400 bg-rose-50 @enderror">
+                @error('form.name') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+            </div>
+
             <div>
                 <label class="mb-1.5 block text-xs font-medium text-slate-700">Placa <span class="text-rose-500">*</span></label>
                 <input type="text" wire:model="form.plate"

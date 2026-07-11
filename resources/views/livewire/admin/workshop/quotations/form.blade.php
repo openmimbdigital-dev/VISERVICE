@@ -55,19 +55,16 @@
                             <select wire:model="form.equipment_id" @disabled(! $form->client_id) class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm disabled:opacity-60 @error('form.equipment_id') border-rose-400 bg-rose-50 @enderror">
                                 <option value="">{{ $form->client_id ? 'Seleccionar equipo' : 'Primero selecciona un cliente' }}</option>
                                 @foreach($equipment_for_client as $equipment)
-                                <option value="{{ $equipment->id }}">{{ $equipment->plate }} — {{ $equipment->brand }} {{ $equipment->model }}</option>
+                                <option value="{{ $equipment->id }}">{{ $equipment->select_label }}</option>
                                 @endforeach
                             </select>
                             @error('form.equipment_id') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                         </div>
                         <div>
-                            <label class="mb-1.5 block text-xs font-medium text-slate-700">Km al ingreso <span class="text-rose-500">*</span></label>
-                            <input type="number" wire:model="form.km_entry" min="0" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm @error('form.km_entry') border-rose-400 @enderror">
-                            @error('form.km_entry') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
-                        </div>
-                        <div>
                             <label class="mb-1.5 block text-xs font-medium text-slate-700">Horas al ingreso</label>
-                            <input type="number" wire:model="form.hours_entry" min="0" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm">
+                            <input type="time" wire:model="form.hours_entry" step="60"
+                                class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm @error('form.hours_entry') border-rose-400 bg-rose-50 @enderror">
+                            @error('form.hours_entry') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                         </div>
                         <div class="sm:col-span-2">
                             <label class="mb-1.5 block text-xs font-medium text-slate-700">Notas internas</label>

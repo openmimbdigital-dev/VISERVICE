@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin\Workshop\Quotations;
 
 use App\Actions\Workshop\DeleteQuotationAction;
+use App\Enums\QuotationStatus;
 use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
 use App\Models\Quotation;
 use Arm092\LivewireDatatables\Column;
@@ -59,21 +60,18 @@ class DatatableQuotations extends LivewireDatatable
             })->label('Válida hasta'),
 
             Column::callback(['quotations.status'], function ($status) {
-                return '<span class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 ring-1 ring-slate-500/20">Borrador</span>';
-            })->label('Estado'),
+                $enum = QuotationStatus::tryFrom((string) $status) ?? QuotationStatus::Creada;
+
+                return '<span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ' . $enum->badgeClass() . '">' . $enum->label() . '</span>';
+            })->label('Estado')->filterable(QuotationStatus::options()),
 
             DateColumn::name('quotations.created_at')
                 ->label('Fecha')
                 ->sortable(),
 
-            Column::callback(['quotations.id', 'quotations.status'], function ($id, $status) {
-                $can_delete = $status === 'borrador'
-                    && auth()->user()->can('workshop.quotations.delete');
-
+            Column::callback(['quotations.id'], function ($id) {
                 return view('livewire.admin.workshop.quotations.actions', [
-                    'id'         => $id,
-                    'status'     => $status,
-                    'can_delete' => $can_delete,
+                    'id' => $id,
                 ]);
             })->label('Acciones')->unsortable(),
         ];

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\QuotationStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -22,7 +23,7 @@ class Quotation extends Model
     protected $fillable = [
         'business_id', 'client_id', 'equipment_id', 'quotation_service_type_id',
         'business_payment_method_id', 'business_bank_account_id',
-        'reference', 'status', 'diagnosis', 'km_entry', 'hours_entry',
+        'reference', 'status', 'diagnosis', 'hours_entry',
         'validity_days', 'valid_until', 'execution_time',
         'subtotal', 'tax_percentage', 'tax_amount', 'total',
         'notes', 'observations', 'reject_reason',
@@ -33,6 +34,7 @@ class Quotation extends Model
     protected function casts(): array
     {
         return [
+            'status'          => QuotationStatus::class,
             'valid_until'     => 'date',
             'issued_at'       => 'datetime',
             'sent_at'         => 'datetime',
@@ -42,8 +44,6 @@ class Quotation extends Model
             'tax_percentage'  => 'decimal:2',
             'tax_amount'      => 'decimal:2',
             'total'           => 'decimal:2',
-            'km_entry'        => 'integer',
-            'hours_entry'     => 'integer',
             'validity_days'   => 'integer',
         ];
     }
@@ -110,6 +110,17 @@ class Quotation extends Model
         return $query->whereIn($query->getModel()->getTable() . '.business_id', $business_ids);
     }
 
+    public function getHoursEntryFormattedAttribute(): ?string
+    {
+        if ($this->hours_entry === null || $this->hours_entry === '') {
+            return null;
+        }
+
+        $value = (string) $this->hours_entry;
+
+        return strlen($value) >= 5 ? substr($value, 0, 5) : $value;
+    }
+
     public function recalculateTotals(): void
     {
         $subtotal = $this->items()->sum('subtotal');
@@ -163,39 +174,21 @@ class Quotation extends Model
 
     public function getStatusLabelAttribute(): string
     {
-        return match ($this->status) {
-            'borrador'  => 'Borrador',
-            'enviada'   => 'Enviada',
-            'aceptada'  => 'Aceptada',
-            'rechazada' => 'Rechazada',
-            'vencida'   => 'Vencida',
-            default     => $this->status,
-        };
+        return $this->status instanceof QuotationStatus
+            ? $this->status->label()
+            : (string) $this->status;
     }
 
     public function getStatusColorAttribute(): string
     {
         return match ($this->status) {
-            'borrador'  => 'gray',
-            'enviada'   => 'blue',
-            'aceptada'  => 'green',
-            'rechazada' => 'red',
-            'vencida'   => 'orange',
-            default     => 'gray',
+            QuotationStatus::Creada    => 'gray',
+            QuotationStatus::Enviada   => 'blue',
+            QuotationStatus::Aceptada  => 'green',
+            QuotationStatus::Rechazada => 'red',
+            QuotationStatus::Vencida   => 'orange',
+            default                    => 'gray',
         };
-    }
-
-    public function isEditable(): bool
-    {
-        return $this->status === 'borrador';
-    }
-
-    public function canDelete(?User $user = null): bool
-    {
-        $user ??= auth()->user();
-
-        return $this->status === 'borrador'
-            && $user?->can('workshop.quotations.delete');
     }
 
     public static function generateReference(int $business_id): string

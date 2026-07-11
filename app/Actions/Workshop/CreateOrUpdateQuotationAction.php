@@ -2,6 +2,7 @@
 
 namespace App\Actions\Workshop;
 
+use App\Enums\QuotationStatus;
 use App\Models\BusinessBankAccount;
 use App\Models\BusinessPaymentMethod;
 use App\Models\Client;
@@ -74,7 +75,6 @@ class CreateOrUpdateQuotationAction
                 'business_payment_method_id' => $data['business_payment_method_id'] ?? null,
                 'business_bank_account_id'   => $data['business_bank_account_id'] ?? null,
                 'diagnosis'                  => $data['diagnosis'] ?? null,
-                'km_entry'                   => $data['km_entry'] ?? 0,
                 'hours_entry'                => $data['hours_entry'] ?? null,
                 'validity_days'              => (int) ($data['validity_days'] ?? 15),
                 'execution_time'             => $data['execution_time'] ?? null,
@@ -86,7 +86,6 @@ class CreateOrUpdateQuotationAction
             if ($quotation_id) {
                 $quotation = Quotation::query()->forAuthUser()->findOrFail($quotation_id);
                 abort_unless((int) $quotation->business_id === $business_id, 403);
-                abort_unless($quotation->isEditable(), 422, 'La cotización no se puede editar en su estado actual.');
 
                 $quotation->update($payload);
             } else {
@@ -94,7 +93,7 @@ class CreateOrUpdateQuotationAction
                     ...$payload,
                     'business_id' => $business_id,
                     'reference'   => Quotation::generateReference($business_id),
-                    'status'      => 'borrador',
+                    'status'      => QuotationStatus::Creada,
                     'created_by'  => $data['created_by'] ?? auth()->id(),
                 ]);
             }

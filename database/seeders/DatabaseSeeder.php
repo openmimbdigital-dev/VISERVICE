@@ -38,6 +38,7 @@ class DatabaseSeeder extends Seeder
             AttributesSeeder::class,
             ClientsSeeder::class,
             EquipmentSeeder::class,
+            QuotationsSeeder::class,
         ]);
     }
 }

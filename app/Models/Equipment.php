@@ -15,8 +15,8 @@ class Equipment extends Model
     protected $table = 'equipment';
 
     protected $fillable = [
-        'business_id', 'client_id', 'brand_id','client_name', 'model_id', 'equipment_type_id',
-        'plate', 'brand_name', 'model_name','equipment_type_name', 'year',
+        'business_id', 'client_id', 'brand_id', 'client_name', 'model_id', 'equipment_type_id',
+        'plate', 'name', 'brand_name', 'model_name', 'equipment_type_name', 'year',
         'status', 'notes', 'created_by',
     ];
 
@@ -73,6 +73,15 @@ class Equipment extends Model
         return $this->morphMany(AttributeEquipmentType::class, 'model');
     }
 
+    public function getSelectLabelAttribute(): string
+    {
+        return implode(' · ', array_filter([
+            $this->name,
+            $this->brand_name,
+            $this->plate,
+        ]));
+    }
+
     public function scopeActive($query)
     {
         return $query->where('status', true);
@@ -97,10 +106,17 @@ class Equipment extends Model
 
     public function getDisplayNameAttribute(): string
     {
-        $parts = array_filter([$this->brand_name, $this->model_name, $this->year]);
-        $name = implode(' ', $parts);
+        $details = implode(' ', array_filter([
+            $this->brand_name,
+            $this->model_name,
+            $this->year ? (string) $this->year : null,
+        ]));
 
-        return $name ? "{$this->plate} — {$name}" : $this->plate;
+        if ($this->name) {
+            return $details ? "{$this->name} ({$details})" : $this->name;
+        }
+
+        return $details ? "{$this->plate} — {$details}" : $this->plate;
     }
 
     public function hasDependencies(): bool

@@ -23,8 +23,6 @@ class QuotationForm extends Form
 
     public ?int $business_bank_account_id = null;
 
-    public string $km_entry = '0';
-
     public string $hours_entry = '';
 
     public string $diagnosis = '';
@@ -47,8 +45,7 @@ class QuotationForm extends Form
         $this->quotation_service_type_id = $quotation->quotation_service_type_id;
         $this->business_payment_method_id = $quotation->business_payment_method_id;
         $this->business_bank_account_id   = $quotation->business_bank_account_id;
-        $this->km_entry                  = (string) $quotation->km_entry;
-        $this->hours_entry               = $quotation->hours_entry !== null ? (string) $quotation->hours_entry : '';
+        $this->hours_entry               = $quotation->hours_entry_formatted ?? '';
         $this->diagnosis                 = $quotation->diagnosis ?? '';
         $this->validity_days             = (string) ($quotation->validity_days ?? 15);
         $this->execution_time            = $quotation->execution_time ?? '';
@@ -104,8 +101,7 @@ class QuotationForm extends Form
                     ->where('business_id', $business_id)
                     ->whereNull('deleted_at')),
             ],
-            'km_entry'        => ['required', 'integer', 'min:0'],
-            'hours_entry'     => ['nullable', 'integer', 'min:0'],
+            'hours_entry'     => ['nullable', 'date_format:H:i'],
             'diagnosis'       => ['nullable', 'string'],
             'validity_days'   => ['required', 'integer', 'min:1', 'max:365'],
             'execution_time'  => ['nullable', 'string', 'max:120'],
@@ -122,6 +118,7 @@ class QuotationForm extends Form
             'client_id.exists'        => 'El cliente seleccionado no es válido.',
             'equipment_id.required'   => 'Selecciona un equipo.',
             'equipment_id.exists'     => 'El equipo seleccionado no es válido.',
+            'hours_entry.date_format' => 'Las horas al ingreso deben tener formato HH:MM.',
             'validity_days.required'  => 'Indica los días de vigencia.',
             'validity_days.min'       => 'La vigencia debe ser al menos 1 día.',
             'tax_percentage.required' => 'El porcentaje de IVA es obligatorio.',
@@ -132,7 +129,6 @@ class QuotationForm extends Form
     {
         parent::reset(...$properties);
         $this->quotation_id = null;
-        $this->km_entry     = '0';
         $this->hours_entry  = '';
         $this->validity_days = '15';
         $this->tax_percentage = '19';
@@ -169,8 +165,7 @@ class QuotationForm extends Form
             'quotation_service_type_id'  => $this->quotation_service_type_id,
             'business_payment_method_id' => $this->business_payment_method_id,
             'business_bank_account_id'   => $this->business_bank_account_id,
-            'km_entry'                   => (int) $this->km_entry,
-            'hours_entry'                => $this->hours_entry !== '' ? (int) $this->hours_entry : null,
+            'hours_entry'                => $this->hours_entry !== '' ? $this->hours_entry : null,
             'diagnosis'                  => $this->diagnosis ?: null,
             'validity_days'              => (int) $this->validity_days,
             'execution_time'             => $this->execution_time ?: null,

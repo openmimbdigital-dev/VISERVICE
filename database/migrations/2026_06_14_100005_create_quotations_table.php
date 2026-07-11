@@ -31,10 +31,9 @@ return new class extends Migration
             $table->unsignedBigInteger('business_payment_method_id')->nullable();
             $table->unsignedBigInteger('business_bank_account_id')->nullable();
             $table->string('reference')->comment('COT-YYYYMM-XXXX');
-            $table->enum('status', ['borrador', 'enviada', 'aceptada', 'rechazada', 'vencida'])->default('borrador');
+            $table->string('status', 20)->default('creada')->comment('App\Enums\QuotationStatus');
             $table->text('diagnosis')->nullable()->comment('Diagnóstico inicial del equipo');
-            $table->unsignedInteger('km_entry')->default(0)->comment('Kilometraje al ingreso');
-            $table->unsignedInteger('hours_entry')->nullable()->comment('Horas de uso al ingreso (maquinaria)');
+            $table->time('hours_entry')->nullable()->comment('Horas de uso al ingreso (formato HH:MM)');
             $table->unsignedSmallInteger('validity_days')->default(15)->comment('Días de vigencia de la oferta');
             $table->date('valid_until')->nullable()->comment('Fecha de vencimiento de la cotización');
             $table->string('execution_time', 120)->nullable()->comment('Tiempo estimado de ejecución');

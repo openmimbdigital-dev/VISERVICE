@@ -42,8 +42,6 @@ class Form extends Component
                 404
             );
 
-            abort_unless($quotation->isEditable(), 403, 'La cotización no se puede editar en su estado actual.');
-
             $quotation->load(['items.itemType', 'items.itemCategory']);
             $this->form->setQuotation($quotation);
             $this->reference = $quotation->reference;
@@ -251,8 +249,9 @@ class Form extends Component
             ? Equipment::query()->forAuthUser()
                 ->where('client_id', $this->form->client_id)
                 ->where('status', true)
+                ->orderBy('name')
                 ->orderBy('plate')
-                ->get()
+                ->get(['id', 'name', 'brand_name', 'plate'])
             : collect();
 
         $category_subtotals = $this->previewSubtotals();
@@ -276,7 +275,7 @@ class Form extends Component
             'preview_tax'          => $tax,
             'preview_total'        => $total,
             'can_delete'           => $this->form->quotation_id
-                && Quotation::query()->forAuthUser()->find($this->form->quotation_id)?->canDelete(),
+                && auth()->user()->can('workshop.quotations.delete'),
         ]);
     }
 }

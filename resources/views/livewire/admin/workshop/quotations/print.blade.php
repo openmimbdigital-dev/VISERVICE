@@ -43,8 +43,10 @@
         </div>
         <div>
             <p class="font-semibold uppercase text-slate-500">Equipo</p>
-            <p>{{ $quotation->equipment?->plate }} — {{ $quotation->equipment?->brand }} {{ $quotation->equipment?->model }}</p>
-            <p>Km: {{ number_format($quotation->km_entry) }}@if($quotation->hours_entry) · Horas: {{ number_format($quotation->hours_entry) }}@endif</p>
+            <p>{{ $quotation->equipment?->select_label }}</p>
+            @if($quotation->hours_entry_formatted)
+            <p>Horas al ingreso: {{ $quotation->hours_entry_formatted }}</p>
+            @endif
             @if($quotation->quotationServiceType)
             <p>Tipo servicio: {{ $quotation->quotationServiceType->name }}</p>
             @endif

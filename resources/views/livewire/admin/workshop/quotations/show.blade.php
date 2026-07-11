@@ -13,26 +13,21 @@
                 <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-indigo-600/90">Taller</p>
                 <div class="mt-2 flex flex-wrap items-center gap-3">
                     <h1 class="text-2xl font-bold tracking-tight text-slate-900">{{ $quotation->reference }}</h1>
-                    <span class="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-600">{{ $quotation->status_label }}</span>
+                    <span class="inline-flex items-center rounded-full px-3 py-1 text-sm font-medium {{ $quotation->status->badgeClass() }}">{{ $quotation->status->label() }}</span>
                 </div>
                 <p class="mt-2 text-sm text-slate-500">
-                    {{ $quotation->client?->name }} · {{ $quotation->equipment?->plate }} {{ $quotation->equipment?->brand }} {{ $quotation->equipment?->model }}
-                    · Km: {{ number_format($quotation->km_entry) }}
-                    @if($quotation->hours_entry) · Horas: {{ number_format($quotation->hours_entry) }}@endif
+                    {{ $quotation->client?->name }} · {{ $quotation->equipment?->select_label }}
+                    @if($quotation->hours_entry_formatted) · Horas: {{ $quotation->hours_entry_formatted }}@endif
                 </p>
             </div>
             <div class="flex w-full shrink-0 flex-wrap gap-2 sm:w-auto">
                 <a href="{{ route('admin.workshop.quotations.index') }}" wire:navigate class="btn btn-outline-secondary btn-sm flex-1 sm:flex-none justify-center">Volver</a>
                 @can('workshop.quotations.edit')
-                @if($can_edit)
                 <a href="{{ route('admin.workshop.quotations.form.edit', $quotation->id) }}" wire:navigate class="btn btn-primary btn-sm flex-1 sm:flex-none justify-center">Editar</a>
-                @endif
                 @endcan
                 <a href="{{ route('admin.workshop.quotations.print', $quotation->id) }}" target="_blank" class="btn btn-outline-secondary btn-sm flex-1 sm:flex-none justify-center">Imprimir / PDF</a>
                 @can('workshop.quotations.delete')
-                @if($can_delete)
                 <button type="button" wire:click="deleteQuotation" class="btn btn-danger btn-sm flex-1 sm:flex-none justify-center">Eliminar</button>
-                @endif
                 @endcan
             </div>
         </div>
@@ -52,9 +47,15 @@
                     <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
                         <dt class="text-xs font-medium text-slate-500">Equipo</dt>
                         <dd class="text-sm text-slate-900 sm:col-span-2">
-                            {{ $quotation->equipment?->plate }} — {{ $quotation->equipment?->brand }} {{ $quotation->equipment?->model }}
+                            {{ $quotation->equipment?->select_label ?? '—' }}
                         </dd>
                     </div>
+                    @if($quotation->hours_entry_formatted)
+                    <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                        <dt class="text-xs font-medium text-slate-500">Horas al ingreso</dt>
+                        <dd class="text-sm text-slate-900 sm:col-span-2">{{ $quotation->hours_entry_formatted }}</dd>
+                    </div>
+                    @endif
                     @if($quotation->notes)
                     <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
                         <dt class="text-xs font-medium text-slate-500">Notas internas</dt>
@@ -140,6 +141,41 @@
         </div>
 
         <div class="space-y-4">
+            @if($can_change_status)
+            <section class="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
+                <div class="border-b border-slate-100 bg-slate-50/80 px-4 py-4 sm:px-5">
+                    <h3 class="font-semibold text-slate-900">Estado de la cotización</h3>
+                    <p class="mt-1 text-xs text-slate-500">Actualiza el seguimiento de la oferta.</p>
+                </div>
+                <form wire:submit="updateStatus" class="space-y-4 p-4 sm:p-5">
+                    <div>
+                        <label class="mb-1.5 block text-xs font-medium text-slate-700">Estado</label>
+                        <select wire:model.live="status"
+                            class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('status') border-rose-400 bg-rose-50 @enderror">
+                            @foreach($status_options as $value => $label)
+                                <option value="{{ $value }}">{{ $label }}</option>
+                            @endforeach
+                        </select>
+                        @error('status') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                    </div>
+
+                    <div @class(['hidden' => $status !== \App\Enums\QuotationStatus::Rechazada->value])>
+                        <label class="mb-1.5 block text-xs font-medium text-slate-700">Motivo del rechazo <span class="text-rose-500">*</span></label>
+                        <textarea wire:model="reject_reason" rows="3"
+                            class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('reject_reason') border-rose-400 bg-rose-50 @enderror"
+                            placeholder="Describe por qué se rechazó la cotización"></textarea>
+                        @error('reject_reason') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                    </div>
+
+                    <button type="submit" wire:loading.attr="disabled"
+                        class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-60 sm:w-auto">
+                        <span wire:loading.remove wire:target="updateStatus">Guardar estado</span>
+                        <span wire:loading wire:target="updateStatus">Guardando…</span>
+                    </button>
+                </form>
+            </section>
+            @endif
+
             <section class="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm ring-1 ring-slate-900/[0.035]">
                 <h3 class="font-semibold text-slate-900">Resumen</h3>
                 <dl class="mt-4 space-y-2 text-sm">
@@ -159,6 +195,9 @@
                     <div><dt class="text-xs text-slate-400">Creada</dt><dd>{{ $quotation->created_at->format('d/m/Y H:i') }}</dd></div>
                     @if($quotation->createdBy)
                     <div><dt class="text-xs text-slate-400">Creada por</dt><dd>{{ $quotation->createdBy->name }}</dd></div>
+                    @endif
+                    @if($quotation->reject_reason)
+                    <div><dt class="text-xs text-slate-400">Motivo rechazo</dt><dd class="text-slate-700">{{ $quotation->reject_reason }}</dd></div>
                     @endif
                 </dl>
             </section>

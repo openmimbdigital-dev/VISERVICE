@@ -27,6 +27,8 @@ class EquipmentForm extends Form
 
     public ?int $equipment_type_id = null;
 
+    public string $name = '';
+
     public string $plate = '';
 
     public string $year = '';
@@ -53,6 +55,7 @@ class EquipmentForm extends Form
         $this->brand_id          = $equipment->brand_id;
         $this->model_id          = $equipment->model_id;
         $this->equipment_type_id = $equipment->equipment_type_id;
+        $this->name              = $equipment->name ?? '';
         $this->plate             = $equipment->plate;
         $this->year              = $equipment->year ? (string) $equipment->year : '';
         $this->status            = $equipment->status;
@@ -118,6 +121,7 @@ class EquipmentForm extends Form
             'brand_id'          => ['required', 'integer', Rule::in($this->getBrands()->pluck('id')->all())],
             'model_id'          => ['required', 'integer', Rule::in($this->getModels()->pluck('id')->all())],
             'equipment_type_id' => ['required', 'integer', 'exists:equipment_types,id'],
+            'name'              => ['required', 'string', 'max:120'],
             'plate'             => [
                 'required',
                 'string',
@@ -157,6 +161,8 @@ class EquipmentForm extends Form
             'model_id.required'          => 'Debes seleccionar un modelo.',
             'model_id.in'                => 'El modelo seleccionado no es válido.',
             'equipment_type_id.required' => 'El tipo de equipo es obligatorio.',
+            'name.required'              => 'El nombre del equipo es obligatorio.',
+            'name.max'                   => 'El nombre no puede superar 120 caracteres.',
             'plate.required'             => 'La placa es obligatoria.',
             'plate.max'                  => 'La placa no puede superar 20 caracteres.',
             'plate.unique'               => 'Ya existe un equipo con esta placa en el negocio.',
@@ -263,6 +269,7 @@ class EquipmentForm extends Form
             'brand_id'          => (int) $this->brand_id,
             'model_id'          => (int) $this->model_id,
             'equipment_type_id' => (int) $this->equipment_type_id,
+            'name'              => trim($this->name),
             'plate'             => strtoupper(trim($this->plate)),
             'year'              => (int) $this->year,
             'status'            => $this->status,

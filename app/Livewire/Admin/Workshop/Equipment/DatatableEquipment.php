@@ -82,10 +82,11 @@ class DatatableEquipment extends LivewireDatatable
                 ->leftJoin('businesses', 'equipment.business_id', '=', 'businesses.id')
                 ->addSelect('businesses.name as business_name')
                 ->orderBy('businesses.name')
+                ->orderBy('equipment.name')
                 ->orderBy('equipment.plate');
         }
 
-        return $query->orderBy('equipment.plate');
+        return $query->orderBy('equipment.name')->orderBy('equipment.plate');
     }
 
     public function getColumns(): Model|array
@@ -105,7 +106,12 @@ class DatatableEquipment extends LivewireDatatable
                 ->sortable()
                 ->searchable(),
 
-            Column::name('plate')
+            Column::name('equipment.name')
+                ->label('Nombre')
+                ->searchable()
+                ->sortable(),
+
+            Column::name('equipment.plate')
                 ->label('Placa')
                 ->searchable()
                 ->sortable(),
