@@ -32,7 +32,10 @@ class Index extends Component
 
     public function mount(): void
     {
-        abort_unless(auth()->user()?->can('organization_types.view'), 403);
+        abort_unless(
+            auth()->user()?->hasRole('superAdmin') && auth()->user()?->can('organization_types.view'),
+            403
+        );
     }
 
     public function updatingSearch(): void

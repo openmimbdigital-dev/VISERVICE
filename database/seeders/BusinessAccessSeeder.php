@@ -10,13 +10,6 @@ use Illuminate\Database\Seeder;
 
 class BusinessAccessSeeder extends Seeder
 {
-    /** @var list<string> */
-    private array $business_catalog_permissions = [
-        'business_types.view', 'business_types.create', 'business_types.edit', 'business_types.delete',
-        'organization_types.view', 'organization_types.create', 'organization_types.edit', 'organization_types.delete',
-        'business_types.access.view', 'business_types.access.manage',
-    ];
-
     /** @return list<string> */
     private function teamPositionPermissions(): array
     {
@@ -81,11 +74,11 @@ class BusinessAccessSeeder extends Seeder
     ];
 
     /** @return list<string> */
-    private function catalogItemsPermissions(): array
+    private function catalogProductsPermissions(): array
     {
         return [
             'catalog.view',
-            'catalog.items.view', 'catalog.items.create', 'catalog.items.edit', 'catalog.items.delete',
+            'catalog.products.view', 'catalog.products.create', 'catalog.products.edit', 'catalog.products.delete',
         ];
     }
 
@@ -93,8 +86,8 @@ class BusinessAccessSeeder extends Seeder
     private function catalogProductsSettingsPermissions(): array
     {
         return [
-            'settings.item_types.view', 'settings.item_types.create', 'settings.item_types.edit', 'settings.item_types.delete',
-            'settings.item_categories.view', 'settings.item_categories.create', 'settings.item_categories.edit', 'settings.item_categories.delete',
+            'settings.product_types.view', 'settings.product_types.create', 'settings.product_types.edit', 'settings.product_types.delete',
+            'settings.product_categories.view', 'settings.product_categories.create', 'settings.product_categories.edit', 'settings.product_categories.delete',
             'settings.units.view', 'settings.units.create', 'settings.units.edit', 'settings.units.delete',
         ];
     }
@@ -151,25 +144,29 @@ class BusinessAccessSeeder extends Seeder
         }
 
         if ($iglesia) {
-            $this->syncBusinessesOfType($iglesia, $this->church_roles, $this->withBusinessCatalogPermissions($this->church_base_permissions));
+            $this->syncBusinessesOfType($iglesia, $this->church_roles, $this->withPlatformExcludedBusinessPermissions($this->church_base_permissions));
         }
 
         if ($centro) {
-            $this->syncBusinessesOfType($centro, $this->education_roles, $this->withBusinessCatalogPermissions($this->education_base_permissions));
+            $this->syncBusinessesOfType($centro, $this->education_roles, $this->withPlatformExcludedBusinessPermissions($this->education_base_permissions));
         }
 
         $this->command->info('Acceso por negocio sincronizado.');
     }
 
-    /** @param list<string> $permissions @return list<string> */
-    private function withBusinessCatalogPermissions(array $permissions): array
+    /**
+     * Permisos de negocio (sin Gestión de Negocios: solo superAdmin).
+     *
+     * @param  list<string>  $permissions
+     * @return list<string>
+     */
+    private function withPlatformExcludedBusinessPermissions(array $permissions): array
     {
         return array_values(array_unique([
             ...$permissions,
-            ...$this->business_catalog_permissions,
             ...$this->teamPositionPermissions(),
             ...$this->businessPaymentSettingsPermissions(),
-            ...$this->catalogItemsPermissions(),
+            ...$this->catalogProductsPermissions(),
             ...$this->catalogProductsSettingsPermissions(),
         ]));
     }
@@ -180,10 +177,9 @@ class BusinessAccessSeeder extends Seeder
         return array_values(array_unique([
             ...$this->workshop_base_permissions,
             ...$this->workshopModulePermissions(),
-            ...$this->business_catalog_permissions,
             ...$this->teamPositionPermissions(),
             ...$this->businessPaymentSettingsPermissions(),
-            ...$this->catalogItemsPermissions(),
+            ...$this->catalogProductsPermissions(),
             ...$this->catalogProductsSettingsPermissions(),
         ]));
     }

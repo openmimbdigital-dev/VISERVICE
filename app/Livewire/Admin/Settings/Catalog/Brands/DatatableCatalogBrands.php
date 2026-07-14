@@ -28,8 +28,8 @@ class DatatableCatalogBrands extends LivewireDatatable
 
     public function builder(): Builder
     {
-        $items_count = DB::table('items')
-            ->select('brand_id', DB::raw('COUNT(*) as items_count'))
+        $products_count = DB::table('products')
+            ->select('brand_id', DB::raw('COUNT(*) as products_count'))
             ->whereNull('deleted_at');
 
         $user = auth()->user();
@@ -38,15 +38,15 @@ class DatatableCatalogBrands extends LivewireDatatable
             $business_ids = $user->businessIds();
 
             if ($business_ids === []) {
-                $items_count->whereRaw('0 = 1');
+                $products_count->whereRaw('0 = 1');
             } else {
-                $items_count->whereIn('business_id', $business_ids);
+                $products_count->whereIn('business_id', $business_ids);
             }
         }
 
-        $items_count->groupBy('brand_id');
+        $products_count->groupBy('brand_id');
 
-        $categories_count = DB::table('brand_item_category')
+        $categories_count = DB::table('brand_product_category')
             ->select('brand_id', DB::raw('COUNT(*) as categories_count'))
             ->groupBy('brand_id');
 
@@ -57,12 +57,12 @@ class DatatableCatalogBrands extends LivewireDatatable
 
         $query = Brand::query()
             ->visibleToUser()
-            ->forItemsCatalog()
+            ->forProductsCatalog()
             ->select('brands.*')
             ->leftJoinSub(
-                $items_count,
-                'item_usage',
-                fn ($join) => $join->on('brands.id', '=', 'item_usage.brand_id')
+                $products_count,
+                'product_usage',
+                fn ($join) => $join->on('brands.id', '=', 'product_usage.brand_id')
             )
             ->leftJoinSub(
                 $categories_count,
@@ -75,7 +75,7 @@ class DatatableCatalogBrands extends LivewireDatatable
                 fn ($join) => $join->on('brands.id', '=', 'equipment_usage_flag.brand_id')
             )
             ->addSelect(
-                'item_usage.items_count',
+                'product_usage.products_count',
                 'category_usage.categories_count',
                 'equipment_usage_flag.brand_id'
             )
@@ -130,14 +130,14 @@ class DatatableCatalogBrands extends LivewireDatatable
             })->label('Estado')->filterable([1 => 'Activo', 0 => 'Inactivo']),
 
             Column::callback(
-                ['brands.id', 'brands.general', 'brands.business_id', 'item_usage.items_count', 'equipment_usage_flag.brand_id'],
-                function ($id, $general, $business_id, $items_count, $equipment_usage_brand_id) {
+                ['brands.id', 'brands.general', 'brands.business_id', 'product_usage.products_count', 'equipment_usage_flag.brand_id'],
+                function ($id, $general, $business_id, $products_count, $equipment_usage_brand_id) {
                     $has_equipment_usage = $equipment_usage_brand_id !== null;
 
                     $permissions = $this->catalogRowPermissions(
                         (bool) $general,
                         $business_id,
-                        (int) $items_count,
+                        (int) $products_count,
                         'settings.brands.edit',
                         'settings.brands.delete',
                     );
@@ -150,7 +150,7 @@ class DatatableCatalogBrands extends LivewireDatatable
                         'can_delete'          => $can_delete,
                         'is_general_readonly' => $permissions['is_general_readonly'],
                         'has_equipment_usage' => $has_equipment_usage,
-                        'has_items'           => (int) $items_count > 0,
+                        'has_products'        => (int) $products_count > 0,
                     ]);
                 }
             )->label('Acciones')->unsortable(),

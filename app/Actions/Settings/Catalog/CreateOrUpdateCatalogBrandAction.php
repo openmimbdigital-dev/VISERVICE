@@ -11,7 +11,7 @@ class CreateOrUpdateCatalogBrandAction
     use AsAction;
 
     /**
-     * @param  array{name: string, active: bool, item_category_ids: array<int>}  $data
+     * @param  array{name: string, active: bool, product_category_ids: array<int>}  $data
      */
     public function handle(?int $brand_id, array $data): Brand
     {
@@ -44,9 +44,9 @@ class CreateOrUpdateCatalogBrandAction
             $brand = Brand::create($attributes);
         }
 
-        SyncBrandItemCategoriesAction::run($brand, $data['item_category_ids']);
-        EnsureBrandItemsUsageAction::run($brand);
+        SyncBrandProductCategoriesAction::run($brand, $data['product_category_ids']);
+        EnsureBrandProductsUsageAction::run($brand);
 
-        return $brand->fresh(['itemCategories', 'brandUsages']);
+        return $brand->fresh(['productCategories', 'brandUsages']);
     }
 }

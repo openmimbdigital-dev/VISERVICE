@@ -124,8 +124,8 @@
                         <tbody class="divide-y divide-slate-100">
                             @forelse($quotation->items as $item)
                             <tr>
-                                <td class="px-3 py-3 text-xs text-slate-600 sm:px-4">{{ $item->itemType?->name ?? '—' }}</td>
-                                <td class="hidden px-3 py-3 text-xs text-slate-600 md:table-cell sm:px-4">{{ $item->itemCategory?->name ?? '—' }}</td>
+                                <td class="px-3 py-3 text-xs text-slate-600 sm:px-4">{{ $item->productType?->name ?? '—' }}</td>
+                                <td class="hidden px-3 py-3 text-xs text-slate-600 md:table-cell sm:px-4">{{ $item->productCategory?->name ?? '—' }}</td>
                                 <td class="px-3 py-3 text-sm text-slate-900 sm:px-4">{{ $item->description }}</td>
                                 <td class="px-3 py-3 text-right text-sm text-slate-600 sm:px-4">{{ $item->quantity }}</td>
                                 <td class="hidden px-3 py-3 text-right text-sm text-slate-600 sm:table-cell sm:px-4">{{ col_money($item->unit_price) }}</td>

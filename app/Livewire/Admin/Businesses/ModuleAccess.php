@@ -28,7 +28,10 @@ class ModuleAccess extends Component
 
     public function mount(): void
     {
-        abort_unless(auth()->user()?->hasRole('superAdmin'), 403);
+        abort_unless(
+            auth()->user()?->hasRole('superAdmin') && auth()->user()?->can('businesses.manage_modules'),
+            403
+        );
 
         $first = BusinessType::query()->where('status', true)->orderBy('name')->first();
         $this->business_type_id = $first?->id;
@@ -47,7 +50,10 @@ class ModuleAccess extends Component
 
     public function toggleSection(int $section_id): void
     {
-        abort_unless(auth()->user()?->hasRole('superAdmin'), 403);
+        abort_unless(
+            auth()->user()?->hasRole('superAdmin') && auth()->user()?->can('businesses.manage_modules'),
+            403
+        );
 
         $section = MenuSection::query()
             ->where('assignable_to_business', true)
@@ -74,7 +80,10 @@ class ModuleAccess extends Component
 
     public function save(): void
     {
-        abort_unless(auth()->user()?->hasRole('superAdmin'), 403);
+        abort_unless(
+            auth()->user()?->hasRole('superAdmin') && auth()->user()?->can('businesses.manage_modules'),
+            403
+        );
 
         $this->validate([
             'business_type_id'        => 'required|exists:business_types,id',

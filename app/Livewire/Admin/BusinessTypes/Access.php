@@ -29,7 +29,10 @@ class Access extends Component
 
     public function mount(): void
     {
-        abort_unless(auth()->user()?->can('business_types.access.view'), 403);
+        abort_unless(
+            auth()->user()?->hasRole('superAdmin') && auth()->user()?->can('business_types.access.view'),
+            403
+        );
 
         $first = BusinessType::query()->where('status', true)->orderBy('name')->first();
         $this->business_type_id = $first?->id;
@@ -93,7 +96,10 @@ class Access extends Component
 
     public function save(): void
     {
-        abort_unless(auth()->user()?->can('business_types.access.manage'), 403);
+        abort_unless(
+            auth()->user()?->hasRole('superAdmin') && auth()->user()?->can('business_types.access.manage'),
+            403
+        );
 
         $this->validate([
             'business_type_id'         => 'required|exists:business_types,id',
@@ -143,9 +149,12 @@ class Access extends Component
 
     public function toggleModule(string $module_key): void
     {
-        abort_unless(auth()->user()?->can('business_types.access.manage'), 403);
+        abort_unless(
+            auth()->user()?->hasRole('superAdmin') && auth()->user()?->can('business_types.access.manage'),
+            403
+        );
 
-        $modules      = config('permissions.modules', []);
+        $modules      = $this->assignableModules();
         $module_perms = array_keys($modules[$module_key]['permissions'] ?? []);
 
         if ($module_perms === []) {
@@ -174,7 +183,7 @@ class Access extends Component
             ->orderBy('name')
             ->get();
 
-        $modules = config('permissions.modules', []);
+        $modules = $this->assignableModules();
 
         $selected_type = $this->business_type_id
             ? $business_types->firstWhere('id', $this->business_type_id)
@@ -203,5 +212,24 @@ class Access extends Component
             'businesses_for_type',
             'assigned_businesses'
         ));
+    }
+
+    /** @return array<string, array{name: string, permissions: array<string, string>}> */
+    private function assignableModules(): array
+    {
+        $platform_only = config('permissions.platform_only_permissions', []);
+
+        return collect(config('permissions.modules', []))
+            ->map(function (array $module) use ($platform_only) {
+                $module['permissions'] = array_filter(
+                    $module['permissions'],
+                    fn (string $label, string $name) => ! in_array($name, $platform_only, true),
+                    ARRAY_FILTER_USE_BOTH
+                );
+
+                return $module['permissions'] === [] ? null : $module;
+            })
+            ->filter()
+            ->all();
     }
 }

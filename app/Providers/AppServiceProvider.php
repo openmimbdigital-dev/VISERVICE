@@ -11,9 +11,9 @@ use App\Models\Client;
 use App\Models\Equipment;
 use App\Models\EquipmentModel;
 use App\Models\EquipmentType;
-use App\Models\Item;
-use App\Models\ItemCategory;
-use App\Models\ItemType;
+use App\Models\Product;
+use App\Models\ProductCategory;
+use App\Models\ProductType;
 use App\Models\Quotation;
 use App\Models\QuotationServiceType;
 use App\Models\TeamPosition;
@@ -90,12 +90,12 @@ class AppServiceProvider extends ServiceProvider
             ->whereKey($value)
             ->firstOrFail());
 
-        Route::bind('itemType', fn (string $value) => ItemType::query()
+        Route::bind('productType', fn (string $value) => ProductType::query()
             ->visibleToUser()
             ->whereKey($value)
             ->firstOrFail());
 
-        Route::bind('itemCategory', fn (string $value) => ItemCategory::query()
+        Route::bind('productCategory', fn (string $value) => ProductCategory::query()
             ->visibleToUser()
             ->whereKey($value)
             ->firstOrFail());
@@ -105,7 +105,7 @@ class AppServiceProvider extends ServiceProvider
             ->whereKey($value)
             ->firstOrFail());
 
-        Route::bind('item', fn (string $value) => Item::query()
+        Route::bind('product', fn (string $value) => Product::query()
             ->forAuthUser()
             ->whereKey($value)
             ->firstOrFail());

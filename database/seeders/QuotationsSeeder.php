@@ -8,7 +8,7 @@ use App\Models\BusinessBankAccount;
 use App\Models\BusinessPaymentMethod;
 use App\Models\Client;
 use App\Models\Equipment;
-use App\Models\Item;
+use App\Models\Product;
 use App\Models\Quotation;
 use App\Models\QuotationItem;
 use App\Models\QuotationServiceType;
@@ -59,7 +59,7 @@ class QuotationsSeeder extends Seeder
             ->where('active', true)
             ->first();
 
-        $catalog_items = Item::query()
+        $catalog_products = Product::query()
             ->where('business_id', $transad->id)
             ->where('status', true)
             ->orderBy('id')
@@ -130,7 +130,7 @@ class QuotationsSeeder extends Seeder
                 $quotation->restore();
             }
 
-            $this->syncItems($quotation, $catalog_items, $business->id === $transad->id, $sequence);
+            $this->syncItems($quotation, $catalog_products, $business->id === $transad->id, $sequence);
             $quotation->syncValidUntil();
             $quotation->recalculateTotals();
 
@@ -182,14 +182,14 @@ class QuotationsSeeder extends Seeder
         ];
     }
 
-    /** @param  Collection<int, Item>  $catalog_items */
-    private function syncItems(Quotation $quotation, Collection $catalog_items, bool $use_catalog, int $sequence): void
+    /** @param  Collection<int, Product>  $catalog_products */
+    private function syncItems(Quotation $quotation, Collection $catalog_products, bool $use_catalog, int $sequence): void
     {
         $quotation->items()->delete();
 
-        $rows = $use_catalog && $catalog_items->isNotEmpty()
-            ? $this->catalogItemRows($catalog_items, $sequence)
-            : $this->genericItemRows($sequence);
+        $rows = $use_catalog && $catalog_products->isNotEmpty()
+            ? $this->catalogProductRows($catalog_products, $sequence)
+            : $this->genericProductRows($sequence);
 
         foreach ($rows as $row) {
             $qty      = (float) $row['quantity'];
@@ -198,10 +198,10 @@ class QuotationsSeeder extends Seeder
             $subtotal = round($qty * $price * (1 - $discount / 100), 2);
 
             QuotationItem::query()->create([
-                'quotation_id'        => $quotation->id,
-                'item_id'             => $row['item_id'] ?? null,
-                'item_type_id'        => $row['item_type_id'] ?? null,
-                'item_category_id'    => $row['item_category_id'] ?? null,
+                'quotation_id'           => $quotation->id,
+                'product_id'             => $row['product_id'] ?? null,
+                'product_type_id'        => $row['product_type_id'] ?? null,
+                'product_category_id'    => $row['product_category_id'] ?? null,
                 'description'         => $row['description'],
                 'quantity'            => $qty,
                 'unit_price'          => $price,
@@ -211,31 +211,31 @@ class QuotationsSeeder extends Seeder
         }
     }
 
-    /** @param  Collection<int, Item>  $catalog_items */
+    /** @param  Collection<int, Product>  $catalog_products */
     /** @return list<array<string, mixed>> */
-    private function catalogItemRows(Collection $catalog_items, int $sequence): array
+    private function catalogProductRows(Collection $catalog_products, int $sequence): array
     {
-        $picked = $catalog_items->values()->slice($sequence % max($catalog_items->count() - 2, 1), 3);
+        $picked = $catalog_products->values()->slice($sequence % max($catalog_products->count() - 2, 1), 3);
 
         if ($picked->isEmpty()) {
-            return $this->genericItemRows($sequence);
+            return $this->genericProductRows($sequence);
         }
 
-        return $picked->map(function (Item $item, int $index) {
+        return $picked->map(function (Product $product, int $index) {
             return [
-                'item_id'             => $item->id,
-                'item_type_id'        => $item->item_type_id,
-                'item_category_id'    => $item->item_category_id,
-                'description'         => $item->name,
+                'product_id'             => $product->id,
+                'product_type_id'        => $product->product_type_id,
+                'product_category_id'    => $product->product_category_id,
+                'description'         => $product->name,
                 'quantity'            => $index === 0 ? 1 : ($index + 1),
-                'unit_price'          => (float) $item->sale_price,
+                'unit_price'          => (float) $product->sale_price,
                 'discount_percentage' => $index === 2 ? 5 : 0,
             ];
         })->values()->all();
     }
 
     /** @return list<array<string, mixed>> */
-    private function genericItemRows(int $sequence): array
+    private function genericProductRows(int $sequence): array
     {
         $base = 75000 + ($sequence * 12500);
 

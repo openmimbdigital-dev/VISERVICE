@@ -68,13 +68,13 @@
                 <h2 class="font-semibold text-slate-800">Uso en el sistema</h2>
             </div>
             <div class="px-5 py-5">
-                <p class="text-3xl font-bold text-slate-900">{{ $items_count }}</p>
+                <p class="text-3xl font-bold text-slate-900">{{ $products_count }}</p>
                 <p class="mt-1 text-sm text-slate-600">Producto(s) asociado(s)</p>
                 @if($is_general_readonly)
                 <p class="mt-4 rounded-xl border border-indigo-100 bg-indigo-50 px-3.5 py-2.5 text-xs text-indigo-800">
                     Unidad general del sistema. Los negocios pueden consultarla pero no editarla ni eliminarla.
                 </p>
-                @elseif($items_count > 0)
+                @elseif($products_count > 0)
                 <p class="mt-4 rounded-xl border border-amber-100 bg-amber-50 px-3.5 py-2.5 text-xs text-amber-800">
                     Esta unidad está en uso y no puede eliminarse.
                 </p>

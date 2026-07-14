@@ -46,9 +46,9 @@ class Brand extends Model
             ->withTimestamps();
     }
 
-    public function items(): HasMany
+    public function products(): HasMany
     {
-        return $this->hasMany(Item::class, 'brand_id');
+        return $this->hasMany(Product::class, 'brand_id');
     }
 
     public function brandUsages(): HasMany
@@ -56,9 +56,9 @@ class Brand extends Model
         return $this->hasMany(BrandUsage::class);
     }
 
-    public function itemCategories(): BelongsToMany
+    public function productCategories(): BelongsToMany
     {
-        return $this->belongsToMany(ItemCategory::class, 'brand_item_category')
+        return $this->belongsToMany(ProductCategory::class, 'brand_product_category')
             ->withTimestamps();
     }
 
@@ -109,7 +109,7 @@ class Brand extends Model
 
     public function hasDependencies(): bool
     {
-        return $this->equipment()->exists() || $this->items()->exists();
+        return $this->equipment()->exists() || $this->products()->exists();
     }
 
     public function hasEquipmentUsage(): bool
@@ -119,17 +119,17 @@ class Brand extends Model
             ->exists();
     }
 
-    public function hasItemsUsage(): bool
+    public function hasProductsUsage(): bool
     {
         return $this->brandUsages()
-            ->where('type', \App\Enums\BrandUsageType::Items)
+            ->where('type', \App\Enums\BrandUsageType::Products)
             ->exists();
     }
 
-    public function scopeForItemsCatalog(Builder $query): Builder
+    public function scopeForProductsCatalog(Builder $query): Builder
     {
         return $query->whereHas('brandUsages', function (Builder $usage_query) {
-            $usage_query->where('type', \App\Enums\BrandUsageType::Items);
+            $usage_query->where('type', \App\Enums\BrandUsageType::Products);
         });
     }
 

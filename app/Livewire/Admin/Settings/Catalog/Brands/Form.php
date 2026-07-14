@@ -22,7 +22,7 @@ class Form extends Component
         if ($brand) {
             abort_unless(auth()->user()->can('settings.brands.edit'), 403);
             abort_unless(
-                Brand::query()->visibleToUser()->forItemsCatalog()->whereKey($brand->id)->exists(),
+                Brand::query()->visibleToUser()->forProductsCatalog()->whereKey($brand->id)->exists(),
                 404
             );
             abort_unless($brand->isEditableBy(), 403);
@@ -45,7 +45,7 @@ class Form extends Component
 
             if ($this->form->isEditing()) {
                 abort_unless(
-                    Brand::query()->visibleToUser()->forItemsCatalog()->whereKey($this->form->brand_id)->exists(),
+                    Brand::query()->visibleToUser()->forProductsCatalog()->whereKey($this->form->brand_id)->exists(),
                     404
                 );
             }
@@ -81,7 +81,7 @@ class Form extends Component
 
         return view('livewire.admin.settings.catalog.brands.form', [
             'config'          => $config,
-            'item_categories' => $this->form->getAvailableItemCategories(),
+            'product_categories' => $this->form->getAvailableProductCategories(),
             'is_super_admin'  => $this->form->isSuperAdmin(),
         ])->layoutData([
             'title' => $this->form->isEditing() ? 'Configuración — Editar marca' : 'Configuración — Nueva marca',

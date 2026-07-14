@@ -5,13 +5,13 @@ namespace App\Enums;
 enum BrandUsageType: string
 {
     case Equipment = 'equipment';
-    case Items     = 'items';
+    case Products  = 'products';
 
     public function label(): string
     {
         return match ($this) {
             self::Equipment => 'Equipos',
-            self::Items     => 'Artículos / ítems',
+            self::Products  => 'Productos / servicios',
         };
     }
 

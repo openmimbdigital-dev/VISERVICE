@@ -136,8 +136,8 @@ class Quotation extends Model
     public function subtotalsByPdfCategory(): array
     {
         $items = $this->relationLoaded('items')
-            ? $this->items->loadMissing('itemCategory')
-            : $this->items()->with('itemCategory')->get();
+            ? $this->items->loadMissing('productCategory')
+            : $this->items()->with('productCategory')->get();
 
         $groups = [
             'mano_obra'   => 0.0,
@@ -147,7 +147,7 @@ class Quotation extends Model
         ];
 
         foreach ($items as $item) {
-            $category_name = $item->itemCategory?->name ?? '';
+            $category_name = $item->productCategory?->name ?? '';
             $amount        = (float) $item->subtotal;
 
             if (in_array($category_name, self::PDF_CATEGORY_GROUPS['mano_obra'], true)) {

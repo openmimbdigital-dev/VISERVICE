@@ -30,8 +30,8 @@ class DatatableUnits extends LivewireDatatable
 
     public function builder(): Builder
     {
-        $items_count = DB::table('items')
-            ->select('unit_id', DB::raw('COUNT(*) as items_count'))
+        $products_count = DB::table('products')
+            ->select('unit_id', DB::raw('COUNT(*) as products_count'))
             ->whereNull('deleted_at');
 
         $user = auth()->user();
@@ -40,23 +40,23 @@ class DatatableUnits extends LivewireDatatable
             $business_ids = $user->businessIds();
 
             if ($business_ids === []) {
-                $items_count->whereRaw('0 = 1');
+                $products_count->whereRaw('0 = 1');
             } else {
-                $items_count->whereIn('business_id', $business_ids);
+                $products_count->whereIn('business_id', $business_ids);
             }
         }
 
-        $items_count->groupBy('unit_id');
+        $products_count->groupBy('unit_id');
 
         $query = Unit::query()
             ->visibleToUser()
             ->select('units.*')
             ->leftJoinSub(
-                $items_count,
-                'item_usage',
-                fn ($join) => $join->on('units.id', '=', 'item_usage.unit_id')
+                $products_count,
+                'product_usage',
+                fn ($join) => $join->on('units.id', '=', 'product_usage.unit_id')
             )
-            ->addSelect('item_usage.items_count')
+            ->addSelect('product_usage.products_count')
             ->orderByDesc('units.created_at');
 
         if (auth()->user()->hasRole('superAdmin')) {
@@ -107,12 +107,12 @@ class DatatableUnits extends LivewireDatatable
             })->label('Estado')->filterable([1 => 'Activo', 0 => 'Inactivo']),
 
             Column::callback(
-                ['units.id', 'units.general', 'units.business_id', 'item_usage.items_count'],
-                function ($id, $general, $business_id, $items_count) {
+                ['units.id', 'units.general', 'units.business_id', 'product_usage.products_count'],
+                function ($id, $general, $business_id, $products_count) {
                     $permissions = $this->catalogRowPermissions(
                         (bool) $general,
                         $business_id,
-                        (int) $items_count,
+                        (int) $products_count,
                         'settings.units.edit',
                         'settings.units.delete',
                     );

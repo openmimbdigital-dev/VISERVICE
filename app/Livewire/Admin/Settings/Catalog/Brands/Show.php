@@ -17,19 +17,19 @@ class Show extends Component
 
     public Brand $brand;
 
-    public int $items_count = 0;
+    public int $products_count = 0;
 
     public function mount(Brand $brand): void
     {
         abort_unless(auth()->user()->can('settings.brands.view'), 403);
 
         abort_unless(
-            Brand::query()->visibleToUser()->forItemsCatalog()->whereKey($brand->id)->exists(),
+            Brand::query()->visibleToUser()->forProductsCatalog()->whereKey($brand->id)->exists(),
             404
         );
 
-        $this->brand       = $brand->load(['business', 'itemCategories']);
-        $this->items_count = $brand->items()->count();
+        $this->brand       = $brand->load(['business', 'productCategories']);
+        $this->products_count = $brand->products()->count();
     }
 
     public function deleteRecord(): void

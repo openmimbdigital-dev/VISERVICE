@@ -20,7 +20,7 @@ class PrintView extends Component
         $this->quotation = $quotation->load([
             'business', 'client', 'equipment', 'quotationServiceType',
             'paymentMethod', 'bankAccount', 'createdBy',
-            'items.itemType', 'items.itemCategory', 'items.catalogItem',
+            'items.productType', 'items.productCategory', 'items.catalogProduct',
         ]);
     }
 

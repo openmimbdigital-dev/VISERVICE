@@ -10,9 +10,9 @@ use App\Models\BusinessBankAccount;
 use App\Models\BusinessPaymentMethod;
 use App\Models\Client;
 use App\Models\Equipment;
-use App\Models\Item;
-use App\Models\ItemCategory;
-use App\Models\ItemType;
+use App\Models\Product;
+use App\Models\ProductCategory;
+use App\Models\ProductType;
 use App\Models\Quotation;
 use App\Models\QuotationServiceType;
 use Livewire\Attributes\Layout;
@@ -42,14 +42,14 @@ class Form extends Component
                 404
             );
 
-            $quotation->load(['items.itemType', 'items.itemCategory']);
+            $quotation->load(['items.productType', 'items.productCategory']);
             $this->form->setQuotation($quotation);
             $this->reference = $quotation->reference;
             $this->items = $quotation->items->map(fn ($item) => [
                 'id'                  => $item->id,
-                'item_type_id'        => $item->item_type_id,
-                'item_category_id'    => $item->item_category_id,
-                'item_id'             => $item->item_id,
+                'product_type_id'     => $item->product_type_id,
+                'product_category_id' => $item->product_category_id,
+                'product_id'          => $item->product_id,
                 'description'         => $item->description,
                 'quantity'            => (string) $item->quantity,
                 'unit_price'          => (string) $item->unit_price,
@@ -69,12 +69,12 @@ class Form extends Component
 
     public function updatedItems(mixed $value, string $key): void
     {
-        if (! str_ends_with($key, '.item_id') || ! $value) {
+        if (! str_ends_with($key, '.product_id') || ! $value) {
             return;
         }
 
         $index = (int) explode('.', $key)[1];
-        $catalog = Item::query()
+        $catalog = Product::query()
             ->forAuthUser()
             ->where('business_id', $this->form->resolvedBusinessId())
             ->whereKey($value)
@@ -84,19 +84,19 @@ class Form extends Component
             return;
         }
 
-        $this->items[$index]['item_type_id']     = $catalog->item_type_id;
-        $this->items[$index]['item_category_id'] = $catalog->item_category_id;
-        $this->items[$index]['description']      = $catalog->name;
-        $this->items[$index]['unit_price']       = (string) $catalog->sale_price;
+        $this->items[$index]['product_type_id']     = $catalog->product_type_id;
+        $this->items[$index]['product_category_id'] = $catalog->product_category_id;
+        $this->items[$index]['description']         = $catalog->name;
+        $this->items[$index]['unit_price']          = (string) $catalog->sale_price;
     }
 
     public function addItem(): void
     {
         $this->items[] = [
             'id'                  => null,
-            'item_type_id'        => null,
-            'item_category_id'    => null,
-            'item_id'             => null,
+            'product_type_id'     => null,
+            'product_category_id' => null,
+            'product_id'          => null,
             'description'         => '',
             'quantity'            => '1',
             'unit_price'          => '0',
@@ -180,9 +180,9 @@ class Form extends Component
             'items.*.quantity'            => ['required', 'numeric', 'min:0.01'],
             'items.*.unit_price'          => ['required', 'numeric', 'min:0'],
             'items.*.discount_percentage' => ['required', 'numeric', 'min:0', 'max:100'],
-            'items.*.item_type_id'        => ['nullable', 'integer', 'exists:item_types,id'],
-            'items.*.item_category_id'    => ['nullable', 'integer', 'exists:item_categories,id'],
-            'items.*.item_id'             => ['nullable', 'integer', 'exists:items,id'],
+            'items.*.product_type_id'     => ['nullable', 'integer', 'exists:product_types,id'],
+            'items.*.product_category_id' => ['nullable', 'integer', 'exists:product_categories,id'],
+            'items.*.product_id'          => ['nullable', 'integer', 'exists:products,id'],
         ];
     }
 
@@ -206,9 +206,9 @@ class Form extends Component
             'otros'       => 0.0,
         ];
 
-        $category_map = ItemCategory::query()
+        $category_map = ProductCategory::query()
             ->visibleToUser()
-            ->whereIn('id', collect($this->items)->pluck('item_category_id')->filter())
+            ->whereIn('id', collect($this->items)->pluck('product_category_id')->filter())
             ->pluck('name', 'id');
 
         foreach ($this->items as $row) {
@@ -217,7 +217,7 @@ class Form extends Component
             $discount = (float) ($row['discount_percentage'] ?? 0);
             $amount   = round($qty * $price * (1 - $discount / 100), 2);
 
-            $category_name = $category_map[$row['item_category_id'] ?? ''] ?? '';
+            $category_name = $category_map[$row['product_category_id'] ?? ''] ?? '';
 
             if ($category_name === 'Mano de Obra') {
                 $groups['mano_obra'] += $amount;
@@ -241,9 +241,9 @@ class Form extends Component
         $service_types = QuotationServiceType::query()->visibleToUser()->where('active', true)->orderBy('name')->get();
         $payment_methods = BusinessPaymentMethod::query()->visibleToUser()->where('active', true)->orderBy('sort_order')->get();
         $bank_accounts = BusinessBankAccount::query()->forAuthUser()->where('business_id', $business_id)->where('active', true)->get();
-        $item_types = ItemType::query()->visibleToUser()->where('active', true)->orderBy('name')->get();
-        $item_categories = ItemCategory::query()->visibleToUser()->where('active', true)->orderBy('name')->get();
-        $catalog_items = Item::query()->forAuthUser()->where('business_id', $business_id)->active()->orderBy('name')->get();
+        $product_types = ProductType::query()->visibleToUser()->where('active', true)->orderBy('name')->get();
+        $product_categories = ProductCategory::query()->visibleToUser()->where('active', true)->orderBy('name')->get();
+        $catalog_products = Product::query()->forAuthUser()->where('business_id', $business_id)->active()->orderBy('name')->get();
 
         $equipment_for_client = $this->form->client_id
             ? Equipment::query()->forAuthUser()
@@ -266,9 +266,9 @@ class Form extends Component
             'service_types'        => $service_types,
             'payment_methods'      => $payment_methods,
             'bank_accounts'        => $bank_accounts,
-            'item_types'           => $item_types,
-            'item_categories'      => $item_categories,
-            'catalog_items'        => $catalog_items,
+            'product_types'        => $product_types,
+            'product_categories'   => $product_categories,
+            'catalog_products'     => $catalog_products,
             'equipment_for_client' => $equipment_for_client,
             'category_subtotals'   => $category_subtotals,
             'preview_subtotal'     => $subtotal,

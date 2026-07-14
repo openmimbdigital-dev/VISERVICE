@@ -201,6 +201,9 @@ class BusinessAccess
     ): void {
         $business->roles()->sync($role_ids);
 
+        $platform_only = config('permissions.platform_only_permissions', []);
+        $permission_names = array_values(array_diff($permission_names, $platform_only));
+
         $permission_ids = Permission::query()
             ->where('guard_name', 'web')
             ->whereIn('name', $permission_names)

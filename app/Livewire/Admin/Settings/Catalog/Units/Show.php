@@ -17,7 +17,7 @@ class Show extends Component
 
     public Unit $unit;
 
-    public int $items_count = 0;
+    public int $products_count = 0;
 
     public function mount(Unit $unit): void
     {
@@ -28,8 +28,8 @@ class Show extends Component
             404
         );
 
-        $this->unit        = $unit->load('business');
-        $this->items_count = $unit->items()->count();
+        $this->unit           = $unit->load('business');
+        $this->products_count = $unit->products()->count();
     }
 
     public function deleteRecord(): void

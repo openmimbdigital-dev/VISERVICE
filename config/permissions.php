@@ -29,11 +29,11 @@ return [
                 'businesses.activate' => 'Activar empresas',
                 'businesses.deactivate' => 'Desactivar empresas',
                 'businesses.manage_addresses' => 'Gestionar direcciones',
-                'businesses.manage_modules'   => 'Gestionar módulos del negocio',
+                'businesses.manage_modules'   => 'Gestionar módulos por negocio (plataforma)',
             ],
         ],
         'business_types' => [
-            'name' => 'Negocios — Tipos de negocio',
+            'name' => 'Gestión de Negocios — Tipos de negocio',
             'permissions' => [
                 'business_types.view'   => 'Ver tipos de negocio',
                 'business_types.create' => 'Crear tipos de negocio',
@@ -42,7 +42,7 @@ return [
             ],
         ],
         'organization_types' => [
-            'name' => 'Negocios — Tipos de organización',
+            'name' => 'Gestión de Negocios — Tipos de organización',
             'permissions' => [
                 'organization_types.view'   => 'Ver tipos de organización',
                 'organization_types.create' => 'Crear tipos de organización',
@@ -51,7 +51,7 @@ return [
             ],
         ],
         'business_type_access' => [
-            'name' => 'Negocios — Acceso por tipo',
+            'name' => 'Gestión de Negocios — Acceso por negocio',
             'permissions' => [
                 'business_types.access.view'   => 'Ver acceso por tipo de negocio',
                 'business_types.access.manage' => 'Gestionar acceso por tipo de negocio',
@@ -211,29 +211,29 @@ return [
         'catalog' => [
             'name' => 'Catálogo — Productos y servicios',
             'permissions' => [
-                'catalog.view'         => 'Ver módulo de catálogo',
-                'catalog.items.view'   => 'Ver productos y servicios',
-                'catalog.items.create' => 'Crear productos y servicios',
-                'catalog.items.edit'   => 'Editar productos y servicios',
-                'catalog.items.delete' => 'Eliminar productos y servicios',
+                'catalog.view'            => 'Ver módulo de catálogo',
+                'catalog.products.view'   => 'Ver productos y servicios',
+                'catalog.products.create' => 'Crear productos y servicios',
+                'catalog.products.edit'   => 'Editar productos y servicios',
+                'catalog.products.delete' => 'Eliminar productos y servicios',
             ],
         ],
-        'settings_item_types' => [
+        'settings_product_types' => [
             'name' => 'Configuración — Tipos de producto',
             'permissions' => [
-                'settings.item_types.view'   => 'Ver tipos de producto',
-                'settings.item_types.create' => 'Crear tipos de producto',
-                'settings.item_types.edit'   => 'Editar tipos de producto',
-                'settings.item_types.delete' => 'Eliminar tipos de producto',
+                'settings.product_types.view'   => 'Ver tipos de producto',
+                'settings.product_types.create' => 'Crear tipos de producto',
+                'settings.product_types.edit'   => 'Editar tipos de producto',
+                'settings.product_types.delete' => 'Eliminar tipos de producto',
             ],
         ],
-        'settings_item_categories' => [
+        'settings_product_categories' => [
             'name' => 'Configuración — Categorías de producto',
             'permissions' => [
-                'settings.item_categories.view'   => 'Ver categorías de producto',
-                'settings.item_categories.create' => 'Crear categorías de producto',
-                'settings.item_categories.edit'   => 'Editar categorías de producto',
-                'settings.item_categories.delete' => 'Eliminar categorías de producto',
+                'settings.product_categories.view'   => 'Ver categorías de producto',
+                'settings.product_categories.create' => 'Crear categorías de producto',
+                'settings.product_categories.edit'   => 'Editar categorías de producto',
+                'settings.product_categories.delete' => 'Eliminar categorías de producto',
             ],
         ],
         'settings_units' => [
@@ -313,6 +313,27 @@ return [
 
     'system_roles' => [
         'superAdmin',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Permisos solo de plataforma (Gestión de Negocios — solo superAdmin)
+    | No se asignan a negocios vía Acceso por negocio.
+    |--------------------------------------------------------------------------
+    */
+
+    'platform_only_permissions' => [
+        'business_types.view',
+        'business_types.create',
+        'business_types.edit',
+        'business_types.delete',
+        'organization_types.view',
+        'organization_types.create',
+        'organization_types.edit',
+        'organization_types.delete',
+        'business_types.access.view',
+        'business_types.access.manage',
+        'businesses.manage_modules',
     ],
 
     /*

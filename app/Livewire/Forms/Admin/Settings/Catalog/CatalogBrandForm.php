@@ -3,7 +3,7 @@
 namespace App\Livewire\Forms\Admin\Settings\Catalog;
 
 use App\Models\Brand;
-use App\Models\ItemCategory;
+use App\Models\ProductCategory;
 use App\Rules\NotConflictingWithGeneralCatalogName;
 use App\Support\CatalogLabelNormalizer;
 use Illuminate\Support\Collection;
@@ -19,16 +19,16 @@ class CatalogBrandForm extends Form
     public bool $active = true;
 
     /** @var array<int> */
-    public array $item_category_ids = [];
+    public array $product_category_ids = [];
 
     public function setBrand(Brand $brand): void
     {
-        $brand->load('itemCategories');
+        $brand->load('productCategories');
 
-        $this->brand_id           = $brand->id;
-        $this->name               = $brand->name;
-        $this->active             = $brand->active;
-        $this->item_category_ids  = $brand->itemCategories
+        $this->brand_id             = $brand->id;
+        $this->name                 = $brand->name;
+        $this->active               = $brand->active;
+        $this->product_category_ids = $brand->productCategories
             ->where('inventory', true)
             ->pluck('id')
             ->map(fn ($id) => (int) $id)
@@ -38,10 +38,10 @@ class CatalogBrandForm extends Form
     public function reset(...$properties): void
     {
         parent::reset(...$properties);
-        $this->brand_id          = null;
-        $this->name              = '';
-        $this->active            = true;
-        $this->item_category_ids = [];
+        $this->brand_id             = null;
+        $this->name                 = '';
+        $this->active               = true;
+        $this->product_category_ids = [];
     }
 
     public function isSuperAdmin(): bool
@@ -59,9 +59,9 @@ class CatalogBrandForm extends Form
         return $this->isSuperAdmin();
     }
 
-    public function getAvailableItemCategories(): Collection
+    public function getAvailableProductCategories(): Collection
     {
-        $query = ItemCategory::query()
+        $query = ProductCategory::query()
             ->where('inventory', true)
             ->orderBy('name');
 
@@ -87,7 +87,7 @@ class CatalogBrandForm extends Form
             }
         };
 
-        $available_item_category_ids = $this->getAvailableItemCategories()->pluck('id')->all();
+        $available_product_category_ids = $this->getAvailableProductCategories()->pluck('id')->all();
 
         return [
             'name' => [
@@ -138,21 +138,21 @@ class CatalogBrandForm extends Form
                     }
                 },
             ],
-            'active'                  => ['boolean'],
-            'item_category_ids'       => ['required', 'array', 'min:1'],
-            'item_category_ids.*'     => ['integer', Rule::in($available_item_category_ids)],
+            'active'                     => ['boolean'],
+            'product_category_ids'       => ['required', 'array', 'min:1'],
+            'product_category_ids.*'     => ['integer', Rule::in($available_product_category_ids)],
         ];
     }
 
     public function messages(): array
     {
         return [
-            'name.required'                   => 'El nombre es obligatorio.',
-            'name.max'                        => 'El nombre no puede superar 100 caracteres.',
-            'name.unique'                     => 'Ya existe una marca con este nombre.',
-            'item_category_ids.required'      => 'Debe seleccionar al menos una categoría.',
-            'item_category_ids.min'           => 'Debe seleccionar al menos una categoría.',
-            'item_category_ids.*.in'          => 'Una de las categorías seleccionadas no es válida.',
+            'name.required'                      => 'El nombre es obligatorio.',
+            'name.max'                           => 'El nombre no puede superar 100 caracteres.',
+            'name.unique'                        => 'Ya existe una marca con este nombre.',
+            'product_category_ids.required'      => 'Debe seleccionar al menos una categoría.',
+            'product_category_ids.min'           => 'Debe seleccionar al menos una categoría.',
+            'product_category_ids.*.in'          => 'Una de las categorías seleccionadas no es válida.',
         ];
     }
 
@@ -168,7 +168,7 @@ class CatalogBrandForm extends Form
         return [
             'name'                => trim($this->name),
             'active'              => $this->active,
-            'item_category_ids'   => array_map('intval', $this->item_category_ids),
+            'product_category_ids' => array_map('intval', $this->product_category_ids),
         ];
     }
 }

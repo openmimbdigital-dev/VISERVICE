@@ -9,13 +9,18 @@ use Spatie\Permission\PermissionRegistrar;
 
 class RolesAndPermissionsSeeder extends Seeder
 {
-    /** @return list<string> */
-    private function businessCatalogPermissions(): array
+    /**
+     * Gestión de Negocios (solo superAdmin — no asignar a roles de negocio).
+     *
+     * @return list<string>
+     */
+    private function businessManagementPermissions(): array
     {
         return [
             'business_types.view', 'business_types.create', 'business_types.edit', 'business_types.delete',
             'organization_types.view', 'organization_types.create', 'organization_types.edit', 'organization_types.delete',
             'business_types.access.view', 'business_types.access.manage',
+            'businesses.manage_modules',
         ];
     }
 
@@ -37,11 +42,11 @@ class RolesAndPermissionsSeeder extends Seeder
     }
 
     /** @return list<string> */
-    private function catalogItemsPermissions(): array
+    private function catalogProductsPermissions(): array
     {
         return [
             'catalog.view',
-            'catalog.items.view', 'catalog.items.create', 'catalog.items.edit', 'catalog.items.delete',
+            'catalog.products.view', 'catalog.products.create', 'catalog.products.edit', 'catalog.products.delete',
         ];
     }
 
@@ -49,8 +54,8 @@ class RolesAndPermissionsSeeder extends Seeder
     private function catalogProductsSettingsPermissions(): array
     {
         return [
-            'settings.item_types.view', 'settings.item_types.create', 'settings.item_types.edit', 'settings.item_types.delete',
-            'settings.item_categories.view', 'settings.item_categories.create', 'settings.item_categories.edit', 'settings.item_categories.delete',
+            'settings.product_types.view', 'settings.product_types.create', 'settings.product_types.edit', 'settings.product_types.delete',
+            'settings.product_categories.view', 'settings.product_categories.create', 'settings.product_categories.edit', 'settings.product_categories.delete',
             'settings.units.view', 'settings.units.create', 'settings.units.edit', 'settings.units.delete',
         ];
     }
@@ -107,7 +112,6 @@ class RolesAndPermissionsSeeder extends Seeder
             // Empresas
             'businesses.view', 'businesses.create', 'businesses.edit', 'businesses.delete',
             'businesses.activate', 'businesses.deactivate', 'businesses.manage_addresses',
-            'businesses.manage_modules',
             // Reportes
             'reports.view', 'reports.export',
             // Configuración
@@ -140,14 +144,14 @@ class RolesAndPermissionsSeeder extends Seeder
             'workshop.view',
             ...$this->quotationPermissions(),
             'workshop.work-orders.view',
-            // Negocios — Tipos y acceso
-            ...$this->businessCatalogPermissions(),
+            // Gestión de Negocios (solo superAdmin)
+            ...$this->businessManagementPermissions(),
             // Negocios — Cargos del equipo
             ...$this->teamPositionPermissions(),
             // Negocios — Pagos y bancos
             ...$this->businessPaymentSettingsPermissions(),
             // Catálogo — Productos y servicios
-            ...$this->catalogItemsPermissions(),
+            ...$this->catalogProductsPermissions(),
             ...$this->catalogProductsSettingsPermissions(),
         ])->mapWithKeys(fn ($name) => [
             $name => Permission::firstOrCreate(['name' => $name, 'guard_name' => $guard]),
@@ -186,7 +190,7 @@ class RolesAndPermissionsSeeder extends Seeder
             ...$this->workshopPermissions(),
             ...$this->teamPositionPermissions(),
             ...$business_payment_settings,
-            ...$this->catalogItemsPermissions(),
+            ...$this->catalogProductsPermissions(),
             ...$this->catalogProductsSettingsPermissions(),
         ])->values());
 
@@ -205,7 +209,7 @@ class RolesAndPermissionsSeeder extends Seeder
             ...$this->workshopPermissions(),
             ...$this->teamPositionPermissions(),
             ...$business_payment_settings,
-            ...$this->catalogItemsPermissions(),
+            ...$this->catalogProductsPermissions(),
             ...$this->catalogProductsSettingsPermissions(),
         ])->values());
 

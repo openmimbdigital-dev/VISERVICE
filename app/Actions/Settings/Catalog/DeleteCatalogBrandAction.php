@@ -19,7 +19,7 @@ class DeleteCatalogBrandAction
         abort_unless($brand->isEditableBy(), 403);
 
         abort_unless(
-            $brand->brandUsages()->where('type', BrandUsageType::Items)->exists(),
+            $brand->brandUsages()->where('type', BrandUsageType::Products)->exists(),
             403,
             'Esta marca no pertenece al catálogo de productos.'
         );

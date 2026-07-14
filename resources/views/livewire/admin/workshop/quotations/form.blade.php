@@ -141,23 +141,23 @@
                             <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                                 <div>
                                     <label class="mb-1 block text-xs font-medium text-slate-700">Tipo</label>
-                                    <select wire:model="items.{{ $index }}.item_type_id" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">
+                                    <select wire:model="items.{{ $index }}.product_type_id" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">
                                         <option value="">—</option>
-                                        @foreach($item_types as $type)<option value="{{ $type->id }}">{{ $type->name }}</option>@endforeach
+                                        @foreach($product_types as $type)<option value="{{ $type->id }}">{{ $type->name }}</option>@endforeach
                                     </select>
                                 </div>
                                 <div>
                                     <label class="mb-1 block text-xs font-medium text-slate-700">Categoría</label>
-                                    <select wire:model="items.{{ $index }}.item_category_id" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">
+                                    <select wire:model="items.{{ $index }}.product_category_id" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">
                                         <option value="">—</option>
-                                        @foreach($item_categories as $cat)<option value="{{ $cat->id }}">{{ $cat->name }}</option>@endforeach
+                                        @foreach($product_categories as $cat)<option value="{{ $cat->id }}">{{ $cat->name }}</option>@endforeach
                                     </select>
                                 </div>
                                 <div class="sm:col-span-2">
                                     <label class="mb-1 block text-xs font-medium text-slate-700">Catálogo</label>
-                                    <select wire:model.live="items.{{ $index }}.item_id" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">
+                                    <select wire:model.live="items.{{ $index }}.product_id" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">
                                         <option value="">— Manual —</option>
-                                        @foreach($catalog_items as $ci)<option value="{{ $ci->id }}">{{ $ci->name }} ({{ col_money($ci->sale_price) }})</option>@endforeach
+                                        @foreach($catalog_products as $ci)<option value="{{ $ci->id }}">{{ $ci->name }} ({{ col_money($ci->sale_price) }})</option>@endforeach
                                     </select>
                                 </div>
                                 <div class="sm:col-span-2">

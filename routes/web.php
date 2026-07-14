@@ -51,18 +51,18 @@ use App\Livewire\Admin\Settings\Equipment\Types\Show as SettingsEquipmentTypesSh
 use App\Livewire\Admin\Settings\Equipment\Index as SettingsEquipmentIndex;
 use App\Livewire\Admin\Settings\Equipment\SectionIndex as SettingsEquipmentSectionIndex;
 use App\Livewire\Admin\Settings\Catalog\Index as SettingsCatalogProductsIndex;
-use App\Livewire\Admin\Settings\Catalog\ItemTypes\Index as SettingsItemTypesIndex;
-use App\Livewire\Admin\Settings\Catalog\ItemTypes\Show as SettingsItemTypesShow;
-use App\Livewire\Admin\Settings\Catalog\ItemCategories\Index as SettingsItemCategoriesIndex;
-use App\Livewire\Admin\Settings\Catalog\ItemCategories\Show as SettingsItemCategoriesShow;
+use App\Livewire\Admin\Settings\Catalog\ProductTypes\Index as SettingsProductTypesIndex;
+use App\Livewire\Admin\Settings\Catalog\ProductTypes\Show as SettingsProductTypesShow;
+use App\Livewire\Admin\Settings\Catalog\ProductCategories\Index as SettingsProductCategoriesIndex;
+use App\Livewire\Admin\Settings\Catalog\ProductCategories\Show as SettingsProductCategoriesShow;
 use App\Livewire\Admin\Settings\Catalog\Units\Index as SettingsUnitsIndex;
 use App\Livewire\Admin\Settings\Catalog\Units\Show as SettingsUnitsShow;
 use App\Livewire\Admin\Settings\Catalog\Brands\Form as SettingsCatalogBrandsForm;
 use App\Livewire\Admin\Settings\Catalog\Brands\Index as SettingsCatalogBrandsIndex;
 use App\Livewire\Admin\Settings\Catalog\Brands\Show as SettingsCatalogBrandsShow;
-use App\Livewire\Admin\Catalog\Items\Form as CatalogItemsForm;
-use App\Livewire\Admin\Catalog\Items\Index as CatalogItemsIndex;
-use App\Livewire\Admin\Catalog\Items\Show as CatalogItemsShow;
+use App\Livewire\Admin\Catalog\Products\Form as CatalogProductsForm;
+use App\Livewire\Admin\Catalog\Products\Index as CatalogProductsIndex;
+use App\Livewire\Admin\Catalog\Products\Show as CatalogProductsShow;
 use App\Livewire\Auth\RegisterWizard;
 use Illuminate\Support\Facades\Route;
 
@@ -111,9 +111,6 @@ Route::middleware(['auth', 'ensure.business', 'business.module'])->group(functio
         Route::middleware('permission:businesses.create')->group(function () {
             Route::get('/businesses/form', AdminBusinessesForm::class)->name('businesses.form');
         });
-        Route::middleware('role:superAdmin')->group(function () {
-            Route::get('/businesses/modules', AdminBusinessesModuleAccess::class)->name('businesses.modules');
-        });
         Route::middleware('permission:businesses.edit')->group(function () {
             Route::get('/businesses/{business}/form', AdminBusinessesForm::class)
                 ->whereNumber('business')
@@ -124,14 +121,21 @@ Route::middleware(['auth', 'ensure.business', 'business.module'])->group(functio
                 ->whereNumber('business')
                 ->name('businesses.show');
         });
-        Route::middleware('permission:business_types.view')->group(function () {
-            Route::get('/business-types', AdminBusinessTypesIndex::class)->name('business-types.index');
-        });
-        Route::middleware('permission:business_types.access.view')->group(function () {
-            Route::get('/business-types/access', AdminBusinessTypesAccess::class)->name('business-types.access');
-        });
-        Route::middleware('permission:organization_types.view')->group(function () {
-            Route::get('/organization-types', AdminOrganizationTypesIndex::class)->name('organization-types.index');
+
+        // Gestión de Negocios (solo superAdmin)
+        Route::middleware('role:superAdmin')->group(function () {
+            Route::middleware('permission:business_types.view')->group(function () {
+                Route::get('/business-types', AdminBusinessTypesIndex::class)->name('business-types.index');
+            });
+            Route::middleware('permission:business_types.access.view')->group(function () {
+                Route::get('/business-types/access', AdminBusinessTypesAccess::class)->name('business-types.access');
+            });
+            Route::middleware('permission:organization_types.view')->group(function () {
+                Route::get('/organization-types', AdminOrganizationTypesIndex::class)->name('organization-types.index');
+            });
+            Route::middleware('permission:businesses.manage_modules')->group(function () {
+                Route::get('/businesses/modules', AdminBusinessesModuleAccess::class)->name('businesses.modules');
+            });
         });
         Route::middleware('permission:team_positions.view')->group(function () {
             Route::get('/team-positions', AdminTeamPositionsIndex::class)->name('team-positions.index');
@@ -237,14 +241,14 @@ Route::middleware(['auth', 'ensure.business', 'business.module'])->group(functio
         // Configuración — Productos y servicios (directorios)
         Route::get('/catalog-products', SettingsCatalogProductsIndex::class)->name('catalog-products.index');
 
-        Route::middleware('permission:settings.item_types.view')->group(function () {
-            Route::get('/catalog-products/types', SettingsItemTypesIndex::class)->name('catalog-products.item-types.index');
-            Route::get('/catalog-products/types/{itemType}', SettingsItemTypesShow::class)->name('catalog-products.item-types.show');
+        Route::middleware('permission:settings.product_types.view')->group(function () {
+            Route::get('/catalog-products/types', SettingsProductTypesIndex::class)->name('catalog-products.product-types.index');
+            Route::get('/catalog-products/types/{productType}', SettingsProductTypesShow::class)->name('catalog-products.product-types.show');
         });
 
-        Route::middleware('permission:settings.item_categories.view')->group(function () {
-            Route::get('/catalog-products/categories', SettingsItemCategoriesIndex::class)->name('catalog-products.item-categories.index');
-            Route::get('/catalog-products/categories/{itemCategory}', SettingsItemCategoriesShow::class)->name('catalog-products.item-categories.show');
+        Route::middleware('permission:settings.product_categories.view')->group(function () {
+            Route::get('/catalog-products/categories', SettingsProductCategoriesIndex::class)->name('catalog-products.product-categories.index');
+            Route::get('/catalog-products/categories/{productCategory}', SettingsProductCategoriesShow::class)->name('catalog-products.product-categories.show');
         });
 
         Route::middleware('permission:settings.units.view')->group(function () {
@@ -268,17 +272,17 @@ Route::middleware(['auth', 'ensure.business', 'business.module'])->group(functio
 
     // Catálogo — Productos y servicios
     Route::middleware('permission:catalog.view')->prefix('catalog')->name('admin.catalog.')->group(function () {
-        Route::middleware('permission:catalog.items.view')->group(function () {
-            Route::get('/items', CatalogItemsIndex::class)->name('items.index');
+        Route::middleware('permission:catalog.products.view')->group(function () {
+            Route::get('/products', CatalogProductsIndex::class)->name('products.index');
         });
-        Route::middleware('permission:catalog.items.create')->group(function () {
-            Route::get('/items/create', CatalogItemsForm::class)->name('items.create');
+        Route::middleware('permission:catalog.products.create')->group(function () {
+            Route::get('/products/create', CatalogProductsForm::class)->name('products.create');
         });
-        Route::middleware('permission:catalog.items.edit')->group(function () {
-            Route::get('/items/{item}/edit', CatalogItemsForm::class)->name('items.edit');
+        Route::middleware('permission:catalog.products.edit')->group(function () {
+            Route::get('/products/{product}/edit', CatalogProductsForm::class)->name('products.edit');
         });
-        Route::middleware('permission:catalog.items.view')->group(function () {
-            Route::get('/items/{item}', CatalogItemsShow::class)->name('items.show');
+        Route::middleware('permission:catalog.products.view')->group(function () {
+            Route::get('/products/{product}', CatalogProductsShow::class)->name('products.show');
         });
     });
 });

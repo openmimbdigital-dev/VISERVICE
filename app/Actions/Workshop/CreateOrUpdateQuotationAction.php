@@ -7,9 +7,9 @@ use App\Models\BusinessBankAccount;
 use App\Models\BusinessPaymentMethod;
 use App\Models\Client;
 use App\Models\Equipment;
-use App\Models\Item;
-use App\Models\ItemCategory;
-use App\Models\ItemType;
+use App\Models\Product;
+use App\Models\ProductCategory;
+use App\Models\ProductType;
 use App\Models\Quotation;
 use App\Models\QuotationItem;
 use App\Models\QuotationServiceType;
@@ -103,7 +103,7 @@ class CreateOrUpdateQuotationAction
             $this->syncItems($quotation, $items);
             $quotation->recalculateTotals();
 
-            return $quotation->fresh(['items.itemType', 'items.itemCategory']);
+            return $quotation->fresh(['items.productType', 'items.productCategory']);
         });
     }
 
@@ -118,19 +118,19 @@ class CreateOrUpdateQuotationAction
                 continue;
             }
 
-            if (! empty($row['item_type_id'])) {
-                abort_unless(ItemType::query()->visibleToUser()->whereKey($row['item_type_id'])->exists(), 422);
+            if (! empty($row['product_type_id'])) {
+                abort_unless(ProductType::query()->visibleToUser()->whereKey($row['product_type_id'])->exists(), 422);
             }
 
-            if (! empty($row['item_category_id'])) {
-                abort_unless(ItemCategory::query()->visibleToUser()->whereKey($row['item_category_id'])->exists(), 422);
+            if (! empty($row['product_category_id'])) {
+                abort_unless(ProductCategory::query()->visibleToUser()->whereKey($row['product_category_id'])->exists(), 422);
             }
 
-            if (! empty($row['item_id'])) {
+            if (! empty($row['product_id'])) {
                 abort_unless(
-                    Item::query()->forAuthUser()
+                    Product::query()->forAuthUser()
                         ->where('business_id', $quotation->business_id)
-                        ->whereKey($row['item_id'])
+                        ->whereKey($row['product_id'])
                         ->exists(),
                     422
                 );
@@ -142,9 +142,9 @@ class CreateOrUpdateQuotationAction
             $subtotal = round($qty * $price * (1 - $discount / 100), 2);
 
             $payload = [
-                'item_id'             => $row['item_id'] ?: null,
-                'item_type_id'        => $row['item_type_id'] ?: null,
-                'item_category_id'    => $row['item_category_id'] ?: null,
+                'product_id'          => $row['product_id'] ?: null,
+                'product_type_id'     => $row['product_type_id'] ?: null,
+                'product_category_id' => $row['product_category_id'] ?: null,
                 'description'         => $description,
                 'quantity'            => $qty,
                 'unit_price'          => $price,

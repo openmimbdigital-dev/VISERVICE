@@ -30,14 +30,14 @@ class Unit extends Model
         return $this->belongsTo(Business::class);
     }
 
-    public function items(): HasMany
+    public function products(): HasMany
     {
-        return $this->hasMany(Item::class);
+        return $this->hasMany(Product::class);
     }
 
     public function hasDependencies(): bool
     {
-        return $this->items()->exists();
+        return $this->products()->exists();
     }
 
     public function canDelete(?User $user = null): bool

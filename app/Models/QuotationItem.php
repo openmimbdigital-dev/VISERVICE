@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class QuotationItem extends Model
 {
     protected $fillable = [
-        'quotation_id', 'item_id', 'item_type_id', 'item_category_id',
+        'quotation_id', 'product_id', 'product_type_id', 'product_category_id',
         'description', 'quantity', 'unit_price', 'discount_percentage', 'subtotal',
     ];
 
@@ -27,19 +27,19 @@ class QuotationItem extends Model
         return $this->belongsTo(Quotation::class);
     }
 
-    public function catalogItem(): BelongsTo
+    public function catalogProduct(): BelongsTo
     {
-        return $this->belongsTo(Item::class, 'item_id');
+        return $this->belongsTo(Product::class, 'product_id');
     }
 
-    public function itemType(): BelongsTo
+    public function productType(): BelongsTo
     {
-        return $this->belongsTo(ItemType::class);
+        return $this->belongsTo(ProductType::class);
     }
 
-    public function itemCategory(): BelongsTo
+    public function productCategory(): BelongsTo
     {
-        return $this->belongsTo(ItemCategory::class);
+        return $this->belongsTo(ProductCategory::class);
     }
 
     public function calculateSubtotal(): float
@@ -52,7 +52,7 @@ class QuotationItem extends Model
 
     public function legacyWorkOrderItemType(): string
     {
-        $category = $this->itemCategory?->name ?? '';
+        $category = $this->productCategory?->name ?? '';
 
         return match (true) {
             $category === 'Mano de Obra' => 'servicio',

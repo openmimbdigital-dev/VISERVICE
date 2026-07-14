@@ -76,8 +76,8 @@
         <tbody>
             @foreach($quotation->items as $item)
             <tr class="border-b border-slate-100">
-                <td class="px-2 py-1">{{ $item->itemType?->name ?? '—' }}</td>
-                <td class="px-2 py-1">{{ $item->itemCategory?->name ?? '—' }}</td>
+                <td class="px-2 py-1">{{ $item->productType?->name ?? '—' }}</td>
+                <td class="px-2 py-1">{{ $item->productCategory?->name ?? '—' }}</td>
                 <td class="px-2 py-1">{{ $item->description }}</td>
                 <td class="px-2 py-1 text-right">{{ $item->quantity }}</td>
                 <td class="px-2 py-1 text-right">{{ col_money($item->unit_price) }}</td>

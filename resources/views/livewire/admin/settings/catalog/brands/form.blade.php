@@ -52,15 +52,15 @@
             <div>
                 <label class="mb-2 block text-sm font-medium text-slate-700">Categorías <span class="text-rose-500">*</span></label>
                 <p class="mb-3 text-sm text-slate-600">Selecciona las categorías de producto a las que aplica esta marca.</p>
-                @if($item_categories->isNotEmpty())
+                @if($product_categories->isNotEmpty())
                 <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                    @foreach($item_categories as $item_category)
+                    @foreach($product_categories as $product_category)
                     <label class="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 transition hover:bg-slate-50">
-                        <input type="checkbox" value="{{ $item_category->id }}" wire:model="form.item_category_ids"
+                        <input type="checkbox" value="{{ $product_category->id }}" wire:model="form.product_category_ids"
                             class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
                         <span class="text-sm text-slate-700">
-                            {{ $item_category->name }}
-                            @if(! $item_category->active)
+                            {{ $product_category->name }}
+                            @if(! $product_category->active)
                                 <span class="text-xs text-slate-400">(inactiva)</span>
                             @endif
                         </span>
@@ -70,7 +70,7 @@
                 @else
                 <p class="text-sm text-slate-500">No hay categorías disponibles. Crea categorías antes de registrar marcas.</p>
                 @endif
-                @error('form.item_category_ids')<p class="mt-2 text-xs text-rose-600">{{ $message }}</p>@enderror
+                @error('form.product_category_ids')<p class="mt-2 text-xs text-rose-600">{{ $message }}</p>@enderror
             </div>
 
             <div>
