@@ -10,7 +10,7 @@ class BusinessForm extends Form
 {
     public ?int $business_id = null;
 
-    public ?int $organization_type_id = null;
+    public ?int $business_type_id = null;
 
     public string $name = '';
 
@@ -46,21 +46,21 @@ class BusinessForm extends Form
 
     public function setBusiness(Business $business): void
     {
-        $this->business_id          = $business->id;
-        $this->organization_type_id = $business->organization_type_id;
-        $this->name                 = $business->name;
-        $this->nit                  = $business->nit ?? '';
-        $this->phone_number         = $business->phone_number ?? '';
-        $this->email                = $business->email ?? '';
-        $this->address              = $business->address ?? '';
-        $this->city_id              = $business->city_id;
-        $this->website              = $business->website ?? '';
-        $this->tagline              = $business->tagline ?? '';
-        $this->tax_regime           = $business->tax_regime ?? '';
-        $this->facebook             = $business->facebook ?? '';
-        $this->instagram            = $business->instagram ?? '';
-        $this->twitter              = $business->twitter ?? '';
-        $this->status               = (bool) $business->status;
+        $this->business_id      = $business->id;
+        $this->business_type_id = $business->business_type_id;
+        $this->name             = $business->name;
+        $this->nit              = $business->nit ?? '';
+        $this->phone_number     = $business->phone_number ?? '';
+        $this->email            = $business->email ?? '';
+        $this->address          = $business->address ?? '';
+        $this->city_id          = $business->city_id;
+        $this->website          = $business->website ?? '';
+        $this->tagline          = $business->tagline ?? '';
+        $this->tax_regime       = $business->tax_regime ?? '';
+        $this->facebook         = $business->facebook ?? '';
+        $this->instagram        = $business->instagram ?? '';
+        $this->twitter          = $business->twitter ?? '';
+        $this->status           = (bool) $business->status;
 
         $rep = is_array($business->representative) ? $business->representative : [];
         $this->rep_name  = $rep['name'] ?? '';
@@ -71,10 +71,10 @@ class BusinessForm extends Form
     public function rules(): array
     {
         return [
-            'organization_type_id' => [
+            'business_type_id' => [
                 'required',
                 'integer',
-                Rule::exists('organization_types', 'id')->where(
+                Rule::exists('business_types', 'id')->where(
                     fn ($q) => $q->where('active', true)->whereNull('deleted_at')
                 ),
             ],
@@ -100,15 +100,15 @@ class BusinessForm extends Form
     public function messages(): array
     {
         return [
-            'organization_type_id.required' => 'Selecciona el tipo de organización.',
-            'organization_type_id.exists'   => 'El tipo de organización seleccionado no es válido.',
-            'name.required'                 => 'El nombre del negocio es obligatorio.',
-            'name.min'                      => 'El nombre debe tener al menos 3 caracteres.',
-            'nit.required'                  => 'El NIT es obligatorio.',
-            'nit.unique'                    => 'Ya existe otro negocio con este NIT.',
-            'email.email'                   => 'El correo no es válido.',
-            'website.url'                   => 'La URL del sitio web no es válida.',
-            'rep_email.email'               => 'El correo del representante no es válido.',
+            'business_type_id.required' => 'Selecciona el tipo de negocio.',
+            'business_type_id.exists'   => 'El tipo de negocio seleccionado no es válido.',
+            'name.required'             => 'El nombre del negocio es obligatorio.',
+            'name.min'                  => 'El nombre debe tener al menos 3 caracteres.',
+            'nit.required'              => 'El NIT es obligatorio.',
+            'nit.unique'                => 'Ya existe otro negocio con este NIT.',
+            'email.email'               => 'El correo no es válido.',
+            'website.url'               => 'La URL del sitio web no es válida.',
+            'rep_email.email'           => 'El correo del representante no es válido.',
         ];
     }
 
@@ -122,20 +122,20 @@ class BusinessForm extends Form
         $this->validate();
 
         return [
-            'organization_type_id' => $this->organization_type_id,
-            'name'                 => $this->name,
-            'nit'                  => $this->nit,
-            'phone_number'         => $this->phone_number ?: null,
-            'email'                => $this->email ?: null,
-            'address'              => $this->address ?: null,
-            'city_id'              => $this->city_id,
-            'website'              => $this->website ?: null,
-            'tagline'              => $this->tagline ?: null,
-            'tax_regime'           => $this->tax_regime ?: null,
-            'facebook'             => $this->facebook ?: null,
-            'instagram'            => $this->instagram ?: null,
-            'twitter'              => $this->twitter ?: null,
-            'representative'       => array_filter([
+            'business_type_id' => $this->business_type_id,
+            'name'             => $this->name,
+            'nit'              => $this->nit,
+            'phone_number'     => $this->phone_number ?: null,
+            'email'            => $this->email ?: null,
+            'address'          => $this->address ?: null,
+            'city_id'          => $this->city_id,
+            'website'          => $this->website ?: null,
+            'tagline'          => $this->tagline ?: null,
+            'tax_regime'       => $this->tax_regime ?: null,
+            'facebook'         => $this->facebook ?: null,
+            'instagram'        => $this->instagram ?: null,
+            'twitter'          => $this->twitter ?: null,
+            'representative'   => array_filter([
                 'name'  => $this->rep_name,
                 'phone' => $this->rep_phone,
                 'email' => $this->rep_email,

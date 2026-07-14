@@ -64,8 +64,8 @@
                     <dd class="font-mono text-sm lowercase text-slate-700 sm:col-span-2">{{ $teamPosition->label }}</dd>
                 </div>
                 <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
-                    <dt class="text-xs font-medium text-slate-500">Tipo de negocio</dt>
-                    <dd class="text-sm text-slate-900 sm:col-span-2">{{ $teamPosition->business_type?->name ?? '—' }}</dd>
+                    <dt class="text-xs font-medium text-slate-500">Tipo de organización</dt>
+                    <dd class="text-sm text-slate-900 sm:col-span-2">{{ $teamPosition->organization_type?->name ?? '—' }}</dd>
                 </div>
                 <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
                     <dt class="text-xs font-medium text-slate-500">Negocio</dt>

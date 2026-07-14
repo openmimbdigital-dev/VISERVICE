@@ -15,7 +15,7 @@ class TeamPosition extends Model
 
     protected $fillable = [
         'business_id',
-        'business_type_id',
+        'organization_type_id',
         'name',
         'label',
         'active',
@@ -55,9 +55,9 @@ class TeamPosition extends Model
         return $this->belongsTo(Business::class);
     }
 
-    public function business_type(): BelongsTo
+    public function organization_type(): BelongsTo
     {
-        return $this->belongsTo(BusinessType::class, 'business_type_id');
+        return $this->belongsTo(OrganizationType::class, 'organization_type_id');
     }
 
     /** Usuarios asignados a este cargo (cada usuario tiene un solo cargo). */
@@ -88,22 +88,22 @@ class TeamPosition extends Model
             return $query->whereRaw('0 = 1');
         }
 
-        $business_type_ids = Business::query()
+        $organization_type_ids = Business::query()
             ->whereIn('id', $business_ids)
-            ->pluck('business_type_id')
+            ->pluck('organization_type_id')
             ->unique()
             ->filter()
             ->values()
             ->all();
 
-        return $query->where(function (Builder $q) use ($table, $business_ids, $business_type_ids) {
-            $q->where(function (Builder $gq) use ($table, $business_type_ids) {
+        return $query->where(function (Builder $q) use ($table, $business_ids, $organization_type_ids) {
+            $q->where(function (Builder $gq) use ($table, $organization_type_ids) {
                 $gq->where("{$table}.general", true)
-                    ->where(function (Builder $tq) use ($table, $business_type_ids) {
-                        $tq->whereNull("{$table}.business_type_id");
+                    ->where(function (Builder $tq) use ($table, $organization_type_ids) {
+                        $tq->whereNull("{$table}.organization_type_id");
 
-                        if ($business_type_ids !== []) {
-                            $tq->orWhereIn("{$table}.business_type_id", $business_type_ids);
+                        if ($organization_type_ids !== []) {
+                            $tq->orWhereIn("{$table}.organization_type_id", $organization_type_ids);
                         }
                     });
             });

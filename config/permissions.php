@@ -50,11 +50,11 @@ return [
                 'organization_types.delete' => 'Eliminar tipos de organización',
             ],
         ],
-        'business_type_access' => [
+        'organization_type_access' => [
             'name' => 'Gestión de Negocios — Acceso por negocio',
             'permissions' => [
-                'business_types.access.view'   => 'Ver acceso por tipo de negocio',
-                'business_types.access.manage' => 'Gestionar acceso por tipo de negocio',
+                'organization_types.access.view'   => 'Ver acceso por tipo de organización',
+                'organization_types.access.manage' => 'Gestionar acceso por tipo de organización',
             ],
         ],
         'team_positions' => [
@@ -323,16 +323,16 @@ return [
     */
 
     'platform_only_permissions' => [
-        'business_types.view',
-        'business_types.create',
-        'business_types.edit',
-        'business_types.delete',
         'organization_types.view',
         'organization_types.create',
         'organization_types.edit',
         'organization_types.delete',
-        'business_types.access.view',
-        'business_types.access.manage',
+        'business_types.view',
+        'business_types.create',
+        'business_types.edit',
+        'business_types.delete',
+        'organization_types.access.view',
+        'organization_types.access.manage',
         'businesses.manage_modules',
     ],
 

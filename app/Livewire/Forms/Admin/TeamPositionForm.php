@@ -2,7 +2,7 @@
 
 namespace App\Livewire\Forms\Admin;
 
-use App\Models\BusinessType;
+use App\Models\OrganizationType;
 use App\Models\TeamPosition;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
@@ -16,23 +16,23 @@ class TeamPositionForm extends Form
 
     public bool $active = true;
 
-    public ?int $business_type_id = null;
+    public ?int $organization_type_id = null;
 
     public function setTeamPosition(TeamPosition $team_position): void
     {
-        $this->team_position_id = $team_position->id;
-        $this->name             = $team_position->name;
-        $this->active           = $team_position->active;
-        $this->business_type_id = $team_position->business_type_id;
+        $this->team_position_id     = $team_position->id;
+        $this->name                 = $team_position->name;
+        $this->active               = $team_position->active;
+        $this->organization_type_id = $team_position->organization_type_id;
     }
 
     public function reset(...$properties): void
     {
         parent::reset(...$properties);
-        $this->team_position_id   = null;
-        $this->name               = '';
-        $this->active             = true;
-        $this->business_type_id   = null;
+        $this->team_position_id     = null;
+        $this->name                 = '';
+        $this->active               = true;
+        $this->organization_type_id = null;
     }
 
     public function isEditing(): bool
@@ -50,9 +50,9 @@ class TeamPositionForm extends Form
         return $this->isSuperAdmin() ? null : auth()->user()?->business_id;
     }
 
-    public function getBusinessTypes(): Collection
+    public function getOrganizationTypes(): Collection
     {
-        return BusinessType::query()
+        return OrganizationType::query()
             ->where('status', true)
             ->orderBy('name')
             ->get(['id', 'name']);
@@ -82,12 +82,12 @@ class TeamPositionForm extends Form
                     ->where($label_scope)
                     ->ignore($this->team_position_id),
             ],
-            'active'           => ['boolean'],
-            'business_type_id' => [
+            'active'               => ['boolean'],
+            'organization_type_id' => [
                 Rule::requiredIf($general),
                 'nullable',
                 'integer',
-                Rule::exists('business_types', 'id')->where(fn ($q) => $q->where('status', true)),
+                Rule::exists('organization_types', 'id')->where(fn ($q) => $q->where('status', true)),
             ],
         ];
     }
@@ -95,10 +95,10 @@ class TeamPositionForm extends Form
     public function messages(): array
     {
         return [
-            'name.required'             => 'El nombre es obligatorio.',
-            'name.unique'               => 'Ya existe un cargo con ese nombre.',
-            'business_type_id.required' => 'Selecciona el tipo de negocio.',
-            'business_type_id.exists'   => 'El tipo de negocio no es válido.',
+            'name.required'                 => 'El nombre es obligatorio.',
+            'name.unique'                   => 'Ya existe un cargo con ese nombre.',
+            'organization_type_id.required' => 'Selecciona el tipo de organización.',
+            'organization_type_id.exists'   => 'El tipo de organización no es válido.',
         ];
     }
 
@@ -107,9 +107,9 @@ class TeamPositionForm extends Form
         $this->validate();
 
         return [
-            'name'             => trim($this->name),
-            'active'           => $this->active,
-            'business_type_id' => $this->business_type_id,
+            'name'                 => trim($this->name),
+            'active'               => $this->active,
+            'organization_type_id' => $this->organization_type_id,
         ];
     }
 }

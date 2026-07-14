@@ -31,7 +31,7 @@ class Index extends Component
         $this->form->active = true;
 
         if (! $this->form->isSuperAdmin()) {
-            $this->form->business_type_id = auth()->user()?->primaryBusiness()?->business_type_id;
+            $this->form->organization_type_id = auth()->user()?->primaryBusiness()?->organization_type_id;
         }
 
         $this->showModal = true;
@@ -93,7 +93,7 @@ class Index extends Component
 
         return view('livewire.admin.team-positions.index', [
             'is_super_admin' => $this->form->isSuperAdmin(),
-            'business_types' => $this->form->getBusinessTypes(),
+            'organization_types' => $this->form->getOrganizationTypes(),
             'stats'          => [
                 'total'  => (clone $stats_query)->count(),
                 'active' => (clone $stats_query)->where('active', true)->count(),

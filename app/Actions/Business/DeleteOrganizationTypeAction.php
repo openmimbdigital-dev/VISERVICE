@@ -15,8 +15,12 @@ class DeleteOrganizationTypeAction
 
         $organization_type = OrganizationType::query()->findOrFail($organization_type_id);
 
+        if ($organization_type->business_types()->exists()) {
+            abort(422, 'No se puede eliminar: hay tipos de negocio asociados.');
+        }
+
         if ($organization_type->businesses()->exists()) {
-            abort(422, 'No se puede eliminar: hay negocios asociados a este tipo de organización.');
+            abort(422, 'No se puede eliminar: hay negocios asociados a este tipo.');
         }
 
         $organization_type->delete();

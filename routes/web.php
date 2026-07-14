@@ -15,8 +15,8 @@ use App\Livewire\Admin\Businesses\Index as AdminBusinessesIndex;
 use App\Livewire\Admin\Businesses\Form as AdminBusinessesForm;
 use App\Livewire\Admin\Businesses\ModuleAccess as AdminBusinessesModuleAccess;
 use App\Livewire\Admin\Businesses\Show as AdminBusinessesShow;
-use App\Livewire\Admin\BusinessTypes\Access as AdminBusinessTypesAccess;
 use App\Livewire\Admin\BusinessTypes\Index as AdminBusinessTypesIndex;
+use App\Livewire\Admin\OrganizationTypes\Access as AdminOrganizationTypesAccess;
 use App\Livewire\Admin\OrganizationTypes\Index as AdminOrganizationTypesIndex;
 use App\Livewire\Admin\TeamPositions\Index as AdminTeamPositionsIndex;
 use App\Livewire\Admin\TeamPositions\Show as AdminTeamPositionsShow;
@@ -124,14 +124,14 @@ Route::middleware(['auth', 'ensure.business', 'business.module'])->group(functio
 
         // Gestión de Negocios (solo superAdmin)
         Route::middleware('role:superAdmin')->group(function () {
-            Route::middleware('permission:business_types.view')->group(function () {
-                Route::get('/business-types', AdminBusinessTypesIndex::class)->name('business-types.index');
-            });
-            Route::middleware('permission:business_types.access.view')->group(function () {
-                Route::get('/business-types/access', AdminBusinessTypesAccess::class)->name('business-types.access');
-            });
             Route::middleware('permission:organization_types.view')->group(function () {
                 Route::get('/organization-types', AdminOrganizationTypesIndex::class)->name('organization-types.index');
+            });
+            Route::middleware('permission:organization_types.access.view')->group(function () {
+                Route::get('/organization-types/access', AdminOrganizationTypesAccess::class)->name('organization-types.access');
+            });
+            Route::middleware('permission:business_types.view')->group(function () {
+                Route::get('/business-types', AdminBusinessTypesIndex::class)->name('business-types.index');
             });
             Route::middleware('permission:businesses.manage_modules')->group(function () {
                 Route::get('/businesses/modules', AdminBusinessesModuleAccess::class)->name('businesses.modules');

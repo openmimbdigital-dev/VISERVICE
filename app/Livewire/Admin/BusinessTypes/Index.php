@@ -7,6 +7,7 @@ use App\Actions\Business\DeleteBusinessTypeAction;
 use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
 use App\Livewire\Forms\Admin\BusinessTypeForm;
 use App\Models\BusinessType;
+use App\Models\OrganizationType;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -27,6 +28,8 @@ class Index extends Component
 
     public string $filter_status = '';
 
+    public string $filter_organization_type = '';
+
     public function mount(): void
     {
         abort_unless(
@@ -45,12 +48,17 @@ class Index extends Component
         $this->resetPage();
     }
 
+    public function updatingFilterOrganizationType(): void
+    {
+        $this->resetPage();
+    }
+
     public function openCreate(): void
     {
         abort_unless(auth()->user()?->can('business_types.create'), 403);
 
         $this->form->reset();
-        $this->form->status = true;
+        $this->form->active = true;
         $this->showModal    = true;
         $this->resetValidation();
     }
@@ -58,7 +66,8 @@ class Index extends Component
     public function openEdit(int $id): void
     {
         abort_unless(auth()->user()?->can('business_types.edit'), 403);
-        $business_type = BusinessType::query()->findOrFail($id);
+
+        $business_type = BusinessType::query()->with('organization_type')->findOrFail($id);
         $this->form->setBusinessType($business_type);
         $this->showModal = true;
         $this->resetValidation();
@@ -86,14 +95,14 @@ class Index extends Component
         ]);
     }
 
-    public function toggleStatus(int $id): void
+    public function toggleActive(int $id): void
     {
         abort_unless(auth()->user()?->can('business_types.edit'), 403);
 
         $business_type = BusinessType::query()->findOrFail($id);
-        $business_type->update(['status' => ! $business_type->status]);
+        $business_type->update(['active' => ! $business_type->active]);
 
-        $label = $business_type->fresh()->status ? 'activado' : 'desactivado';
+        $label = $business_type->fresh()->active ? 'activado' : 'desactivado';
         $this->dispatch('swal', ['title' => "Tipo de negocio {$label}.", 'icon' => 'success']);
     }
 
@@ -120,30 +129,34 @@ class Index extends Component
     {
         $this->showModal = false;
         $this->form->reset();
-        $this->form->status = true;
+        $this->form->active = true;
         $this->resetValidation();
     }
 
     public function render()
     {
         $query = BusinessType::query()
+            ->with('organization_type')
             ->withCount('businesses')
             ->when($this->search, fn ($q) => $q->where(function ($s) {
                 $s->where('name', 'like', "%{$this->search}%")
-                    ->orWhere('label', 'like', '%' . BusinessType::normalizeLabel($this->search) . '%');
+                    ->orWhere('label', 'like', '%' . BusinessType::normalizeLabel($this->search) . '%')
+                    ->orWhereHas('organization_type', fn ($ot) => $ot->where('name', 'like', "%{$this->search}%"));
             }))
-            ->when($this->filter_status !== '', fn ($q) => $q->where('status', (bool) $this->filter_status))
+            ->when($this->filter_status !== '', fn ($q) => $q->where('active', (bool) $this->filter_status))
+            ->when($this->filter_organization_type !== '', fn ($q) => $q->where('organization_type_id', $this->filter_organization_type))
             ->orderByDesc('created_at');
 
         $stats = [
             'total'      => BusinessType::count(),
-            'active'     => BusinessType::where('status', true)->count(),
+            'active'     => BusinessType::where('active', true)->count(),
             'with_items' => BusinessType::has('businesses')->count(),
         ];
 
         return view('livewire.admin.business-types.index', [
-            'business_types' => $query->paginate(15),
-            'stats'          => $stats,
+            'business_types'      => $query->paginate(15),
+            'organization_types'  => OrganizationType::query()->where('status', true)->orderBy('name')->get(),
+            'stats'               => $stats,
         ]);
     }
 }

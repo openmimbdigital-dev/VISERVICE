@@ -119,8 +119,8 @@ class MenuSeeder extends Seeder
                 'icon_svg_path'    => 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4',
                 'icon_color_class' => 'text-rose-400',
                 'route_patterns'   => [
-                    'admin.business-types.*',
                     'admin.organization-types.*',
+                    'admin.business-types.*',
                     'admin.businesses.modules',
                 ],
                 'behavior'         => 'collapsible',
@@ -128,29 +128,29 @@ class MenuSeeder extends Seeder
                 'sort_order'       => 27,
                 'items'            => [
                     [
-                        'name'                 => 'Tipos de negocio',
-                        'route_name'           => 'admin.business-types.index',
-                        'active_route_pattern' => 'admin.business-types.index',
-                        'icon_svg_path'        => 'M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z',
-                        'permission'           => 'business_types.view',
+                        'name'                 => 'Tipos de organización',
+                        'route_name'           => 'admin.organization-types.index',
+                        'active_route_pattern' => 'admin.organization-types.index',
+                        'icon_svg_path'        => 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4',
+                        'permission'           => 'organization_types.view',
                         'role'                 => 'superAdmin',
                         'sort_order'           => 10,
                     ],
                     [
-                        'name'                 => 'Tipos de organización',
-                        'route_name'           => 'admin.organization-types.index',
-                        'active_route_pattern' => 'admin.organization-types.*',
-                        'icon_svg_path'        => 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4',
-                        'permission'           => 'organization_types.view',
+                        'name'                 => 'Tipos de negocio',
+                        'route_name'           => 'admin.business-types.index',
+                        'active_route_pattern' => 'admin.business-types.*',
+                        'icon_svg_path'        => 'M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z',
+                        'permission'           => 'business_types.view',
                         'role'                 => 'superAdmin',
                         'sort_order'           => 20,
                     ],
                     [
                         'name'                 => 'Acceso por negocio',
-                        'route_name'           => 'admin.business-types.access',
-                        'active_route_pattern' => 'admin.business-types.access',
+                        'route_name'           => 'admin.organization-types.access',
+                        'active_route_pattern' => 'admin.organization-types.access',
                         'icon_svg_path'        => 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z',
-                        'permission'           => 'business_types.access.view',
+                        'permission'           => 'organization_types.access.view',
                         'role'                 => 'superAdmin',
                         'sort_order'           => 30,
                     ],
@@ -272,10 +272,12 @@ class MenuSeeder extends Seeder
 
         // Ítems movidos de Negocios → Gestión de Negocios
         $moved_to_gestion = [
-            'admin.business-types.index',
             'admin.organization-types.index',
-            'admin.business-types.access',
+            'admin.organization-types.access',
+            'admin.business-types.index',
             'admin.businesses.modules',
+            // Rutas antiguas (pre-swap) para limpieza
+            'admin.business-types.access',
         ];
         $negocios = MenuSection::query()->where('slug', 'negocios')->first();
         if ($negocios) {

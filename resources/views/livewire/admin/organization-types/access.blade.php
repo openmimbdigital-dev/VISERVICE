@@ -6,7 +6,7 @@
         <span class="text-slate-300">/</span>
         <a href="{{ route('admin.businesses.index') }}" wire:navigate class="rounded px-1.5 py-0.5 hover:bg-slate-200/60">Negocios</a>
         <span class="text-slate-300">/</span>
-        <a href="{{ route('admin.business-types.index') }}" wire:navigate class="rounded px-1.5 py-0.5 hover:bg-slate-200/60">Tipos de negocio</a>
+        <a href="{{ route('admin.organization-types.index') }}" wire:navigate class="rounded px-1.5 py-0.5 hover:bg-slate-200/60">Tipos de organización</a>
         <span class="text-slate-300">/</span>
         <span class="font-semibold text-slate-900">Acceso por negocio</span>
     </nav>
@@ -20,7 +20,7 @@
                     Elige el tipo, selecciona negocio(s) y asigna roles y permisos. Con un solo negocio se cargan sus asignaciones actuales.
                 </p>
             </div>
-            <a href="{{ route('admin.business-types.index') }}" wire:navigate class="btn btn-outline-secondary btn-sm w-full justify-center sm:w-auto">Tipos de negocio</a>
+            <a href="{{ route('admin.organization-types.index') }}" wire:navigate class="btn btn-outline-secondary btn-sm w-full justify-center sm:w-auto">Tipos de organización</a>
         </div>
     </header>
 
@@ -47,25 +47,25 @@
         </div>
     </aside>
 
-    {{-- Tipo de negocio --}}
+    {{-- Tipo de organización --}}
     <section class="mb-6 overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
         <div class="border-b border-slate-100 bg-slate-50/80 px-4 py-4 sm:px-5">
-            <h2 class="font-semibold text-slate-800">Tipo de negocio</h2>
+            <h2 class="font-semibold text-slate-800">Tipo de organización</h2>
         </div>
         <div class="p-4 sm:p-5">
             <label class="mb-1.5 block text-xs font-medium text-slate-700">Filtrar negocios por tipo <span class="text-rose-500">*</span></label>
-            <select wire:model.live="business_type_id"
+            <select wire:model.live="organization_type_id"
                 class="w-full max-w-md rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
                 <option value="">— Seleccionar —</option>
-                @foreach($business_types as $type)
+                @foreach($organization_types as $type)
                     <option value="{{ $type->id }}">{{ $type->name }}</option>
                 @endforeach
             </select>
-            @error('business_type_id') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+            @error('organization_type_id') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
         </div>
     </section>
 
-    @if($business_type_id)
+    @if($organization_type_id)
     {{-- Negocios --}}
     <section class="mb-6 overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
         <div class="border-b border-slate-100 bg-slate-50/80 px-4 py-4 sm:px-5">
@@ -113,7 +113,7 @@
                 <p class="mt-0.5 text-xs text-slate-500">Marcados solo los roles y permisos que comparten todos los negocios seleccionados.</p>
             @endif
         </div>
-        @can('business_types.access.manage')
+        @can('organization_types.access.manage')
         <button type="button" wire:click="save" wire:loading.attr="disabled"
             class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-60 sm:w-auto">
             <svg wire:loading wire:target="save" class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
@@ -134,7 +134,7 @@
                     @php $isGlobal = in_array($role->name, config('permissions.global_roles', []), true); @endphp
                     <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-100 px-3 py-3 transition hover:bg-slate-50">
                         <input type="checkbox" wire:model.live="selected_role_ids" value="{{ $role->id }}"
-                            @disabled(! auth()->user()->can('business_types.access.manage'))
+                            @disabled(! auth()->user()->can('organization_types.access.manage'))
                             class="mt-0.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500/20 disabled:cursor-not-allowed disabled:opacity-50">
                         <span class="min-w-0">
                             <span class="block text-sm font-medium text-slate-900">{{ $role->name }}</span>
@@ -162,7 +162,7 @@
                     @endphp
                     <div class="rounded-xl border border-slate-100">
                         <button type="button" wire:click="toggleModule('{{ $module_key }}')"
-                            @disabled(! auth()->user()->can('business_types.access.manage'))
+                            @disabled(! auth()->user()->can('organization_types.access.manage'))
                             class="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60">
                             <span class="text-sm font-medium text-slate-900">{{ $module['name'] }}</span>
                             <span class="shrink-0 text-xs {{ $all_selected ? 'text-indigo-600' : 'text-slate-400' }}">
@@ -173,7 +173,7 @@
                             @foreach($module['permissions'] as $perm_key => $perm_label)
                                 <label class="flex cursor-pointer items-center gap-2 py-1">
                                     <input type="checkbox" wire:model.live="selected_permissions" value="{{ $perm_key }}"
-                                        @disabled(! auth()->user()->can('business_types.access.manage'))
+                                        @disabled(! auth()->user()->can('organization_types.access.manage'))
                                         class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500/20 disabled:cursor-not-allowed disabled:opacity-50">
                                     <span class="text-xs text-slate-600">{{ $perm_label }}</span>
                                 </label>
@@ -198,7 +198,7 @@
                 @if($selected_type)
                     Negocios del tipo <span class="font-medium text-slate-700">{{ $selected_type->name }}</span>.
                 @else
-                    Selecciona un tipo de negocio para ver el resumen.
+                    Selecciona un tipo de organización para ver el resumen.
                 @endif
             </p>
         </div>

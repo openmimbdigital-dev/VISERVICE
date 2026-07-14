@@ -80,15 +80,15 @@
 
                 @if($is_super_admin)
                 <div>
-                    <label class="mb-1.5 block text-xs font-medium text-slate-700">Tipo de negocio <span class="text-rose-500">*</span></label>
-                    <select wire:model="form.business_type_id"
-                        class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('form.business_type_id') border-rose-400 bg-rose-50 @enderror">
+                    <label class="mb-1.5 block text-xs font-medium text-slate-700">Tipo de organización <span class="text-rose-500">*</span></label>
+                    <select wire:model="form.organization_type_id"
+                        class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('form.organization_type_id') border-rose-400 bg-rose-50 @enderror">
                         <option value="">— Seleccionar —</option>
-                        @foreach($business_types as $type)
+                        @foreach($organization_types as $type)
                             <option value="{{ $type->id }}">{{ $type->name }}</option>
                         @endforeach
                     </select>
-                    @error('form.business_type_id') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                    @error('form.organization_type_id') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                 </div>
                 @endif
 

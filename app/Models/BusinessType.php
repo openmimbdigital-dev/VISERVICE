@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
@@ -14,15 +15,16 @@ class BusinessType extends Model
     use SoftDeletes;
 
     protected $fillable = [
+        'organization_type_id',
         'name',
         'label',
-        'status',
+        'active',
     ];
 
     protected function casts(): array
     {
         return [
-            'status' => 'boolean',
+            'active' => 'boolean',
         ];
     }
 
@@ -46,18 +48,13 @@ class BusinessType extends Model
         return trim($label, '_');
     }
 
+    public function organization_type(): BelongsTo
+    {
+        return $this->belongsTo(OrganizationType::class, 'organization_type_id');
+    }
+
     public function businesses(): HasMany
     {
         return $this->hasMany(Business::class, 'business_type_id');
-    }
-
-    public function organization_types(): HasMany
-    {
-        return $this->hasMany(OrganizationType::class, 'business_type_id');
-    }
-
-    public function team_positions(): HasMany
-    {
-        return $this->hasMany(TeamPosition::class, 'business_type_id');
     }
 }

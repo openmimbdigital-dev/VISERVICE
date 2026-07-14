@@ -35,14 +35,14 @@ class DatatableTeamPositions extends LivewireDatatable
 
         $query = TeamPosition::query()
             ->visibleToUser()
-            ->leftJoin('business_types', 'team_positions.business_type_id', '=', 'business_types.id')
+            ->leftJoin('organization_types', 'team_positions.organization_type_id', '=', 'organization_types.id')
             ->leftJoinSub(
                 $users_count,
                 'position_users',
                 fn ($join) => $join->on('team_positions.id', '=', 'position_users.team_position_id')
             )
             ->select('team_positions.*')
-            ->addSelect('business_types.name as business_type_name')
+            ->addSelect('organization_types.name as organization_type_name')
             ->addSelect('position_users.users_count')
             ->orderByDesc('team_positions.created_at');
 
@@ -62,8 +62,8 @@ class DatatableTeamPositions extends LivewireDatatable
                 ->searchable()
                 ->sortable(),
 
-            Column::raw('business_types.name AS business_type_name')
-                ->label('Tipo de negocio')
+            Column::raw('organization_types.name AS organization_type_name')
+                ->label('Tipo de organización')
                 ->searchable()
                 ->sortable(),
 

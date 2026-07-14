@@ -31,16 +31,16 @@
         <div class="space-y-6 p-4 sm:p-6">
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div class="sm:col-span-2">
-                    <label class="mb-1.5 block text-xs font-medium text-slate-700">Tipo de organización <span class="text-rose-500">*</span></label>
-                    <select wire:model="form.organization_type_id"
-                        class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('form.organization_type_id') border-rose-400 bg-rose-50 @enderror">
+                    <label class="mb-1.5 block text-xs font-medium text-slate-700">Tipo de negocio <span class="text-rose-500">*</span></label>
+                    <select wire:model="form.business_type_id"
+                        class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('form.business_type_id') border-rose-400 bg-rose-50 @enderror">
                         <option value="">— Seleccionar —</option>
-                        @foreach($organization_types as $organization_type)
-                            <option value="{{ $organization_type->id }}">{{ $organization_type->name }}</option>
+                        @foreach($business_types as $business_type)
+                            <option value="{{ $business_type->id }}">{{ $business_type->name }}</option>
                         @endforeach
                     </select>
-                    @error('form.organization_type_id') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
-                    <p class="mt-1.5 text-xs text-slate-500">El tipo de negocio se determina automáticamente según esta selección.</p>
+                    @error('form.business_type_id') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                    <p class="mt-1.5 text-xs text-slate-500">El tipo de organización se determina automáticamente según esta selección.</p>
                 </div>
 
                 <div class="sm:col-span-2">

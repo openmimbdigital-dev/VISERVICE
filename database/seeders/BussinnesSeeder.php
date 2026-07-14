@@ -225,7 +225,7 @@ class BussinnesSeeder extends Seeder
 
     private function seedChurchBusinesses(): void
     {
-        $iglesia_type = BusinessType::where('label', 'iglesia')->first();
+        $iglesia_type = OrganizationType::where('label', 'iglesia')->first();
         $cat_principal = BusinessCategory::where('label', 'iglesia_principal')->first();
         $cat_hija      = BusinessCategory::where('label', 'iglesia_hija')->first();
         $cat_campo     = BusinessCategory::where('label', 'campo_blanco')->first();
@@ -258,8 +258,8 @@ class BussinnesSeeder extends Seeder
                 'phone_number'         => '+57 5 280 1001',
                 'city_id'              => $barranquilla?->id,
                 'country_id'           => $colombia?->id,
-                'business_type_id'     => $iglesia_type->id,
-                'organization_type_id' => $org_iglesia['organization_type_id'],
+                'organization_type_id' => $iglesia_type->id,
+                'business_type_id'     => $org_iglesia['business_type_id'],
                 'business_category_id' => $cat_principal->id,
                 'business_id'          => null,
                 'status'               => true,
@@ -273,8 +273,8 @@ class BussinnesSeeder extends Seeder
                 'phone_number'         => '+57 1 612 1002',
                 'city_id'              => $bogota?->id,
                 'country_id'           => $colombia?->id,
-                'business_type_id'     => $iglesia_type->id,
-                'organization_type_id' => $org_iglesia['organization_type_id'],
+                'organization_type_id' => $iglesia_type->id,
+                'business_type_id'     => $org_iglesia['business_type_id'],
                 'business_category_id' => $cat_principal->id,
                 'business_id'          => null,
                 'status'               => true,
@@ -288,8 +288,8 @@ class BussinnesSeeder extends Seeder
                 'phone_number'         => '+57 4 321 1003',
                 'city_id'              => $medellin?->id,
                 'country_id'           => $colombia?->id,
-                'business_type_id'     => $iglesia_type->id,
-                'organization_type_id' => ($org_comunidad ?? $org_iglesia)['organization_type_id'],
+                'organization_type_id' => $iglesia_type->id,
+                'business_type_id'     => ($org_comunidad ?? $org_iglesia)['business_type_id'],
                 'business_category_id' => $cat_principal->id,
                 'business_id'          => null,
                 'status'               => true,
@@ -303,8 +303,8 @@ class BussinnesSeeder extends Seeder
                 'phone_number'         => '+57 2 456 1004',
                 'city_id'              => $cali?->id,
                 'country_id'           => $colombia?->id,
-                'business_type_id'     => $iglesia_type->id,
-                'organization_type_id' => $org_iglesia['organization_type_id'],
+                'organization_type_id' => $iglesia_type->id,
+                'business_type_id'     => $org_iglesia['business_type_id'],
                 'business_category_id' => $cat_principal->id,
                 'business_id'          => null,
                 'status'               => true,
@@ -332,8 +332,8 @@ class BussinnesSeeder extends Seeder
                 'phone_number'         => '+57 5 280 2001',
                 'city_id'              => $barranquilla?->id,
                 'country_id'           => $colombia?->id,
-                'business_type_id'     => $iglesia_type->id,
-                'organization_type_id' => ($org_congregacion ?? $org_iglesia)['organization_type_id'],
+                'organization_type_id' => $iglesia_type->id,
+                'business_type_id'     => ($org_congregacion ?? $org_iglesia)['business_type_id'],
                 'business_category_id' => $cat_hija->id,
                 'parent_slug'          => 'centro-de-fe-y-esperanza-sampues',
                 'status'               => true,
@@ -347,8 +347,8 @@ class BussinnesSeeder extends Seeder
                 'phone_number'         => '+57 1 612 2002',
                 'city_id'              => $bogota?->id,
                 'country_id'           => $colombia?->id,
-                'business_type_id'     => $iglesia_type->id,
-                'organization_type_id' => ($org_congregacion ?? $org_iglesia)['organization_type_id'],
+                'organization_type_id' => $iglesia_type->id,
+                'business_type_id'     => ($org_congregacion ?? $org_iglesia)['business_type_id'],
                 'business_category_id' => $cat_hija->id,
                 'parent_slug'          => 'iglesia-restauracion-bogota',
                 'status'               => true,
@@ -362,8 +362,8 @@ class BussinnesSeeder extends Seeder
                 'phone_number'         => '+57 4 321 2003',
                 'city_id'              => $medellin?->id,
                 'country_id'           => $colombia?->id,
-                'business_type_id'     => $iglesia_type->id,
-                'organization_type_id' => ($org_congregacion ?? $org_iglesia)['organization_type_id'],
+                'organization_type_id' => $iglesia_type->id,
+                'business_type_id'     => ($org_congregacion ?? $org_iglesia)['business_type_id'],
                 'business_category_id' => $cat_hija->id,
                 'parent_slug'          => 'comunidad-cristiana-el-redentor',
                 'status'               => true,
@@ -377,8 +377,8 @@ class BussinnesSeeder extends Seeder
                 'phone_number'         => '+57 5 280 3001',
                 'city_id'              => $barranquilla?->id,
                 'country_id'           => $colombia?->id,
-                'business_type_id'     => $iglesia_type->id,
-                'organization_type_id' => $org_iglesia['organization_type_id'],
+                'organization_type_id' => $iglesia_type->id,
+                'business_type_id'     => $org_iglesia['business_type_id'],
                 'business_category_id' => $cat_campo->id,
                 'parent_slug'          => 'centro-de-fe-y-esperanza-sampues',
                 'status'               => true,
@@ -392,8 +392,8 @@ class BussinnesSeeder extends Seeder
                 'phone_number'         => '+57 1 612 3002',
                 'city_id'              => $bogota?->id,
                 'country_id'           => $colombia?->id,
-                'business_type_id'     => $iglesia_type->id,
-                'organization_type_id' => $org_iglesia['organization_type_id'],
+                'organization_type_id' => $iglesia_type->id,
+                'business_type_id'     => $org_iglesia['business_type_id'],
                 'business_category_id' => $cat_campo->id,
                 'parent_slug'          => 'iglesia-restauracion-bogota',
                 'status'               => true,
@@ -407,8 +407,8 @@ class BussinnesSeeder extends Seeder
                 'phone_number'         => '+57 2 456 3003',
                 'city_id'              => $cali?->id,
                 'country_id'           => $colombia?->id,
-                'business_type_id'     => $iglesia_type->id,
-                'organization_type_id' => $org_iglesia['organization_type_id'],
+                'organization_type_id' => $iglesia_type->id,
+                'business_type_id'     => $org_iglesia['business_type_id'],
                 'business_category_id' => $cat_campo->id,
                 'parent_slug'          => 'templo-de-alabanza-cali',
                 'status'               => true,
@@ -431,15 +431,15 @@ class BussinnesSeeder extends Seeder
     /** @return array{business_type_id: int, organization_type_id: int}|null */
     private function organizationFields(string $label): ?array
     {
-        $organization_type = OrganizationType::query()->where('label', $label)->first();
+        $business_type = BusinessType::query()->where('label', $label)->first();
 
-        if (! $organization_type) {
+        if (! $business_type) {
             return null;
         }
 
         return [
-            'business_type_id'     => $organization_type->business_type_id,
-            'organization_type_id' => $organization_type->id,
+            'business_type_id'     => $business_type->id,
+            'organization_type_id' => $business_type->organization_type_id,
         ];
     }
 }

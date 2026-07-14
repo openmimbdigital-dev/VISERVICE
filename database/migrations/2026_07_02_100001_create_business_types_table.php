@@ -8,24 +8,24 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('organization_types', function (Blueprint $table) {
+        Schema::create('business_types', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('business_type_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('organization_type_id')->constrained()->cascadeOnDelete();
             $table->string('name')->unique();
             $table->string('label');
             $table->boolean('active')->default(true);
             $table->timestamps();
             $table->softDeletes();
 
-            $table->unique(['business_type_id', 'label'], 'organization_types_type_label_unique_idx');
-            $table->index(['business_type_id', 'deleted_at', 'active'], 'organization_types_type_deleted_active_idx');
+            $table->unique(['organization_type_id', 'label'], 'business_types_org_label_unique_idx');
+            $table->index(['organization_type_id', 'deleted_at', 'active'], 'business_types_org_deleted_active_idx');
         });
 
         Schema::table('businesses', function (Blueprint $table) {
-            $table->foreignId('organization_type_id')
+            $table->foreignId('business_type_id')
                 ->nullable()
-                ->after('business_type_id')
-                ->constrained('organization_types')
+                ->after('organization_type_id')
+                ->constrained('business_types')
                 ->nullOnDelete();
         });
     }
@@ -33,10 +33,10 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('businesses', function (Blueprint $table) {
-            $table->dropForeign(['organization_type_id']);
-            $table->dropColumn('organization_type_id');
+            $table->dropForeign(['business_type_id']);
+            $table->dropColumn('business_type_id');
         });
 
-        Schema::dropIfExists('organization_types');
+        Schema::dropIfExists('business_types');
     }
 };

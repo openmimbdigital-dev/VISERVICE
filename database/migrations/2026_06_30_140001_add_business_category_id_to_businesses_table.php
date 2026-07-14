@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::table('businesses', function (Blueprint $table) {
             $table->foreignId('business_category_id')
                 ->nullable()
-                ->after('business_type_id')
+                ->after('organization_type_id')
                 ->constrained('business_categories')
                 ->nullOnDelete();
 

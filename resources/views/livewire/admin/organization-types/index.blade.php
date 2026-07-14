@@ -14,14 +14,21 @@
             <div class="min-w-0 flex-1 border-l-4 border-indigo-600 pl-4 sm:pl-5">
                 <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-indigo-600/90">Negocios</p>
                 <h1 class="mt-2 text-2xl font-bold tracking-tight text-slate-900">Tipos de organización</h1>
-                <p class="mt-2 max-w-xl text-sm text-slate-600">Clasificación detallada vinculada a cada tipo de negocio (Taller, Iglesia, Centro Educativo).</p>
+                <p class="mt-2 max-w-xl text-sm text-slate-600">Administra los verticales disponibles (Taller, Iglesia, Centro Educativo) y configura accesos.</p>
             </div>
             <div class="flex w-full shrink-0 flex-wrap gap-2 sm:w-auto">
                 @can('business_types.view')
                 <a href="{{ route('admin.business-types.index') }}" wire:navigate class="btn btn-outline-secondary btn-sm flex-1 sm:flex-none justify-center">Tipos de negocio</a>
                 @endcan
+                @can('organization_types.access.view')
+                <a href="{{ route('admin.organization-types.access') }}" wire:navigate class="btn btn-outline-secondary btn-sm flex-1 sm:flex-none justify-center">
+                    Acceso por negocio
+                </a>
+                @endcan
                 @can('organization_types.create')
-                <x-ui.create-button wire:click="openCreate" class="w-full justify-center sm:w-auto">Nuevo tipo</x-ui.create-button>
+                <x-ui.create-button wire:click="openCreate" class="w-full justify-center sm:w-auto">
+                    Nuevo tipo
+                </x-ui.create-button>
                 @endcan
             </div>
         </div>
@@ -45,16 +52,9 @@
     <div class="mb-6 flex flex-col gap-3 sm:flex-row">
         <div class="relative min-w-0 flex-1">
             <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-            <input wire:model.live.debounce.300ms="search" type="search" placeholder="Buscar..."
+            <input wire:model.live.debounce.300ms="search" type="search" placeholder="Buscar por nombre o etiqueta..."
                 class="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
         </div>
-        <select wire:model.live="filter_business_type"
-            class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm sm:w-auto">
-            <option value="">Todos los tipos de negocio</option>
-            @foreach($business_types as $type)
-                <option value="{{ $type->id }}">{{ $type->name }}</option>
-            @endforeach
-        </select>
         <select wire:model.live="filter_status"
             class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm sm:w-auto">
             <option value="">Todos los estados</option>
@@ -71,15 +71,15 @@
         @if($organization_types->isEmpty())
             <div class="px-4 py-16 text-center sm:px-5">
                 <p class="text-sm font-medium text-slate-900">No hay tipos de organización</p>
+                <p class="mt-1 text-xs text-slate-500">Crea el primero o ajusta los filtros.</p>
             </div>
         @else
             <div class="overflow-x-auto">
-                <table class="w-full min-w-[720px] text-sm">
+                <table class="w-full min-w-[640px] text-sm">
                     <thead>
                         <tr class="border-b border-slate-100 bg-slate-50/50 text-xs font-semibold uppercase tracking-wide text-slate-500">
                             <th class="px-3 py-3 text-left sm:px-5">Nombre</th>
-                            <th class="hidden px-3 py-3 text-left md:table-cell sm:px-5">Tipo de negocio</th>
-                            <th class="hidden px-3 py-3 text-left lg:table-cell sm:px-5">Etiqueta</th>
+                            <th class="hidden px-3 py-3 text-left md:table-cell sm:px-5">Etiqueta</th>
                             <th class="hidden px-3 py-3 text-center sm:table-cell sm:px-5">Negocios</th>
                             <th class="px-3 py-3 text-center sm:px-5">Estado</th>
                             <th class="px-3 py-3 text-right sm:px-5">Acciones</th>
@@ -87,20 +87,21 @@
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         @foreach($organization_types as $type)
-                            <tr class="transition hover:bg-slate-50/80" wire:key="org-type-{{ $type->id }}">
+                            <tr class="transition hover:bg-slate-50/80" wire:key="organization-type-{{ $type->id }}">
                                 <td class="px-3 py-4 sm:px-5">
                                     <p class="font-medium text-slate-900">{{ $type->name }}</p>
-                                    <p class="mt-0.5 text-xs text-indigo-600 md:hidden">{{ $type->business_type?->name ?? '—' }}</p>
+                                    <p class="mt-0.5 font-mono text-[11px] text-slate-400 md:hidden">{{ $type->label }}</p>
                                 </td>
                                 <td class="hidden px-3 py-4 md:table-cell sm:px-5">
-                                    <span class="rounded-lg bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700">{{ $type->business_type?->name ?? '—' }}</span>
-                                </td>
-                                <td class="hidden px-3 py-4 lg:table-cell sm:px-5">
                                     <span class="rounded-lg bg-slate-100 px-2 py-1 font-mono text-xs text-slate-600">{{ $type->label }}</span>
                                 </td>
-                                <td class="hidden px-3 py-4 text-center sm:table-cell sm:px-5">{{ $type->businesses_count }}</td>
+                                <td class="hidden px-3 py-4 text-center sm:table-cell sm:px-5">
+                                    <span class="inline-flex min-w-[1.75rem] items-center justify-center rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-indigo-700">
+                                        {{ $type->businesses_count }}
+                                    </span>
+                                </td>
                                 <td class="px-3 py-4 text-center sm:px-5">
-                                    @if($type->active)
+                                    @if($type->status)
                                         <span class="inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">Activo</span>
                                     @else
                                         <span class="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">Inactivo</span>
@@ -109,15 +110,18 @@
                                 <td class="px-3 py-4 sm:px-5">
                                     <div class="flex flex-wrap justify-end gap-1">
                                         @can('organization_types.edit')
-                                        <button type="button" wire:click="openEdit({{ $type->id }})" class="rounded-lg p-2 text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-600" title="Editar">
+                                        <button type="button" wire:click="openEdit({{ $type->id }})"
+                                            class="rounded-lg p-2 text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-600" title="Editar">
                                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                                         </button>
-                                        <button type="button" wire:click="toggleActive({{ $type->id }})" class="rounded-lg p-2 text-slate-400 transition hover:bg-amber-50 hover:text-amber-600" title="Activar/Desactivar">
+                                        <button type="button" wire:click="toggleStatus({{ $type->id }})"
+                                            class="rounded-lg p-2 text-slate-400 transition hover:bg-amber-50 hover:text-amber-600" title="{{ $type->status ? 'Desactivar' : 'Activar' }}">
                                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
                                         </button>
                                         @endcan
                                         @can('organization_types.delete')
-                                        <button type="button" wire:click="delete({{ $type->id }})" @disabled($type->businesses_count > 0)
+                                        <button type="button" wire:click="delete({{ $type->id }})"
+                                            @disabled($type->businesses_count > 0)
                                             class="rounded-lg p-2 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-40" title="Eliminar">
                                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                         </button>
@@ -129,8 +133,11 @@
                     </tbody>
                 </table>
             </div>
+
             @if($organization_types->hasPages())
-                <div class="border-t border-slate-100 px-4 py-4 sm:px-5">{{ $organization_types->links() }}</div>
+                <div class="border-t border-slate-100 px-4 py-4 sm:px-5">
+                    {{ $organization_types->links() }}
+                </div>
             @endif
         @endif
     </section>
@@ -142,7 +149,9 @@
         </x-slot:backdrop>
 
         <div class="flex shrink-0 items-center justify-between border-b border-slate-100 px-4 py-4 sm:px-6">
-            <h3 class="text-base font-semibold text-slate-900">{{ $form->isEditing() ? 'Editar tipo de organización' : 'Nuevo tipo de organización' }}</h3>
+            <h3 class="text-base font-semibold text-slate-900">
+                {{ $form->isEditing() ? 'Editar tipo de organización' : 'Nuevo tipo de organización' }}
+            </h3>
             <button type="button" wire:click="closeModal" class="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600">
                 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
@@ -150,18 +159,6 @@
 
         <form wire:submit="save" class="flex min-h-0 flex-1 flex-col">
             <div class="flex-1 space-y-4 overflow-y-auto px-4 py-5 sm:px-6">
-                <div>
-                    <label class="mb-1.5 block text-xs font-medium text-slate-700">Tipo de negocio <span class="text-rose-500">*</span></label>
-                    <select wire:model="form.business_type_id"
-                        class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('form.business_type_id') border-rose-400 bg-rose-50 @enderror">
-                        <option value="">— Seleccionar —</option>
-                        @foreach($business_types as $type)
-                            <option value="{{ $type->id }}">{{ $type->name }}</option>
-                        @endforeach
-                    </select>
-                    @error('form.business_type_id') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
-                </div>
-
                 <div>
                     <label class="mb-1.5 block text-xs font-medium text-slate-700">Nombre <span class="text-rose-500">*</span></label>
                     <input type="text" wire:model="form.name"
@@ -172,11 +169,11 @@
                 <div class="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
                     <div>
                         <p class="text-sm font-medium text-slate-900">Estado</p>
-                        <p class="text-xs text-slate-500">{{ $form->active ? 'Activo' : 'Inactivo' }}</p>
+                        <p class="text-xs text-slate-500">{{ $form->status ? 'Activo' : 'Inactivo' }}</p>
                     </div>
-                    <button type="button" wire:click="$toggle('form.active')"
-                        class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out {{ $form->active ? 'bg-indigo-600' : 'bg-slate-300' }}">
-                        <span class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ease-in-out {{ $form->active ? 'translate-x-5' : 'translate-x-0' }}"></span>
+                    <button type="button" wire:click="$toggle('form.status')"
+                        class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500/20 {{ $form->status ? 'bg-indigo-600' : 'bg-slate-300' }}">
+                        <span class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {{ $form->status ? 'translate-x-5' : 'translate-x-0' }}"></span>
                     </button>
                 </div>
             </div>

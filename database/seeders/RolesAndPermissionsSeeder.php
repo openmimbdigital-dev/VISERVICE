@@ -17,9 +17,9 @@ class RolesAndPermissionsSeeder extends Seeder
     private function businessManagementPermissions(): array
     {
         return [
-            'business_types.view', 'business_types.create', 'business_types.edit', 'business_types.delete',
             'organization_types.view', 'organization_types.create', 'organization_types.edit', 'organization_types.delete',
-            'business_types.access.view', 'business_types.access.manage',
+            'business_types.view', 'business_types.create', 'business_types.edit', 'business_types.delete',
+            'organization_types.access.view', 'organization_types.access.manage',
             'businesses.manage_modules',
         ];
     }

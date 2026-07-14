@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('team_positions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('business_id')->nullable()->constrained()->nullOnDelete();
-            $table->foreignId('business_type_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('organization_type_id')->nullable()->constrained()->nullOnDelete();
             $table->string('name');
             $table->string('label');
             $table->boolean('active')->default(true);
@@ -21,7 +21,7 @@ return new class extends Migration
 
             $table->index(['business_id', 'name'], 'team_positions_business_name_idx');
             $table->index(['business_id', 'label'], 'team_positions_business_label_idx');
-            $table->index(['business_type_id', 'deleted_at', 'active'], 'team_positions_type_deleted_active_idx');
+            $table->index(['organization_type_id', 'deleted_at', 'active'], 'team_positions_org_deleted_active_idx');
             $table->index(['business_id', 'deleted_at', 'created_at'], 'team_positions_business_deleted_created_idx');
             $table->index(['general', 'deleted_at', 'active'], 'team_positions_general_deleted_active_idx');
             $table->index(['deleted_at', 'created_at'], 'team_positions_deleted_created_idx');

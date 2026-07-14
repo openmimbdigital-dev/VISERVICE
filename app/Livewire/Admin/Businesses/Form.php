@@ -6,7 +6,7 @@ use App\Actions\Business\CreateOrUpdateBusinessAction;
 use App\Livewire\Forms\Admin\Businesses\BusinessForm;
 use App\Models\Business;
 use App\Models\City;
-use App\Models\OrganizationType;
+use App\Models\BusinessType;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -120,7 +120,7 @@ class Form extends Component
     {
         return view('livewire.admin.businesses.form', [
             'is_editing'          => $this->form->isEditing(),
-            'organization_types'  => OrganizationType::query()
+            'business_types'      => BusinessType::query()
                 ->where('active', true)
                 ->orderBy('name')
                 ->get(),

@@ -9,7 +9,7 @@ class CreateOrUpdateBusinessTypeAction
 {
     use AsAction;
 
-    /** @param array{name: string, status: bool} $data */
+    /** @param array{organization_type_id: int, name: string, active: bool} $data */
     public function handle(?int $business_type_id, array $data): BusinessType
     {
         abort_unless(
@@ -18,16 +18,17 @@ class CreateOrUpdateBusinessTypeAction
         );
 
         $attributes = [
-            'name'   => $data['name'],
-            'label'  => BusinessType::normalizeLabel($data['name']),
-            'status' => $data['status'],
+            'organization_type_id' => $data['organization_type_id'],
+            'name'                 => $data['name'],
+            'label'                => BusinessType::normalizeLabel($data['name']),
+            'active'               => $data['active'],
         ];
 
         if ($business_type_id) {
             $business_type = BusinessType::query()->findOrFail($business_type_id);
             $business_type->update($attributes);
 
-            return $business_type->fresh();
+            return $business_type->fresh(['organization_type']);
         }
 
         return BusinessType::create($attributes);

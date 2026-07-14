@@ -3,7 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Business;
-use App\Models\BusinessType;
+use App\Models\OrganizationType;
 use App\Models\Role;
 use App\Support\BusinessAccess;
 use Illuminate\Database\Seeder;
@@ -135,9 +135,9 @@ class BusinessAccessSeeder extends Seeder
 
     public function run(): void
     {
-        $taller = BusinessType::where('label', 'taller')->first();
-        $iglesia = BusinessType::where('label', 'iglesia')->first();
-        $centro  = BusinessType::where('label', 'centro_educativo')->first();
+        $taller = OrganizationType::where('label', 'taller')->first();
+        $iglesia = OrganizationType::where('label', 'iglesia')->first();
+        $centro  = OrganizationType::where('label', 'centro_educativo')->first();
 
         if ($taller) {
             $this->syncBusinessesOfType($taller, $this->workshop_roles, $this->tallerPermissions());
@@ -185,7 +185,7 @@ class BusinessAccessSeeder extends Seeder
     }
 
     /** @param list<string> $role_names @param list<string> $permission_names */
-    private function syncBusinessesOfType(BusinessType $type, array $role_names, array $permission_names): void
+    private function syncBusinessesOfType(OrganizationType $type, array $role_names, array $permission_names): void
     {
         $role_ids = Role::query()
             ->where('guard_name', 'web')
@@ -194,7 +194,7 @@ class BusinessAccessSeeder extends Seeder
             ->all();
 
         $businesses = Business::query()
-            ->where('business_type_id', $type->id)
+            ->where('organization_type_id', $type->id)
             ->get();
 
         foreach ($businesses as $business) {

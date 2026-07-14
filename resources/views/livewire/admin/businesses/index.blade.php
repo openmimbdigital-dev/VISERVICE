@@ -63,7 +63,7 @@
             <select wire:model.live="filter_type"
                 class="rounded-xl border border-slate-200 bg-slate-50 py-2.5 px-4 text-sm text-slate-700 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition">
                 <option value="">Todos los tipos</option>
-                @foreach($business_types as $type)
+                @foreach($organization_types as $type)
                     <option value="{{ $type->id }}">{{ $type->name }}</option>
                 @endforeach
             </select>
@@ -122,7 +122,7 @@
                             </div>
                         </td>
                         <td class="px-5 py-4">
-                            <span class="text-sm text-slate-600">{{ $business->business_type?->name ?? '—' }}</span>
+                            <span class="text-sm text-slate-600">{{ $business->organization_type?->name ?? '—' }}</span>
                         </td>
                         <td class="px-5 py-4">
                             @php $sub = $business->latestSubscription; @endphp

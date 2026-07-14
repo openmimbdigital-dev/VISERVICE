@@ -10,7 +10,7 @@ class CreateOrUpdateTeamPositionAction
     use AsAction;
 
     /**
-     * @param  array{name: string, active: bool, business_type_id: int|null}  $data
+     * @param  array{name: string, active: bool, organization_type_id: int|null}  $data
      */
     public function handle(?int $team_position_id, array $data): TeamPosition
     {
@@ -33,9 +33,9 @@ class CreateOrUpdateTeamPositionAction
             abort_unless($team_position->isEditableBy($user), 403);
 
             if ($is_super_admin) {
-                $attributes['business_id']      = null;
-                $attributes['general']          = true;
-                $attributes['business_type_id'] = $data['business_type_id'];
+                $attributes['business_id']           = null;
+                $attributes['general']               = true;
+                $attributes['organization_type_id']  = $data['organization_type_id'];
             }
 
             $team_position->update($attributes);
@@ -43,11 +43,11 @@ class CreateOrUpdateTeamPositionAction
             return $team_position->fresh();
         }
 
-        $attributes['business_id']      = $is_super_admin ? null : $user->business_id;
-        $attributes['general']          = $is_super_admin;
-        $attributes['business_type_id'] = $is_super_admin
-            ? $data['business_type_id']
-            : ($user->primaryBusiness()?->business_type_id);
+        $attributes['business_id']          = $is_super_admin ? null : $user->business_id;
+        $attributes['general']              = $is_super_admin;
+        $attributes['organization_type_id'] = $is_super_admin
+            ? $data['organization_type_id']
+            : ($user->primaryBusiness()?->organization_type_id);
 
         return TeamPosition::create($attributes);
     }

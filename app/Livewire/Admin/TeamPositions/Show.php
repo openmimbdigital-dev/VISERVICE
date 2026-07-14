@@ -30,7 +30,7 @@ class Show extends Component
 
         $this->teamPosition = $teamPosition->load([
             'business',
-            'business_type',
+            'organization_type',
         ]);
 
         $this->users_count = $this->teamPosition->users()->count();

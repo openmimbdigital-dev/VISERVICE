@@ -132,7 +132,7 @@ class User extends Authenticatable
         return $this->businesses()->where('businesses.id', $business_id)->exists();
     }
 
-    public function canViaBusinessType(string $permission): bool
+    public function canViaOrganizationType(string $permission): bool
     {
         return $this->can($permission);
     }

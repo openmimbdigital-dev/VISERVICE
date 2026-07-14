@@ -51,20 +51,20 @@
 
     <section class="mb-6 overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
         <div class="border-b border-slate-100 bg-slate-50/80 px-4 py-4 sm:px-5">
-            <h2 class="font-semibold text-slate-800">Tipo de negocio</h2>
+            <h2 class="font-semibold text-slate-800">Tipo de organización</h2>
         </div>
         <div class="p-4 sm:p-5">
-            <select wire:model.live="business_type_id"
+            <select wire:model.live="organization_type_id"
                 class="w-full max-w-md rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
                 <option value="">— Seleccionar —</option>
-                @foreach($business_types as $type)
+                @foreach($organization_types as $type)
                     <option value="{{ $type->id }}">{{ $type->name }}</option>
                 @endforeach
             </select>
         </div>
     </section>
 
-    @if($business_type_id)
+    @if($organization_type_id)
     <section class="mb-6 overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
         <div class="border-b border-slate-100 bg-slate-50/80 px-4 py-4 sm:px-5">
             <h2 class="font-semibold text-slate-800">Negocios raíz</h2>

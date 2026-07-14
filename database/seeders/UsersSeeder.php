@@ -3,7 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Business;
-use App\Models\BusinessType;
+use App\Models\OrganizationType;
 use App\Models\City;
 use App\Models\Country;
 use App\Models\User;
@@ -154,7 +154,7 @@ class UsersSeeder extends Seeder
      */
     private function seedChurchUsers(?Country $country, ?City $bogota, ?City $medellin, ?City $cali, string $password): array
     {
-        $iglesia_type = BusinessType::query()->where('label', 'iglesia')->first();
+        $iglesia_type = OrganizationType::query()->where('label', 'iglesia')->first();
 
         if (! $iglesia_type) {
             return [];
@@ -288,7 +288,7 @@ class UsersSeeder extends Seeder
         foreach ($church_users as $data) {
             $business = Business::query()
                 ->where('slug', $data['business_slug'])
-                ->where('business_type_id', $iglesia_type->id)
+                ->where('organization_type_id', $iglesia_type->id)
                 ->first();
 
             if (! $business) {

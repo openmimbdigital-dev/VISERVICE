@@ -3,8 +3,8 @@
 namespace App\Livewire\Admin\Businesses;
 
 use App\Models\Business;
-use App\Models\BusinessType;
 use App\Models\MenuSection;
+use App\Models\OrganizationType;
 use App\Support\BusinessModuleAccess;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
@@ -15,7 +15,7 @@ use Livewire\Component;
 #[Title('Módulos por negocio')]
 class ModuleAccess extends Component
 {
-    public ?int $business_type_id = null;
+    public ?int $organization_type_id = null;
 
     /** @var list<int|string> */
     public array $selected_business_ids = [];
@@ -33,11 +33,11 @@ class ModuleAccess extends Component
             403
         );
 
-        $first = BusinessType::query()->where('status', true)->orderBy('name')->first();
-        $this->business_type_id = $first?->id;
+        $first = OrganizationType::query()->where('status', true)->orderBy('name')->first();
+        $this->organization_type_id = $first?->id;
     }
 
-    public function updatedBusinessTypeId(): void
+    public function updatedOrganizationTypeId(): void
     {
         $this->selected_business_ids = [];
         $this->clearModuleSelection();
@@ -86,12 +86,12 @@ class ModuleAccess extends Component
         );
 
         $this->validate([
-            'business_type_id'        => 'required|exists:business_types,id',
+            'organization_type_id'    => 'required|exists:organization_types,id',
             'selected_business_ids'   => 'required|array|min:1',
             'selected_business_ids.*' => [
                 'integer',
                 Rule::exists('businesses', 'id')->where(
-                    fn ($q) => $q->where('business_type_id', $this->business_type_id)->whereNull('deleted_at')
+                    fn ($q) => $q->where('organization_type_id', $this->organization_type_id)->whereNull('deleted_at')
                 ),
             ],
             'selected_section_ids'    => 'array',
@@ -139,7 +139,7 @@ class ModuleAccess extends Component
 
         $businesses = Business::query()
             ->with(['menuSections', 'menuItems'])
-            ->where('business_type_id', $this->business_type_id)
+            ->where('organization_type_id', $this->organization_type_id)
             ->whereIn('id', $ids)
             ->get();
 
@@ -169,7 +169,7 @@ class ModuleAccess extends Component
 
     public function render()
     {
-        $business_types = BusinessType::query()->where('status', true)->orderBy('name')->get();
+        $organization_types = OrganizationType::query()->where('status', true)->orderBy('name')->get();
 
         $assignable_sections = MenuSection::query()
             ->where('active', true)
@@ -178,13 +178,13 @@ class ModuleAccess extends Component
             ->with(['items' => fn ($q) => $q->where('active', true)->orderBy('sort_order')])
             ->get();
 
-        $businesses_for_type = $this->business_type_id
-            ? Business::query()->where('business_type_id', $this->business_type_id)->whereNull('business_id')->orderBy('name')->get()
+        $businesses_for_type = $this->organization_type_id
+            ? Business::query()->where('organization_type_id', $this->organization_type_id)->whereNull('business_id')->orderBy('name')->get()
             : collect();
 
-        $assigned_businesses = $this->business_type_id
+        $assigned_businesses = $this->organization_type_id
             ? Business::query()
-                ->where('business_type_id', $this->business_type_id)
+                ->where('organization_type_id', $this->organization_type_id)
                 ->whereNull('business_id')
                 ->with(['menuSections', 'menuItems'])
                 ->orderBy('name')
@@ -192,7 +192,7 @@ class ModuleAccess extends Component
             : collect();
 
         return view('livewire.admin.businesses.module-access', compact(
-            'business_types',
+            'organization_types',
             'assignable_sections',
             'businesses_for_type',
             'assigned_businesses'

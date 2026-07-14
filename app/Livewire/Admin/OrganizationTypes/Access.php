@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Livewire\Admin\BusinessTypes;
+namespace App\Livewire\Admin\OrganizationTypes;
 
 use App\Models\Business;
-use App\Models\BusinessType;
+use App\Models\OrganizationType;
 use App\Models\Role;
 use App\Support\BusinessAccess;
 use Illuminate\Validation\Rule;
@@ -16,7 +16,7 @@ use Spatie\Permission\PermissionRegistrar;
 #[Title('Acceso por negocio')]
 class Access extends Component
 {
-    public ?int $business_type_id = null;
+    public ?int $organization_type_id = null;
 
     /** @var list<int> */
     public array $selected_business_ids = [];
@@ -30,15 +30,15 @@ class Access extends Component
     public function mount(): void
     {
         abort_unless(
-            auth()->user()?->hasRole('superAdmin') && auth()->user()?->can('business_types.access.view'),
+            auth()->user()?->hasRole('superAdmin') && auth()->user()?->can('organization_types.access.view'),
             403
         );
 
-        $first = BusinessType::query()->where('status', true)->orderBy('name')->first();
-        $this->business_type_id = $first?->id;
+        $first = OrganizationType::query()->where('status', true)->orderBy('name')->first();
+        $this->organization_type_id = $first?->id;
     }
 
-    public function updatedBusinessTypeId(): void
+    public function updatedOrganizationTypeId(): void
     {
         $this->selected_business_ids = [];
         $this->clearAssignmentFields();
@@ -61,7 +61,7 @@ class Access extends Component
 
         $businesses = Business::query()
             ->with(['roles', 'permissions'])
-            ->where('business_type_id', $this->business_type_id)
+            ->where('organization_type_id', $this->organization_type_id)
             ->whereIn('id', $ids)
             ->get();
 
@@ -97,17 +97,17 @@ class Access extends Component
     public function save(): void
     {
         abort_unless(
-            auth()->user()?->hasRole('superAdmin') && auth()->user()?->can('business_types.access.manage'),
+            auth()->user()?->hasRole('superAdmin') && auth()->user()?->can('organization_types.access.manage'),
             403
         );
 
         $this->validate([
-            'business_type_id'         => 'required|exists:business_types,id',
+            'organization_type_id'     => 'required|exists:organization_types,id',
             'selected_business_ids'    => 'required|array|min:1',
             'selected_business_ids.*'  => [
                 'integer',
                 Rule::exists('businesses', 'id')->where(
-                    fn ($q) => $q->where('business_type_id', $this->business_type_id)->whereNull('deleted_at')
+                    fn ($q) => $q->where('organization_type_id', $this->organization_type_id)->whereNull('deleted_at')
                 ),
             ],
             'selected_role_ids'        => 'array',
@@ -115,7 +115,7 @@ class Access extends Component
             'selected_permissions'     => 'array',
             'selected_permissions.*'   => 'string|exists:permissions,name',
         ], [
-            'business_type_id.required'      => 'Selecciona un tipo de negocio.',
+            'organization_type_id.required'  => 'Selecciona un tipo de organización.',
             'selected_business_ids.required' => 'Selecciona al menos un negocio.',
             'selected_business_ids.min'      => 'Selecciona al menos un negocio.',
         ]);
@@ -150,7 +150,7 @@ class Access extends Component
     public function toggleModule(string $module_key): void
     {
         abort_unless(
-            auth()->user()?->hasRole('superAdmin') && auth()->user()?->can('business_types.access.manage'),
+            auth()->user()?->hasRole('superAdmin') && auth()->user()?->can('organization_types.access.manage'),
             403
         );
 
@@ -172,7 +172,7 @@ class Access extends Component
 
     public function render()
     {
-        $business_types = BusinessType::query()
+        $organization_types = OrganizationType::query()
             ->where('status', true)
             ->orderBy('name')
             ->get();
@@ -185,27 +185,27 @@ class Access extends Component
 
         $modules = $this->assignableModules();
 
-        $selected_type = $this->business_type_id
-            ? $business_types->firstWhere('id', $this->business_type_id)
+        $selected_type = $this->organization_type_id
+            ? $organization_types->firstWhere('id', $this->organization_type_id)
             : null;
 
-        $businesses_for_type = $this->business_type_id
+        $businesses_for_type = $this->organization_type_id
             ? Business::query()
-                ->where('business_type_id', $this->business_type_id)
+                ->where('organization_type_id', $this->organization_type_id)
                 ->orderBy('name')
                 ->get()
             : collect();
 
-        $assigned_businesses = $this->business_type_id
+        $assigned_businesses = $this->organization_type_id
             ? Business::query()
-                ->where('business_type_id', $this->business_type_id)
-                ->with(['roles', 'permissions', 'business_type'])
+                ->where('organization_type_id', $this->organization_type_id)
+                ->with(['roles', 'permissions', 'organization_type'])
                 ->orderBy('name')
                 ->get()
             : collect();
 
-        return view('livewire.admin.business-types.access', compact(
-            'business_types',
+        return view('livewire.admin.organization-types.access', compact(
+            'organization_types',
             'roles',
             'modules',
             'selected_type',

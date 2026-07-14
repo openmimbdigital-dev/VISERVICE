@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\BusinessType;
+use App\Models\OrganizationType;
 use App\Models\TeamPosition;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -35,10 +35,10 @@ class TeamPositionSeeder extends Seeder
 
     public function run(): void
     {
-        $taller = BusinessType::query()->where('label', 'taller')->first();
+        $taller = OrganizationType::query()->where('label', 'taller')->first();
 
         if (! $taller) {
-            $this->command->warn('Tipo de negocio "taller" no encontrado. Omitiendo TeamPositionSeeder.');
+            $this->command->warn('Tipo de organización "taller" no encontrado. Omitiendo TeamPositionSeeder.');
 
             return;
         }
@@ -54,7 +54,7 @@ class TeamPositionSeeder extends Seeder
     }
 
     /** @return array<string, TeamPosition> */
-    private function seedWorkshopPositions(BusinessType $taller): array
+    private function seedWorkshopPositions(OrganizationType $taller): array
     {
         $positions_by_label = [];
 
@@ -63,9 +63,9 @@ class TeamPositionSeeder extends Seeder
 
             $position = TeamPosition::query()->updateOrCreate(
                 [
-                    'business_type_id' => $taller->id,
-                    'label'            => $label,
-                    'general'          => true,
+                    'organization_type_id' => $taller->id,
+                    'label'                => $label,
+                    'general'              => true,
                 ],
                 [
                     'business_id' => null,
@@ -81,13 +81,13 @@ class TeamPositionSeeder extends Seeder
     }
 
     /** @param array<string, TeamPosition> $positions_by_label */
-    private function assignPositionsToWorkshopUsers(BusinessType $taller, array $positions_by_label): int
+    private function assignPositionsToWorkshopUsers(OrganizationType $taller, array $positions_by_label): int
     {
         $fallback_label = TeamPosition::normalizeLabel('Auxiliar de Taller');
         $fallback       = $positions_by_label[$fallback_label] ?? reset($positions_by_label);
 
         $users = User::query()
-            ->whereHas('businesses', fn ($q) => $q->where('business_type_id', $taller->id))
+            ->whereHas('businesses', fn ($q) => $q->where('organization_type_id', $taller->id))
             ->whereDoesntHave('roles', fn ($q) => $q->where('name', 'superAdmin'))
             ->with('roles')
             ->get();

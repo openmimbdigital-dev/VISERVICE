@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('business_types', function (Blueprint $table) {
+        Schema::create('organization_types', function (Blueprint $table) {
             $table->id();
             $table->string('name')->unique();
             $table->string('label');
@@ -37,7 +37,7 @@ return new class extends Migration
             $table->string('phone_number')->nullable();
             $table->unsignedBigInteger('city_id')->nullable();
             $table->unsignedBigInteger('country_id')->nullable();
-            $table->unsignedBigInteger('business_type_id');
+            $table->unsignedBigInteger('organization_type_id');
             $table->unsignedBigInteger('business_id')->nullable();
             $table->json('representative')->nullable();
             $table->json('configurations')->nullable();
@@ -49,7 +49,7 @@ return new class extends Migration
             // Claves foráneas
             $table->foreign('city_id')->references('id')->on('cities')->onDelete('set null');
             $table->foreign('country_id')->references('id')->on('countries')->onDelete('set null');
-            $table->foreign('business_type_id')->references('id')->on('business_types')->onDelete('cascade');
+            $table->foreign('organization_type_id')->references('id')->on('organization_types')->onDelete('cascade');
         });
 
 
@@ -135,8 +135,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('business_types');
-        Schema::dropIfExists('businesses');
         Schema::dropIfExists('business_addresses');
+        Schema::dropIfExists('businesses');
+        Schema::dropIfExists('organization_types');
     }
 };

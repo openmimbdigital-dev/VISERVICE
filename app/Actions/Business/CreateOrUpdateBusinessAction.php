@@ -3,8 +3,8 @@
 namespace App\Actions\Business;
 
 use App\Models\Business;
+use App\Models\BusinessType;
 use App\Models\City;
-use App\Models\OrganizationType;
 use App\Support\BusinessLogoStorage;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Str;
@@ -29,9 +29,9 @@ class CreateOrUpdateBusinessAction
             403
         );
 
-        $organization_type = OrganizationType::query()
+        $business_type = BusinessType::query()
             ->where('active', true)
-            ->findOrFail($data['organization_type_id']);
+            ->findOrFail($data['business_type_id']);
 
         $country_id = null;
 
@@ -42,8 +42,8 @@ class CreateOrUpdateBusinessAction
         $attributes = [
             'name'                 => $data['name'],
             'nit'                  => $data['nit'],
-            'organization_type_id' => $organization_type->id,
-            'business_type_id'     => $organization_type->business_type_id,
+            'business_type_id'     => $business_type->id,
+            'organization_type_id' => $business_type->organization_type_id,
             'phone_number'         => $data['phone_number'],
             'email'                => $data['email'],
             'address'              => $data['address'],

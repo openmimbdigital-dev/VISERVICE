@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\BusinessType;
 use App\Models\OrganizationType;
 use Illuminate\Database\Seeder;
 
@@ -10,73 +9,31 @@ class OrganizationTypeSeeder extends Seeder
 {
     public function run(): void
     {
-        $taller = BusinessType::where('label', 'taller')->first();
-        $iglesia = BusinessType::where('label', 'iglesia')->first();
-        $centro  = BusinessType::where('label', 'centro_educativo')->first();
+        $organization_types = [
+            ['name' => 'Taller', 'status' => true],
+            ['name' => 'Iglesia', 'status' => true],
+            ['name' => 'Centro Educativo', 'status' => true],
+        ];
 
-        if ($taller) {
-            $this->seedForType($taller, [
-                'Transporte de Carga',
-                'Transporte de Pasajeros',
-                'Transporte de Mercancías',
-                'Logística y Distribución',
-                'Servicios de Mensajería',
-                'Transporte Especializado',
-                'Almacenamiento y Depósito',
-                'Servicios Portuarios',
-                'Servicios Aeroportuarios',
-                'Mantenimiento de Vehículos',
-                'Venta de Repuestos',
-                'Servicios de Seguridad',
-                'Servicios de Limpieza',
-                'Servicios de Alimentación',
-                'Servicios de Combustible',
-                'Servicios de Seguros',
-                'Servicios de Tecnología',
-                'Servicios de Consultoría',
-                'Servicios de Capacitación',
-                'Servicios de Contabilidad',
-            ]);
-        }
+        $active_labels = [];
 
-        if ($iglesia) {
-            $this->seedForType($iglesia, [
-                'Iglesia',
-                'Comunidad Cristiana',
-                'Ministerio',
-                'Congregación',
-            ]);
-        }
-
-        if ($centro) {
-            $this->seedForType($centro, [
-                'Colegio',
-                'Instituto Técnico',
-                'Universidad',
-                'Servicio Educativo',
-                'Jardín Infantil',
-            ]);
-        }
-
-        $this->command->info('Tipos de organización sincronizados exitosamente.');
-    }
-
-    /** @param list<string> $names */
-    private function seedForType(BusinessType $business_type, array $names): void
-    {
-        foreach ($names as $name) {
-            $label = OrganizationType::normalizeLabel($name);
+        foreach ($organization_types as $type) {
+            $label = OrganizationType::normalizeLabel($type['name']);
+            $active_labels[] = $label;
 
             OrganizationType::query()->updateOrCreate(
+                ['label' => $label],
                 [
-                    'business_type_id' => $business_type->id,
-                    'label'            => $label,
-                ],
-                [
-                    'name'   => $name,
-                    'active' => true,
+                    'name'   => $type['name'],
+                    'status' => $type['status'],
                 ]
             );
         }
+
+        OrganizationType::query()
+            ->whereNotIn('label', $active_labels)
+            ->update(['status' => false]);
+
+        $this->command->info('Tipos de organización sincronizados exitosamente.');
     }
 }
