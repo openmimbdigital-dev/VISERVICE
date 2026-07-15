@@ -13,6 +13,7 @@ class GeneralConfig extends Model
         'configurable_type',
         'configurable_id',
         'key',
+        'label',
         'value',
     ];
 

@@ -13,6 +13,7 @@ return new class extends Migration
             $table->foreignId('business_id')->constrained()->cascadeOnDelete();
             $table->morphs('configurable');
             $table->string('key', 100)->comment('Nombre de la variable general');
+            $table->string('label', 100)->comment('Nombre para el usuario');
             $table->text('value')->nullable()->comment('Valor asignado a la variable');
             $table->timestamps();
 
