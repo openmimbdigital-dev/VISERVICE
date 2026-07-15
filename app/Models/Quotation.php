@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Quotation extends Model
@@ -91,6 +92,11 @@ class Quotation extends Model
     public function workOrder(): HasOne
     {
         return $this->hasOne(WorkOrder::class);
+    }
+
+    public function equipment_historicals(): MorphMany
+    {
+        return $this->morphMany(EquipmentHistorical::class, 'subject')->orderByDesc('created_at');
     }
 
     public function scopeForAuthUser($query)

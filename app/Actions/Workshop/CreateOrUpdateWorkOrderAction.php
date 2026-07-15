@@ -2,6 +2,8 @@
 
 namespace App\Actions\Workshop;
 
+use App\Actions\LogEquipmentHistoricalAction;
+use App\Actions\LogUserHistoricalAction;
 use App\Enums\QuotationStatus;
 use App\Models\Client;
 use App\Models\Equipment;
@@ -92,7 +94,44 @@ class CreateOrUpdateWorkOrderAction
                 $equipment->update(['km_current' => $work_order->km_entry]);
             }
 
-            return $work_order->fresh(['items.productType', 'items.catalogProduct']);
+            $work_order = $work_order->fresh([
+                'items.productType',
+                'items.catalogProduct',
+                'client:id,name',
+                'equipment',
+            ]);
+
+            $action = $work_order_id ? 'updated' : 'created';
+            $description = ($work_order_id ? 'Actualizó' : 'Creó') . " la orden de trabajo {$work_order->reference}";
+            $properties = [
+                'status'       => $work_order->status,
+                'client_id'    => $work_order->client_id,
+                'equipment_id' => $work_order->equipment_id,
+                'quotation_id' => $work_order->quotation_id,
+                'total'        => $work_order->total,
+                'items_count'  => $work_order->items->count(),
+            ];
+
+            LogUserHistoricalAction::run(
+                action: $action,
+                module: 'workshop.work-orders',
+                description: $description,
+                subject: $work_order,
+                subject_label: $work_order->reference,
+                properties: $properties,
+                business_id: $business_id,
+            );
+
+            LogEquipmentHistoricalAction::run(
+                action: $action,
+                module: 'workshop.work-orders',
+                description: $description,
+                subject: $work_order,
+                properties: $properties,
+                business_id: $business_id,
+            );
+
+            return $work_order;
         });
     }
 

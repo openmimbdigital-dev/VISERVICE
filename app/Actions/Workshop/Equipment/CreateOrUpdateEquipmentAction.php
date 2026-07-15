@@ -2,6 +2,7 @@
 
 namespace App\Actions\Workshop\Equipment;
 
+use App\Actions\LogEquipmentHistoricalAction;
 use App\Actions\LogUserHistoricalAction;
 use App\Models\Brand;
 use App\Models\Client;
@@ -107,18 +108,32 @@ class CreateOrUpdateEquipmentAction
 
         $equipment = $equipment->fresh();
 
+        $action = $is_editing ? 'updated' : 'created';
+        $description = ($is_editing ? 'Actualizó' : 'Creó') . " el equipo {$equipment->plate}";
+        $properties = [
+            'name'              => $equipment->name,
+            'plate'             => $equipment->plate,
+            'equipment_type_id' => $equipment->equipment_type_id,
+            'status'            => $equipment->status,
+        ];
+
         LogUserHistoricalAction::run(
-            action: $is_editing ? 'updated' : 'created',
+            action: $action,
             module: 'workshop.equipment',
-            description: ($is_editing ? 'Actualizó' : 'Creó') . " el equipo {$equipment->plate}",
+            description: $description,
             subject: $equipment,
             subject_label: $equipment->plate,
-            properties: [
-                'name'              => $equipment->name,
-                'plate'             => $equipment->plate,
-                'equipment_type_id' => $equipment->equipment_type_id,
-                'status'            => $equipment->status,
-            ],
+            properties: $properties,
+            business_id: $business_id,
+        );
+
+        LogEquipmentHistoricalAction::run(
+            action: $action,
+            module: 'workshop.equipment',
+            description: $description,
+            equipment: $equipment,
+            subject: $equipment,
+            properties: $properties,
             business_id: $business_id,
         );
 

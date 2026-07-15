@@ -4,7 +4,9 @@ namespace App\Actions;
 
 use App\Models\Client;
 use App\Models\Equipment;
+use App\Models\Quotation;
 use App\Models\UserHistorical;
+use App\Models\WorkOrder;
 use App\Support\CurrentBusiness;
 use Illuminate\Database\Eloquent\Model;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -44,6 +46,14 @@ class LogUserHistoricalAction
         if ($subject instanceof Equipment) {
             $client_id ??= $subject->client_id ? (int) $subject->client_id : null;
             $client_name ??= $subject->client_name;
+        }
+
+        if ($subject instanceof Quotation || $subject instanceof WorkOrder) {
+            $client_id ??= $subject->client_id ? (int) $subject->client_id : null;
+            if ($client_name === null && $client_id) {
+                $subject->loadMissing('client:id,name');
+                $client_name = $subject->client?->name;
+            }
         }
 
         $resolved_business_id = $business_id

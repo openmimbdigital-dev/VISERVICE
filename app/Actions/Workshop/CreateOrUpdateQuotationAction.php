@@ -2,6 +2,8 @@
 
 namespace App\Actions\Workshop;
 
+use App\Actions\LogEquipmentHistoricalAction;
+use App\Actions\LogUserHistoricalAction;
 use App\Enums\QuotationStatus;
 use App\Models\BusinessBankAccount;
 use App\Models\BusinessPaymentMethod;
@@ -103,7 +105,43 @@ class CreateOrUpdateQuotationAction
             $this->syncItems($quotation, $items);
             $quotation->recalculateTotals();
 
-            return $quotation->fresh(['items.productType', 'items.productCategory']);
+            $quotation = $quotation->fresh([
+                'items.productType',
+                'items.productCategory',
+                'client:id,name',
+                'equipment',
+            ]);
+
+            $action = $quotation_id ? 'updated' : 'created';
+            $description = ($quotation_id ? 'Actualizó' : 'Creó') . " la cotización {$quotation->reference}";
+            $properties = [
+                'status'       => $quotation->status?->value ?? $quotation->status,
+                'client_id'    => $quotation->client_id,
+                'equipment_id' => $quotation->equipment_id,
+                'total'        => $quotation->total,
+                'items_count'  => $quotation->items->count(),
+            ];
+
+            LogUserHistoricalAction::run(
+                action: $action,
+                module: 'workshop.quotations',
+                description: $description,
+                subject: $quotation,
+                subject_label: $quotation->reference,
+                properties: $properties,
+                business_id: $business_id,
+            );
+
+            LogEquipmentHistoricalAction::run(
+                action: $action,
+                module: 'workshop.quotations',
+                description: $description,
+                subject: $quotation,
+                properties: $properties,
+                business_id: $business_id,
+            );
+
+            return $quotation;
         });
     }
 

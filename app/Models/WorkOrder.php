@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class WorkOrder extends Model
@@ -82,6 +83,11 @@ class WorkOrder extends Model
     public function latestInvoice(): HasOne
     {
         return $this->hasOne(WorkOrderInvoice::class)->latestOfMany();
+    }
+
+    public function equipment_historicals(): MorphMany
+    {
+        return $this->morphMany(EquipmentHistorical::class, 'subject')->orderByDesc('created_at');
     }
 
     public function scopeForAuthUser($query)

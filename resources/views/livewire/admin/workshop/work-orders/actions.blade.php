@@ -1,3 +1,6 @@
+@php
+    $can_mutate = in_array($status, ['abierta', 'en_proceso'], true);
+@endphp
 <div class="flex flex-nowrap items-center justify-end gap-1">
     @can('workshop.work-orders.view')
     <a href="{{ route('admin.workshop.work-orders.show', $id) }}" wire:navigate title="Ver detalle"
@@ -10,24 +13,32 @@
     @endcan
 
     @can('workshop.work-orders.edit')
-    @if(in_array($status, ['abierta', 'en_proceso'], true))
+    @if($can_mutate)
     <a href="{{ route('admin.workshop.work-orders.form.edit', $id) }}" wire:navigate title="Editar"
         class="inline-flex shrink-0 rounded p-1.5 text-slate-400 transition-colors hover:bg-indigo-50 hover:text-indigo-600">
         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
         </svg>
     </a>
+    @else
+    <button type="button" disabled title="Solo se pueden editar OTs abiertas o en proceso"
+        class="inline-flex shrink-0 rounded p-1.5 text-slate-400 cursor-not-allowed opacity-40">
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+        </svg>
+    </button>
     @endif
     @endcan
 
     @can('workshop.work-orders.delete')
-    @if(in_array($status, ['abierta', 'en_proceso'], true))
-    <button wire:click="deleteRecord({{ $id }})" type="button" title="Eliminar"
-        class="inline-flex shrink-0 rounded p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600">
+    <button type="button"
+        @if($can_mutate) wire:click="deleteRecord({{ $id }})" @endif
+        @disabled(! $can_mutate)
+        title="{{ $can_mutate ? 'Eliminar' : 'Solo se pueden eliminar OTs abiertas o en proceso' }}"
+        class="inline-flex shrink-0 rounded p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-slate-400">
         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
         </svg>
     </button>
-    @endif
     @endcan
 </div>

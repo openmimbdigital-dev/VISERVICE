@@ -185,7 +185,8 @@ class RolesAndPermissionsSeeder extends Seeder
         // Administrador y Comercio: métodos de pago y datos bancarios del negocio
         $business_payment_settings = $this->businessPaymentSettingsPermissions();
 
-        // Administrador: todo menos suscripciones (las gestiona solo el superAdmin)
+        // Administrador: todo menos suscripciones (las gestiona solo el superAdmin).
+        // OT CRUD: workshop.work-orders.* vía workOrderPermissions().
         $admin->syncPermissions($perms->only([
             'users.view', 'users.create', 'users.edit',
             'businesses.view', 'businesses.create', 'businesses.edit',
@@ -205,7 +206,8 @@ class RolesAndPermissionsSeeder extends Seeder
             ...$this->catalogProductsSettingsPermissions(),
         ])->values());
 
-        // Comercio: propietario del negocio registrado vía onboarding
+        // Comercio: propietario del negocio registrado vía onboarding.
+        // OT CRUD: mismos workshop.work-orders.* que Administrador.
         $comercio->syncPermissions($perms->only([
             'users.view', 'users.create', 'users.edit', 'users.delete',
             'businesses.view', 'businesses.edit',
@@ -224,13 +226,12 @@ class RolesAndPermissionsSeeder extends Seeder
             ...$this->catalogProductsSettingsPermissions(),
         ])->values());
 
-        // Supervisor: solo lectura
+        // Supervisor / Operador: sin permisos de órdenes de trabajo (solo Admin, Comercio y superAdmin).
         $supervisor->syncPermissions($perms->only([
             'users.view', 'businesses.view', 'reports.view', 'roles.view', 'permissions.view',
             'team_positions.view',
         ])->values());
 
-        // Operador: mínimo
         $operador->syncPermissions($perms->only([
             'users.view', 'businesses.view', 'reports.view',
         ])->values());

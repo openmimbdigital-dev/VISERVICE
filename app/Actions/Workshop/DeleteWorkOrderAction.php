@@ -2,6 +2,8 @@
 
 namespace App\Actions\Workshop;
 
+use App\Actions\LogEquipmentHistoricalAction;
+use App\Actions\LogUserHistoricalAction;
 use App\Models\WorkOrder;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -13,7 +15,10 @@ class DeleteWorkOrderAction
     {
         abort_unless(auth()->user()?->can('workshop.work-orders.delete'), 403);
 
-        $work_order = WorkOrder::query()->forAuthUser()->findOrFail($work_order_id);
+        $work_order = WorkOrder::query()
+            ->forAuthUser()
+            ->with(['client:id,name', 'equipment', 'items'])
+            ->findOrFail($work_order_id);
 
         if ($work_order->invoices()->exists()
             || $work_order->remissions()->exists()
@@ -25,6 +30,33 @@ class DeleteWorkOrderAction
         if (! in_array($work_order->status, ['abierta', 'en_proceso'], true)) {
             throw new \RuntimeException('Solo se pueden eliminar OTs abiertas o en proceso.');
         }
+
+        $properties = [
+            'status'       => $work_order->status,
+            'client_id'    => $work_order->client_id,
+            'equipment_id' => $work_order->equipment_id,
+            'quotation_id' => $work_order->quotation_id,
+            'total'        => $work_order->total,
+        ];
+
+        LogUserHistoricalAction::run(
+            action: 'deleted',
+            module: 'workshop.work-orders',
+            description: "Eliminó la orden de trabajo {$work_order->reference}",
+            subject: $work_order,
+            subject_label: $work_order->reference,
+            properties: $properties,
+            business_id: (int) $work_order->business_id,
+        );
+
+        LogEquipmentHistoricalAction::run(
+            action: 'deleted',
+            module: 'workshop.work-orders',
+            description: "Eliminó la orden de trabajo {$work_order->reference}",
+            subject: $work_order,
+            properties: $properties,
+            business_id: (int) $work_order->business_id,
+        );
 
         $work_order->items()->delete();
         $work_order->delete();

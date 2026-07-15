@@ -7,7 +7,7 @@
         'cancelada'  => 'bg-red-50 text-red-700 ring-red-600/20',
     ];
     $badge = $statusBadge[$workOrder->status] ?? 'bg-slate-100 text-slate-600 ring-slate-500/20';
-    $can_manage = ! in_array($workOrder->status, ['finalizada', 'cancelada'], true);
+    $can_manage = ($can_edit_items ?? false) && ! in_array($workOrder->status, ['finalizada', 'cancelada'], true);
     $itemStatusBadge = [
         'pendiente'  => 'bg-slate-100 text-slate-600',
         'en_proceso' => 'bg-yellow-50 text-yellow-700',

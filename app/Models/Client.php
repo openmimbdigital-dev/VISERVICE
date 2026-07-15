@@ -54,6 +54,11 @@ class Client extends Model
         return $this->hasMany(UserHistorical::class)->orderByDesc('created_at');
     }
 
+    public function equipment_historicals(): HasMany
+    {
+        return $this->hasMany(EquipmentHistorical::class)->orderByDesc('created_at');
+    }
+
     public function scopeActive($query)
     {
         return $query->where('status', true);

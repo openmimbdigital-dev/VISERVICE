@@ -39,6 +39,7 @@ class DatabaseSeeder extends Seeder
             ClientsSeeder::class,
             EquipmentSeeder::class,
             QuotationsSeeder::class,
+            WorkOrdersSeeder::class,
         ]);
     }
 }

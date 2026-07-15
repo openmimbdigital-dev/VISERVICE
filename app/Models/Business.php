@@ -105,6 +105,11 @@ class Business extends Model
         return $this->hasMany(UserHistorical::class)->orderByDesc('created_at');
     }
 
+    public function equipment_historicals(): HasMany
+    {
+        return $this->hasMany(EquipmentHistorical::class)->orderByDesc('created_at');
+    }
+
     public function subscriptions(): HasMany
     {
         return $this->hasMany(Subscription::class);

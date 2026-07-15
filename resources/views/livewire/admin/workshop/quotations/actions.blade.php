@@ -1,3 +1,7 @@
+@php
+    $can_create_ot = ($status ?? null) === 'aceptada' && empty($work_order_id);
+    $has_work_order = ! empty($work_order_id);
+@endphp
 <div class="flex flex-nowrap items-center justify-end gap-1">
     @can('workshop.quotations.view')
     <a href="{{ route('admin.workshop.quotations.show', $id) }}" wire:navigate title="Ver detalle"
@@ -28,24 +32,39 @@
     @endcan
 
     @can('workshop.work-orders.create')
-    @if(($status ?? null) === 'aceptada' && empty($work_order_id))
+    @if($can_create_ot)
     <a href="{{ route('admin.workshop.work-orders.form', ['quotation' => $id]) }}" wire:navigate title="Crear OT"
         class="inline-flex shrink-0 rounded p-1.5 text-slate-400 transition-colors hover:bg-emerald-50 hover:text-emerald-600">
         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
         </svg>
     </a>
+    @else
+    <button type="button" disabled
+        title="{{ $has_work_order ? 'Esta cotización ya tiene una OT' : 'Solo cotizaciones aceptadas sin OT' }}"
+        class="inline-flex shrink-0 rounded p-1.5 text-slate-400 cursor-not-allowed opacity-40">
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+        </svg>
+    </button>
     @endif
     @endcan
 
     @can('workshop.work-orders.view')
-    @if(! empty($work_order_id))
+    @if($has_work_order)
     <a href="{{ route('admin.workshop.work-orders.show', $work_order_id) }}" wire:navigate title="Ver OT"
         class="inline-flex shrink-0 rounded p-1.5 text-slate-400 transition-colors hover:bg-indigo-50 hover:text-indigo-600">
         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
         </svg>
     </a>
+    @else
+    <button type="button" disabled title="Esta cotización aún no tiene OT"
+        class="inline-flex shrink-0 rounded p-1.5 text-slate-400 cursor-not-allowed opacity-40">
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+        </svg>
+    </button>
     @endif
     @endcan
 

@@ -102,6 +102,11 @@ class User extends Authenticatable
         return $this->hasMany(UserHistorical::class)->orderByDesc('created_at');
     }
 
+    public function equipment_historicals(): HasMany
+    {
+        return $this->hasMany(EquipmentHistorical::class)->orderByDesc('created_at');
+    }
+
     public function primaryBusiness(): ?Business
     {
         if ($this->relationLoaded('businesses')) {

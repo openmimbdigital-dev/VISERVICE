@@ -68,6 +68,11 @@ class Equipment extends Model
         return $this->hasMany(WorkOrder::class);
     }
 
+    public function equipment_historicals(): HasMany
+    {
+        return $this->hasMany(EquipmentHistorical::class)->orderByDesc('created_at');
+    }
+
     public function attributeValues(): MorphMany
     {
         return $this->morphMany(AttributeEquipmentType::class, 'model');

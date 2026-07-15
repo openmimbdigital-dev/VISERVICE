@@ -2,6 +2,8 @@
 
 namespace App\Livewire\Admin\Workshop\WorkOrders;
 
+use App\Actions\LogEquipmentHistoricalAction;
+use App\Actions\LogUserHistoricalAction;
 use App\Models\Product;
 use App\Models\ProductType;
 use App\Models\WorkOrder;
@@ -45,12 +47,16 @@ class Show extends Component
 
     public function openAddItem(): void
     {
+        abort_unless(auth()->user()?->can('workshop.work-orders.edit'), 403);
+
         $this->resetItemForm();
         $this->showItemModal = true;
     }
 
     public function openEditItem(int $id): void
     {
+        abort_unless(auth()->user()?->can('workshop.work-orders.edit'), 403);
+
         $item = WorkOrderItem::query()
             ->where('work_order_id', $this->workOrder->id)
             ->findOrFail($id);
@@ -94,6 +100,8 @@ class Show extends Component
 
     public function saveItem(): void
     {
+        abort_unless(auth()->user()?->can('workshop.work-orders.edit'), 403);
+
         $this->validate([
             'item_description' => 'required|string|max:255',
             'product_type_id'  => 'nullable|integer|exists:product_types,id',
@@ -120,6 +128,8 @@ class Show extends Component
             'technician_notes'    => $this->item_notes ?: null,
         ];
 
+        $is_editing_item = (bool) $this->editing_item_id;
+
         if ($this->editing_item_id) {
             WorkOrderItem::query()
                 ->where('work_order_id', $this->workOrder->id)
@@ -132,30 +142,115 @@ class Show extends Component
 
         $this->workOrder->recalculateTotals();
         $this->workOrder->refresh();
+
+        $description = ($is_editing_item ? 'Actualizó un ítem' : 'Agregó un ítem') . " en la OT {$this->workOrder->reference}";
+        $properties = [
+            'item_description' => $data['description'],
+            'item_action'      => $is_editing_item ? 'updated' : 'created',
+        ];
+
+        LogUserHistoricalAction::run(
+            action: 'updated',
+            module: 'workshop.work-orders',
+            description: $description,
+            subject: $this->workOrder,
+            subject_label: $this->workOrder->reference,
+            properties: $properties,
+            business_id: (int) $this->workOrder->business_id,
+        );
+
+        LogEquipmentHistoricalAction::run(
+            action: 'updated',
+            module: 'workshop.work-orders',
+            description: $description,
+            subject: $this->workOrder,
+            properties: $properties,
+            business_id: (int) $this->workOrder->business_id,
+        );
+
         $this->closeItemModal();
     }
 
     public function deleteItem(int $id): void
     {
-        WorkOrderItem::query()
+        abort_unless(auth()->user()?->can('workshop.work-orders.edit'), 403);
+
+        $item = WorkOrderItem::query()
             ->where('work_order_id', $this->workOrder->id)
             ->whereKey($id)
-            ->firstOrFail()
-            ->delete();
+            ->firstOrFail();
+
+        $description = $item->description;
+        $item->delete();
 
         $this->workOrder->recalculateTotals();
         $this->workOrder->refresh();
+
+        $log_description = "Eliminó un ítem en la OT {$this->workOrder->reference}";
+        $properties = [
+            'item_description' => $description,
+            'item_action'      => 'deleted',
+        ];
+
+        LogUserHistoricalAction::run(
+            action: 'updated',
+            module: 'workshop.work-orders',
+            description: $log_description,
+            subject: $this->workOrder,
+            subject_label: $this->workOrder->reference,
+            properties: $properties,
+            business_id: (int) $this->workOrder->business_id,
+        );
+
+        LogEquipmentHistoricalAction::run(
+            action: 'updated',
+            module: 'workshop.work-orders',
+            description: $log_description,
+            subject: $this->workOrder,
+            properties: $properties,
+            business_id: (int) $this->workOrder->business_id,
+        );
     }
 
     public function updateItemStatus(int $id, string $status): void
     {
-        WorkOrderItem::query()
+        abort_unless(auth()->user()?->can('workshop.work-orders.edit'), 403);
+
+        $item = WorkOrderItem::query()
             ->where('work_order_id', $this->workOrder->id)
             ->whereKey($id)
-            ->firstOrFail()
-            ->update(['status' => $status]);
+            ->firstOrFail();
+
+        $previous = $item->status;
+        $item->update(['status' => $status]);
 
         $this->workOrder->refresh();
+
+        $log_description = "Cambió el estado de un ítem en la OT {$this->workOrder->reference}";
+        $properties = [
+            'item_description' => $item->description,
+            'from'             => $previous,
+            'to'               => $status,
+        ];
+
+        LogUserHistoricalAction::run(
+            action: 'status_changed',
+            module: 'workshop.work-orders',
+            description: $log_description,
+            subject: $this->workOrder,
+            subject_label: $this->workOrder->reference,
+            properties: $properties,
+            business_id: (int) $this->workOrder->business_id,
+        );
+
+        LogEquipmentHistoricalAction::run(
+            action: 'status_changed',
+            module: 'workshop.work-orders',
+            description: $log_description,
+            subject: $this->workOrder,
+            properties: $properties,
+            business_id: (int) $this->workOrder->business_id,
+        );
     }
 
     public function closeItemModal(): void
@@ -207,6 +302,10 @@ class Show extends Component
             ->orderBy('name')
             ->get();
 
-        return view('livewire.admin.workshop.work-orders.show', compact('product_types', 'catalog_products'));
+        return view('livewire.admin.workshop.work-orders.show', [
+            'product_types'    => $product_types,
+            'catalog_products' => $catalog_products,
+            'can_edit_items'   => auth()->user()->can('workshop.work-orders.edit'),
+        ]);
     }
 }
