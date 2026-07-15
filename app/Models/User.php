@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Casts\Attribute as EloquentAttribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -94,6 +95,11 @@ class User extends Authenticatable
         return $this->belongsToMany(Business::class, 'user_business')
             ->withPivot('is_primary')
             ->withTimestamps();
+    }
+
+    public function user_historicals(): HasMany
+    {
+        return $this->hasMany(UserHistorical::class)->orderByDesc('created_at');
     }
 
     public function primaryBusiness(): ?Business

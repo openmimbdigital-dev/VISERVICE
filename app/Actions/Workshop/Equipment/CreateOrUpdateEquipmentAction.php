@@ -2,6 +2,7 @@
 
 namespace App\Actions\Workshop\Equipment;
 
+use App\Actions\LogUserHistoricalAction;
 use App\Models\Brand;
 use App\Models\Client;
 use App\Models\Equipment;
@@ -80,6 +81,8 @@ class CreateOrUpdateEquipmentAction
             'notes'               => $data['notes'],
         ];
 
+        $is_editing = (bool) $equipment_id;
+
         if ($equipment_id) {
             $equipment = Equipment::query()
                 ->forAuthUser()
@@ -99,9 +102,26 @@ class CreateOrUpdateEquipmentAction
             $business_id,
             $equipment_type->id,
             $data['attribute_values'] ?? [],
-            is_editing: (bool) $equipment_id
+            is_editing: $is_editing
         );
 
-        return $equipment->fresh();
+        $equipment = $equipment->fresh();
+
+        LogUserHistoricalAction::run(
+            action: $is_editing ? 'updated' : 'created',
+            module: 'workshop.equipment',
+            description: ($is_editing ? 'Actualizó' : 'Creó') . " el equipo {$equipment->plate}",
+            subject: $equipment,
+            subject_label: $equipment->plate,
+            properties: [
+                'name'              => $equipment->name,
+                'plate'             => $equipment->plate,
+                'equipment_type_id' => $equipment->equipment_type_id,
+                'status'            => $equipment->status,
+            ],
+            business_id: $business_id,
+        );
+
+        return $equipment;
     }
 }

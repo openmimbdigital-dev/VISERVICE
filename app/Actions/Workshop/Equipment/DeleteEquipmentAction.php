@@ -2,6 +2,7 @@
 
 namespace App\Actions\Workshop\Equipment;
 
+use App\Actions\LogUserHistoricalAction;
 use App\Models\AttributeEquipmentType;
 use App\Models\Equipment;
 use App\Models\EquipmentType;
@@ -30,6 +31,20 @@ class DeleteEquipmentAction
         if ($equipment->hasDependencies()) {
             abort(422, $equipment->dependencyBlockReason() ?? 'No se puede eliminar el equipo.');
         }
+
+        LogUserHistoricalAction::run(
+            action: 'deleted',
+            module: 'workshop.equipment',
+            description: "Eliminó el equipo {$equipment->plate}",
+            subject: $equipment,
+            subject_label: $equipment->plate,
+            properties: [
+                'name'              => $equipment->name,
+                'plate'             => $equipment->plate,
+                'equipment_type_id' => $equipment->equipment_type_id,
+            ],
+            business_id: (int) $equipment->business_id,
+        );
 
         AttributeEquipmentType::query()
             ->where('model_type', Equipment::class)

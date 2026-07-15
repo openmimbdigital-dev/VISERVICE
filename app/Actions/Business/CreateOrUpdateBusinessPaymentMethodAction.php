@@ -2,6 +2,7 @@
 
 namespace App\Actions\Business;
 
+use App\Actions\LogUserHistoricalAction;
 use App\Models\BusinessPaymentMethod;
 use Illuminate\Support\Facades\DB;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -74,7 +75,23 @@ class CreateOrUpdateBusinessPaymentMethodAction
                 $default_query->update(['is_default' => false]);
             }
 
-            return $method->fresh(['business']);
+            $method = $method->fresh(['business']);
+
+            LogUserHistoricalAction::run(
+                action: $payment_method_id ? 'updated' : 'created',
+                module: 'business.payment_methods',
+                description: ($payment_method_id ? 'Actualizó' : 'Creó') . " el método de pago {$method->name}",
+                subject: $method,
+                subject_label: $method->name,
+                properties: [
+                    'active'     => $method->active,
+                    'is_default' => $method->is_default,
+                    'general'    => $method->general,
+                ],
+                business_id: $method->business_id ? (int) $method->business_id : null,
+            );
+
+            return $method;
         });
     }
 }

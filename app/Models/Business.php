@@ -100,6 +100,11 @@ class Business extends Model
             ->withTimestamps();
     }
 
+    public function user_historicals(): HasMany
+    {
+        return $this->hasMany(UserHistorical::class)->orderByDesc('created_at');
+    }
+
     public function subscriptions(): HasMany
     {
         return $this->hasMany(Subscription::class);

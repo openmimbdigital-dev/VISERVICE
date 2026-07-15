@@ -2,6 +2,8 @@
 
 namespace App\Livewire\Admin\Workshop\Clients;
 
+use App\Actions\LogUserHistoricalAction;
+use App\Actions\Workshop\Clients\DeleteClientAction;
 use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
 use App\Models\Client;
 use Arm092\LivewireDatatables\Column;
@@ -96,6 +98,18 @@ class DatatableClients extends LivewireDatatable
         }
 
         $client->update(['status' => ! $client->status]);
+        $client = $client->fresh();
+
+        LogUserHistoricalAction::run(
+            action: 'status_changed',
+            module: 'workshop.clients',
+            description: ($client->status ? 'Activó' : 'Desactivó') . " el cliente {$client->name}",
+            subject: $client,
+            subject_label: $client->name,
+            properties: ['status' => $client->status],
+            business_id: (int) $client->business_id,
+        );
+
         $this->dispatch('swal', ['title' => 'Estado actualizado', 'icon' => 'success']);
     }
 
@@ -109,22 +123,12 @@ class DatatableClients extends LivewireDatatable
     protected function onDeleteConfirmed(): void
     {
         try {
-            abort_unless(auth()->user()->can('workshop.clients.delete'), 403);
-
-            $client = $this->findAuthorized($this->delete_id);
-
-            if ($client->workOrders()->exists() || $client->quotations()->exists()) {
-                $this->alertDeleteError('No se puede eliminar: tiene OTs o cotizaciones asociadas.');
-
-                return;
-            }
-
-            $client->delete();
+            DeleteClientAction::run($this->delete_id);
 
             $this->alertDeleteSuccess('Cliente eliminado correctamente.');
             $this->dispatch('client-deleted');
-        } catch (\Throwable) {
-            $this->alertDeleteError('No se pudo eliminar el cliente.');
+        } catch (\Throwable $e) {
+            $this->alertDeleteError($e->getMessage() ?: 'No se pudo eliminar el cliente.');
         }
     }
 

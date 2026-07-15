@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin\User;
 
+use App\Actions\LogUserHistoricalAction;
 use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
 use App\Models\Role;
 use App\Support\BusinessAccess;
@@ -223,6 +224,20 @@ class Index extends Component
                 $user->syncRoles([$this->role]);
             }
 
+            LogUserHistoricalAction::run(
+                action: 'updated',
+                module: 'users',
+                description: "Actualizó el usuario {$user->username}",
+                subject: $user,
+                subject_label: $user->full_name ?: $user->username,
+                properties: [
+                    'username' => $user->username,
+                    'email'    => $user->email,
+                    'status'   => $user->status,
+                    'role'     => $user->roles->pluck('name')->first(),
+                ],
+            );
+
             $this->dispatch('swal', ['title' => 'Usuario actualizado correctamente.', 'icon' => 'success']);
         } else {
             $user = User::create([
@@ -252,6 +267,20 @@ class Index extends Component
             );
             $user->assignRole($this->role);
 
+            LogUserHistoricalAction::run(
+                action: 'created',
+                module: 'users',
+                description: "Creó el usuario {$user->username}",
+                subject: $user,
+                subject_label: $user->full_name ?: $user->username,
+                properties: [
+                    'username' => $user->username,
+                    'email'    => $user->email,
+                    'status'   => $user->status,
+                    'role'     => $this->role,
+                ],
+            );
+
             $this->dispatch('swal', ['title' => 'Usuario creado correctamente.', 'icon' => 'success']);
         }
 
@@ -276,7 +305,18 @@ class Index extends Component
         }
 
         $user->update(['status' => ! $user->status]);
-        $label = $user->fresh()->status ? 'activado' : 'desactivado';
+        $user  = $user->fresh();
+        $label = $user->status ? 'activado' : 'desactivado';
+
+        LogUserHistoricalAction::run(
+            action: 'status_changed',
+            module: 'users',
+            description: ($user->status ? 'Activó' : 'Desactivó') . " el usuario {$user->username}",
+            subject: $user,
+            subject_label: $user->full_name ?: $user->username,
+            properties: ['status' => $user->status],
+        );
+
         $this->dispatch('swal', ['title' => "Usuario {$label}.", 'icon' => 'success']);
     }
 
@@ -299,6 +339,18 @@ class Index extends Component
 
                 return;
             }
+
+            LogUserHistoricalAction::run(
+                action: 'deleted',
+                module: 'users',
+                description: "Eliminó el usuario {$user->username}",
+                subject: $user,
+                subject_label: $user->full_name ?: $user->username,
+                properties: [
+                    'username' => $user->username,
+                    'email'    => $user->email,
+                ],
+            );
 
             $user->delete();
 

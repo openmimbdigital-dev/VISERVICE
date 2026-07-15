@@ -49,6 +49,11 @@ class Client extends Model
         return $this->hasMany(WorkOrder::class);
     }
 
+    public function user_historicals(): HasMany
+    {
+        return $this->hasMany(UserHistorical::class)->orderByDesc('created_at');
+    }
+
     public function scopeActive($query)
     {
         return $query->where('status', true);

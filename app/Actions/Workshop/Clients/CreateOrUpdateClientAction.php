@@ -2,6 +2,7 @@
 
 namespace App\Actions\Workshop\Clients;
 
+use App\Actions\LogUserHistoricalAction;
 use App\Models\Client;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -45,12 +46,43 @@ class CreateOrUpdateClientAction
             abort_unless((int) $client->business_id === (int) $business_id, 403);
 
             $client->update($attributes);
+            $client = $client->fresh();
 
-            return $client->fresh();
+            LogUserHistoricalAction::run(
+                action: 'updated',
+                module: 'workshop.clients',
+                description: "Actualizó el cliente {$client->name}",
+                subject: $client,
+                subject_label: $client->name,
+                properties: [
+                    'document_type'   => $client->document_type,
+                    'document_number' => $client->document_number,
+                    'status'          => $client->status,
+                ],
+                business_id: $business_id,
+            );
+
+            return $client;
         }
 
         $attributes['created_by'] = auth()->id();
 
-        return Client::create($attributes);
+        $client = Client::create($attributes);
+
+        LogUserHistoricalAction::run(
+            action: 'created',
+            module: 'workshop.clients',
+            description: "Creó el cliente {$client->name}",
+            subject: $client,
+            subject_label: $client->name,
+            properties: [
+                'document_type'   => $client->document_type,
+                'document_number' => $client->document_number,
+                'status'          => $client->status,
+            ],
+            business_id: $business_id,
+        );
+
+        return $client;
     }
 }

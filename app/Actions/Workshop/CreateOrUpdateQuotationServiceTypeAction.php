@@ -2,6 +2,7 @@
 
 namespace App\Actions\Workshop;
 
+use App\Actions\LogUserHistoricalAction;
 use App\Models\QuotationServiceType;
 use App\Support\CatalogLabelNormalizer;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -35,13 +36,42 @@ class CreateOrUpdateQuotationServiceTypeAction
             $attributes['general']     = $is_super_admin;
 
             $service_type->update($attributes);
+            $service_type = $service_type->fresh();
 
-            return $service_type->fresh();
+            LogUserHistoricalAction::run(
+                action: 'updated',
+                module: 'workshop.quotation_service_types',
+                description: "Actualizó el tipo de servicio {$service_type->name}",
+                subject: $service_type,
+                subject_label: $service_type->name,
+                properties: [
+                    'active'  => $service_type->active,
+                    'general' => $service_type->general,
+                ],
+                business_id: $service_type->business_id ? (int) $service_type->business_id : null,
+            );
+
+            return $service_type;
         }
 
         $attributes['business_id'] = $is_super_admin ? null : ($user->businessIds()[0] ?? null);
         $attributes['general']     = $is_super_admin;
 
-        return QuotationServiceType::create($attributes);
+        $service_type = QuotationServiceType::create($attributes);
+
+        LogUserHistoricalAction::run(
+            action: 'created',
+            module: 'workshop.quotation_service_types',
+            description: "Creó el tipo de servicio {$service_type->name}",
+            subject: $service_type,
+            subject_label: $service_type->name,
+            properties: [
+                'active'  => $service_type->active,
+                'general' => $service_type->general,
+            ],
+            business_id: $service_type->business_id ? (int) $service_type->business_id : null,
+        );
+
+        return $service_type;
     }
 }

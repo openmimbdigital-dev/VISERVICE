@@ -2,6 +2,7 @@
 
 namespace App\Actions\Business;
 
+use App\Actions\LogUserHistoricalAction;
 use App\Enums\BusinessBankAccountType;
 use App\Models\BusinessBankAccount;
 use Illuminate\Support\Facades\DB;
@@ -70,7 +71,25 @@ class CreateOrUpdateBusinessBankAccountAction
                     ->update(['is_default' => false]);
             }
 
-            return $account->fresh(['business', 'bank']);
+            $account = $account->fresh(['business', 'bank']);
+
+            LogUserHistoricalAction::run(
+                action: $bank_account_id ? 'updated' : 'created',
+                module: 'business.bank_accounts',
+                description: ($bank_account_id ? 'Actualizó' : 'Creó') . " la cuenta bancaria {$account->bank_name}",
+                subject: $account,
+                subject_label: "{$account->bank_name} · {$account->account_number}",
+                properties: [
+                    'bank_name'      => $account->bank_name,
+                    'account_type'   => $account->account_type?->value ?? $account->account_type,
+                    'account_number' => $account->account_number,
+                    'is_default'     => $account->is_default,
+                    'active'         => $account->active,
+                ],
+                business_id: $business_id,
+            );
+
+            return $account;
         });
     }
 }
