@@ -37,6 +37,7 @@ use App\Livewire\Admin\Workshop\Quotations\PrintView as WorkshopQuotationsPrint;
 use App\Livewire\Admin\Workshop\Quotations\Show as WorkshopQuotationsShow;
 use App\Livewire\Admin\Workshop\QuotationServiceTypes\Index as WorkshopQuotationServiceTypesIndex;
 use App\Livewire\Admin\Workshop\QuotationServiceTypes\Show as WorkshopQuotationServiceTypesShow;
+use App\Livewire\Admin\Workshop\WorkOrders\Form as WorkshopWorkOrdersForm;
 use App\Livewire\Admin\Workshop\WorkOrders\Index as WorkshopWorkOrdersIndex;
 use App\Livewire\Admin\Workshop\WorkOrders\Show as WorkshopWorkOrdersShow;
 use App\Livewire\Admin\Settings\Equipment\Attributes\Form as SettingsAttributesForm;
@@ -205,6 +206,14 @@ Route::middleware(['auth', 'ensure.business', 'business.module'])->group(functio
         });
         Route::middleware('permission:workshop.work-orders.view')->group(function () {
             Route::get('/work-orders', WorkshopWorkOrdersIndex::class)->name('work-orders.index');
+        });
+        Route::middleware('permission:workshop.work-orders.create')->group(function () {
+            Route::get('/work-orders/form', WorkshopWorkOrdersForm::class)->name('work-orders.form');
+        });
+        Route::middleware('permission:workshop.work-orders.edit')->group(function () {
+            Route::get('/work-orders/{workOrder}/form', WorkshopWorkOrdersForm::class)->name('work-orders.form.edit');
+        });
+        Route::middleware('permission:workshop.work-orders.view')->group(function () {
             Route::get('/work-orders/{workOrder}', WorkshopWorkOrdersShow::class)->name('work-orders.show');
         });
     });

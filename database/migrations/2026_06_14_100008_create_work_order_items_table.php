@@ -11,7 +11,8 @@ return new class extends Migration
         Schema::create('work_order_items', function (Blueprint $table) {
             $table->id();
             $table->foreignId('work_order_id')->constrained()->onDelete('cascade');
-            $table->enum('item_type', ['servicio', 'repuesto', 'otro'])->default('servicio');
+            $table->unsignedBigInteger('product_id')->nullable();
+            $table->unsignedBigInteger('product_type_id')->nullable();
             $table->string('description');
             $table->decimal('quantity', 10, 2)->default(1);
             $table->decimal('unit_price', 12, 2)->default(0);
@@ -21,8 +22,8 @@ return new class extends Migration
             $table->text('technician_notes')->nullable();
             $table->timestamps();
 
-            $table->index(['work_order_id', 'item_type']);
-            $table->index(['work_order_id', 'status']);
+            $table->index(['work_order_id', 'product_type_id'], 'work_order_items_wo_type_idx');
+            $table->index(['work_order_id', 'status'], 'work_order_items_wo_status_idx');
         });
     }
 

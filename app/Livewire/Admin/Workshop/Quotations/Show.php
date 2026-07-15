@@ -36,6 +36,7 @@ class Show extends Component
         $this->quotation = $quotation->load([
             'client', 'equipment', 'quotationServiceType', 'paymentMethod', 'bankAccount',
             'items.productType', 'items.productCategory', 'items.catalogProduct', 'createdBy', 'business',
+            'workOrder',
         ]);
 
         $this->status        = $this->quotation->status->value;
@@ -88,7 +89,7 @@ class Show extends Component
             $this->quotation->id,
             $new_status,
             $reject_reason
-        );
+        )->load('workOrder');
 
         $this->status        = $this->quotation->status->value;
         $this->reject_reason = (string) ($this->quotation->reject_reason ?? '');
@@ -119,10 +120,16 @@ class Show extends Component
 
     public function render()
     {
+        $can_create_ot = auth()->user()->can('workshop.work-orders.create')
+            && $this->quotation->status === QuotationStatus::Aceptada
+            && ! $this->quotation->workOrder;
+
         return view('livewire.admin.workshop.quotations.show', [
             'category_subtotals' => $this->quotation->subtotalsByPdfCategory(),
             'can_change_status'  => auth()->user()->can('workshop.quotations.edit'),
             'status_options'     => QuotationStatus::options(),
+            'can_create_ot'      => $can_create_ot,
+            'linked_work_order'  => $this->quotation->workOrder,
         ]);
     }
 }

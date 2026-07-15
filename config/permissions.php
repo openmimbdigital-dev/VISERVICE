@@ -205,7 +205,10 @@ return [
         'workshop_work_orders' => [
             'name' => 'Taller — Órdenes de trabajo',
             'permissions' => [
-                'workshop.work-orders.view' => 'Ver órdenes de trabajo',
+                'workshop.work-orders.view'   => 'Ver órdenes de trabajo',
+                'workshop.work-orders.create' => 'Crear órdenes de trabajo',
+                'workshop.work-orders.edit'   => 'Editar órdenes de trabajo',
+                'workshop.work-orders.delete' => 'Eliminar órdenes de trabajo',
             ],
         ],
         'catalog' => [

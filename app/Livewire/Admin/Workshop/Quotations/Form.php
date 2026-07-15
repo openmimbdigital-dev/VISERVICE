@@ -4,6 +4,7 @@ namespace App\Livewire\Admin\Workshop\Quotations;
 
 use App\Actions\Workshop\CreateOrUpdateQuotationAction;
 use App\Actions\Workshop\DeleteQuotationAction;
+use App\Enums\QuotationStatus;
 use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
 use App\Livewire\Forms\Admin\Workshop\QuotationForm;
 use App\Models\BusinessBankAccount;
@@ -32,6 +33,12 @@ class Form extends Component
 
     public ?string $reference = null;
 
+    public ?string $quotation_status = null;
+
+    public ?int $linked_work_order_id = null;
+
+    public ?string $linked_work_order_reference = null;
+
     public function mount(?Quotation $quotation = null): void
     {
         if ($quotation) {
@@ -42,9 +49,12 @@ class Form extends Component
                 404
             );
 
-            $quotation->load(['items.productType', 'items.productCategory']);
+            $quotation->load(['items.productType', 'items.productCategory', 'workOrder']);
             $this->form->setQuotation($quotation);
             $this->reference = $quotation->reference;
+            $this->quotation_status = $quotation->status->value;
+            $this->linked_work_order_id = $quotation->workOrder?->id;
+            $this->linked_work_order_reference = $quotation->workOrder?->reference;
             $this->items = $quotation->items->map(fn ($item) => [
                 'id'                  => $item->id,
                 'product_type_id'     => $item->product_type_id,
@@ -69,11 +79,12 @@ class Form extends Component
 
     public function updatedItems(mixed $value, string $key): void
     {
-        if (! str_ends_with($key, '.product_id') || ! $value) {
+        // Livewire pasa $key como "{index}.product_id" (ej. "1.product_id").
+        if (! str_ends_with((string) $key, '.product_id') || ! $value) {
             return;
         }
 
-        $index = (int) explode('.', $key)[1];
+        $index = (int) explode('.', (string) $key)[0];
         $catalog = Product::query()
             ->forAuthUser()
             ->where('business_id', $this->form->resolvedBusinessId())
@@ -276,6 +287,10 @@ class Form extends Component
             'preview_total'        => $total,
             'can_delete'           => $this->form->quotation_id
                 && auth()->user()->can('workshop.quotations.delete'),
+            'can_create_ot'        => $this->form->quotation_id
+                && auth()->user()->can('workshop.work-orders.create')
+                && $this->quotation_status === QuotationStatus::Aceptada->value
+                && ! $this->linked_work_order_id,
         ]);
     }
 }

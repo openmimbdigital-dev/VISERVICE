@@ -2,6 +2,8 @@
 
 namespace App\Livewire\Admin\Workshop\WorkOrders;
 
+use App\Actions\Workshop\DeleteWorkOrderAction;
+use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
 use App\Models\WorkOrder;
 use Arm092\LivewireDatatables\Column;
 use Arm092\LivewireDatatables\DateColumn;
@@ -11,7 +13,10 @@ use Illuminate\Database\Eloquent\Model;
 
 class DatatableWorkOrders extends LivewireDatatable
 {
+    use ConfirmsDeletionWithLivewireAlert;
+
     public bool $exportable = true;
+
     public ?int $perPage = 25;
 
     public function builder(): Builder
@@ -57,6 +62,7 @@ class DatatableWorkOrders extends LivewireDatatable
                     'cancelada'  => ['label' => 'Cancelada',  'class' => 'bg-red-50 text-red-700 ring-1 ring-red-600/20'],
                 ];
                 $s = $map[$status] ?? ['label' => $status, 'class' => 'bg-slate-100 text-slate-600'];
+
                 return '<span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ' . $s['class'] . '">' . $s['label'] . '</span>';
             })->label('Estado')->filterable([
                 'abierta' => 'Abierta', 'en_proceso' => 'En proceso',
@@ -67,10 +73,30 @@ class DatatableWorkOrders extends LivewireDatatable
                 ->label('Fecha')
                 ->sortable(),
 
-            Column::callback(['work_orders.id'], function ($id) {
-                return view('livewire.admin.workshop.work-orders.actions', ['id' => $id]);
+            Column::callback(['work_orders.id', 'work_orders.status'], function ($id, $status) {
+                return view('livewire.admin.workshop.work-orders.actions', [
+                    'id'     => $id,
+                    'status' => $status,
+                ]);
             })->label('Acciones')->unsortable(),
         ];
+    }
+
+    public function deleteRecord(int $id): void
+    {
+        abort_unless(auth()->user()->can('workshop.work-orders.delete'), 403);
+        $this->askDeleteConfirmation($id, '¿Eliminar esta orden de trabajo?');
+    }
+
+    protected function onDeleteConfirmed(): void
+    {
+        try {
+            DeleteWorkOrderAction::run($this->delete_id);
+            $this->alertDeleteSuccess('Orden de trabajo eliminada correctamente.');
+            $this->dispatch('work-order-deleted');
+        } catch (\Throwable $e) {
+            $this->alertDeleteError($e->getMessage() ?: 'No se pudo eliminar la OT.');
+        }
     }
 
     public function render()

@@ -93,7 +93,18 @@ class RolesAndPermissionsSeeder extends Seeder
             'workshop.equipment.view', 'workshop.equipment.create', 'workshop.equipment.edit',
             'workshop.equipment.delete',
             ...$this->quotationPermissions(),
+            ...$this->workOrderPermissions(),
+        ];
+    }
+
+    /** @return list<string> */
+    private function workOrderPermissions(): array
+    {
+        return [
             'workshop.work-orders.view',
+            'workshop.work-orders.create',
+            'workshop.work-orders.edit',
+            'workshop.work-orders.delete',
         ];
     }
 
@@ -143,7 +154,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'workshop.equipment.delete',
             'workshop.view',
             ...$this->quotationPermissions(),
-            'workshop.work-orders.view',
+            ...$this->workOrderPermissions(),
             // Gestión de Negocios (solo superAdmin)
             ...$this->businessManagementPermissions(),
             // Negocios — Cargos del equipo

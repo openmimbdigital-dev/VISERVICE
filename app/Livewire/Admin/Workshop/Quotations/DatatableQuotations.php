@@ -30,7 +30,12 @@ class DatatableQuotations extends LivewireDatatable
             ->forAuthUser()
             ->leftJoin('clients', 'quotations.client_id', '=', 'clients.id')
             ->leftJoin('equipment', 'quotations.equipment_id', '=', 'equipment.id')
+            ->leftJoin('work_orders', function ($join) {
+                $join->on('work_orders.quotation_id', '=', 'quotations.id')
+                    ->whereNull('work_orders.deleted_at');
+            })
             ->select('quotations.*')
+            ->addSelect('work_orders.id as linked_work_order_id')
             ->orderByDesc('quotations.created_at');
     }
 
@@ -69,9 +74,11 @@ class DatatableQuotations extends LivewireDatatable
                 ->label('Fecha')
                 ->sortable(),
 
-            Column::callback(['quotations.id'], function ($id) {
+            Column::callback(['quotations.id', 'quotations.status', 'work_orders.id'], function ($id, $status, $work_order_id) {
                 return view('livewire.admin.workshop.quotations.actions', [
-                    'id' => $id,
+                    'id'            => $id,
+                    'status'        => $status,
+                    'work_order_id' => $work_order_id,
                 ]);
             })->label('Acciones')->unsortable(),
         ];

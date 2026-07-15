@@ -25,6 +25,17 @@
                 @can('workshop.quotations.edit')
                 <a href="{{ route('admin.workshop.quotations.form.edit', $quotation->id) }}" wire:navigate class="btn btn-primary btn-sm flex-1 sm:flex-none justify-center">Editar</a>
                 @endcan
+                @if($can_create_ot)
+                <a href="{{ route('admin.workshop.work-orders.form', ['quotation' => $quotation->id]) }}" wire:navigate
+                    class="btn btn-success btn-sm flex-1 sm:flex-none justify-center">
+                    Crear OT
+                </a>
+                @elseif($linked_work_order)
+                <a href="{{ route('admin.workshop.work-orders.show', $linked_work_order) }}" wire:navigate
+                    class="btn btn-outline-secondary btn-sm flex-1 sm:flex-none justify-center">
+                    Ver OT {{ $linked_work_order->reference }}
+                </a>
+                @endif
                 <a href="{{ route('admin.workshop.quotations.print', $quotation->id) }}" target="_blank" class="btn btn-outline-secondary btn-sm flex-1 sm:flex-none justify-center">Imprimir / PDF</a>
                 @can('workshop.quotations.delete')
                 <button type="button" wire:click="deleteQuotation" class="btn btn-danger btn-sm flex-1 sm:flex-none justify-center">Eliminar</button>

@@ -49,15 +49,4 @@ class QuotationItem extends Model
 
         return round($base - $discount, 2);
     }
-
-    public function legacyWorkOrderItemType(): string
-    {
-        $category = $this->productCategory?->name ?? '';
-
-        return match (true) {
-            $category === 'Mano de Obra' => 'servicio',
-            $category === 'Repuestos'   => 'repuesto',
-            default                     => 'otro',
-        };
-    }
 }

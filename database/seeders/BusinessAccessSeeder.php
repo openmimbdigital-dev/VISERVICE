@@ -52,7 +52,8 @@ class BusinessAccessSeeder extends Seeder
             'workshop.equipment.view', 'workshop.equipment.create', 'workshop.equipment.edit',
             'workshop.equipment.delete',
             ...$this->quotationModulePermissions(),
-            'workshop.work-orders.view',
+            'workshop.work-orders.view', 'workshop.work-orders.create', 'workshop.work-orders.edit',
+            'workshop.work-orders.delete',
         ]));
     }
 

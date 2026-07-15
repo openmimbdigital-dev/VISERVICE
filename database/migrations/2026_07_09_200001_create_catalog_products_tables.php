@@ -102,10 +102,20 @@ return new class extends Migration
             $table->foreign('product_type_id')->references('id')->on('product_types')->nullOnDelete();
             $table->foreign('product_category_id')->references('id')->on('product_categories')->nullOnDelete();
         });
+
+        Schema::table('work_order_items', function (Blueprint $table) {
+            $table->foreign('product_id')->references('id')->on('products')->nullOnDelete();
+            $table->foreign('product_type_id')->references('id')->on('product_types')->nullOnDelete();
+        });
     }
 
     public function down(): void
     {
+        Schema::table('work_order_items', function (Blueprint $table) {
+            $table->dropForeign(['product_id']);
+            $table->dropForeign(['product_type_id']);
+        });
+
         Schema::table('quotation_items', function (Blueprint $table) {
             $table->dropForeign(['product_id']);
             $table->dropForeign(['product_type_id']);

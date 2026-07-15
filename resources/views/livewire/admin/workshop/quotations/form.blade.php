@@ -23,6 +23,17 @@
             @if($is_editing)
             <div class="flex w-full shrink-0 flex-wrap gap-2 sm:w-auto">
                 <a href="{{ route('admin.workshop.quotations.print', $form->quotation_id) }}" target="_blank" class="btn btn-outline-secondary btn-sm flex-1 sm:flex-none justify-center">Imprimir / PDF</a>
+                @if($can_create_ot)
+                <a href="{{ route('admin.workshop.work-orders.form', ['quotation' => $form->quotation_id]) }}" wire:navigate
+                    class="btn btn-success btn-sm flex-1 sm:flex-none justify-center">
+                    Crear OT
+                </a>
+                @elseif($linked_work_order_id)
+                <a href="{{ route('admin.workshop.work-orders.show', $linked_work_order_id) }}" wire:navigate
+                    class="btn btn-outline-secondary btn-sm flex-1 sm:flex-none justify-center">
+                    Ver OT {{ $linked_work_order_reference }}
+                </a>
+                @endif
                 @can('workshop.quotations.delete')
                 @if($can_delete)
                 <button type="button" wire:click="deleteQuotation" class="btn btn-danger btn-sm flex-1 sm:flex-none justify-center">Eliminar</button>
