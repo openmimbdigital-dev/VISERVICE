@@ -78,6 +78,11 @@ class Equipment extends Model
         return $this->morphMany(AttributeEquipmentType::class, 'model');
     }
 
+    public function generalConfigs(): MorphMany
+    {
+        return $this->morphMany(GeneralConfig::class, 'configurable');
+    }
+
     public function getSelectLabelAttribute(): string
     {
         return implode(' · ', array_filter([

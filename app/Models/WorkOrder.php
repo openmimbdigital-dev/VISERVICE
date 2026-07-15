@@ -90,6 +90,11 @@ class WorkOrder extends Model
         return $this->morphMany(EquipmentHistorical::class, 'subject')->orderByDesc('created_at');
     }
 
+    public function generalConfigs(): MorphMany
+    {
+        return $this->morphMany(GeneralConfig::class, 'configurable');
+    }
+
     public function scopeForAuthUser($query)
     {
         $user = auth()->user();

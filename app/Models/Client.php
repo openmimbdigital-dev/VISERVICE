@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Client extends Model
@@ -57,6 +58,11 @@ class Client extends Model
     public function equipment_historicals(): HasMany
     {
         return $this->hasMany(EquipmentHistorical::class)->orderByDesc('created_at');
+    }
+
+    public function generalConfigs(): MorphMany
+    {
+        return $this->morphMany(GeneralConfig::class, 'configurable');
     }
 
     public function scopeActive($query)
