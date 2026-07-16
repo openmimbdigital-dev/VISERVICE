@@ -11,6 +11,7 @@ return new class extends Migration
         Schema::create('clients', function (Blueprint $table) {
             $table->id();
             $table->foreignId('business_id')->constrained()->onDelete('cascade');
+            $table->foreignId('city_id')->nullable()->constrained('cities')->nullOnDelete();
             $table->string('name');
             $table->enum('document_type', ['CC', 'NIT', 'CE', 'PA', 'PPT', 'TI'])->default('CC');
             $table->string('document_number')->nullable();
@@ -24,9 +25,11 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            $table->index('status');
-            $table->index(['business_id', 'status']);
-            $table->index(['business_id', 'document_number']);
+            $table->index(['business_id', 'deleted_at', 'name'], 'clients_business_deleted_name_idx');
+            $table->index(['business_id', 'deleted_at', 'created_at'], 'clients_business_deleted_created_idx');
+            $table->index(['business_id', 'deleted_at', 'status'], 'clients_business_deleted_status_idx');
+            $table->index(['business_id', 'document_number', 'deleted_at'], 'clients_business_document_deleted_idx');
+            $table->index(['city_id', 'deleted_at'], 'clients_city_deleted_idx');
         });
     }
 

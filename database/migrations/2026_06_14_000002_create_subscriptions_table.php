@@ -27,6 +27,9 @@ return new class extends Migration
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
             $table->softDeletes();
+
+            $table->index(['business_id', 'deleted_at', 'status'], 'subscriptions_business_deleted_status_idx');
+            $table->index(['business_id', 'deleted_at', 'ends_at'], 'subscriptions_business_deleted_ends_idx');
         });
     }
 

@@ -1,10 +1,24 @@
-<div class="relative mx-auto w-full max-w-[90rem]" x-data="{ activeTab: 'items' }">
+<div class="relative mx-auto w-full max-w-[90rem] p-4 sm:p-6">
     @php
-    $statusBadge=['abierta'=>'bg-blue-50 text-blue-700 ring-blue-600/20','en_proceso'=>'bg-yellow-50 text-yellow-700 ring-yellow-600/20','finalizada'=>'bg-emerald-50 text-emerald-700 ring-emerald-600/20','cancelada'=>'bg-red-50 text-red-700 ring-red-600/20'];
-    $badge=$statusBadge[$workOrder->status]??'bg-slate-100 text-slate-600 ring-slate-500/20';
+    $statusBadge = [
+        'abierta'    => 'bg-blue-50 text-blue-700 ring-blue-600/20',
+        'en_proceso' => 'bg-yellow-50 text-yellow-700 ring-yellow-600/20',
+        'finalizada' => 'bg-emerald-50 text-emerald-700 ring-emerald-600/20',
+        'cancelada'  => 'bg-red-50 text-red-700 ring-red-600/20',
+    ];
+    $badge = $statusBadge[$workOrder->status] ?? 'bg-slate-100 text-slate-600 ring-slate-500/20';
+    $can_manage = ($can_edit_items ?? false) && ! in_array($workOrder->status, ['finalizada', 'cancelada'], true);
+    $itemStatusBadge = [
+        'pendiente'  => 'bg-slate-100 text-slate-600',
+        'en_proceso' => 'bg-yellow-50 text-yellow-700',
+        'completado' => 'bg-emerald-50 text-emerald-700',
+        'cancelado'  => 'bg-red-50 text-red-600',
+    ];
     @endphp
 
-    <nav class="mb-6 flex items-center gap-x-2 text-xs font-medium text-slate-500">
+    <div class="pointer-events-none absolute -top-4 left-1/2 h-px w-[min(100%,48rem)] -translate-x-1/2 bg-gradient-to-r from-transparent via-indigo-300/40 to-transparent" aria-hidden="true"></div>
+
+    <nav class="mb-6 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-medium text-slate-500">
         <a href="{{ route('dashboard') }}" wire:navigate class="rounded px-1.5 py-0.5 hover:bg-slate-200/60">Inicio</a>
         <span class="text-slate-300">/</span>
         <a href="{{ route('admin.workshop.work-orders.index') }}" wire:navigate class="rounded px-1.5 py-0.5 hover:bg-slate-200/60">Órdenes de Trabajo</a>
@@ -12,11 +26,10 @@
         <span class="font-semibold text-slate-900">{{ $workOrder->reference }}</span>
     </nav>
 
-    {{-- Header principal --}}
     <div class="mb-6 overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
-        <div class="border-l-4 border-indigo-600 px-6 py-5">
+        <div class="border-l-4 border-indigo-600 px-4 py-5 sm:px-6">
             <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                <div>
+                <div class="min-w-0">
                     <div class="flex flex-wrap items-center gap-3">
                         <h1 class="font-mono text-2xl font-bold text-slate-900">{{ $workOrder->reference }}</h1>
                         <span class="inline-flex items-center rounded-full px-3 py-1 text-sm font-medium ring-1 {{ $badge }}">
@@ -25,14 +38,13 @@
                         @if($workOrder->quotation_id)
                         <a href="{{ route('admin.workshop.quotations.show', $workOrder->quotation_id) }}" wire:navigate
                             class="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-100">
-                            <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                             Desde cotización
                         </a>
                         @endif
                     </div>
                     <div class="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm text-slate-600">
-                        <span><span class="font-medium text-slate-800">{{ $workOrder->client?->name }}</span></span>
-                        <span>{{ $workOrder->equipment?->plate }} — {{ $workOrder->equipment?->brand }} {{ $workOrder->equipment?->model }} {{ $workOrder->equipment?->year }}</span>
+                        <span class="font-medium text-slate-800">{{ $workOrder->client?->name }}</span>
+                        <span>{{ $workOrder->equipment?->plate }} — {{ $workOrder->equipment?->brand_name }} {{ $workOrder->equipment?->model_name }}</span>
                         <span>Km entrada: {{ number_format($workOrder->km_entry) }}</span>
                         @if($workOrder->estimated_delivery)
                         <span>Entrega est.: {{ $workOrder->estimated_delivery->format('d/m/Y') }}</span>
@@ -42,112 +54,113 @@
                     <p class="mt-2 max-w-2xl text-sm text-slate-500">{{ $workOrder->diagnosis }}</p>
                     @endif
                 </div>
-                <div class="flex shrink-0 flex-col items-end gap-2 sm:items-end">
-                    <div class="text-right">
+                <div class="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:items-end">
+                    <div class="text-left sm:text-right">
                         <p class="text-xs text-slate-400">Total OT</p>
                         <p class="text-2xl font-bold text-indigo-700">{{ col_money($workOrder->total) }}</p>
                     </div>
-                    <div class="flex gap-2">
-                        @if($workOrder->status === 'abierta')
-                        <button wire:click="startProcessing" wire:loading.attr="disabled" class="btn btn-warning btn-sm">
-                            <svg class="mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                            Iniciar proceso
+                    <div class="flex flex-wrap gap-2 sm:justify-end">
+                        <a href="{{ route('admin.workshop.work-orders.print', $workOrder) }}" target="_blank"
+                            class="btn btn-outline-secondary btn-sm flex-1 justify-center sm:flex-none">
+                            Imprimir / PDF
+                        </a>
+                        @can('workshop.work-orders.edit')
+                        <button type="button"
+                            @if($can_manage) wire:click="openDocumentModal" @else disabled @endif
+                            title="{{ $can_manage ? 'Registrar documento asociado' : 'No disponible en OTs finalizadas o canceladas' }}"
+                            class="btn btn-outline-secondary btn-sm flex-1 justify-center sm:flex-none disabled:cursor-not-allowed disabled:opacity-50">
+                            Documento asociado
                         </button>
+                        @if($can_manage)
+                        <a href="{{ route('admin.workshop.work-orders.form.edit', $workOrder) }}" wire:navigate class="btn btn-outline-secondary btn-sm flex-1 justify-center sm:flex-none">
+                            Editar
+                        </a>
                         @endif
-                        @if(in_array($workOrder->status, ['abierta','en_proceso']))
-                        <button wire:click="openFinalizeModal" class="btn btn-success btn-sm">
-                            <svg class="mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                            Finalizar OT
+                        @endcan
+                        <button type="button" wire:click="confirmWorkOrder" class="btn btn-primary btn-sm flex-1 justify-center sm:flex-none">
+                            Confirmar OT
                         </button>
-                        @endif
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    {{-- Tabs --}}
-    <div class="mb-4 flex gap-1 rounded-xl border border-slate-200/90 bg-white p-1 shadow-sm ring-1 ring-slate-900/[0.035]">
-        @foreach([
-            ['key'=>'items','label'=>'Items','icon'=>'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01','count'=>$workOrder->items->count()],
-            ['key'=>'remisiones','label'=>'Remisiones','icon'=>'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z','count'=>$workOrder->remissions->count()],
-            ['key'=>'facturas','label'=>'Factura','icon'=>'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z','count'=>$workOrder->invoices->count()],
-            ['key'=>'compras','label'=>'Órd. Compra','icon'=>'M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z','count'=>$workOrder->purchaseOrders->count()],
-        ] as $tab)
-        <button @click="activeTab='{{ $tab['key'] }}'"
-            :class="activeTab==='{{ $tab['key'] }}' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'"
-            class="flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors">
-            <svg class="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $tab['icon'] }}"/></svg>
-            {{ $tab['label'] }}
-            @if($tab['count'] > 0)
-            <span :class="activeTab==='{{ $tab['key'] }}' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'"
-                class="rounded-full px-2 py-0.5 text-xs tabular-nums">{{ $tab['count'] }}</span>
-            @endif
-        </button>
-        @endforeach
-    </div>
-
-    {{-- TAB: ITEMS --}}
-    <div x-show="activeTab==='items'" x-cloak>
-        <div class="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
-            <div class="flex items-center justify-between border-b border-slate-100 bg-slate-50/80 px-5 py-3">
-                <h2 class="font-semibold text-slate-900">Items de trabajo</h2>
-                @if(!in_array($workOrder->status, ['finalizada','cancelada']))
-                <button wire:click="openAddItem" class="btn btn-primary btn-sm">+ Agregar item</button>
-                @endif
+    @if(! empty($workOrder->document_client))
+    <section class="mb-6 overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
+        <div class="border-b border-slate-100 bg-slate-50/80 px-4 py-3 sm:px-5">
+            <h2 class="font-semibold text-slate-900">Documentos del cliente</h2>
+        </div>
+        <dl class="divide-y divide-slate-100 px-4 py-2 sm:px-5">
+            @foreach($workOrder->document_client as $label => $value)
+            <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                <dt class="text-xs font-medium text-slate-500">
+                    {{ $associated_documents->firstWhere('label', $label)?->value ?? $label }}
+                </dt>
+                <dd class="text-sm text-slate-900 sm:col-span-2">{{ $value }}</dd>
             </div>
+            @endforeach
+        </dl>
+    </section>
+    @endif
+
+    <section class="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
+        <div class="flex flex-col gap-2 border-b border-slate-100 bg-slate-50/80 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+            <h2 class="font-semibold text-slate-900">Ítems de trabajo</h2>
+            @if($can_manage)
+            <button wire:click="openAddItem" class="btn btn-primary btn-sm w-full justify-center sm:w-auto">+ Agregar ítem</button>
+            @endif
+        </div>
+        <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-slate-100">
                 <thead class="bg-slate-50/40">
                     <tr>
-                        <th class="px-4 py-2 text-left text-xs font-semibold text-slate-500 uppercase">Tipo</th>
-                        <th class="px-4 py-2 text-left text-xs font-semibold text-slate-500 uppercase">Descripción</th>
-                        <th class="px-4 py-2 text-right text-xs font-semibold text-slate-500 uppercase">Cant.</th>
-                        <th class="px-4 py-2 text-right text-xs font-semibold text-slate-500 uppercase">P. Unit.</th>
-                        <th class="px-4 py-2 text-right text-xs font-semibold text-slate-500 uppercase">Desc.</th>
-                        <th class="px-4 py-2 text-right text-xs font-semibold text-slate-500 uppercase">Subtotal</th>
-                        <th class="px-4 py-2 text-center text-xs font-semibold text-slate-500 uppercase">Estado item</th>
-                        @if(!in_array($workOrder->status, ['finalizada','cancelada']))<th class="px-4 py-2"></th>@endif
+                        <th class="px-3 py-2 text-left text-xs font-semibold uppercase text-slate-500 sm:px-4">Tipo</th>
+                        <th class="px-3 py-2 text-left text-xs font-semibold uppercase text-slate-500 sm:px-4">Descripción</th>
+                        <th class="hidden px-3 py-2 text-right text-xs font-semibold uppercase text-slate-500 sm:table-cell sm:px-4">Cant.</th>
+                        <th class="hidden px-3 py-2 text-right text-xs font-semibold uppercase text-slate-500 md:table-cell sm:px-4">P. Unit.</th>
+                        <th class="px-3 py-2 text-right text-xs font-semibold uppercase text-slate-500 sm:px-4">Subtotal</th>
+                        <th class="px-3 py-2 text-center text-xs font-semibold uppercase text-slate-500 sm:px-4">Estado</th>
+                        @if($can_manage)<th class="px-3 py-2 sm:px-4"></th>@endif
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
-                    @php
-                    $itemStatusBadge=['pendiente'=>'bg-slate-100 text-slate-600','en_proceso'=>'bg-yellow-50 text-yellow-700','completado'=>'bg-emerald-50 text-emerald-700','cancelado'=>'bg-red-50 text-red-600'];
-                    @endphp
                     @forelse($workOrder->items as $item)
                     <tr wire:key="woi-{{ $item->id }}" class="{{ $item->status === 'cancelado' ? 'opacity-50' : '' }}">
-                        <td class="px-4 py-2">
-                            <span class="rounded-full px-2 py-0.5 text-xs font-medium {{ $item->item_type === 'servicio' ? 'bg-blue-50 text-blue-700' : ($item->item_type === 'repuesto' ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-600') }}">
-                                {{ $item->item_type_label }}
+                        <td class="px-3 py-3 sm:px-4">
+                            <span class="rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700">
+                                {{ $item->productType?->name ?? '—' }}
                             </span>
                         </td>
-                        <td class="px-4 py-2 text-sm text-slate-900">
+                        <td class="px-3 py-3 text-sm text-slate-900 sm:px-4">
                             <p>{{ $item->description }}</p>
-                            @if($item->technician_notes)<p class="text-xs text-slate-400 mt-0.5">{{ $item->technician_notes }}</p>@endif
+                            @if($item->technician_notes)
+                            <p class="mt-0.5 text-xs text-slate-400">{{ $item->technician_notes }}</p>
+                            @endif
                         </td>
-                        <td class="px-4 py-2 text-right text-sm text-slate-600">{{ $item->quantity }}</td>
-                        <td class="px-4 py-2 text-right text-sm text-slate-600">{{ col_money($item->unit_price) }}</td>
-                        <td class="px-4 py-2 text-right text-sm text-slate-500">{{ $item->discount_percentage > 0 ? $item->discount_percentage.'%' : '—' }}</td>
-                        <td class="px-4 py-2 text-right font-semibold text-slate-900">{{ col_money($item->subtotal) }}</td>
-                        <td class="px-4 py-2 text-center">
-                            @if(!in_array($workOrder->status, ['finalizada','cancelada']))
+                        <td class="hidden px-3 py-3 text-right text-sm text-slate-600 sm:table-cell sm:px-4">{{ $item->quantity }}</td>
+                        <td class="hidden px-3 py-3 text-right text-sm text-slate-600 md:table-cell sm:px-4">{{ col_money($item->unit_price) }}</td>
+                        <td class="px-3 py-3 text-right font-semibold text-slate-900 sm:px-4">{{ col_money($item->subtotal) }}</td>
+                        <td class="px-3 py-3 text-center sm:px-4">
+                            @if($can_manage)
                             <select wire:change="updateItemStatus({{ $item->id }}, $event.target.value)"
                                 class="rounded-lg border border-slate-200 px-2 py-1 text-xs {{ $itemStatusBadge[$item->status] ?? '' }}">
-                                <option value="pendiente" {{ $item->status === 'pendiente' ? 'selected' : '' }}>Pendiente</option>
-                                <option value="en_proceso" {{ $item->status === 'en_proceso' ? 'selected' : '' }}>En proceso</option>
-                                <option value="completado" {{ $item->status === 'completado' ? 'selected' : '' }}>Completado</option>
-                                <option value="cancelado" {{ $item->status === 'cancelado' ? 'selected' : '' }}>Cancelado</option>
+                                <option value="pendiente" @selected($item->status === 'pendiente')>Pendiente</option>
+                                <option value="en_proceso" @selected($item->status === 'en_proceso')>En proceso</option>
+                                <option value="completado" @selected($item->status === 'completado')>Completado</option>
+                                <option value="cancelado" @selected($item->status === 'cancelado')>Cancelado</option>
                             </select>
                             @else
                             <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium {{ $itemStatusBadge[$item->status] ?? '' }}">{{ $item->status_label }}</span>
                             @endif
                         </td>
-                        @if(!in_array($workOrder->status, ['finalizada','cancelada']))
-                        <td class="px-4 py-2">
-                            <div class="flex items-center justify-end gap-1">
-                                <button wire:click="openEditItem({{ $item->id }})" class="rounded p-1 text-slate-400 hover:text-indigo-600">
+                        @if($can_manage)
+                        <td class="px-3 py-3 sm:px-4">
+                            <div class="flex flex-wrap justify-end gap-1">
+                                <button wire:click="openEditItem({{ $item->id }})" type="button" class="rounded p-1 text-slate-400 hover:text-indigo-600" title="Editar">
                                     <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                                 </button>
-                                <button wire:click="deleteItem({{ $item->id }})" wire:confirm="¿Eliminar item?" class="rounded p-1 text-slate-400 hover:text-red-600">
+                                <button wire:click="deleteItem({{ $item->id }})" wire:confirm="¿Eliminar ítem?" type="button" class="rounded p-1 text-slate-400 hover:text-red-600" title="Eliminar">
                                     <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                 </button>
                             </div>
@@ -155,412 +168,165 @@
                         @endif
                     </tr>
                     @empty
-                    <tr><td colspan="8" class="px-4 py-8 text-center text-sm text-slate-400">Sin items. Haz clic en "+ Agregar item".</td></tr>
+                    <tr>
+                        <td colspan="{{ $can_manage ? 7 : 6 }}" class="px-4 py-8 text-center text-sm text-slate-400">Sin ítems. Usa «Agregar ítem».</td>
+                    </tr>
                     @endforelse
                 </tbody>
-                @if($workOrder->items->count() > 0)
+                @if($workOrder->items->isNotEmpty())
                 <tfoot class="border-t border-slate-200 bg-slate-50/60">
                     <tr>
-                        <td colspan="5" class="px-4 py-2 text-right text-xs font-semibold uppercase text-slate-500">Subtotal</td>
+                        <td colspan="4" class="hidden px-4 py-2 text-right text-xs font-semibold uppercase text-slate-500 md:table-cell">Subtotal</td>
+                        <td colspan="2" class="px-4 py-2 text-right text-xs font-semibold uppercase text-slate-500 md:hidden">Subtotal</td>
                         <td class="px-4 py-2 text-right font-semibold text-slate-700">{{ col_money($workOrder->subtotal) }}</td>
-                        <td colspan="2"></td>
+                        <td colspan="{{ $can_manage ? 2 : 1 }}"></td>
                     </tr>
                     <tr>
-                        <td colspan="5" class="px-4 py-1 text-right text-xs font-semibold uppercase text-slate-500">IVA {{ $workOrder->tax_percentage }}%</td>
+                        <td colspan="4" class="hidden px-4 py-1 text-right text-xs font-semibold uppercase text-slate-500 md:table-cell">IVA {{ $workOrder->tax_percentage }}%</td>
+                        <td colspan="2" class="px-4 py-1 text-right text-xs font-semibold uppercase text-slate-500 md:hidden">IVA {{ $workOrder->tax_percentage }}%</td>
                         <td class="px-4 py-1 text-right font-semibold text-slate-700">{{ col_money($workOrder->tax_amount) }}</td>
-                        <td colspan="2"></td>
+                        <td colspan="{{ $can_manage ? 2 : 1 }}"></td>
                     </tr>
                     <tr>
-                        <td colspan="5" class="px-4 py-2 text-right text-sm font-bold uppercase text-slate-900">Total</td>
+                        <td colspan="4" class="hidden px-4 py-2 text-right text-sm font-bold uppercase text-slate-900 md:table-cell">Total</td>
+                        <td colspan="2" class="px-4 py-2 text-right text-sm font-bold uppercase text-slate-900 md:hidden">Total</td>
                         <td class="px-4 py-2 text-right text-base font-bold text-indigo-700">{{ col_money($workOrder->total) }}</td>
-                        <td colspan="2"></td>
+                        <td colspan="{{ $can_manage ? 2 : 1 }}"></td>
                     </tr>
                 </tfoot>
                 @endif
             </table>
         </div>
-    </div>
+    </section>
 
-    {{-- TAB: REMISIONES --}}
-    <div x-show="activeTab==='remisiones'" x-cloak>
-        <div class="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
-            <div class="flex items-center justify-between border-b border-slate-100 bg-slate-50/80 px-5 py-3">
-                <h2 class="font-semibold text-slate-900">Remisiones</h2>
-                @if(!in_array($workOrder->status, ['cancelada']))
-                <button wire:click="openRemissionModal" class="btn btn-primary btn-sm">+ Nueva remisión</button>
-                @endif
-            </div>
-            @if($workOrder->remissions->isEmpty())
-            <p class="px-4 py-8 text-center text-sm text-slate-400">No hay remisiones para esta OT.</p>
-            @else
-            <div class="divide-y divide-slate-100">
-                @foreach($workOrder->remissions as $rem)
-                <div class="flex items-center justify-between px-5 py-4" wire:key="rem-{{ $rem->id }}">
-                    <div>
-                        <p class="font-mono font-semibold text-indigo-700">{{ $rem->reference }}</p>
-                        <p class="mt-0.5 text-xs text-slate-500">
-                            Creada {{ $rem->created_at->format('d/m/Y H:i') }}
-                            @if($rem->issued_at) &nbsp;·&nbsp; Emitida {{ $rem->issued_at->format('d/m/Y') }}@endif
-                            @if($rem->delivered_at) &nbsp;·&nbsp; Entregada {{ $rem->delivered_at->format('d/m/Y') }}@endif
-                        </p>
-                        @if($rem->notes)<p class="mt-1 text-sm text-slate-600">{{ $rem->notes }}</p>@endif
-                    </div>
-                    <div class="flex items-center gap-3">
-                        @php $rs=['borrador'=>'bg-slate-100 text-slate-600','emitida'=>'bg-blue-50 text-blue-700','entregada'=>'bg-emerald-50 text-emerald-700']; @endphp
-                        <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-medium {{ $rs[$rem->status]??'bg-slate-100 text-slate-600' }}">
-                            {{ ucfirst($rem->status) }}
-                        </span>
-                        @if($rem->status !== 'entregada')
-                        <select wire:change="updateRemissionStatus({{ $rem->id }}, $event.target.value)"
-                            class="rounded-lg border border-slate-200 px-2 py-1 text-xs">
-                            <option value="borrador" {{ $rem->status==='borrador'?'selected':'' }}>Borrador</option>
-                            <option value="emitida" {{ $rem->status==='emitida'?'selected':'' }}>Emitida</option>
-                            <option value="entregada" {{ $rem->status==='entregada'?'selected':'' }}>Entregada</option>
-                        </select>
-                        @endif
-                    </div>
-                </div>
-                @endforeach
-            </div>
-            @endif
+    @if($showItemModal)
+    <x-ui.modal centered maxWidth="xl">
+        <x-slot:backdrop>
+            <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" wire:click="closeItemModal"></div>
+        </x-slot:backdrop>
+
+        <div class="flex shrink-0 items-center justify-between border-b border-slate-100 px-4 py-4 sm:px-6">
+            <h3 class="text-base font-semibold text-slate-900">{{ $editing_item_id ? 'Editar ítem' : 'Agregar ítem' }}</h3>
+            <button type="button" wire:click="closeItemModal" class="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
         </div>
-    </div>
 
-    {{-- TAB: FACTURA --}}
-    <div x-show="activeTab==='facturas'" x-cloak>
-        <div class="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
-            <div class="flex items-center justify-between border-b border-slate-100 bg-slate-50/80 px-5 py-3">
-                <h2 class="font-semibold text-slate-900">Factura</h2>
-                @if($workOrder->invoices->isEmpty() && !in_array($workOrder->status, ['cancelada']))
-                <button wire:click="openInvoiceModal" class="btn btn-primary btn-sm">Generar factura</button>
-                @endif
-            </div>
-            @if($workOrder->invoices->isEmpty())
-            <p class="px-4 py-8 text-center text-sm text-slate-400">No hay factura generada para esta OT.
-                @if(!in_array($workOrder->status, ['cancelada'])) Al finalizar la OT se genera automáticamente si hay saldo.@endif
-            </p>
-            @else
-            @foreach($workOrder->invoices as $inv)
-            @php $is=['pendiente'=>'bg-amber-50 text-amber-700','pagada'=>'bg-emerald-50 text-emerald-700','vencida'=>'bg-red-50 text-red-700','anulada'=>'bg-slate-100 text-slate-500']; @endphp
-            <div class="p-6" wire:key="inv-{{ $inv->id }}">
-                <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                        <div class="flex items-center gap-3">
-                            <p class="font-mono text-xl font-bold text-slate-900">{{ $inv->reference }}</p>
-                            <span class="inline-flex rounded-full px-3 py-1 text-sm font-medium {{ $is[$inv->status]??'bg-slate-100 text-slate-600' }}">{{ $inv->status_label }}</span>
-                        </div>
-                        <dl class="mt-3 grid grid-cols-2 gap-x-8 gap-y-1 text-sm">
-                            <div><dt class="text-xs text-slate-400">Subtotal</dt><dd class="font-medium">{{ col_money($inv->subtotal) }}</dd></div>
-                            <div><dt class="text-xs text-slate-400">IVA {{ $inv->tax_percentage }}%</dt><dd class="font-medium">{{ col_money($inv->tax_amount) }}</dd></div>
-                            <div><dt class="text-xs text-slate-400">Total</dt><dd class="text-base font-bold text-indigo-700">{{ col_money($inv->total) }}</dd></div>
-                            <div><dt class="text-xs text-slate-400">Vence</dt><dd>{{ $inv->due_date?->format('d/m/Y') ?? '—' }}</dd></div>
-                            @if($inv->paid_at)
-                            <div><dt class="text-xs text-slate-400">Pagada</dt><dd class="text-emerald-600 font-medium">{{ $inv->paid_at->format('d/m/Y') }}</dd></div>
-                            <div><dt class="text-xs text-slate-400">Método</dt><dd>{{ $inv->payment_method }}</dd></div>
-                            @endif
-                        </dl>
-                    </div>
-                    @if($inv->status === 'pendiente')
-                    <button wire:click="openPaymentModal({{ $inv->id }})" class="btn btn-success btn-sm shrink-0">
-                        <svg class="mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
-                        Registrar pago
-                    </button>
-                    @endif
-                </div>
-            </div>
-            @endforeach
-            @endif
-        </div>
-    </div>
-
-    {{-- TAB: ÓRDENES DE COMPRA --}}
-    <div x-show="activeTab==='compras'" x-cloak>
-        <div class="space-y-4">
-            <div class="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
-                <div class="flex items-center justify-between border-b border-slate-100 bg-slate-50/80 px-5 py-3">
-                    <h2 class="font-semibold text-slate-900">Órdenes de compra</h2>
-                    @if(!in_array($workOrder->status, ['finalizada','cancelada']))
-                    <button wire:click="openPurchaseOrderModal" class="btn btn-primary btn-sm">+ Nueva OC</button>
-                    @endif
-                </div>
-                @if($workOrder->purchaseOrders->isEmpty())
-                <p class="px-4 py-8 text-center text-sm text-slate-400">No hay órdenes de compra para esta OT.</p>
-                @else
-                @php $ps=['borrador'=>'bg-slate-100 text-slate-600','enviada'=>'bg-blue-50 text-blue-700','recibida'=>'bg-emerald-50 text-emerald-700','cancelada'=>'bg-red-50 text-red-600']; @endphp
-                <div class="divide-y divide-slate-100">
-                    @foreach($workOrder->purchaseOrders as $po)
-                    <div class="px-5 py-4" wire:key="po-{{ $po->id }}">
-                        <div class="flex items-start justify-between">
-                            <div>
-                                <div class="flex items-center gap-3">
-                                    <span class="font-mono font-semibold text-indigo-700">{{ $po->reference }}</span>
-                                    <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium {{ $ps[$po->status]??'' }}">{{ ucfirst($po->status) }}</span>
-                                </div>
-                                <p class="mt-0.5 text-sm text-slate-600">{{ $po->supplier_name }}@if($po->supplier_nit) — NIT: {{ $po->supplier_nit }}@endif</p>
-                                @if($po->expected_delivery)<p class="text-xs text-slate-400">Entrega esperada: {{ $po->expected_delivery->format('d/m/Y') }}</p>@endif
-                            </div>
-                            <p class="font-bold text-slate-900">{{ col_money($po->total) }}</p>
-                        </div>
-                        @if($po->items->count())
-                        <table class="mt-3 min-w-full text-xs">
-                            <thead><tr class="text-slate-400"><th class="py-1 text-left">Descripción</th><th class="py-1 text-right">Cant.</th><th class="py-1 text-right">P.Unit.</th><th class="py-1 text-right">Subtotal</th><th class="py-1 text-right">Recibido</th></tr></thead>
-                            <tbody class="divide-y divide-slate-50">
-                                @foreach($po->items as $poi)
-                                <tr wire:key="poi-{{ $poi->id }}">
-                                    <td class="py-1 text-slate-700">{{ $poi->description }}</td>
-                                    <td class="py-1 text-right text-slate-600">{{ $poi->quantity }}</td>
-                                    <td class="py-1 text-right text-slate-600">{{ col_money($poi->unit_price) }}</td>
-                                    <td class="py-1 text-right font-medium text-slate-900">{{ col_money($poi->subtotal) }}</td>
-                                    <td class="py-1 text-right {{ $poi->pending_quantity > 0 ? 'text-amber-600' : 'text-emerald-600' }}">{{ $poi->received_quantity }}/{{ $poi->quantity }}</td>
-                                </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                        @endif
-                    </div>
-                    @endforeach
-                </div>
-                @endif
-            </div>
-        </div>
-    </div>
-
-    {{-- ============================================================ --}}
-    {{-- MODALES --}}
-    {{-- ============================================================ --}}
-
-    {{-- Modal agregar/editar item OT --}}
-    <div x-show="$wire.showItemModal" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none">
-        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" wire:click="closeItemModal"></div>
-        <div class="relative w-full max-w-xl rounded-2xl bg-white p-6 shadow-2xl" @click.stop>
-            <h3 class="text-lg font-semibold text-slate-900">{{ $editing_item_id ? 'Editar item' : 'Agregar item' }}</h3>
-            <div class="mt-4 grid grid-cols-2 gap-4">
+        <div class="flex-1 space-y-4 overflow-y-auto px-4 py-5 sm:px-6">
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                    <label class="label-up">Tipo</label>
-                    <select wire:model.live="item_type" class="form-select">
-                        <option value="servicio">Servicio</option>
-                        <option value="repuesto">Repuesto</option>
-                        <option value="otro">Otro</option>
+                    <label class="mb-1.5 block text-xs font-medium text-slate-700">Tipo de producto</label>
+                    <select wire:model.live="product_type_id" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm">
+                        <option value="">Seleccionar…</option>
+                        @foreach($product_types as $type)
+                        <option value="{{ $type->id }}">{{ $type->name }}</option>
+                        @endforeach
                     </select>
                 </div>
                 <div>
-                    <label class="label-up">Desde catálogo</label>
-                    <select wire:change="fillFromCatalog($event.target.value, '{{ $item_type }}')" class="form-select">
-                        <option value="">Escribir manualmente</option>
-                        @if($item_type === 'servicio')
-                            @foreach($services as $svc)<option value="{{ $svc->id }}">{{ $svc->name }}</option>@endforeach
-                        @else
-                            @foreach($spare_parts as $sp)<option value="{{ $sp->id }}">{{ $sp->name }}</option>@endforeach
-                        @endif
+                    <label class="mb-1.5 block text-xs font-medium text-slate-700">Producto</label>
+                    <select wire:model.live="product_id" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm">
+                        <option value="">Seleccionar…</option>
+                        @foreach($catalog_products as $product)
+                        <option value="{{ $product->id }}">{{ $product->name }} ({{ col_money($product->sale_price) }})</option>
+                        @endforeach
                     </select>
                 </div>
-                <div class="col-span-2">
-                    <label class="label-up">Descripción *</label>
-                    <input type="text" wire:model="item_description" class="form-input" />
-                    @error('item_description')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                <div class="sm:col-span-2">
+                    <label class="mb-1.5 block text-xs font-medium text-slate-700">Descripción <span class="text-rose-500">*</span></label>
+                    <input type="text" wire:model="item_description" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm @error('item_description') border-rose-400 bg-rose-50 @enderror">
+                    @error('item_description') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                 </div>
                 <div>
-                    <label class="label-up">Cantidad</label>
-                    <input type="number" wire:model="item_quantity" class="form-input" min="0.01" step="0.01" />
+                    <label class="mb-1.5 block text-xs font-medium text-slate-700">Cantidad</label>
+                    <input type="number" wire:model="item_quantity" min="0.01" step="0.01" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm">
                 </div>
                 <div>
-                    <label class="label-up">Precio unitario</label>
-                    <input type="number" wire:model="item_unit_price" class="form-input" min="0" step="100" />
+                    <label class="mb-1.5 block text-xs font-medium text-slate-700">Precio unitario</label>
+                    <input type="number" wire:model="item_unit_price" min="0" step="100" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm">
                 </div>
                 <div>
-                    <label class="label-up">Descuento (%)</label>
-                    <input type="number" wire:model="item_discount" class="form-input" min="0" max="100" />
+                    <label class="mb-1.5 block text-xs font-medium text-slate-700">Descuento (%)</label>
+                    <input type="number" wire:model="item_discount" min="0" max="100" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm">
                 </div>
-                <div class="flex items-end">
-                    @php $st = (float)$item_quantity * (float)$item_unit_price * (1 - (float)$item_discount/100); @endphp
-                    <div class="w-full rounded-xl bg-indigo-50 px-4 py-3 text-center">
-                        <p class="text-xs text-indigo-600">Subtotal</p>
-                        <p class="text-lg font-bold text-indigo-700">{{ col_money($st) }}</p>
-                    </div>
+                <div class="sm:col-span-2">
+                    <label class="mb-1.5 block text-xs font-medium text-slate-700">Notas del técnico</label>
+                    <input type="text" wire:model="item_notes" placeholder="Observaciones internas…" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm">
                 </div>
-                <div class="col-span-2">
-                    <label class="label-up">Notas del técnico</label>
-                    <input type="text" wire:model="item_technician_notes" class="form-input" placeholder="Observaciones internas..." />
-                </div>
-            </div>
-            <div class="mt-6 flex justify-end gap-3">
-                <button wire:click="closeItemModal" class="btn btn-outline-secondary">Cancelar</button>
-                <button wire:click="saveItem" wire:loading.attr="disabled" class="btn btn-primary">Guardar</button>
             </div>
         </div>
-    </div>
 
-    {{-- Modal finalizar OT --}}
-    <div x-show="$wire.showFinalizeModal" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none">
-        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" wire:click="$set('showFinalizeModal', false)"></div>
-        <div class="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl" @click.stop>
-            <h3 class="text-lg font-semibold text-slate-900">Finalizar OT</h3>
-            <p class="mt-1 text-sm text-slate-500">Si hay saldo pendiente, se generará la factura automáticamente.</p>
-            <div class="mt-4 grid grid-cols-2 gap-4">
-                <div>
-                    <label class="label-up">Km de salida</label>
-                    <input type="number" wire:model="km_exit" class="form-input" min="0" />
-                </div>
-                <div class="col-span-2">
-                    <label class="label-up">Descripción del trabajo realizado</label>
-                    <textarea wire:model="finalize_work_description" class="form-input" rows="4"
-                        placeholder="Resumen de los trabajos realizados, repuestos cambiados..."></textarea>
-                </div>
-            </div>
-            <div class="mt-6 flex justify-end gap-3">
-                <button wire:click="$set('showFinalizeModal', false)" class="btn btn-outline-secondary">Cancelar</button>
-                <button wire:click="finalizeWorkOrder" wire:loading.attr="disabled" class="btn btn-success">Confirmar y Finalizar</button>
-            </div>
+        <div class="flex shrink-0 flex-col-reverse gap-2 border-t border-slate-100 px-4 py-4 sm:flex-row sm:justify-end sm:gap-3 sm:px-6">
+            <button type="button" wire:click="closeItemModal" class="w-full rounded-xl bg-slate-100 px-4 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-200 sm:w-auto">Cancelar</button>
+            <button type="button" wire:click="saveItem" wire:loading.attr="disabled" class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-60 sm:w-auto">Guardar</button>
         </div>
-    </div>
+    </x-ui.modal>
+    @endif
 
-    {{-- Modal remisión --}}
-    <div x-show="$wire.showRemissionModal" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none">
-        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" wire:click="$set('showRemissionModal', false)"></div>
-        <div class="relative w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl" @click.stop>
-            <h3 class="text-lg font-semibold text-slate-900">Nueva Remisión</h3>
-            <p class="mt-1 text-sm text-slate-500">Se incluirán los items de la OT en la remisión.</p>
-            <div class="mt-4">
-                <label class="label-up">Notas (opcional)</label>
-                <textarea wire:model="remission_notes" class="form-input" rows="3" placeholder="Observaciones de entrega..."></textarea>
-            </div>
-            <div class="mt-6 flex justify-end gap-3">
-                <button wire:click="$set('showRemissionModal', false)" class="btn btn-outline-secondary">Cancelar</button>
-                <button wire:click="createRemission" wire:loading.attr="disabled" class="btn btn-primary">Crear remisión</button>
-            </div>
+    @if($showDocumentModal)
+    <x-ui.modal centered maxWidth="md">
+        <x-slot:backdrop>
+            <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" wire:click="closeDocumentModal"></div>
+        </x-slot:backdrop>
+
+        <div class="flex shrink-0 items-center justify-between border-b border-slate-100 px-4 py-4 sm:px-6">
+            <h3 class="text-base font-semibold text-slate-900">Documento asociado</h3>
+            <button type="button" wire:click="closeDocumentModal" class="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
         </div>
-    </div>
 
-    {{-- Modal generar factura --}}
-    <div x-show="$wire.showInvoiceModal" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none">
-        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" wire:click="$set('showInvoiceModal', false)"></div>
-        <div class="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl" @click.stop>
-            <h3 class="text-lg font-semibold text-slate-900">Generar Factura</h3>
-            <div class="mt-4 space-y-4">
-                <div>
-                    <label class="label-up">Fecha de vencimiento</label>
-                    <input type="date" wire:model="invoice_due_date" class="form-input" />
-                </div>
-                <div>
-                    <label class="label-up">Notas</label>
-                    <textarea wire:model="invoice_notes" class="form-input" rows="2"></textarea>
-                </div>
-                <div class="rounded-xl bg-slate-50 p-4">
-                    <div class="flex justify-between text-sm"><span class="text-slate-500">Total a facturar</span><span class="font-bold text-indigo-700">{{ col_money($workOrder->total) }}</span></div>
-                </div>
-            </div>
-            <div class="mt-6 flex justify-end gap-3">
-                <button wire:click="$set('showInvoiceModal', false)" class="btn btn-outline-secondary">Cancelar</button>
-                <button wire:click="generateInvoice" wire:loading.attr="disabled" class="btn btn-primary">Generar</button>
-            </div>
-        </div>
-    </div>
-
-    {{-- Modal registrar pago --}}
-    <div x-show="$wire.showPaymentModal" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none">
-        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" wire:click="$set('showPaymentModal', false)"></div>
-        <div class="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl" @click.stop>
-            <h3 class="text-lg font-semibold text-slate-900">Registrar Pago</h3>
-            <div class="mt-4 grid grid-cols-2 gap-4">
-                <div class="col-span-2">
-                    <label class="label-up">Método de pago *</label>
-                    <select wire:model="payment_method" class="form-select">
-                        <option value="">Seleccionar...</option>
-                        <option value="efectivo">Efectivo</option>
-                        <option value="transferencia">Transferencia</option>
-                        <option value="tarjeta_debito">Tarjeta débito</option>
-                        <option value="tarjeta_credito">Tarjeta crédito</option>
-                        <option value="nequi">Nequi</option>
-                        <option value="daviplata">Daviplata</option>
-                        <option value="cheque">Cheque</option>
-                    </select>
-                    @error('payment_method')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
-                </div>
-                <div>
-                    <label class="label-up">Fecha de pago</label>
-                    <input type="date" wire:model="payment_date" class="form-input" />
-                </div>
-                <div>
-                    <label class="label-up">Referencia / # comprobante</label>
-                    <input type="text" wire:model="payment_reference" class="form-input" placeholder="Ref. transacción..." />
-                </div>
-            </div>
-            <div class="mt-6 flex justify-end gap-3">
-                <button wire:click="$set('showPaymentModal', false)" class="btn btn-outline-secondary">Cancelar</button>
-                <button wire:click="registerPayment" wire:loading.attr="disabled" class="btn btn-success">Confirmar pago</button>
-            </div>
-        </div>
-    </div>
-
-    {{-- Modal orden de compra --}}
-    <div x-show="$wire.showPurchaseOrderModal" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none">
-        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" wire:click="$set('showPurchaseOrderModal', false)"></div>
-        <div class="relative w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl" @click.stop>
-            <h3 class="text-lg font-semibold text-slate-900">Nueva Orden de Compra</h3>
-            <div class="mt-4 grid grid-cols-2 gap-4">
-                <div>
-                    <label class="label-up">Proveedor *</label>
-                    <input type="text" wire:model="po_supplier_name" class="form-input" placeholder="Nombre del proveedor" />
-                    @error('po_supplier_name')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
-                </div>
-                <div>
-                    <label class="label-up">NIT proveedor</label>
-                    <input type="text" wire:model="po_supplier_nit" class="form-input" />
-                </div>
-                <div>
-                    <label class="label-up">Teléfono proveedor</label>
-                    <input type="text" wire:model="po_supplier_phone" class="form-input" />
-                </div>
-                <div>
-                    <label class="label-up">Entrega esperada</label>
-                    <input type="date" wire:model="po_expected_delivery" class="form-input" />
-                </div>
-                <div class="col-span-2">
-                    <label class="label-up">Notas</label>
-                    <textarea wire:model="po_notes" class="form-input" rows="2"></textarea>
-                </div>
-            </div>
-
-            {{-- Items OC --}}
-            <div class="mt-5">
-                <div class="flex items-center justify-between">
-                    <h4 class="font-medium text-slate-900">Items</h4>
-                    <button wire:click="addPOItem" type="button" class="btn btn-outline-secondary btn-sm">+ Agregar item</button>
-                </div>
-                <div class="mt-2 space-y-2">
-                    @foreach($po_items as $i => $poi)
-                    <div class="grid grid-cols-12 gap-2 items-end" wire:key="poi-new-{{ $i }}">
-                        <div class="col-span-5">
-                            @if($i === 0)<label class="label-up">Descripción *</label>@endif
-                            <input type="text" wire:model="po_items.{{ $i }}.description" class="form-input" />
-                        </div>
-                        <div class="col-span-2">
-                            @if($i === 0)<label class="label-up">Cant.</label>@endif
-                            <input type="number" wire:model="po_items.{{ $i }}.quantity" class="form-input" min="1" step="1" />
-                        </div>
-                        <div class="col-span-3">
-                            @if($i === 0)<label class="label-up">P. Unit.</label>@endif
-                            <input type="number" wire:model="po_items.{{ $i }}.unit_price" class="form-input" min="0" step="100" />
-                        </div>
-                        <div class="col-span-1 pb-2 text-right text-xs font-medium text-slate-700">
-                            {{ col_money((float)($poi['quantity']??0) * (float)($poi['unit_price']??0)) }}
-                        </div>
-                        <div class="col-span-1 flex justify-end pb-1">
-                            @if($i > 0)
-                            <button wire:click="removePOItem({{ $i }})" type="button" class="rounded p-1 text-red-400 hover:text-red-600">
-                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        <form wire:submit="saveDocumentClient" class="flex min-h-0 flex-1 flex-col">
+            <div class="flex-1 space-y-4 overflow-y-auto px-4 py-5 sm:px-6">
+                @if(! empty($workOrder->document_client))
+                <div class="rounded-xl border border-slate-200 bg-slate-50/80 p-3">
+                    <p class="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">Registrados en esta OT</p>
+                    <ul class="space-y-1.5">
+                        @foreach($workOrder->document_client as $label => $saved_value)
+                        <li>
+                            <button type="button" wire:click="loadDocumentClient({{ json_encode($label) }})"
+                                class="flex w-full items-start justify-between gap-3 rounded-lg px-2.5 py-2 text-left text-sm transition {{ $selected_document_label === $label ? 'bg-indigo-50 ring-1 ring-indigo-200' : 'hover:bg-white' }}">
+                                <span class="font-medium text-slate-800">
+                                    {{ $associated_documents->firstWhere('label', $label)?->value ?? $label }}
+                                </span>
+                                <span class="shrink-0 font-mono text-xs text-slate-600">{{ $saved_value }}</span>
                             </button>
-                            @endif
-                        </div>
-                    </div>
-                    @endforeach
+                        </li>
+                        @endforeach
+                    </ul>
+                </div>
+                @endif
+
+                <div>
+                    <label class="mb-1.5 block text-xs font-medium text-slate-700">Documento <span class="text-rose-500">*</span></label>
+                    <select wire:model="selected_document_label"
+                        class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('selected_document_label') border-rose-400 bg-rose-50 @enderror">
+                        <option value="">Seleccionar…</option>
+                        @forelse($associated_documents as $doc)
+                        <option value="{{ $doc->label }}">{{ $doc->value }}</option>
+                        @empty
+                        <option value="" disabled>No hay documentos configurados</option>
+                        @endforelse
+                    </select>
+                    @error('selected_document_label') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                </div>
+
+                <div>
+                    <label class="mb-1.5 block text-xs font-medium text-slate-700">Valor <span class="text-rose-500">*</span></label>
+                    <input type="text" wire:model="document_input_value" placeholder="Ej. número o referencia del documento"
+                        class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('document_input_value') border-rose-400 bg-rose-50 @enderror">
+                    @error('document_input_value') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                 </div>
             </div>
 
-            <div class="mt-6 flex justify-end gap-3">
-                <button wire:click="$set('showPurchaseOrderModal', false)" class="btn btn-outline-secondary">Cancelar</button>
-                <button wire:click="savePurchaseOrder" wire:loading.attr="disabled" class="btn btn-primary">Crear OC</button>
+            <div class="flex shrink-0 flex-col-reverse gap-2 border-t border-slate-100 px-4 py-4 sm:flex-row sm:justify-end sm:gap-3 sm:px-6">
+                <button type="button" wire:click="closeDocumentModal" class="w-full rounded-xl bg-slate-100 px-4 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-200 sm:w-auto">Cancelar</button>
+                <button type="submit" wire:loading.attr="disabled" class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-60 sm:w-auto">
+                    <span wire:loading.remove wire:target="saveDocumentClient">Guardar</span>
+                    <span wire:loading wire:target="saveDocumentClient">Guardando...</span>
+                </button>
             </div>
-        </div>
-    </div>
+        </form>
+    </x-ui.modal>
+    @endif
 </div>

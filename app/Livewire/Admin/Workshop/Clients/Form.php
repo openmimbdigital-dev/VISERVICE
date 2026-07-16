@@ -5,6 +5,7 @@ namespace App\Livewire\Admin\Workshop\Clients;
 use App\Actions\Workshop\Clients\CreateOrUpdateClientAction;
 use App\Livewire\Forms\Admin\Workshop\ClientForm;
 use App\Models\Business;
+use App\Models\City;
 use App\Models\Client;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -23,9 +24,10 @@ class Form extends Component
         if ($client) {
             abort_unless(auth()->user()->can('workshop.clients.edit'), 403);
 
-            if (! auth()->user()->hasRole('superAdmin')) {
-                abort_unless($client->business_id === auth()->user()->business_id, 403);
-            }
+            abort_unless(
+                Client::query()->forAuthUser()->whereKey($client->id)->exists(),
+                404
+            );
 
             $this->form->setClient($client);
             $this->original_status = $client->status;
@@ -94,6 +96,7 @@ class Form extends Component
             'businesses'            => $is_super_admin
                 ? Business::where('status', true)->orderBy('name')->get(['id', 'name'])
                 : collect(),
+            'cities'                => City::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'state_province']),
         ]);
     }
 }

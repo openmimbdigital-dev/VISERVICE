@@ -95,8 +95,17 @@
                             <select wire:model="business_type_id"
                                 class="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 px-4 text-sm text-slate-900 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition @error('business_type_id') border-red-400 @enderror">
                                 <option value="">Seleccionar...</option>
-                                @foreach($business_types as $type)
-                                    <option value="{{ $type->id }}">{{ $type->name }}</option>
+                                @foreach($organization_types as $organization_type)
+                                    @php
+                                        $options = $business_types->where('organization_type_id', $organization_type->id);
+                                    @endphp
+                                    @if($options->isNotEmpty())
+                                        <optgroup label="{{ $organization_type->name }}">
+                                            @foreach($options as $type)
+                                                <option value="{{ $type->id }}">{{ $type->name }}</option>
+                                            @endforeach
+                                        </optgroup>
+                                    @endif
                                 @endforeach
                             </select>
                             @error('business_type_id') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror

@@ -3,7 +3,10 @@
 namespace App\Livewire\Admin\Settings\Equipment\Types;
 
 use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
+use App\Models\Attribute;
+use App\Models\AttributeEquipmentType;
 use App\Models\EquipmentType;
+use Illuminate\Support\Collection;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -18,24 +21,36 @@ class Show extends Component
 
     public int $equipment_count = 0;
 
+    /** @var Collection<int, Attribute> */
+    public Collection $linked_attributes;
+
     public function mount(EquipmentType $equipmentType): void
     {
-        abort_unless(auth()->user()->can('settings.view'), 403);
+        abort_unless(auth()->user()->can('settings.equipment_types.view'), 403);
 
-        $visible = EquipmentType::query()
-            ->visibleToUser()
-            ->whereKey($equipmentType->id)
-            ->exists();
+        abort_unless($equipmentType->isAccessibleToUser(), 404);
 
-        abort_unless($visible, 404);
-
-        $this->equipment_type = $equipmentType->load('business');
+        $this->equipment_type = $equipmentType->load(['businesses']);
         $this->equipment_count = $equipmentType->equipment()->count();
+
+        $attribute_ids = AttributeEquipmentType::query()
+            ->where('model_type', EquipmentType::class)
+            ->where('model_id', $equipmentType->id)
+            ->pluck('attribute_id')
+            ->unique();
+
+        $this->linked_attributes = $attribute_ids->isEmpty()
+            ? collect()
+            : Attribute::query()
+                ->forAuthUser()
+                ->whereIn('id', $attribute_ids)
+                ->orderBy('name')
+                ->get(['id', 'name', 'type', 'required', 'general', 'nullable_creation']);
     }
 
     public function deleteRecord(): void
     {
-        abort_unless(auth()->user()->can('settings.edit'), 403);
+        abort_unless(auth()->user()->can('settings.equipment_types.delete'), 403);
 
         $this->askDeleteConfirmation($this->equipment_type->id, '¿Estás seguro de querer eliminar este tipo?');
     }
@@ -43,16 +58,19 @@ class Show extends Component
     protected function onDeleteConfirmed(): void
     {
         try {
-            abort_unless(auth()->user()->can('settings.edit'), 403);
+            abort_unless(auth()->user()->can('settings.equipment_types.delete'), 403);
 
-            $equipment_type = EquipmentType::findOrFail($this->delete_id);
+            $equipment_type = EquipmentType::query()
+                ->when(
+                    ! auth()->user()->hasRole('superAdmin'),
+                    fn ($query) => $query->visibleToUser()
+                )
+                ->findOrFail($this->delete_id);
 
             if (! $equipment_type->canDelete()) {
-                $message = $equipment_type->isGeneralReadonly()
-                    ? 'No se puede eliminar: es un tipo general del sistema.'
-                    : ($equipment_type->hasDependencies()
-                        ? 'No se puede eliminar: tiene equipos asociados.'
-                        : 'No tienes permiso para eliminar este tipo.');
+                $message = $equipment_type->hasDependencies()
+                    ? 'No se puede eliminar: tiene equipos asociados.'
+                    : 'No tienes permiso para eliminar este tipo.';
 
                 $this->alertDeleteWarning($message);
 
@@ -72,9 +90,9 @@ class Show extends Component
     public function render()
     {
         return view('livewire.admin.settings.equipment.types.show', [
-            'can_edit'            => auth()->user()->can('settings.edit') && $this->equipment_type->isEditableBy(),
-            'can_delete'          => auth()->user()->can('settings.edit') && $this->equipment_type->canDelete(),
-            'is_general_readonly' => $this->equipment_type->isGeneralReadonly(),
+            'can_edit'            => auth()->user()->can('settings.equipment_types.edit') && $this->equipment_type->isEditableBy(),
+            'can_delete'          => auth()->user()->can('settings.equipment_types.delete') && $this->equipment_type->canDelete(),
+            'can_view_attributes' => auth()->user()->can('settings.attributes.view'),
         ]);
     }
 }

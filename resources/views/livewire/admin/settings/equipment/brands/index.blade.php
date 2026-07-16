@@ -25,7 +25,7 @@
                     </svg>
                     Volver
                 </a>
-                @can('settings.edit')
+                @can('settings.brands.create')
                 <x-ui.create-button wire:click="openCreate" size="sm" class="flex-1 sm:flex-none justify-center">
                     {{ $config['create_button_text'] ?? 'Nueva marca' }}
                 </x-ui.create-button>
@@ -71,6 +71,30 @@
                         La marca quedará asociada a tu negocio.
                     </p>
                     @endif
+
+                    <div>
+                        <label class="mb-1.5 block text-xs font-medium text-slate-700">Tipos de equipo <span class="text-rose-500">*</span></label>
+                        <p class="mb-3 text-sm text-slate-600">Selecciona uno o más tipos a los que aplica esta marca.</p>
+                        @if($equipment_types->isNotEmpty())
+                            <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                @foreach($equipment_types as $equipment_type)
+                                    <label class="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 transition hover:bg-slate-50">
+                                        <input type="checkbox" value="{{ $equipment_type->id }}" wire:model="form.equipment_type_ids"
+                                            class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                                        <span class="text-sm text-slate-700">
+                                            {{ $equipment_type->name }}
+                                            @if(! $equipment_type->active)
+                                                <span class="text-xs text-slate-400">(inactivo)</span>
+                                            @endif
+                                        </span>
+                                    </label>
+                                @endforeach
+                            </div>
+                        @else
+                            <p class="text-sm text-slate-500">No hay tipos de equipo disponibles.</p>
+                        @endif
+                        @error('form.equipment_type_ids') <p class="mt-2 text-xs text-rose-600">{{ $message }}</p> @enderror
+                    </div>
 
                     <div>
                         <label class="mb-1.5 block text-xs font-medium text-slate-700">Nombre <span class="text-rose-500">*</span></label>

@@ -25,7 +25,7 @@
                     </svg>
                     Volver
                 </a>
-                @can('settings.edit')
+                @can('settings.equipment_types.create')
                 <x-ui.create-button wire:click="openCreate" size="sm" class="flex-1 sm:flex-none justify-center">
                     {{ $config['create_button_text'] ?? 'Nuevo tipo' }}
                 </x-ui.create-button>
@@ -61,15 +61,28 @@
 
         <form wire:submit="save" class="flex min-h-0 flex-1 flex-col">
             <div class="flex-1 space-y-4 overflow-y-auto px-4 py-5 sm:px-6">
-                @if($is_super_admin)
                 <p class="rounded-xl border border-indigo-100 bg-indigo-50 px-3.5 py-2.5 text-xs text-indigo-800">
-                    Los tipos creados como superAdmin son <strong>generales</strong> y aplican a todos los negocios.
+                    Los tipos de equipo son <strong>generales</strong>. Selecciona los negocios a los que aplicará este tipo.
                 </p>
-                @else
-                <p class="rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs text-slate-600">
-                    El tipo quedará asociado a tu negocio.
-                </p>
-                @endif
+
+                <div>
+                    <label class="mb-1.5 block text-xs font-medium text-slate-700">Negocios <span class="text-rose-500">*</span></label>
+                    <p class="mb-3 text-sm text-slate-600">Selecciona uno o más negocios activos.</p>
+                    @if($businesses->isNotEmpty())
+                        <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                            @foreach($businesses as $business)
+                                <label class="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 transition hover:bg-slate-50">
+                                    <input type="checkbox" value="{{ $business->id }}" wire:model="form.business_ids"
+                                        class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                                    <span class="text-sm text-slate-700">{{ $business->name }}</span>
+                                </label>
+                            @endforeach
+                        </div>
+                    @else
+                        <p class="text-sm text-slate-500">No hay negocios activos disponibles.</p>
+                    @endif
+                    @error('form.business_ids') <p class="mt-2 text-xs text-rose-600">{{ $message }}</p> @enderror
+                </div>
 
                 <div>
                     <label class="mb-1.5 block text-xs font-medium text-slate-700">Nombre <span class="text-rose-500">*</span></label>

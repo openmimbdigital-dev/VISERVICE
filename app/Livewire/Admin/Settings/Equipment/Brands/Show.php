@@ -20,7 +20,7 @@ class Show extends Component
 
     public function mount(Brand $brand): void
     {
-        abort_unless(auth()->user()->can('settings.view'), 403);
+        abort_unless(auth()->user()->can('settings.brands.view'), 403);
 
         $visible = Brand::query()
             ->visibleToUser()
@@ -29,13 +29,16 @@ class Show extends Component
 
         abort_unless($visible, 404);
 
-        $this->brand = $brand->load('business');
+        $this->brand = $brand->load([
+            'business',
+            'equipmentTypes' => fn ($query) => $query->orderBy('name'),
+        ]);
         $this->equipment_count = $brand->equipment()->count();
     }
 
     public function deleteRecord(): void
     {
-        abort_unless(auth()->user()->can('settings.edit'), 403);
+        abort_unless(auth()->user()->can('settings.brands.delete'), 403);
 
         $this->askDeleteConfirmation($this->brand->id, '¿Estás seguro de querer eliminar esta marca?');
     }
@@ -43,9 +46,9 @@ class Show extends Component
     protected function onDeleteConfirmed(): void
     {
         try {
-            abort_unless(auth()->user()->can('settings.edit'), 403);
+            abort_unless(auth()->user()->can('settings.brands.delete'), 403);
 
-            $brand = Brand::findOrFail($this->delete_id);
+            $brand = Brand::query()->visibleToUser()->findOrFail($this->delete_id);
 
             if (! $brand->canDelete()) {
                 $message = $brand->isGeneralReadonly()
@@ -72,8 +75,8 @@ class Show extends Component
     public function render()
     {
         return view('livewire.admin.settings.equipment.brands.show', [
-            'can_edit'            => auth()->user()->can('settings.edit') && $this->brand->isEditableBy(),
-            'can_delete'          => auth()->user()->can('settings.edit') && $this->brand->canDelete(),
+            'can_edit'            => auth()->user()->can('settings.brands.edit') && $this->brand->isEditableBy(),
+            'can_delete'          => auth()->user()->can('settings.brands.delete') && $this->brand->canDelete(),
             'is_general_readonly' => $this->brand->isGeneralReadonly(),
         ]);
     }

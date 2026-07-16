@@ -21,8 +21,10 @@ return new class extends Migration
 
             $table->index(['business_id', 'brand_id', 'name']);
             $table->index(['business_id', 'brand_id', 'label']);
-            $table->index(['business_id', 'brand_id', 'active']);
-            $table->index(['brand_id', 'active']);
+            $table->index(['business_id', 'deleted_at', 'created_at'], 'equipment_models_business_deleted_created_idx');
+            $table->index(['brand_id', 'deleted_at', 'active'], 'equipment_models_brand_deleted_active_idx');
+            $table->index(['general', 'deleted_at', 'active'], 'equipment_models_general_deleted_active_idx');
+            $table->index(['deleted_at', 'created_at'], 'equipment_models_deleted_created_idx');
         });
     }
 

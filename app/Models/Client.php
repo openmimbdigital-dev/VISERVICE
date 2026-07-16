@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Client extends Model
@@ -12,7 +13,7 @@ class Client extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'business_id', 'name', 'document_type', 'document_number',
+        'business_id', 'city_id', 'name', 'document_type', 'document_number',
         'phone', 'email', 'address', 'contact_name',
         'status', 'notes', 'created_by',
     ];
@@ -27,6 +28,11 @@ class Client extends Model
     public function business(): BelongsTo
     {
         return $this->belongsTo(Business::class);
+    }
+
+    public function city(): BelongsTo
+    {
+        return $this->belongsTo(City::class);
     }
 
     public function createdBy(): BelongsTo
@@ -49,6 +55,26 @@ class Client extends Model
         return $this->hasMany(WorkOrder::class);
     }
 
+    public function remissions(): HasMany
+    {
+        return $this->hasMany(Remission::class);
+    }
+
+    public function user_historicals(): HasMany
+    {
+        return $this->hasMany(UserHistorical::class)->orderByDesc('created_at');
+    }
+
+    public function equipment_historicals(): HasMany
+    {
+        return $this->hasMany(EquipmentHistorical::class)->orderByDesc('created_at');
+    }
+
+    public function generalConfigs(): MorphMany
+    {
+        return $this->morphMany(GeneralConfig::class, 'configurable');
+    }
+
     public function scopeActive($query)
     {
         return $query->where('status', true);
@@ -62,7 +88,13 @@ class Client extends Model
             return $query;
         }
 
-        return $query->where($query->getModel()->getTable() . '.business_id', $user->business_id);
+        $business_ids = $user->businessIds();
+
+        if ($business_ids === []) {
+            return $query->whereRaw('0 = 1');
+        }
+
+        return $query->whereIn($query->getModel()->getTable() . '.business_id', $business_ids);
     }
 
     public function getFullDocumentAttribute(): string

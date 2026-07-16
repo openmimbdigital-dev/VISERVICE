@@ -1,10 +1,5 @@
-<div class="relative mx-auto w-full max-w-[90rem]">
-    @php
-    $statusBadge=['borrador'=>'bg-slate-100 text-slate-600','enviada'=>'bg-blue-50 text-blue-700','aceptada'=>'bg-emerald-50 text-emerald-700','rechazada'=>'bg-red-50 text-red-700','vencida'=>'bg-orange-50 text-orange-700'];
-    $badge=$statusBadge[$quotation->status]??'bg-slate-100 text-slate-600';
-    @endphp
-
-    <nav class="mb-6 flex items-center gap-x-2 text-xs font-medium text-slate-500">
+<div class="relative mx-auto w-full max-w-[90rem] p-4 sm:p-6">
+    <nav class="mb-6 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-medium text-slate-500">
         <a href="{{ route('dashboard') }}" wire:navigate class="rounded px-1.5 py-0.5 hover:bg-slate-200/60">Inicio</a>
         <span class="text-slate-300">/</span>
         <a href="{{ route('admin.workshop.quotations.index') }}" wire:navigate class="rounded px-1.5 py-0.5 hover:bg-slate-200/60">Cotizaciones</a>
@@ -12,225 +7,211 @@
         <span class="font-semibold text-slate-900">{{ $quotation->reference }}</span>
     </nav>
 
-    {{-- Header --}}
-    <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-            <div class="flex items-center gap-3">
-                <h1 class="text-2xl font-bold text-slate-900">{{ $quotation->reference }}</h1>
-                <span class="inline-flex items-center rounded-full px-3 py-1 text-sm font-medium {{ $badge }}">{{ $quotation->status_label }}</span>
+    <header class="mb-8">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div class="min-w-0 flex-1 border-l-4 border-indigo-600 pl-4 sm:pl-5">
+                <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-indigo-600/90">Taller</p>
+                <div class="mt-2 flex flex-wrap items-center gap-3">
+                    <h1 class="text-2xl font-bold tracking-tight text-slate-900">{{ $quotation->reference }}</h1>
+                    <span class="inline-flex items-center rounded-full px-3 py-1 text-sm font-medium {{ $quotation->status->badgeClass() }}">{{ $quotation->status->label() }}</span>
+                </div>
+                <p class="mt-2 text-sm text-slate-500">
+                    {{ $quotation->client?->name }} · {{ $quotation->equipment?->select_label }}
+                    @if($quotation->hours_entry_formatted) · Horas: {{ $quotation->hours_entry_formatted }}@endif
+                </p>
             </div>
-            <p class="mt-1 text-sm text-slate-500">
-                {{ $quotation->client?->name }} &nbsp;·&nbsp; {{ $quotation->equipment?->plate }} {{ $quotation->equipment?->brand }} {{ $quotation->equipment?->model }}
-                &nbsp;·&nbsp; Km: {{ number_format($quotation->km_entry) }}
-            </p>
+            <div class="flex w-full shrink-0 flex-wrap gap-2 sm:w-auto">
+                <a href="{{ route('admin.workshop.quotations.index') }}" wire:navigate class="btn btn-outline-secondary btn-sm flex-1 sm:flex-none justify-center">Volver</a>
+                @can('workshop.quotations.edit')
+                <a href="{{ route('admin.workshop.quotations.form.edit', $quotation->id) }}" wire:navigate class="btn btn-primary btn-sm flex-1 sm:flex-none justify-center">Editar</a>
+                @endcan
+                @if($can_create_ot)
+                <a href="{{ route('admin.workshop.work-orders.form', ['quotation' => $quotation->id]) }}" wire:navigate
+                    class="btn btn-success btn-sm flex-1 sm:flex-none justify-center">
+                    Crear OT
+                </a>
+                @elseif($linked_work_order)
+                <a href="{{ route('admin.workshop.work-orders.show', $linked_work_order) }}" wire:navigate
+                    class="btn btn-outline-secondary btn-sm flex-1 sm:flex-none justify-center">
+                    Ver OT {{ $linked_work_order->reference }}
+                </a>
+                @endif
+                <a href="{{ route('admin.workshop.quotations.print', $quotation->id) }}" target="_blank" class="btn btn-outline-secondary btn-sm flex-1 sm:flex-none justify-center">Imprimir / PDF</a>
+                @can('workshop.quotations.delete')
+                <button type="button" wire:click="deleteQuotation" class="btn btn-danger btn-sm flex-1 sm:flex-none justify-center">Eliminar</button>
+                @endcan
+            </div>
         </div>
-        <div class="flex flex-wrap gap-2">
-            @if(in_array($quotation->status, ['borrador','enviada']))
-                <button wire:click="sendQuotation" class="btn btn-secondary btn-sm">
-                    <svg class="mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
-                    Enviar al cliente
-                </button>
-            @endif
-            @if($quotation->status === 'enviada')
-                <button wire:click="acceptQuotation" wire:loading.attr="disabled" class="btn btn-success btn-sm">
-                    <svg class="mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                    Aceptar → Crear OT
-                </button>
-                <button wire:click="openRejectModal" class="btn btn-danger btn-sm">Rechazar</button>
-            @endif
-        </div>
-    </div>
+    </header>
 
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {{-- Columna items --}}
         <div class="lg:col-span-2 space-y-4">
-            <div class="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
-                <div class="flex items-center justify-between border-b border-slate-100 bg-slate-50/80 px-5 py-3">
-                    <h2 class="font-semibold text-slate-900">Items de la cotización</h2>
-                    @if(!in_array($quotation->status, ['aceptada','rechazada','vencida']))
-                    <button wire:click="openAddItem" class="btn btn-primary btn-sm">+ Agregar item</button>
-                    @endif
+            <section class="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
+                <div class="border-b border-slate-100 bg-slate-50/80 px-4 py-4 sm:px-5">
+                    <h2 class="font-semibold text-slate-800">Datos generales</h2>
                 </div>
-                <table class="min-w-full divide-y divide-slate-100">
-                    <thead class="bg-slate-50/40">
-                        <tr>
-                            <th class="px-4 py-2 text-left text-xs font-semibold text-slate-500 uppercase">Tipo</th>
-                            <th class="px-4 py-2 text-left text-xs font-semibold text-slate-500 uppercase">Descripción</th>
-                            <th class="px-4 py-2 text-right text-xs font-semibold text-slate-500 uppercase">Cant.</th>
-                            <th class="px-4 py-2 text-right text-xs font-semibold text-slate-500 uppercase">P. Unit.</th>
-                            <th class="px-4 py-2 text-right text-xs font-semibold text-slate-500 uppercase">Desc.</th>
-                            <th class="px-4 py-2 text-right text-xs font-semibold text-slate-500 uppercase">Subtotal</th>
-                            @if(!in_array($quotation->status, ['aceptada','rechazada','vencida']))<th class="px-4 py-2"></th>@endif
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100">
-                        @forelse($quotation->items as $item)
-                        <tr wire:key="qi-{{ $item->id }}">
-                            <td class="px-4 py-2">
-                                <span class="rounded-full px-2 py-0.5 text-xs font-medium {{ $item->item_type === 'servicio' ? 'bg-blue-50 text-blue-700' : ($item->item_type === 'repuesto' ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-600') }}">
-                                    {{ $item->item_type_label }}
-                                </span>
-                            </td>
-                            <td class="px-4 py-2 text-sm text-slate-900">{{ $item->description }}</td>
-                            <td class="px-4 py-2 text-right text-sm text-slate-600">{{ $item->quantity }}</td>
-                            <td class="px-4 py-2 text-right text-sm text-slate-600">{{ col_money($item->unit_price) }}</td>
-                            <td class="px-4 py-2 text-right text-sm text-slate-500">{{ $item->discount_percentage > 0 ? $item->discount_percentage . '%' : '—' }}</td>
-                            <td class="px-4 py-2 text-right font-semibold text-slate-900">{{ col_money($item->subtotal) }}</td>
-                            @if(!in_array($quotation->status, ['aceptada','rechazada','vencida']))
-                            <td class="px-4 py-2">
-                                <div class="flex items-center justify-end gap-1">
-                                    <button wire:click="openEditItem({{ $item->id }})" class="rounded p-1 text-slate-400 hover:text-indigo-600">
-                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                                    </button>
-                                    <button wire:click="deleteItem({{ $item->id }})" wire:confirm="¿Eliminar este item?" class="rounded p-1 text-slate-400 hover:text-red-600">
-                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                    </button>
-                                </div>
-                            </td>
-                            @endif
-                        </tr>
-                        @empty
-                        <tr><td colspan="7" class="px-4 py-8 text-center text-sm text-slate-400">Sin items. Haz clic en "Agregar item" para comenzar.</td></tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        {{-- Columna resumen --}}
-        <div class="space-y-4">
-            <div class="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm ring-1 ring-slate-900/[0.035]">
-                <h3 class="font-semibold text-slate-900">Resumen</h3>
-                <dl class="mt-4 space-y-2 text-sm">
-                    <div class="flex justify-between"><dt class="text-slate-500">Subtotal</dt><dd class="font-medium">{{ col_money($quotation->subtotal) }}</dd></div>
-                    <div class="flex justify-between items-center">
-                        <dt class="text-slate-500">IVA</dt>
-                        <dd class="flex items-center gap-2">
-                            @if(!in_array($quotation->status, ['aceptada','rechazada','vencida']))
-                            <input type="number" wire:change="updateTaxPercentage($event.target.value)" value="{{ $quotation->tax_percentage }}" min="0" max="100" class="w-16 rounded border border-slate-300 px-2 py-0.5 text-right text-sm" />
-                            <span class="text-slate-400">%</span>
-                            @else
-                            <span>{{ $quotation->tax_percentage }}%</span>
-                            @endif
-                            <span class="font-medium">{{ col_money($quotation->tax_amount) }}</span>
+                <dl class="divide-y divide-slate-100 px-4 py-2 sm:px-5">
+                    <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                        <dt class="text-xs font-medium text-slate-500">Cliente</dt>
+                        <dd class="text-sm text-slate-900 sm:col-span-2">{{ $quotation->client?->name ?? '—' }}</dd>
+                    </div>
+                    <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                        <dt class="text-xs font-medium text-slate-500">Equipo</dt>
+                        <dd class="text-sm text-slate-900 sm:col-span-2">
+                            {{ $quotation->equipment?->select_label ?? '—' }}
                         </dd>
                     </div>
-                    <div class="flex justify-between border-t border-slate-100 pt-2 text-base font-bold">
-                        <dt class="text-slate-900">Total</dt><dd class="text-indigo-700">{{ col_money($quotation->total) }}</dd>
+                    @if($quotation->hours_entry_formatted)
+                    <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                        <dt class="text-xs font-medium text-slate-500">Horas al ingreso</dt>
+                        <dd class="text-sm text-slate-900 sm:col-span-2">{{ $quotation->hours_entry_formatted }}</dd>
+                    </div>
+                    @endif
+                    @if($quotation->notes)
+                    <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                        <dt class="text-xs font-medium text-slate-500">Notas internas</dt>
+                        <dd class="text-sm text-slate-900 sm:col-span-2">{{ $quotation->notes }}</dd>
+                    </div>
+                    @endif
+                </dl>
+            </section>
+
+            <section class="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
+                <div class="border-b border-slate-100 bg-slate-50/80 px-4 py-4 sm:px-5">
+                    <h2 class="font-semibold text-slate-800">Condiciones</h2>
+                </div>
+                <dl class="divide-y divide-slate-100 px-4 py-2 sm:px-5">
+                    <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                        <dt class="text-xs font-medium text-slate-500">Tipo de servicio</dt>
+                        <dd class="text-sm text-slate-900 sm:col-span-2">{{ $quotation->quotationServiceType?->name ?? '—' }}</dd>
+                    </div>
+                    <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                        <dt class="text-xs font-medium text-slate-500">Vigencia</dt>
+                        <dd class="text-sm text-slate-900 sm:col-span-2">{{ $quotation->validity_days }} días @if($quotation->valid_until) (hasta {{ $quotation->valid_until->format('d/m/Y') }})@endif</dd>
+                    </div>
+                    <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                        <dt class="text-xs font-medium text-slate-500">Forma de pago</dt>
+                        <dd class="text-sm text-slate-900 sm:col-span-2">{{ $quotation->paymentMethod?->name ?? '—' }}</dd>
+                    </div>
+                    <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                        <dt class="text-xs font-medium text-slate-500">Cuenta bancaria</dt>
+                        <dd class="text-sm text-slate-900 sm:col-span-2">
+                            @if($quotation->bankAccount)
+                            {{ $quotation->bankAccount->bank_name }} — {{ $quotation->bankAccount->account_number }}
+                            @else — @endif
+                        </dd>
+                    </div>
+                    <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                        <dt class="text-xs font-medium text-slate-500">Tiempo de ejecución</dt>
+                        <dd class="text-sm text-slate-900 sm:col-span-2">{{ $quotation->execution_time ?? '—' }}</dd>
+                    </div>
+                    <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                        <dt class="text-xs font-medium text-slate-500">Diagnóstico</dt>
+                        <dd class="text-sm text-slate-900 sm:col-span-2">{{ $quotation->diagnosis ?? '—' }}</dd>
+                    </div>
+                    <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                        <dt class="text-xs font-medium text-slate-500">Observaciones</dt>
+                        <dd class="text-sm text-slate-900 sm:col-span-2">{{ $quotation->observations ?? '—' }}</dd>
                     </div>
                 </dl>
-            </div>
+            </section>
 
-            <div class="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm ring-1 ring-slate-900/[0.035]">
+            <section class="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
+                <div class="border-b border-slate-100 bg-slate-50/80 px-4 py-4 sm:px-5">
+                    <h2 class="font-semibold text-slate-800">Ítems</h2>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-100">
+                        <thead class="bg-slate-50/40">
+                            <tr>
+                                <th class="px-3 py-2 text-left text-xs font-semibold uppercase text-slate-500 sm:px-4">Tipo</th>
+                                <th class="hidden px-3 py-2 text-left text-xs font-semibold uppercase text-slate-500 md:table-cell sm:px-4">Categoría</th>
+                                <th class="px-3 py-2 text-left text-xs font-semibold uppercase text-slate-500 sm:px-4">Descripción</th>
+                                <th class="px-3 py-2 text-right text-xs font-semibold uppercase text-slate-500 sm:px-4">Cant.</th>
+                                <th class="hidden px-3 py-2 text-right text-xs font-semibold uppercase text-slate-500 sm:table-cell sm:px-4">P. Unit.</th>
+                                <th class="px-3 py-2 text-right text-xs font-semibold uppercase text-slate-500 sm:px-4">Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            @forelse($quotation->items as $item)
+                            <tr>
+                                <td class="px-3 py-3 text-xs text-slate-600 sm:px-4">{{ $item->productType?->name ?? '—' }}</td>
+                                <td class="hidden px-3 py-3 text-xs text-slate-600 md:table-cell sm:px-4">{{ $item->productCategory?->name ?? '—' }}</td>
+                                <td class="px-3 py-3 text-sm text-slate-900 sm:px-4">{{ $item->description }}</td>
+                                <td class="px-3 py-3 text-right text-sm text-slate-600 sm:px-4">{{ $item->quantity }}</td>
+                                <td class="hidden px-3 py-3 text-right text-sm text-slate-600 sm:table-cell sm:px-4">{{ col_money($item->unit_price) }}</td>
+                                <td class="px-3 py-3 text-right font-semibold text-slate-900 sm:px-4">{{ col_money($item->subtotal) }}</td>
+                            </tr>
+                            @empty
+                            <tr><td colspan="6" class="px-4 py-8 text-center text-sm text-slate-400">Sin ítems registrados.</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+
+        <div class="space-y-4">
+            @if($can_change_status)
+            <section class="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
+                <div class="border-b border-slate-100 bg-slate-50/80 px-4 py-4 sm:px-5">
+                    <h3 class="font-semibold text-slate-900">Estado de la cotización</h3>
+                    <p class="mt-1 text-xs text-slate-500">Actualiza el seguimiento de la oferta.</p>
+                </div>
+                <form wire:submit="updateStatus" class="space-y-4 p-4 sm:p-5">
+                    <div>
+                        <label class="mb-1.5 block text-xs font-medium text-slate-700">Estado</label>
+                        <select wire:model.live="status"
+                            class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('status') border-rose-400 bg-rose-50 @enderror">
+                            @foreach($status_options as $value => $label)
+                                <option value="{{ $value }}">{{ $label }}</option>
+                            @endforeach
+                        </select>
+                        @error('status') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                    </div>
+
+                    <div @class(['hidden' => $status !== \App\Enums\QuotationStatus::Rechazada->value])>
+                        <label class="mb-1.5 block text-xs font-medium text-slate-700">Motivo del rechazo <span class="text-rose-500">*</span></label>
+                        <textarea wire:model="reject_reason" rows="3"
+                            class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('reject_reason') border-rose-400 bg-rose-50 @enderror"
+                            placeholder="Describe por qué se rechazó la cotización"></textarea>
+                        @error('reject_reason') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                    </div>
+
+                    <button type="submit" wire:loading.attr="disabled"
+                        class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-60 sm:w-auto">
+                        <span wire:loading.remove wire:target="updateStatus">Guardar estado</span>
+                        <span wire:loading wire:target="updateStatus">Guardando…</span>
+                    </button>
+                </form>
+            </section>
+            @endif
+
+            <section class="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm ring-1 ring-slate-900/[0.035]">
+                <h3 class="font-semibold text-slate-900">Resumen</h3>
+                <dl class="mt-4 space-y-2 text-sm">
+                    <div class="flex justify-between text-xs text-slate-500"><dt>Mano de obra</dt><dd>{{ col_money($category_subtotals['mano_obra']) }}</dd></div>
+                    <div class="flex justify-between text-xs text-slate-500"><dt>Repuestos</dt><dd>{{ col_money($category_subtotals['repuestos']) }}</dd></div>
+                    <div class="flex justify-between text-xs text-slate-500"><dt>Lubricantes</dt><dd>{{ col_money($category_subtotals['lubricantes']) }}</dd></div>
+                    <div class="flex justify-between text-xs text-slate-500"><dt>Otros</dt><dd>{{ col_money($category_subtotals['otros']) }}</dd></div>
+                    <div class="flex justify-between border-t border-slate-100 pt-2"><dt class="text-slate-500">Subtotal</dt><dd class="font-medium">{{ col_money($quotation->subtotal) }}</dd></div>
+                    <div class="flex justify-between"><dt class="text-slate-500">IVA ({{ $quotation->tax_percentage }}%)</dt><dd class="font-medium">{{ col_money($quotation->tax_amount) }}</dd></div>
+                    <div class="flex justify-between border-t border-slate-100 pt-2 text-base font-bold"><dt>Total</dt><dd class="text-indigo-700">{{ col_money($quotation->total) }}</dd></div>
+                </dl>
+            </section>
+
+            <section class="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm ring-1 ring-slate-900/[0.035]">
                 <h3 class="font-semibold text-slate-900">Detalles</h3>
                 <dl class="mt-3 space-y-2 text-sm">
                     <div><dt class="text-xs text-slate-400">Creada</dt><dd>{{ $quotation->created_at->format('d/m/Y H:i') }}</dd></div>
-                    @if($quotation->valid_until)
-                    <div><dt class="text-xs text-slate-400">Válida hasta</dt><dd>{{ $quotation->valid_until->format('d/m/Y') }}</dd></div>
+                    @if($quotation->createdBy)
+                    <div><dt class="text-xs text-slate-400">Creada por</dt><dd>{{ $quotation->createdBy->name }}</dd></div>
                     @endif
-                    @if($quotation->sent_at)
-                    <div><dt class="text-xs text-slate-400">Enviada</dt><dd>{{ $quotation->sent_at->format('d/m/Y H:i') }}</dd></div>
-                    @endif
-                    @if($quotation->accepted_at)
-                    <div><dt class="text-xs text-slate-400">Aceptada</dt><dd class="text-emerald-600 font-medium">{{ $quotation->accepted_at->format('d/m/Y H:i') }}</dd></div>
-                    @endif
-                    @if($quotation->workOrder)
-                    <div class="pt-2 border-t border-slate-100">
-                        <dt class="text-xs text-slate-400">OT generada</dt>
-                        <dd>
-                            <a href="{{ route('admin.workshop.work-orders.show', $quotation->workOrder->id) }}" wire:navigate
-                                class="font-mono text-sm font-semibold text-indigo-600 hover:underline">
-                                {{ $quotation->workOrder->reference }}
-                            </a>
-                        </dd>
-                    </div>
-                    @endif
-                    @if($quotation->diagnosis)
-                    <div class="pt-2 border-t border-slate-100"><dt class="text-xs text-slate-400">Diagnóstico</dt><dd class="mt-1 text-slate-700">{{ $quotation->diagnosis }}</dd></div>
+                    @if($quotation->reject_reason)
+                    <div><dt class="text-xs text-slate-400">Motivo rechazo</dt><dd class="text-slate-700">{{ $quotation->reject_reason }}</dd></div>
                     @endif
                 </dl>
-            </div>
-        </div>
-    </div>
-
-    {{-- Modal agregar/editar item --}}
-    <div x-show="$wire.showItemModal" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none">
-        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" wire:click="closeItemModal"></div>
-        <div class="relative w-full max-w-xl rounded-2xl bg-white p-6 shadow-2xl" @click.stop>
-            <h3 class="text-lg font-semibold text-slate-900">{{ $editing_item_id ? 'Editar item' : 'Agregar item' }}</h3>
-            <div class="mt-4 space-y-4">
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="label-up">Tipo</label>
-                        <select wire:model="item_type" class="form-select">
-                            <option value="servicio">Servicio</option>
-                            <option value="repuesto">Repuesto</option>
-                            <option value="otro">Otro</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="label-up">Desde catálogo</label>
-                        <select wire:model.live="catalog_item_id" class="form-select"
-                            wire:change="fillFromCatalog($event.target.value, '{{ $item_type }}')">
-                            <option value="">Escribir manualmente</option>
-                            @if($item_type === 'servicio')
-                                @foreach($services as $svc)
-                                    <option value="{{ $svc->id }}">{{ $svc->name }}</option>
-                                @endforeach
-                            @else
-                                @foreach($spare_parts as $sp)
-                                    <option value="{{ $sp->id }}">{{ $sp->name }}</option>
-                                @endforeach
-                            @endif
-                        </select>
-                    </div>
-                    <div class="col-span-2">
-                        <label class="label-up">Descripción *</label>
-                        <input type="text" wire:model="item_description" class="form-input" />
-                        @error('item_description')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
-                    </div>
-                    <div>
-                        <label class="label-up">Cantidad</label>
-                        <input type="number" wire:model="item_quantity" class="form-input" min="0.01" step="0.01" />
-                    </div>
-                    <div>
-                        <label class="label-up">Precio unitario</label>
-                        <input type="number" wire:model="item_unit_price" class="form-input" min="0" step="100" />
-                    </div>
-                    <div>
-                        <label class="label-up">Descuento (%)</label>
-                        <input type="number" wire:model="item_discount" class="form-input" min="0" max="100" />
-                    </div>
-                    <div class="flex items-end">
-                        @php $st = (float)$item_quantity * (float)$item_unit_price * (1 - (float)$item_discount/100); @endphp
-                        <div class="w-full rounded-xl bg-indigo-50 px-4 py-3 text-center">
-                            <p class="text-xs text-indigo-600">Subtotal estimado</p>
-                            <p class="text-lg font-bold text-indigo-700">{{ col_money($st) }}</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="mt-6 flex justify-end gap-3">
-                <button wire:click="closeItemModal" class="btn btn-outline-secondary">Cancelar</button>
-                <button wire:click="saveItem" wire:loading.attr="disabled" class="btn btn-primary">Guardar item</button>
-            </div>
-        </div>
-    </div>
-
-    {{-- Modal rechazar --}}
-    <div x-show="$wire.showRejectModal" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none">
-        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" wire:click="$set('showRejectModal', false)"></div>
-        <div class="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl" @click.stop>
-            <h3 class="text-lg font-semibold text-red-700">Rechazar cotización</h3>
-            <p class="mt-1 text-sm text-slate-500">Esta acción no se puede deshacer.</p>
-            <div class="mt-4">
-                <label class="label-up">Motivo del rechazo (opcional)</label>
-                <textarea wire:model="reject_reason" class="form-input" rows="3" placeholder="Precio muy alto, cliente no disponible..."></textarea>
-            </div>
-            <div class="mt-6 flex justify-end gap-3">
-                <button wire:click="$set('showRejectModal', false)" class="btn btn-outline-secondary">Cancelar</button>
-                <button wire:click="rejectQuotation" class="btn btn-danger">Confirmar rechazo</button>
-            </div>
+            </section>
         </div>
     </div>
 </div>

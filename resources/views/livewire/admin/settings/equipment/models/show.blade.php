@@ -27,7 +27,7 @@
                     </svg>
                     Volver
                 </a>
-                @can('settings.edit')
+                @can('settings.model_equipment.delete')
                 <button type="button" wire:click="deleteRecord"
                     @disabled(! $can_delete)
                     title="{{ $is_general_readonly ? 'Modelo general del sistema: no se puede eliminar' : ($can_delete ? 'Eliminar modelo' : 'No se puede eliminar: tiene equipos asociados') }}"

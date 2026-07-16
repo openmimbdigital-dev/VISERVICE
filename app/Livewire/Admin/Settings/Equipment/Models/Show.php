@@ -20,7 +20,7 @@ class Show extends Component
 
     public function mount(EquipmentModel $equipmentModel): void
     {
-        abort_unless(auth()->user()->can('settings.view'), 403);
+        abort_unless(auth()->user()->can('settings.model_equipment.view'), 403);
 
         $visible = EquipmentModel::query()
             ->visibleToUser()
@@ -35,7 +35,7 @@ class Show extends Component
 
     public function deleteRecord(): void
     {
-        abort_unless(auth()->user()->can('settings.edit'), 403);
+        abort_unless(auth()->user()->can('settings.model_equipment.delete'), 403);
 
         $this->askDeleteConfirmation($this->equipment_model->id, '¿Estás seguro de querer eliminar este modelo?');
     }
@@ -43,9 +43,9 @@ class Show extends Component
     protected function onDeleteConfirmed(): void
     {
         try {
-            abort_unless(auth()->user()->can('settings.edit'), 403);
+            abort_unless(auth()->user()->can('settings.model_equipment.delete'), 403);
 
-            $equipment_model = EquipmentModel::findOrFail($this->delete_id);
+            $equipment_model = EquipmentModel::query()->visibleToUser()->findOrFail($this->delete_id);
 
             if (! $equipment_model->canDelete()) {
                 $message = $equipment_model->isGeneralReadonly()
@@ -72,8 +72,8 @@ class Show extends Component
     public function render()
     {
         return view('livewire.admin.settings.equipment.models.show', [
-            'can_edit'            => auth()->user()->can('settings.edit') && $this->equipment_model->isEditableBy(),
-            'can_delete'          => auth()->user()->can('settings.edit') && $this->equipment_model->canDelete(),
+            'can_edit'            => auth()->user()->can('settings.model_equipment.edit') && $this->equipment_model->isEditableBy(),
+            'can_delete'          => auth()->user()->can('settings.model_equipment.delete') && $this->equipment_model->canDelete(),
             'is_general_readonly' => $this->equipment_model->isGeneralReadonly(),
         ]);
     }

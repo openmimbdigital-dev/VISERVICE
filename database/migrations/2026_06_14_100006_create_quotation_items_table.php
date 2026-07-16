@@ -11,17 +11,18 @@ return new class extends Migration
         Schema::create('quotation_items', function (Blueprint $table) {
             $table->id();
             $table->foreignId('quotation_id')->constrained()->onDelete('cascade');
-            $table->enum('item_type', ['servicio', 'repuesto', 'otro'])->default('servicio');
+            $table->unsignedBigInteger('product_id')->nullable();
+            $table->unsignedBigInteger('product_type_id')->nullable();
+            $table->unsignedBigInteger('product_category_id')->nullable();
             $table->string('description');
             $table->decimal('quantity', 10, 2)->default(1);
             $table->decimal('unit_price', 12, 2)->default(0);
             $table->decimal('discount_percentage', 5, 2)->default(0);
             $table->decimal('subtotal', 12, 2)->default(0);
-            $table->unsignedBigInteger('catalog_item_id')->nullable()->comment('ID del item del catálogo si aplica');
-            $table->string('catalog_item_type')->nullable()->comment('services_catalog | spare_parts_catalog');
             $table->timestamps();
 
-            $table->index(['quotation_id', 'item_type']);
+            $table->index(['quotation_id', 'product_category_id'], 'quotation_items_quotation_category_idx');
+            $table->index(['quotation_id', 'product_type_id'], 'quotation_items_quotation_type_idx');
         });
     }
 

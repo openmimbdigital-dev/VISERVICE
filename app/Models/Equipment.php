@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Equipment extends Model
@@ -14,17 +15,16 @@ class Equipment extends Model
     protected $table = 'equipment';
 
     protected $fillable = [
-        'business_id', 'client_id', 'brand_id', 'model_id', 'equipment_type_id',
-        'plate', 'brand', 'model', 'year', 'km_current',
+        'business_id', 'client_id', 'brand_id', 'client_name', 'model_id', 'equipment_type_id',
+        'plate', 'name', 'brand_name', 'model_name', 'equipment_type_name', 'year',
         'status', 'notes', 'created_by',
     ];
 
     protected function casts(): array
     {
         return [
-            'status'     => 'boolean',
-            'year'       => 'integer',
-            'km_current' => 'integer',
+            'status' => 'boolean',
+            'year'   => 'integer',
         ];
     }
 
@@ -68,6 +68,35 @@ class Equipment extends Model
         return $this->hasMany(WorkOrder::class);
     }
 
+    public function remissions(): HasMany
+    {
+        return $this->hasMany(Remission::class);
+    }
+
+    public function equipment_historicals(): HasMany
+    {
+        return $this->hasMany(EquipmentHistorical::class)->orderByDesc('created_at');
+    }
+
+    public function attributeValues(): MorphMany
+    {
+        return $this->morphMany(AttributeEquipmentType::class, 'model');
+    }
+
+    public function generalConfigs(): MorphMany
+    {
+        return $this->morphMany(GeneralConfig::class, 'configurable');
+    }
+
+    public function getSelectLabelAttribute(): string
+    {
+        return implode(' · ', array_filter([
+            $this->name,
+            $this->brand_name,
+            $this->plate,
+        ]));
+    }
+
     public function scopeActive($query)
     {
         return $query->where('status', true);
@@ -81,13 +110,52 @@ class Equipment extends Model
             return $query;
         }
 
-        return $query->where($query->getModel()->getTable() . '.business_id', $user->business_id);
+        $business_ids = $user->businessIds();
+
+        if ($business_ids === []) {
+            return $query->whereRaw('0 = 1');
+        }
+
+        return $query->whereIn($query->getModel()->getTable() . '.business_id', $business_ids);
     }
 
     public function getDisplayNameAttribute(): string
     {
-        $parts = array_filter([$this->brand, $this->model, $this->year]);
-        $name = implode(' ', $parts);
-        return $name ? "{$this->plate} — {$name}" : $this->plate;
+        $details = implode(' ', array_filter([
+            $this->brand_name,
+            $this->model_name,
+            $this->year ? (string) $this->year : null,
+        ]));
+
+        if ($this->name) {
+            return $details ? "{$this->name} ({$details})" : $this->name;
+        }
+
+        return $details ? "{$this->plate} — {$details}" : $this->plate;
+    }
+
+    public function hasDependencies(): bool
+    {
+        return $this->workOrders()->exists() || $this->quotations()->exists();
+    }
+
+    public function dependencyBlockReason(): ?string
+    {
+        if ($this->workOrders()->exists()) {
+            return 'Tiene órdenes de trabajo asociadas.';
+        }
+
+        if ($this->quotations()->exists()) {
+            return 'Tiene cotizaciones asociadas.';
+        }
+
+        return null;
+    }
+
+    public function canDelete(?User $user = null): bool
+    {
+        $user ??= auth()->user();
+
+        return $user?->can('workshop.equipment.delete') && ! $this->hasDependencies();
     }
 }

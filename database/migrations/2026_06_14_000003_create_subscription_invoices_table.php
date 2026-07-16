@@ -24,6 +24,10 @@ return new class extends Migration
             $table->text('notes')->nullable();
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
+
+            $table->index(['business_id', 'status'], 'subscription_invoices_business_status_idx');
+            $table->index(['subscription_id', 'status'], 'subscription_invoices_subscription_status_idx');
+            $table->index(['business_id', 'due_date'], 'subscription_invoices_business_due_idx');
         });
     }
 

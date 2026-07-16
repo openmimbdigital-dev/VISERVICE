@@ -1,477 +1,332 @@
-<div class="p-6 space-y-6" x-data="{ tab: 'info', logoPreview: '{{ $current_logo ? Storage::disk('public')->url($current_logo) : '' }}', removeLogo: false }">
+@php
+    $rep = is_array($business->representative) ? $business->representative : [];
+@endphp
 
-    {{-- Encabezado --}}
-    <div class="flex items-start gap-5">
-        {{-- Logo / avatar --}}
-        <div class="w-16 h-16 rounded-2xl overflow-hidden shrink-0 bg-slate-100 flex items-center justify-center border border-slate-200 shadow-sm">
-            @if($business->logo)
-                <img src="{{ Storage::disk('public')->url($business->logo) }}" alt="{{ $business->name }}" class="w-full h-full object-cover">
-            @else
-                <span class="text-xl font-bold text-slate-400">{{ strtoupper(substr($business->name, 0, 2)) }}</span>
-            @endif
-        </div>
-        <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-3 flex-wrap">
-                <h1 class="text-2xl font-bold text-slate-900 truncate">{{ $business->name }}</h1>
-                @if($business->status)
-                    <span class="inline-flex items-center gap-1 text-xs font-medium bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Activo
-                    </span>
-                @else
-                    <span class="inline-flex items-center gap-1 text-xs font-medium bg-slate-100 text-slate-500 px-2.5 py-1 rounded-full">
-                        <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>Inactivo
-                    </span>
-                @endif
+<div class="relative mx-auto w-full max-w-[90rem] p-4 sm:p-6" x-data="{ tab: 'info' }">
+    <div class="pointer-events-none absolute -top-4 left-1/2 h-px w-[min(100%,48rem)] -translate-x-1/2 bg-gradient-to-r from-transparent via-indigo-300/40 to-transparent" aria-hidden="true"></div>
+
+    <nav class="mb-6 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-medium text-slate-500">
+        <a href="{{ route('dashboard') }}" wire:navigate class="rounded px-1.5 py-0.5 hover:bg-slate-200/60">Inicio</a>
+        <span class="text-slate-300">/</span>
+        <a href="{{ route('admin.businesses.index') }}" wire:navigate class="rounded px-1.5 py-0.5 hover:bg-slate-200/60">Negocios</a>
+        <span class="text-slate-300">/</span>
+        <span class="font-semibold text-slate-900">{{ $business->name }}</span>
+    </nav>
+
+    <header class="mb-8">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div class="flex min-w-0 flex-1 items-start gap-4">
+                <x-ui.business-logo :business="$business" size="lg" class="rounded-2xl shadow-sm" />
+                <div class="min-w-0 flex-1 border-l-4 border-indigo-600 pl-4 sm:pl-5">
+                    <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-indigo-600/90">Negocios</p>
+                    <div class="mt-2 flex flex-wrap items-center gap-3">
+                        <h1 class="text-2xl font-bold tracking-tight text-slate-900">{{ $business->name }}</h1>
+                        @if($business->status)
+                            <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 ring-1 ring-emerald-600/20">
+                                <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>Activo
+                            </span>
+                        @else
+                            <span class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 ring-1 ring-slate-500/20">
+                                <span class="h-1.5 w-1.5 rounded-full bg-slate-400"></span>Inactivo
+                            </span>
+                        @endif
+                    </div>
+                    @if($business->tagline)
+                    <p class="mt-1 text-sm italic text-slate-600">{{ $business->tagline }}</p>
+                    @endif
+                    <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-500">
+                        @if($business->nit)
+                            <span>NIT: <span class="font-medium text-slate-700">{{ $business->nit }}</span></span>
+                        @endif
+                        @if($business->organization_type)
+                            <span>Organización: <span class="font-medium text-slate-700">{{ $business->organization_type->name }}</span></span>
+                        @endif
+                        @if($business->business_type)
+                            <span>Tipo: <span class="font-medium text-slate-700">{{ $business->business_type->name }}</span></span>
+                        @endif
+                    </div>
+                </div>
             </div>
-            <div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-sm text-slate-500">
-                <span>NIT: <span class="font-medium text-slate-700">{{ $business->nit }}</span></span>
-                @if($business->business_type)
-                    <span>Tipo: <span class="font-medium text-slate-700">{{ $business->business_type->name }}</span></span>
-                @endif
-                @if($business->city)
-                    <span>{{ $business->city->name }}</span>
-                @endif
-                <span>Registrado {{ $business->created_at->format('d/m/Y') }}</span>
+            <div class="flex w-full shrink-0 flex-wrap gap-2 sm:w-auto">
+                <a href="{{ route('admin.businesses.index') }}" wire:navigate class="btn btn-outline-secondary btn-sm flex-1 justify-center sm:flex-none">
+                    Volver
+                </a>
+                @can('businesses.edit')
+                <a href="{{ route('admin.businesses.form.edit', $business) }}" wire:navigate class="btn btn-primary btn-sm flex-1 justify-center sm:flex-none">
+                    Editar
+                </a>
+                @endcan
+                @canany(['businesses.activate', 'businesses.deactivate'])
+                <button type="button" wire:click="toggleStatus" wire:confirm="{{ $business->status ? '¿Desactivar este negocio?' : '¿Activar este negocio?' }}"
+                    class="btn btn-sm flex-1 justify-center sm:flex-none {{ $business->status ? 'btn-outline-secondary' : 'btn-primary' }}">
+                    {{ $business->status ? 'Desactivar' : 'Activar' }}
+                </button>
+                @endcanany
             </div>
         </div>
-        <div class="flex items-center gap-2 shrink-0">
-            <a href="{{ route('admin.businesses.index') }}" wire:navigate
-                class="inline-flex items-center gap-1.5 text-sm text-slate-600 hover:text-slate-800 bg-white border border-slate-200 hover:bg-slate-50 px-3.5 py-2 rounded-xl transition">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
-                Volver
-            </a>
-        </div>
-    </div>
+    </header>
 
     {{-- Tabs --}}
-    <div class="border-b border-slate-200">
-        <nav class="flex gap-1 -mb-px">
-            @foreach([['info','Información'],['subscriptions','Suscripciones'],['users','Usuarios']] as [$key,$label])
-            <button type="button" @click="tab = '{{ $key }}'"
-                :class="tab === '{{ $key }}'
-                    ? 'border-b-2 border-indigo-600 text-indigo-600 font-semibold'
-                    : 'text-slate-500 hover:text-slate-700 border-b-2 border-transparent'"
-                class="px-4 py-3 text-sm transition whitespace-nowrap">
-                {{ $label }}
-                @if($key === 'users')
-                    <span class="ml-1.5 inline-flex items-center justify-center h-4.5 min-w-4.5 px-1.5 rounded-full bg-slate-200 text-slate-600 text-[10px] font-bold">
-                        {{ $business->users->count() }}
-                    </span>
-                @elseif($key === 'subscriptions')
-                    <span class="ml-1.5 inline-flex items-center justify-center h-4.5 min-w-4.5 px-1.5 rounded-full bg-slate-200 text-slate-600 text-[10px] font-bold">
-                        {{ $business->subscriptions->count() }}
-                    </span>
-                @endif
-            </button>
-            @endforeach
-        </nav>
+    <div class="mb-6 flex flex-wrap gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1">
+        <button type="button" @click="tab = 'info'"
+            :class="tab === 'info' ? 'bg-white text-indigo-700 shadow-sm ring-1 ring-slate-200' : 'text-slate-600 hover:text-slate-900'"
+            class="rounded-lg px-4 py-2 text-sm font-medium transition">
+            Información
+        </button>
+        <button type="button" @click="tab = 'users'"
+            :class="tab === 'users' ? 'bg-white text-indigo-700 shadow-sm ring-1 ring-slate-200' : 'text-slate-600 hover:text-slate-900'"
+            class="rounded-lg px-4 py-2 text-sm font-medium transition">
+            Usuarios
+            <span class="ml-1 text-xs text-slate-400">({{ $business->users->count() }})</span>
+        </button>
+        <button type="button" @click="tab = 'subscriptions'"
+            :class="tab === 'subscriptions' ? 'bg-white text-indigo-700 shadow-sm ring-1 ring-slate-200' : 'text-slate-600 hover:text-slate-900'"
+            class="rounded-lg px-4 py-2 text-sm font-medium transition">
+            Suscripciones
+            <span class="ml-1 text-xs text-slate-400">({{ $business->subscriptions->count() }})</span>
+        </button>
     </div>
 
-    {{-- ════════════════════ TAB: INFORMACIÓN ════════════════════ --}}
-    <div x-show="tab === 'info'" x-cloak>
-        <form wire:submit="save" class="space-y-5">
-
-            {{-- Logo --}}
-            <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-                <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-                    <h2 class="text-sm font-semibold text-slate-900">Identidad visual</h2>
-                </div>
-                <div class="p-6">
-                    <div class="flex items-start gap-5">
-                        <div class="w-24 h-24 rounded-2xl border-2 border-dashed border-slate-200 overflow-hidden bg-slate-50 flex items-center justify-center shrink-0">
-                            <template x-if="logoPreview && !removeLogo">
-                                <img :src="logoPreview" class="w-full h-full object-cover">
-                            </template>
-                            <template x-if="!logoPreview || removeLogo">
-                                <span class="text-2xl font-bold text-slate-300">{{ strtoupper(substr($business->name, 0, 2)) }}</span>
-                            </template>
-                        </div>
-                        <div class="space-y-2">
-                            <label class="inline-flex items-center gap-2 cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium px-4 py-2 rounded-xl transition">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-                                Cambiar logo
-                                <input type="file" wire:model="new_logo" accept="image/*" class="sr-only"
-                                    x-on:change="
-                                        removeLogo = false; $wire.set('remove_logo', false);
-                                        const f = $event.target.files[0];
-                                        if (f) { const r = new FileReader(); r.onload = e => logoPreview = e.target.result; r.readAsDataURL(f); }
-                                    ">
-                            </label>
-                            <div wire:loading wire:target="new_logo" class="text-xs text-indigo-600">Cargando...</div>
-                            @if($current_logo)
-                            <button type="button"
-                                x-on:click="removeLogo = true; logoPreview = ''; $wire.set('remove_logo', true)"
-                                class="inline-flex items-center gap-1.5 text-xs text-rose-600 hover:text-rose-700 font-medium px-3 py-1.5 rounded-lg hover:bg-rose-50 transition">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                Eliminar logo
-                            </button>
-                            @endif
-                            @error('new_logo') <p class="text-xs text-rose-600">{{ $message }}</p> @enderror
-                            <p class="text-xs text-slate-400">JPG, PNG o WebP · máx. 2 MB</p>
-                        </div>
-                    </div>
-                </div>
+    {{-- Tab: Información --}}
+    <div x-show="tab === 'info'" x-cloak class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <section class="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
+            <div class="border-b border-slate-100 bg-slate-50/80 px-5 py-4">
+                <h2 class="font-semibold text-slate-800">Datos generales</h2>
             </div>
-
-            {{-- Datos generales --}}
-            <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-                <div class="px-6 py-4 border-b border-slate-100">
-                    <h2 class="text-sm font-semibold text-slate-900">Datos generales</h2>
+            <dl class="divide-y divide-slate-100 px-5 py-2">
+                <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt class="text-xs font-medium text-slate-500">Nombre</dt>
+                    <dd class="text-sm text-slate-900 sm:col-span-2">{{ $business->name }}</dd>
                 </div>
-                <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
-
-                    <div>
-                        <label class="block text-xs font-medium text-slate-700 mb-1.5">Nombre <span class="text-rose-500">*</span></label>
-                        <input wire:model="name" type="text"
-                            class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition @error('name') border-rose-400 bg-rose-50 @enderror">
-                        @error('name') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-medium text-slate-700 mb-1.5">NIT / RUT <span class="text-rose-500">*</span></label>
-                        <input wire:model="nit" type="text"
-                            class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition @error('nit') border-rose-400 bg-rose-50 @enderror">
-                        @error('nit') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-medium text-slate-700 mb-1.5">Tipo de negocio</label>
-                        <select wire:model="business_type_id"
-                            class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-700 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition">
-                            <option value="">Sin tipo</option>
-                            @foreach($business_types as $bt)
-                                <option value="{{ $bt->id }}">{{ $bt->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-medium text-slate-700 mb-1.5">Ciudad</label>
-                        <select wire:model="city_id"
-                            class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-700 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition">
-                            <option value="">Sin ciudad</option>
-                            @foreach($cities as $city)
-                                <option value="{{ $city->id }}">{{ $city->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-medium text-slate-700 mb-1.5">Teléfono</label>
-                        <input wire:model="phone_number" type="tel"
-                            class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition">
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-medium text-slate-700 mb-1.5">Correo electrónico</label>
-                        <input wire:model="email" type="email"
-                            class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition @error('email') border-rose-400 bg-rose-50 @enderror">
-                        @error('email') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
-                    </div>
-
-                    <div class="md:col-span-2">
-                        <label class="block text-xs font-medium text-slate-700 mb-1.5">Dirección</label>
-                        <textarea wire:model="address" rows="2"
-                            class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition resize-none"></textarea>
-                    </div>
-
-                    {{-- Estado --}}
-                    <div class="md:col-span-2 flex items-center justify-between bg-slate-50 rounded-xl px-4 py-3 border border-slate-200">
-                        <div>
-                            <p class="text-sm font-medium text-slate-700">Estado del comercio</p>
-                            <p class="text-xs text-slate-400 mt-0.5">Desactivar impide el acceso de todos sus usuarios.</p>
-                        </div>
-                        <button type="button" wire:click="$toggle('status')"
-                            class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 {{ $status ? 'bg-indigo-600' : 'bg-slate-300' }}">
-                            <span class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 {{ $status ? 'translate-x-6' : 'translate-x-1' }}"></span>
-                        </button>
-                    </div>
+                <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt class="text-xs font-medium text-slate-500">NIT</dt>
+                    <dd class="text-sm text-slate-900 sm:col-span-2">{{ $business->nit ?? '—' }}</dd>
                 </div>
+                <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt class="text-xs font-medium text-slate-500">Eslogan</dt>
+                    <dd class="text-sm text-slate-900 sm:col-span-2">{{ $business->tagline ?? '—' }}</dd>
+                </div>
+                <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt class="text-xs font-medium text-slate-500">Régimen tributario</dt>
+                    <dd class="text-sm text-slate-900 sm:col-span-2">{{ $business->tax_regime ?? '—' }}</dd>
+                </div>
+                <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt class="text-xs font-medium text-slate-500">Tipo de organización</dt>
+                    <dd class="text-sm text-slate-900 sm:col-span-2">{{ $business->organization_type?->name ?? '—' }}</dd>
+                </div>
+                <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt class="text-xs font-medium text-slate-500">Tipo de negocio</dt>
+                    <dd class="text-sm text-slate-900 sm:col-span-2">{{ $business->business_type?->name ?? '—' }}</dd>
+                </div>
+                <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt class="text-xs font-medium text-slate-500">Teléfono</dt>
+                    <dd class="text-sm text-slate-900 sm:col-span-2">{{ $business->phone_number ?? '—' }}</dd>
+                </div>
+                <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt class="text-xs font-medium text-slate-500">Correo</dt>
+                    <dd class="text-sm text-slate-900 sm:col-span-2">{{ $business->email ?? '—' }}</dd>
+                </div>
+                <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt class="text-xs font-medium text-slate-500">Ciudad</dt>
+                    <dd class="text-sm text-slate-900 sm:col-span-2">{{ $business->city?->name ?? '—' }}</dd>
+                </div>
+                <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt class="text-xs font-medium text-slate-500">Dirección</dt>
+                    <dd class="text-sm text-slate-900 sm:col-span-2">{{ $business->address ?? '—' }}</dd>
+                </div>
+                <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt class="text-xs font-medium text-slate-500">Sitio web</dt>
+                    <dd class="text-sm sm:col-span-2">
+                        @if($business->website)
+                            <a href="{{ $business->website }}" target="_blank" rel="noopener" class="text-indigo-600 hover:underline">{{ $business->website }}</a>
+                        @else
+                            <span class="text-slate-900">—</span>
+                        @endif
+                    </dd>
+                </div>
+                <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt class="text-xs font-medium text-slate-500">Registrado</dt>
+                    <dd class="text-sm text-slate-900 sm:col-span-2">{{ $business->created_at?->format('d/m/Y H:i') }}</dd>
+                </div>
+            </dl>
+        </section>
+
+        <section class="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
+            <div class="border-b border-slate-100 bg-slate-50/80 px-5 py-4">
+                <h2 class="font-semibold text-slate-800">Representante y redes</h2>
             </div>
-
-            {{-- Redes sociales y web --}}
-            <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-                <div class="px-6 py-4 border-b border-slate-100">
-                    <h2 class="text-sm font-semibold text-slate-900">Presencia digital</h2>
+            <dl class="divide-y divide-slate-100 px-5 py-2">
+                <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt class="text-xs font-medium text-slate-500">Representante</dt>
+                    <dd class="text-sm text-slate-900 sm:col-span-2">{{ $rep['name'] ?? '—' }}</dd>
                 </div>
-                <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <div class="md:col-span-2">
-                        <label class="block text-xs font-medium text-slate-700 mb-1.5">Sitio web</label>
-                        <div class="relative">
-                            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
-                                <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/></svg>
-                            </div>
-                            <input wire:model="website" type="url" placeholder="https://micomercio.com"
-                                class="w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-4 py-2.5 text-sm focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition @error('website') border-rose-400 @enderror">
-                        </div>
-                        @error('website') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
-                    </div>
-
-                    @foreach([
-                        ['field'=>'facebook','icon'=>'M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z','label'=>'Facebook','color'=>'text-blue-600'],
-                        ['field'=>'instagram','icon'=>'M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37zm1.5-4.87h.01M6.5 19.5h11a3 3 0 003-3v-11a3 3 0 00-3-3h-11a3 3 0 00-3 3v11a3 3 0 003 3z','label'=>'Instagram','color'=>'text-pink-500'],
-                        ['field'=>'twitter','icon'=>'M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z','label'=>'Twitter / X','color'=>'text-sky-500'],
-                    ] as $sn)
-                    <div>
-                        <label class="block text-xs font-medium text-slate-700 mb-1.5">{{ $sn['label'] }}</label>
-                        <div class="relative">
-                            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
-                                <svg class="w-4 h-4 {{ $sn['color'] }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $sn['icon'] }}"/></svg>
-                            </div>
-                            <input wire:model="{{ $sn['field'] }}" type="url" placeholder="https://..."
-                                class="w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-4 py-2.5 text-sm focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition">
-                        </div>
-                    </div>
-                    @endforeach
+                <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt class="text-xs font-medium text-slate-500">Tel. representante</dt>
+                    <dd class="text-sm text-slate-900 sm:col-span-2">{{ $rep['phone'] ?? '—' }}</dd>
                 </div>
-            </div>
-
-            {{-- Representante legal --}}
-            <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-                <div class="px-6 py-4 border-b border-slate-100">
-                    <h2 class="text-sm font-semibold text-slate-900">Representante legal</h2>
+                <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt class="text-xs font-medium text-slate-500">Correo representante</dt>
+                    <dd class="text-sm text-slate-900 sm:col-span-2">{{ $rep['email'] ?? '—' }}</dd>
                 </div>
-                <div class="p-6 grid grid-cols-1 md:grid-cols-3 gap-5">
-                    <div>
-                        <label class="block text-xs font-medium text-slate-700 mb-1.5">Nombre completo</label>
-                        <input wire:model="rep_name" type="text"
-                            class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-slate-700 mb-1.5">Teléfono</label>
-                        <input wire:model="rep_phone" type="tel"
-                            class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-slate-700 mb-1.5">Correo</label>
-                        <input wire:model="rep_email" type="email"
-                            class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition @error('rep_email') border-rose-400 @enderror">
-                        @error('rep_email') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
-                    </div>
+                <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt class="text-xs font-medium text-slate-500">Facebook</dt>
+                    <dd class="text-sm text-slate-900 sm:col-span-2">{{ $business->facebook ?? '—' }}</dd>
                 </div>
-            </div>
-
-            {{-- Guardar --}}
-            <div class="flex justify-end">
-                <button type="submit"
-                    class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm px-6 py-2.5 rounded-xl transition shadow-sm shadow-indigo-500/20 disabled:opacity-60"
-                    wire:loading.attr="disabled">
-                    <svg wire:loading.remove class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                    <svg wire:loading class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 5 5.373 5 12h4z"/></svg>
-                    <span wire:loading.remove>Guardar cambios</span>
-                    <span wire:loading>Guardando...</span>
-                </button>
-            </div>
-        </form>
+                <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt class="text-xs font-medium text-slate-500">Instagram</dt>
+                    <dd class="text-sm text-slate-900 sm:col-span-2">{{ $business->instagram ?? '—' }}</dd>
+                </div>
+                <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt class="text-xs font-medium text-slate-500">Twitter / X</dt>
+                    <dd class="text-sm text-slate-900 sm:col-span-2">{{ $business->twitter ?? '—' }}</dd>
+                </div>
+            </dl>
+        </section>
     </div>
 
-    {{-- ════════════════════ TAB: SUSCRIPCIONES ════════════════════ --}}
-    <div x-show="tab === 'subscriptions'" x-cloak class="space-y-4">
-        @forelse($business->subscriptions->sortByDesc('created_at') as $sub)
-        @php
-            $subColor = match($sub->status) {
-                'active'    => ['ring'=>'ring-emerald-500/30','bg'=>'bg-emerald-50','badge'=>'bg-emerald-100 text-emerald-700'],
-                'pending'   => ['ring'=>'ring-amber-400/30', 'bg'=>'bg-amber-50', 'badge'=>'bg-amber-100 text-amber-700'],
-                'trial'     => ['ring'=>'ring-blue-400/30',  'bg'=>'bg-blue-50',  'badge'=>'bg-blue-100 text-blue-700'],
-                'past_due'  => ['ring'=>'ring-yellow-400/30','bg'=>'bg-yellow-50','badge'=>'bg-yellow-100 text-yellow-700'],
-                'cancelled' => ['ring'=>'ring-slate-300',    'bg'=>'bg-slate-50', 'badge'=>'bg-slate-100 text-slate-500'],
-                'expired'   => ['ring'=>'ring-rose-400/30',  'bg'=>'bg-rose-50',  'badge'=>'bg-rose-100 text-rose-700'],
-                default     => ['ring'=>'ring-slate-300',    'bg'=>'bg-slate-50', 'badge'=>'bg-slate-100 text-slate-500'],
-            };
-        @endphp
-        <div class="bg-white rounded-2xl border border-slate-200 ring-2 {{ $subColor['ring'] }} overflow-hidden">
-            {{-- Header suscripción --}}
-            <div class="px-6 py-4 {{ $subColor['bg'] }} border-b border-slate-100 flex items-center justify-between flex-wrap gap-3">
-                <div class="flex items-center gap-3">
-                    <div>
-                        <p class="text-sm font-semibold text-slate-900">{{ $sub->plan?->name ?? 'Plan eliminado' }}</p>
-                        <p class="text-xs text-slate-500">{{ $sub->billing_cycle_label }} · Creada {{ $sub->created_at->format('d/m/Y') }}</p>
-                    </div>
-                </div>
-                <div class="flex items-center gap-3">
-                    <span class="text-lg font-bold text-slate-900">${{ number_format($sub->total_price, 0, ',', '.') }}</span>
-                    <span class="text-xs font-medium px-2.5 py-1 rounded-full {{ $subColor['badge'] }}">{{ $sub->status_label }}</span>
-                </div>
-            </div>
-
-            {{-- Detalles suscripción --}}
-            <div class="px-6 py-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                <div>
-                    <p class="text-xs text-slate-400">Inicio</p>
-                    <p class="font-medium text-slate-800">{{ $sub->started_at?->format('d/m/Y') ?? '—' }}</p>
-                </div>
-                <div>
-                    <p class="text-xs text-slate-400">Vence</p>
-                    <p class="font-medium text-slate-800">{{ $sub->ends_at?->format('d/m/Y') ?? '—' }}</p>
-                </div>
-                <div>
-                    <p class="text-xs text-slate-400">Precio mensual</p>
-                    <p class="font-medium text-slate-800">${{ number_format($sub->monthly_price, 0, ',', '.') }}</p>
-                </div>
-                <div>
-                    <p class="text-xs text-slate-400">Descuento</p>
-                    <p class="font-medium text-slate-800">{{ $sub->discount_percentage ?? 0 }}%</p>
-                </div>
-            </div>
-
-            {{-- Facturas --}}
-            @if($sub->invoices->isNotEmpty())
-            <div class="border-t border-slate-100">
-                <div class="px-6 py-3 bg-slate-50 flex items-center gap-2">
-                    <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                    <span class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Facturas</span>
-                </div>
-                <div class="divide-y divide-slate-100">
-                    @foreach($sub->invoices->sortByDesc('created_at') as $inv)
-                    @php
-                        $invBadge = match($inv->status) {
-                            'paid'     => 'bg-emerald-100 text-emerald-700',
-                            'pending'  => 'bg-amber-100 text-amber-700',
-                            'failed'   => 'bg-rose-100 text-rose-700',
-                            'refunded' => 'bg-slate-100 text-slate-500',
-                            default    => 'bg-slate-100 text-slate-500',
-                        };
-                        $invLabel = match($inv->status) {
-                            'paid'     => 'Pagado',
-                            'pending'  => 'Pendiente',
-                            'failed'   => 'Fallido',
-                            'refunded' => 'Reembolsado',
-                            default    => $inv->status,
-                        };
-                    @endphp
-                    <div class="px-6 py-3 flex items-center justify-between gap-4 flex-wrap">
-                        <div class="flex items-center gap-3">
-                            <span class="text-xs font-mono text-slate-500">{{ $inv->invoice_number }}</span>
-                            <span class="text-xs text-slate-400">{{ $inv->created_at->format('d/m/Y') }}</span>
-                            @if($inv->payment_method)
-                                <span class="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">
-                                    {{ $inv->payment_method === 'transfer' ? 'Transferencia' : 'Efectivo' }}
-                                </span>
-                            @endif
-                        </div>
-                        <div class="flex items-center gap-3">
-                            <span class="text-sm font-semibold text-slate-800">${{ number_format($inv->amount, 0, ',', '.') }}</span>
-                            <span class="text-xs font-medium px-2.5 py-1 rounded-full {{ $invBadge }}">{{ $invLabel }}</span>
-                            @if($inv->payment_proof)
-                                <a href="{{ Storage::disk('public')->url($inv->payment_proof) }}" target="_blank"
-                                    class="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 font-medium">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                                    Comprobante
-                                </a>
-                            @endif
-                        </div>
-                    </div>
-                    @endforeach
-                </div>
-            </div>
-            @endif
-        </div>
-        @empty
-        <div class="bg-white rounded-2xl border border-slate-200 py-16 text-center">
-            <svg class="mx-auto h-12 w-12 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
-            <p class="mt-3 text-sm font-medium text-slate-900">Sin suscripciones</p>
-            <p class="mt-1 text-xs text-slate-500">Este comercio no tiene historial de suscripciones.</p>
-        </div>
-        @endforelse
-    </div>
-
-    {{-- ════════════════════ TAB: USUARIOS ════════════════════ --}}
+    {{-- Tab: Usuarios --}}
     <div x-show="tab === 'users'" x-cloak>
-        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-            @if($business->users->isEmpty())
-            <div class="py-16 text-center">
-                <svg class="mx-auto h-12 w-12 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                <p class="mt-3 text-sm font-medium text-slate-900">Sin usuarios registrados</p>
+        <section class="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
+            <div class="border-b border-slate-100 bg-slate-50/80 px-4 py-4 sm:px-5">
+                <h2 class="font-semibold text-slate-800">Usuarios del negocio</h2>
+                <p class="mt-1 text-xs text-slate-500">Personas vinculadas a este negocio en la plataforma.</p>
             </div>
-            @else
-            <table class="min-w-full divide-y divide-slate-100">
-                <thead>
-                    <tr class="bg-slate-50">
-                        <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Usuario</th>
-                        <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Rol</th>
-                        <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Estado</th>
-                        <th class="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Registro</th>
-                        <th class="px-5 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100">
-                    @foreach($business->users->sortBy('id') as $u)
-                    @php
-                        $isPrimary = $u->id === $primaryUserId;
-                        $roleName  = $u->getRoleNames()->first() ?? '—';
-                        $roleBg    = match($roleName) {
-                            'superAdmin'    => 'bg-rose-100 text-rose-700',
-                            'Comercio'      => 'bg-violet-100 text-violet-700',
-                            'Administrador' => 'bg-indigo-100 text-indigo-700',
-                            'Supervisor'    => 'bg-sky-100 text-sky-700',
-                            default         => 'bg-slate-100 text-slate-600',
-                        };
-                    @endphp
-                    <tr class="hover:bg-slate-50/70 transition">
-                        <td class="px-5 py-4">
-                            <div class="flex items-center gap-3">
-                                <div class="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-indigo-700 flex items-center justify-center shrink-0">
-                                    <span class="text-xs font-bold text-white">
-                                        {{ strtoupper(substr($u->first_name ?? '', 0, 1) . substr($u->last_name ?? '', 0, 1)) }}
-                                    </span>
-                                </div>
-                                <div>
-                                    <p class="text-sm font-semibold text-slate-900">
-                                        {{ $u->full_name }}
-                                        @if($isPrimary)
-                                            <span class="ml-1 text-[10px] font-medium text-violet-600 bg-violet-50 px-1.5 py-0.5 rounded-full">Principal</span>
-                                        @endif
-                                    </p>
-                                    <p class="text-xs text-slate-400">{{ $u->email }}</p>
-                                    @if($u->username)
-                                        <p class="text-xs text-slate-400">{{ $u->username }}</p>
+            <div class="overflow-x-auto">
+                @if($business->users->isEmpty())
+                    <p class="p-6 text-center text-sm text-slate-400 italic">No hay usuarios asignados.</p>
+                @else
+                    <table class="min-w-full divide-y divide-slate-100">
+                        <thead class="bg-slate-50/80">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 sm:px-5">Usuario</th>
+                                <th class="hidden px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 sm:table-cell sm:px-5">Correo</th>
+                                <th class="hidden px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 md:table-cell md:px-5">Roles</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 sm:px-5">Estado</th>
+                                <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500 sm:px-5">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            @foreach($business->users as $user)
+                            <tr wire:key="business-user-{{ $user->id }}">
+                                <td class="px-4 py-4 sm:px-5">
+                                    <p class="text-sm font-medium text-slate-900">{{ $user->full_name }}</p>
+                                    <p class="text-xs text-slate-400">@{{ $user->username }}</p>
+                                    @if($user->pivot->is_primary || $user->id === $primary_user_id)
+                                        <span class="mt-1 inline-flex rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-medium text-indigo-700">Principal</span>
                                     @endif
-                                    @if($u->phone_number)
-                                        <p class="text-xs text-slate-400">{{ $u->phone_number }}</p>
-                                    @endif
-                                </div>
-                            </div>
-                        </td>
-                        <td class="px-5 py-4">
-                            <span class="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full {{ $roleBg }}">{{ $roleName }}</span>
-                        </td>
-                        <td class="px-5 py-4">
-                            @if($isPrimary)
-                                <span class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full {{ $u->status ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500' }}">
-                                    <span class="w-1.5 h-1.5 rounded-full {{ $u->status ? 'bg-emerald-500' : 'bg-slate-400' }}"></span>
-                                    {{ $u->status ? 'Activo' : 'Inactivo' }}
-                                </span>
-                            @else
-                                <button wire:click="toggleUserStatus({{ $u->id }})" type="button"
-                                    title="{{ $u->status ? 'Clic para desactivar' : 'Clic para activar' }}">
-                                    @if($u->status)
-                                        <span class="inline-flex items-center gap-1 text-xs font-medium bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full hover:bg-emerald-200 transition cursor-pointer">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Activo
-                                        </span>
+                                </td>
+                                <td class="hidden px-4 py-4 text-sm text-slate-600 sm:table-cell sm:px-5">{{ $user->email }}</td>
+                                <td class="hidden px-4 py-4 md:table-cell md:px-5">
+                                    <div class="flex flex-wrap gap-1">
+                                        @forelse($user->roles as $role)
+                                            <span class="rounded-lg bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600">{{ $role->name }}</span>
+                                        @empty
+                                            <span class="text-xs text-slate-400">—</span>
+                                        @endforelse
+                                    </div>
+                                </td>
+                                <td class="px-4 py-4 sm:px-5">
+                                    @if($user->status)
+                                        <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700">Activo</span>
                                     @else
-                                        <span class="inline-flex items-center gap-1 text-xs font-medium bg-slate-100 text-slate-500 px-2.5 py-1 rounded-full hover:bg-slate-200 transition cursor-pointer">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>Inactivo
-                                        </span>
+                                        <span class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">Inactivo</span>
                                     @endif
-                                </button>
-                            @endif
-                        </td>
-                        <td class="px-5 py-4">
-                            <p class="text-sm text-slate-700">{{ $u->created_at->format('d/m/Y') }}</p>
-                            <p class="text-xs text-slate-400">{{ $u->created_at->diffForHumans() }}</p>
-                        </td>
-                        <td class="px-5 py-4 text-right">
-                            <a href="{{ route('admin.users.index') }}" wire:navigate
-                                class="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                                Gestionar
-                            </a>
-                        </td>
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
-            @endif
-        </div>
+                                </td>
+                                <td class="px-4 py-4 text-right sm:px-5">
+                                    @canany(['users.activate', 'users.deactivate'])
+                                        @if($user->id !== $primary_user_id)
+                                        <button type="button" wire:click="toggleUserStatus({{ $user->id }})"
+                                            wire:confirm="{{ $user->status ? '¿Desactivar este usuario?' : '¿Activar este usuario?' }}"
+                                            class="text-xs font-medium {{ $user->status ? 'text-amber-700 hover:text-amber-800' : 'text-emerald-700 hover:text-emerald-800' }}">
+                                            {{ $user->status ? 'Desactivar' : 'Activar' }}
+                                        </button>
+                                        @else
+                                        <span class="text-xs text-slate-400">—</span>
+                                        @endif
+                                    @endcanany
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                @endif
+            </div>
+        </section>
+    </div>
+
+    {{-- Tab: Suscripciones --}}
+    <div x-show="tab === 'subscriptions'" x-cloak>
+        <section class="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
+            <div class="border-b border-slate-100 bg-slate-50/80 px-4 py-4 sm:px-5">
+                <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h2 class="font-semibold text-slate-800">Suscripciones</h2>
+                        <p class="mt-1 text-xs text-slate-500">Historial de planes y facturación del negocio.</p>
+                    </div>
+                    @role('superAdmin')
+                        @if($business->subscriptions->contains('status', 'pending'))
+                        <a href="{{ route('admin.payments.index') }}" wire:navigate class="text-xs font-medium text-amber-700 hover:text-amber-800">
+                            Ver pagos pendientes →
+                        </a>
+                        @endif
+                    @endrole
+                </div>
+            </div>
+            <div class="divide-y divide-slate-100">
+                @forelse($business->subscriptions as $subscription)
+                <div class="p-4 sm:p-5" wire:key="subscription-{{ $subscription->id }}">
+                    <div class="mb-3 flex flex-wrap items-center gap-2">
+                        <h3 class="text-sm font-semibold text-slate-900">{{ $subscription->plan?->name ?? 'Plan' }}</h3>
+                        @php
+                            $status_colors = [
+                                'pending'   => 'bg-amber-50 text-amber-700 ring-amber-600/20',
+                                'trial'     => 'bg-blue-50 text-blue-700 ring-blue-600/20',
+                                'active'    => 'bg-emerald-50 text-emerald-700 ring-emerald-600/20',
+                                'past_due'  => 'bg-yellow-50 text-yellow-700 ring-yellow-600/20',
+                                'cancelled' => 'bg-slate-100 text-slate-600 ring-slate-500/20',
+                                'expired'   => 'bg-rose-50 text-rose-700 ring-rose-600/20',
+                            ];
+                            $color = $status_colors[$subscription->status] ?? 'bg-slate-100 text-slate-600 ring-slate-500/20';
+                        @endphp
+                        <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ring-1 {{ $color }}">
+                            {{ $subscription->status_label }}
+                        </span>
+                    </div>
+                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        <div>
+                            <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Ciclo</p>
+                            <p class="text-sm text-slate-900">{{ $subscription->billing_cycle_label }}</p>
+                        </div>
+                        <div>
+                            <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Precio total</p>
+                            <p class="text-sm text-slate-900">${{ number_format((float) $subscription->total_price, 0, ',', '.') }}</p>
+                        </div>
+                        <div>
+                            <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Inicio</p>
+                            <p class="text-sm text-slate-900">{{ $subscription->started_at?->format('d/m/Y') ?? '—' }}</p>
+                        </div>
+                        <div>
+                            <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Fin</p>
+                            <p class="text-sm text-slate-900">{{ $subscription->ends_at?->format('d/m/Y') ?? '—' }}</p>
+                        </div>
+                    </div>
+                    @if($subscription->invoices->isNotEmpty())
+                    <div class="mt-4">
+                        <p class="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Facturas ({{ $subscription->invoices->count() }})</p>
+                        <div class="flex flex-wrap gap-1.5">
+                            @foreach($subscription->invoices->take(5) as $invoice)
+                                <span class="rounded-lg bg-slate-100 px-2 py-1 text-[11px] text-slate-600" title="{{ $invoice->status ?? '' }}">
+                                    {{ $invoice->invoice_number ?? 'Factura #' . $invoice->id }}
+                                </span>
+                            @endforeach
+                        </div>
+                    </div>
+                    @endif
+                </div>
+                @empty
+                <p class="p-6 text-center text-sm text-slate-400 italic">Sin suscripciones registradas.</p>
+                @endforelse
+            </div>
+        </section>
     </div>
 </div>

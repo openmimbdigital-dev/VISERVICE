@@ -15,23 +15,26 @@ return new class extends Migration
             $table->foreignId('brand_id')->nullable()->constrained('brands')->nullOnDelete();
             $table->foreignId('model_id')->nullable()->constrained('equipment_models')->nullOnDelete();
             $table->foreignId('equipment_type_id')->nullable()->constrained('equipment_types')->nullOnDelete();
-            $table->string('plate')->comment('Número de placa');
-            $table->string('brand')->nullable()->comment('Marca');
-            $table->string('model')->nullable()->comment('Modelo');
+            $table->string('plate')->comment('Número para identificar un equipo');
+            $table->string('name', 120)->comment('Nombre asignado por el usuario al equipo');
+            $table->string('brand_name')->nullable()->comment('Marca');
+            $table->string('client_name')->nullable()->comment('Cliente');
+            $table->string('model_name')->nullable()->comment('Modelo');
+            $table->string('equipment_type_name')->nullable()->comment('Modelo');
             $table->unsignedSmallInteger('year')->nullable();
-            $table->unsignedInteger('km_current')->default(0);
             $table->boolean('status')->default(true);
             $table->text('notes')->nullable();
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
             $table->softDeletes();
 
-            $table->index(['business_id', 'plate']);
-            $table->index(['business_id', 'status']);
-            $table->index(['client_id', 'status']);
-            $table->index(['brand_id', 'status']);
-            $table->index(['model_id', 'status']);
-            $table->index(['equipment_type_id', 'status']);
+            $table->index(['business_id', 'deleted_at', 'plate'], 'equipment_business_deleted_plate_idx');
+            $table->index(['business_id', 'deleted_at', 'name'], 'equipment_business_deleted_name_idx');
+            $table->index(['business_id', 'deleted_at', 'client_id'], 'equipment_business_deleted_client_idx');
+            $table->index(['business_id', 'deleted_at', 'status'], 'equipment_business_deleted_status_idx');
+            $table->index(['business_id', 'deleted_at', 'equipment_type_id'], 'equipment_business_deleted_type_idx');
+            $table->index(['business_id', 'deleted_at', 'created_at'], 'equipment_business_deleted_created_idx');
+            $table->index(['client_id', 'deleted_at', 'status'], 'equipment_client_deleted_status_idx');
         });
     }
 

@@ -4,14 +4,21 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class WorkOrderItem extends Model
 {
     protected $fillable = [
-        'work_order_id', 'item_type', 'description',
-        'quantity', 'unit_price', 'discount_percentage',
-        'subtotal', 'status', 'technician_notes',
-        'catalog_item_id', 'catalog_item_type',
+        'work_order_id',
+        'product_id',
+        'product_type_id',
+        'description',
+        'quantity',
+        'unit_price',
+        'discount_percentage',
+        'subtotal',
+        'status',
+        'technician_notes',
     ];
 
     protected function casts(): array
@@ -29,21 +36,37 @@ class WorkOrderItem extends Model
         return $this->belongsTo(WorkOrder::class);
     }
 
+    public function catalogProduct(): BelongsTo
+    {
+        return $this->belongsTo(Product::class, 'product_id');
+    }
+
+    public function productType(): BelongsTo
+    {
+        return $this->belongsTo(ProductType::class);
+    }
+
+    public function remissionItems(): HasMany
+    {
+        return $this->hasMany(RemissionItem::class);
+    }
+
     public function calculateSubtotal(): float
     {
         $base     = (float) $this->quantity * (float) $this->unit_price;
         $discount = $base * ((float) $this->discount_percentage / 100);
+
         return round($base - $discount, 2);
     }
 
     public function getStatusLabelAttribute(): string
     {
         return match ($this->status) {
-            'pendiente'   => 'Pendiente',
-            'en_proceso'  => 'En proceso',
-            'completado'  => 'Completado',
-            'cancelado'   => 'Cancelado',
-            default       => $this->status,
+            'pendiente'  => 'Pendiente',
+            'en_proceso' => 'En proceso',
+            'completado' => 'Completado',
+            'cancelado'  => 'Cancelado',
+            default      => $this->status,
         };
     }
 
@@ -56,14 +79,5 @@ class WorkOrderItem extends Model
             'cancelado'  => 'red',
             default      => 'gray',
         };
-    }
-
-    public function getItemTypeLabelAttribute(): string
-    {
-        return match ($this->item_type) {
-            'servicio' => 'Servicio',
-            'repuesto' => 'Repuesto',
-            default    => 'Otro',
-        ];
     }
 }

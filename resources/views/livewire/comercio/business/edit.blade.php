@@ -1,4 +1,4 @@
-<div class="p-6 space-y-6" x-data="{ previewUrl: '{{ $business->logo ? Storage::disk('public')->url($business->logo) : '' }}', removeLogo: false }">
+<div class="p-6 space-y-6" x-data="{ previewUrl: @js($current_logo_url ?? ''), removeLogo: false }">
 
     {{-- Encabezado --}}
     <div>
@@ -25,9 +25,7 @@
                                 <img :src="previewUrl" class="w-full h-full object-cover">
                             </template>
                             <template x-if="!previewUrl || removeLogo">
-                                <svg class="w-8 h-8 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                                </svg>
+                                <span class="text-lg font-bold text-slate-300">{{ $business->logo_initials }}</span>
                             </template>
                         </div>
                         {{-- Controles --}}
@@ -44,7 +42,7 @@
                                     ">
                             </label>
                             <div wire:loading wire:target="new_logo" class="text-xs text-indigo-600">Subiendo imagen...</div>
-                            @if($current_logo)
+                            @if($current_logo_url)
                             <button type="button"
                                 x-on:click="removeLogo = true; previewUrl = ''; $wire.set('remove_logo', true)"
                                 class="inline-flex items-center gap-1.5 text-xs text-rose-600 hover:text-rose-700 font-medium px-3 py-1.5 rounded-lg hover:bg-rose-50 transition">
@@ -127,6 +125,18 @@
                             class="w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-4 py-2.5 text-sm focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition @error('website') border-rose-400 bg-rose-50 @enderror">
                     </div>
                     @error('website') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                </div>
+
+                <div class="sm:col-span-2">
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Eslogan / línea comercial</label>
+                    <input wire:model="tagline" type="text" placeholder="Ej. Su taller de confianza"
+                        class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Régimen tributario</label>
+                    <input wire:model="tax_regime" type="text" placeholder="Ej. Responsable de IVA"
+                        class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition">
                 </div>
 
                 {{-- Ciudad --}}

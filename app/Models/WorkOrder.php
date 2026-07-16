@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class WorkOrder extends Model
@@ -17,7 +18,7 @@ class WorkOrder extends Model
         'reference', 'status', 'km_entry', 'km_exit',
         'diagnosis', 'work_description', 'observations', 'notes',
         'estimated_delivery', 'subtotal', 'tax_percentage',
-        'tax_amount', 'total', 'created_by', 'finalized_at',
+        'tax_amount', 'total', 'document_client', 'created_by', 'finalized_at',
     ];
 
     protected function casts(): array
@@ -31,6 +32,7 @@ class WorkOrder extends Model
             'total'              => 'decimal:2',
             'km_entry'           => 'integer',
             'km_exit'            => 'integer',
+            'document_client'    => 'array',
         ];
     }
 
@@ -82,6 +84,33 @@ class WorkOrder extends Model
     public function latestInvoice(): HasOne
     {
         return $this->hasOne(WorkOrderInvoice::class)->latestOfMany();
+    }
+
+    public function equipment_historicals(): MorphMany
+    {
+        return $this->morphMany(EquipmentHistorical::class, 'subject')->orderByDesc('created_at');
+    }
+
+    public function generalConfigs(): MorphMany
+    {
+        return $this->morphMany(GeneralConfig::class, 'configurable');
+    }
+
+    public function scopeForAuthUser($query)
+    {
+        $user = auth()->user();
+
+        if ($user?->hasRole('superAdmin')) {
+            return $query;
+        }
+
+        $business_ids = $user->businessIds();
+
+        if ($business_ids === []) {
+            return $query->whereRaw('0 = 1');
+        }
+
+        return $query->whereIn($query->getModel()->getTable() . '.business_id', $business_ids);
     }
 
     public function scopeOpen($query)

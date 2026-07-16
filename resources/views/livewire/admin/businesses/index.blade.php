@@ -1,9 +1,22 @@
 <div class="p-6 space-y-6">
 
     {{-- Encabezado --}}
-    <div>
-        <h1 class="text-2xl font-bold text-slate-900">Negocios Registrados</h1>
-        <p class="text-sm text-slate-500 mt-1">Todos los comercios que se han registrado en VISERVICE.</p>
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900">Negocios Registrados</h1>
+            <p class="text-sm text-slate-500 mt-1">
+                @if($shows_all)
+                    Todos los comercios registrados en VISERVICE.
+                @else
+                    Negocios asignados a tu cuenta de usuario.
+                @endif
+            </p>
+        </div>
+        @can('businesses.create')
+        <x-ui.create-button :href="route('admin.businesses.form')" class="w-full justify-center sm:w-auto">
+            Nuevo negocio
+        </x-ui.create-button>
+        @endcan
     </div>
 
     {{-- Stats --}}
@@ -50,7 +63,7 @@
             <select wire:model.live="filter_type"
                 class="rounded-xl border border-slate-200 bg-slate-50 py-2.5 px-4 text-sm text-slate-700 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition">
                 <option value="">Todos los tipos</option>
-                @foreach($business_types as $type)
+                @foreach($organization_types as $type)
                     <option value="{{ $type->id }}">{{ $type->name }}</option>
                 @endforeach
             </select>
@@ -98,14 +111,7 @@
                     <tr class="hover:bg-slate-50/70 transition">
                         <td class="px-5 py-4">
                             <div class="flex items-center gap-3">
-                                {{-- Logo --}}
-                                <div class="w-10 h-10 rounded-xl overflow-hidden shrink-0 bg-slate-100 flex items-center justify-center">
-                                    @if($business->logo)
-                                        <img src="{{ Storage::disk('public')->url($business->logo) }}" alt="{{ $business->name }}" class="w-full h-full object-cover">
-                                    @else
-                                        <span class="text-sm font-bold text-slate-400">{{ strtoupper(substr($business->name, 0, 2)) }}</span>
-                                    @endif
-                                </div>
+                                <x-ui.business-logo :business="$business" size="md" class="rounded-xl" />
                                 <div>
                                     <p class="text-sm font-semibold text-slate-900">{{ $business->name }}</p>
                                     <p class="text-xs text-slate-400">NIT: {{ $business->nit }}</p>
@@ -116,7 +122,7 @@
                             </div>
                         </td>
                         <td class="px-5 py-4">
-                            <span class="text-sm text-slate-600">{{ $business->business_type?->name ?? '—' }}</span>
+                            <span class="text-sm text-slate-600">{{ $business->organization_type?->name ?? '—' }}</span>
                         </td>
                         <td class="px-5 py-4">
                             @php $sub = $business->latestSubscription; @endphp
@@ -152,6 +158,7 @@
                             </div>
                         </td>
                         <td class="px-5 py-4">
+                            @canany(['businesses.activate', 'businesses.deactivate'])
                             <button wire:click="toggleStatus({{ $business->id }})" type="button">
                                 @if($business->status)
                                     <span class="inline-flex items-center gap-1 text-xs font-medium bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full hover:bg-emerald-200 transition">
@@ -165,6 +172,19 @@
                                     </span>
                                 @endif
                             </button>
+                            @else
+                                @if($business->status)
+                                    <span class="inline-flex items-center gap-1 text-xs font-medium bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                        Activo
+                                    </span>
+                                @else
+                                    <span class="inline-flex items-center gap-1 text-xs font-medium bg-slate-100 text-slate-500 px-2.5 py-1 rounded-full">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                                        Inactivo
+                                    </span>
+                                @endif
+                            @endcanany
                         </td>
                         <td class="px-5 py-4">
                             <p class="text-sm text-slate-700">{{ $business->created_at->format('d/m/Y') }}</p>
@@ -173,18 +193,28 @@
                         <td class="px-5 py-4 text-right">
                             <div class="flex items-center justify-end gap-2">
                                 @if($business->latestSubscription?->status === 'pending')
+                                    @role('superAdmin')
                                     <a href="{{ route('admin.payments.index') }}" wire:navigate
                                         class="inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 px-2.5 py-1.5 rounded-lg transition"
                                         title="Ver pago pendiente">
                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                         Pago pendiente
                                     </a>
+                                    @endrole
                                 @endif
+                                @can('businesses.view')
                                 <a href="{{ route('admin.businesses.show', $business) }}" wire:navigate
                                     class="inline-flex items-center gap-1 text-xs font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1.5 rounded-lg transition">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                                    Ver detalle
+                                    Ver
                                 </a>
+                                @endcan
+                                @can('businesses.edit')
+                                <a href="{{ route('admin.businesses.form.edit', $business) }}" wire:navigate
+                                    class="inline-flex items-center gap-1 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 px-2.5 py-1.5 rounded-lg transition">
+                                    Editar
+                                </a>
+                                @endcan
                             </div>
                         </td>
                     </tr>

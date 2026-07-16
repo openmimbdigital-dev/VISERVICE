@@ -2,75 +2,103 @@
 
 namespace App\Livewire\Admin\Workshop\Quotations;
 
+use App\Actions\Workshop\DeleteQuotationAction;
+use App\Enums\QuotationStatus;
+use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
 use App\Models\Quotation;
 use Arm092\LivewireDatatables\Column;
 use Arm092\LivewireDatatables\DateColumn;
 use Arm092\LivewireDatatables\Livewire\LivewireDatatable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Livewire\Attributes\On;
 
 class DatatableQuotations extends LivewireDatatable
 {
+    use ConfirmsDeletionWithLivewireAlert;
+
     public bool $exportable = true;
+
     public ?int $perPage = 25;
+
+    #[On('quotation-saved')]
+    public function onSaved(): void {}
 
     public function builder(): Builder
     {
-        return Quotation::where('quotations.business_id', auth()->user()->business_id)
+        return Quotation::query()
+            ->forAuthUser()
             ->leftJoin('clients', 'quotations.client_id', '=', 'clients.id')
             ->leftJoin('equipment', 'quotations.equipment_id', '=', 'equipment.id')
-            ->select('quotations.*', 'clients.name as client_name', 'equipment.plate as equipment_plate')
-            ->latest('quotations.created_at');
+            ->leftJoin('work_orders', function ($join) {
+                $join->on('work_orders.quotation_id', '=', 'quotations.id')
+                    ->whereNull('work_orders.deleted_at');
+            })
+            ->select('quotations.*')
+            ->addSelect('work_orders.id as linked_work_order_id')
+            ->orderByDesc('quotations.created_at');
     }
 
     public function getColumns(): Model|array
     {
         return [
-            Column::name('reference')
+            Column::name('quotations.reference')
                 ->label('Referencia')
                 ->searchable()
                 ->sortable(),
 
-            Column::name('client_name')
+            Column::raw('clients.name AS client_name')
                 ->label('Cliente')
                 ->searchable()
                 ->sortable(),
 
-            Column::name('equipment_plate')
+            Column::raw('equipment.plate AS equipment_plate')
                 ->label('Placa')
                 ->searchable(),
 
-            Column::callback(['total'], function ($total) {
+            Column::callback(['quotations.total'], function ($total) {
                 return '<span class="tabular-nums font-semibold">' . col_money($total) . '</span>';
             })->label('Total')->sortable(),
 
-            Column::callback(['valid_until'], function ($date) {
+            Column::callback(['quotations.valid_until'], function ($date) {
                 return $date ? \Carbon\Carbon::parse($date)->format('d/m/Y') : '<span class="text-slate-400">—</span>';
             })->label('Válida hasta'),
 
-            Column::callback(['status'], function ($status) {
-                $map = [
-                    'borrador'  => ['label' => 'Borrador',  'class' => 'bg-slate-100 text-slate-600 ring-1 ring-slate-500/20'],
-                    'enviada'   => ['label' => 'Enviada',   'class' => 'bg-blue-50 text-blue-700 ring-1 ring-blue-600/20'],
-                    'aceptada'  => ['label' => 'Aceptada',  'class' => 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20'],
-                    'rechazada' => ['label' => 'Rechazada', 'class' => 'bg-red-50 text-red-700 ring-1 ring-red-600/20'],
-                    'vencida'   => ['label' => 'Vencida',   'class' => 'bg-orange-50 text-orange-700 ring-1 ring-orange-600/20'],
-                ];
-                $s = $map[$status] ?? ['label' => $status, 'class' => 'bg-slate-100 text-slate-600'];
-                return '<span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ' . $s['class'] . '">' . $s['label'] . '</span>';
-            })->label('Estado')->filterable([
-                'borrador' => 'Borrador', 'enviada' => 'Enviada',
-                'aceptada' => 'Aceptada', 'rechazada' => 'Rechazada', 'vencida' => 'Vencida',
-            ]),
+            Column::callback(['quotations.status'], function ($status) {
+                $enum = QuotationStatus::tryFrom((string) $status) ?? QuotationStatus::Creada;
+
+                return '<span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ' . $enum->badgeClass() . '">' . $enum->label() . '</span>';
+            })->label('Estado')->filterable(QuotationStatus::options()),
 
             DateColumn::name('quotations.created_at')
                 ->label('Fecha')
                 ->sortable(),
 
-            Column::callback(['id'], function ($id) {
-                return view('livewire.admin.workshop.quotations.actions', ['id' => $id]);
+            Column::callback(['quotations.id', 'quotations.status', 'work_orders.id'], function ($id, $status, $work_order_id) {
+                return view('livewire.admin.workshop.quotations.actions', [
+                    'id'            => $id,
+                    'status'        => $status,
+                    'work_order_id' => $work_order_id,
+                ]);
             })->label('Acciones')->unsortable(),
         ];
+    }
+
+    public function deleteRecord(int $id): void
+    {
+        abort_unless(auth()->user()->can('workshop.quotations.delete'), 403);
+        $this->askDeleteConfirmation($id, '¿Eliminar esta cotización?');
+    }
+
+    protected function onDeleteConfirmed(): void
+    {
+        try {
+            DeleteQuotationAction::run($this->delete_id);
+            $this->alertDeleteSuccess('Cotización eliminada correctamente.');
+            $this->dispatch('quotation-deleted');
+        } catch (\Throwable $e) {
+            $this->alertDeleteError($e->getMessage() ?: 'No se pudo eliminar la cotización.');
+        }
     }
 
     public function render()

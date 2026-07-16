@@ -3,6 +3,8 @@
 namespace App\Livewire\Admin\Settings\Equipment\Brands;
 
 use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
+use App\Livewire\Concerns\JoinsEquipmentUsageCount;
+use App\Livewire\Concerns\ResolvesCatalogDatatableRowPermissions;
 use App\Models\Brand;
 use Arm092\LivewireDatatables\Column;
 use Arm092\LivewireDatatables\Livewire\LivewireDatatable;
@@ -13,6 +15,8 @@ use Livewire\Attributes\On;
 class DatatableBrands extends LivewireDatatable
 {
     use ConfirmsDeletionWithLivewireAlert;
+    use JoinsEquipmentUsageCount;
+    use ResolvesCatalogDatatableRowPermissions;
 
     public bool $exportable = true;
 
@@ -25,7 +29,11 @@ class DatatableBrands extends LivewireDatatable
     {
         $query = Brand::query()
             ->visibleToUser()
-            ->select('brands.*')
+            ->select('brands.*');
+
+        $this->joinEquipmentUsageCount($query, 'brands', 'brand_id');
+
+        $query->addSelect('equipment_usage.equipment_count')
             ->orderByDesc('brands.created_at');
 
         if (auth()->user()->hasRole('superAdmin')) {
@@ -70,14 +78,22 @@ class DatatableBrands extends LivewireDatatable
                 return '<span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ' . $class . '">' . $label . '</span>';
             })->label('Estado')->filterable([1 => 'Activo', 0 => 'Inactivo']),
 
-            Column::callback(['brands.id'], function ($id) {
-                $brand = Brand::find($id);
+            Column::callback(
+                ['brands.id', 'brands.general', 'brands.business_id', 'equipment_usage.equipment_count'],
+                function ($id, $general, $business_id, $equipment_count) {
+                    $permissions = $this->catalogRowPermissions(
+                        (bool) $general,
+                        $business_id,
+                        (int) $equipment_count,
+                        'settings.brands.edit',
+                        'settings.brands.delete',
+                    );
 
                 return view('livewire.admin.settings.equipment.brands.actions', [
                     'id'                  => $id,
-                    'can_edit'            => auth()->user()->can('settings.edit') && ($brand?->isEditableBy() ?? false),
-                    'can_delete'          => auth()->user()->can('settings.edit') && ($brand?->canDelete() ?? false),
-                    'is_general_readonly' => $brand?->isGeneralReadonly() ?? false,
+                    'can_edit'            => $permissions['can_edit'],
+                    'can_delete'          => $permissions['can_delete'],
+                    'is_general_readonly' => $permissions['is_general_readonly'],
                 ]);
             })->label('Acciones')->unsortable(),
         ]);
@@ -90,7 +106,7 @@ class DatatableBrands extends LivewireDatatable
 
     public function deleteRecord(int $id): void
     {
-        abort_unless(auth()->user()->can('settings.edit'), 403);
+        abort_unless(auth()->user()->can('settings.brands.delete'), 403);
 
         $this->askDeleteConfirmation($id, '¿Estás seguro de querer eliminar esta marca?');
     }
@@ -98,9 +114,9 @@ class DatatableBrands extends LivewireDatatable
     protected function onDeleteConfirmed(): void
     {
         try {
-            abort_unless(auth()->user()->can('settings.edit'), 403);
+            abort_unless(auth()->user()->can('settings.brands.delete'), 403);
 
-            $brand = Brand::findOrFail($this->delete_id);
+            $brand = Brand::query()->visibleToUser()->findOrFail($this->delete_id);
 
             if (! $brand->canDelete()) {
                 $message = $brand->isGeneralReadonly()

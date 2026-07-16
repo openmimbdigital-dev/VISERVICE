@@ -5,11 +5,13 @@ namespace App\Livewire\Auth;
 use App\Models\BankAccount;
 use App\Models\Business;
 use App\Models\BusinessType;
+use App\Models\OrganizationType;
 use App\Models\City;
 use App\Models\Subscription;
 use App\Models\SubscriptionInvoice;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
+use App\Support\BusinessLogoStorage;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -95,23 +97,26 @@ class RegisterWizard extends Component
                 $slug .= '-' . Str::random(5);
             }
 
-            $logoPath = null;
-            if ($this->business_logo) {
-                $logoPath = $this->business_logo->store('business-logos', 'public');
-            }
+            $business_type = BusinessType::query()->findOrFail($this->business_type_id);
 
             $business = Business::create([
-                'name'             => $this->business_name,
-                'slug'             => $slug,
-                'nit'              => $this->business_nit,
-                'business_type_id' => $this->business_type_id,
-                'phone_number'     => $this->business_phone,
-                'email'            => $this->business_email ?: null,
-                'address'          => $this->business_address ?: null,
-                'city_id'          => $this->business_city_id ?: null,
-                'logo'             => $logoPath,
-                'status'           => true,
+                'name'                 => $this->business_name,
+                'slug'                 => $slug,
+                'nit'                  => $this->business_nit,
+                'business_type_id'     => $business_type->id,
+                'organization_type_id' => $business_type->organization_type_id,
+                'phone_number'         => $this->business_phone,
+                'email'                => $this->business_email ?: null,
+                'address'              => $this->business_address ?: null,
+                'city_id'              => $this->business_city_id ?: null,
+                'logo'                 => null,
+                'status'               => true,
             ]);
+
+            if ($this->business_logo) {
+                $logo_path = BusinessLogoStorage::store($business->id, $this->business_logo);
+                $business->update(['logo' => $logo_path]);
+            }
 
             // 2. Crear el usuario
             $user = User::create([
@@ -121,9 +126,10 @@ class RegisterWizard extends Component
                 'username'     => $this->username,
                 'password'     => Hash::make($this->password),
                 'phone_number' => $this->user_phone ?: null,
-                'business_id'  => $business->id,
                 'status'       => true,
             ]);
+
+            $user->attachBusiness($business->id, is_primary: true);
 
             // 3. Asignar rol Comercio
             $user->assignRole('Comercio');
@@ -245,7 +251,12 @@ class RegisterWizard extends Component
             : null;
 
         return view('livewire.auth.register-wizard', [
-            'business_types' => BusinessType::where('status', true)->orderBy('name')->get(),
+            'organization_types' => OrganizationType::where('status', true)->orderBy('name')->get(),
+            'business_types' => BusinessType::query()
+                ->where('active', true)
+                ->with('organization_type')
+                ->orderBy('name')
+                ->get(),
             'cities'         => City::where('is_active', true)->orderBy('name')->get(),
             'plans'          => $plans,
             'bank_accounts'  => BankAccount::where('is_active', true)->get(),

@@ -16,16 +16,32 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             RolesAndPermissionsSeeder::class,
+            MenuSeeder::class,
             CountySeeder::class,
             CitySeeder::class,
-            BussinnesTypeSeeder::class,
+            OrganizationTypeSeeder::class,
+            BusinessTypeSeeder::class,
+            BusinessCategorySeeder::class,
             BussinnesSeeder::class,
+            BusinessMenuModuleSeeder::class,
+            BusinessAccessSeeder::class,
             UsersSeeder::class,
+            TeamPositionSeeder::class,
             SubscriptionPlansSeeder::class,
             BanksSeeder::class,
             BankAccountsSeeder::class,
             EquipmentCatalogSeeder::class,
+            ProductCatalogSeeder::class,
+            ProductsSeeder::class,
+            BusinessPaymentSettingsSeeder::class,
+            QuotationServiceTypesSeeder::class,
+            AssociatedDocumentOtSeeder::class,
+            AttributesSeeder::class,
             ClientsSeeder::class,
+            EquipmentSeeder::class,
+            QuotationsSeeder::class,
+            WorkOrdersSeeder::class,
+            RemissionsSeeder::class,
         ]);
     }
 }

@@ -8,9 +8,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class QuotationItem extends Model
 {
     protected $fillable = [
-        'quotation_id', 'item_type', 'description',
-        'quantity', 'unit_price', 'discount_percentage',
-        'subtotal', 'catalog_item_id', 'catalog_item_type',
+        'quotation_id', 'product_id', 'product_type_id', 'product_category_id',
+        'description', 'quantity', 'unit_price', 'discount_percentage', 'subtotal',
     ];
 
     protected function casts(): array
@@ -28,19 +27,26 @@ class QuotationItem extends Model
         return $this->belongsTo(Quotation::class);
     }
 
+    public function catalogProduct(): BelongsTo
+    {
+        return $this->belongsTo(Product::class, 'product_id');
+    }
+
+    public function productType(): BelongsTo
+    {
+        return $this->belongsTo(ProductType::class);
+    }
+
+    public function productCategory(): BelongsTo
+    {
+        return $this->belongsTo(ProductCategory::class);
+    }
+
     public function calculateSubtotal(): float
     {
         $base     = (float) $this->quantity * (float) $this->unit_price;
         $discount = $base * ((float) $this->discount_percentage / 100);
-        return round($base - $discount, 2);
-    }
 
-    public function getItemTypeLabelAttribute(): string
-    {
-        return match ($this->item_type) {
-            'servicio' => 'Servicio',
-            'repuesto' => 'Repuesto',
-            default    => 'Otro',
-        };
+        return round($base - $discount, 2);
     }
 }

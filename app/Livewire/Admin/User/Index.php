@@ -2,14 +2,17 @@
 
 namespace App\Livewire\Admin\User;
 
+use App\Actions\LogUserHistoricalAction;
 use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
+use App\Models\Role;
+use App\Support\BusinessAccess;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithPagination;
-use Spatie\Permission\Models\Role;
 
 #[Layout('layouts.app')]
 #[Title('Usuarios')]
@@ -56,26 +59,49 @@ class Index extends Component
 
     private function baseQuery()
     {
-        $query = User::with('roles');
+        $query = User::with(['roles', 'businesses']);
 
         if (! $this->isSuperAdmin()) {
-            $query->where('business_id', auth()->user()->business_id);
+            $business_ids = auth()->user()->businessIds();
+
+            if ($business_ids === []) {
+                return $query->whereRaw('0 = 1');
+            }
+
+            $query->whereHas('businesses', fn ($q) => $q->whereIn('businesses.id', $business_ids));
         }
 
         return $query;
     }
 
-    // El usuario principal de un negocio es el de menor ID en ese business_id
     private function primaryIdForBusiness(?int $businessId): ?int
     {
-        if (! $businessId) return null;
+        if (! $businessId) {
+            return null;
+        }
 
-        return User::where('business_id', $businessId)->orderBy('id')->value('id');
+        $primary = DB::table('user_business')
+            ->where('business_id', $businessId)
+            ->where('is_primary', true)
+            ->orderBy('user_id')
+            ->value('user_id');
+
+        if ($primary) {
+            return (int) $primary;
+        }
+
+        return DB::table('user_business')
+            ->where('business_id', $businessId)
+            ->orderBy('user_id')
+            ->value('user_id');
     }
 
     private function isPrimaryUser(User $user): bool
     {
-        return $user->id === $this->primaryIdForBusiness($user->business_id);
+        return DB::table('user_business')
+            ->where('user_id', $user->id)
+            ->where('is_primary', true)
+            ->exists();
     }
 
     public function openCreate(): void
@@ -140,8 +166,10 @@ class Index extends Component
             'phone_number' => 'nullable|string|max:20',
         ];
 
-        // superAdmin elige el rol; Comercio lo asigna automáticamente
-        if ($this->isSuperAdmin()) {
+        // Rol obligatorio al crear; solo superAdmin puede cambiarlo al editar
+        if (! $this->editing) {
+            $rules['role'] = 'required|string|exists:roles,name';
+        } elseif ($this->isSuperAdmin()) {
             $rules['role'] = 'required|string|exists:roles,name';
         }
 
@@ -188,13 +216,30 @@ class Index extends Component
 
             // Solo superAdmin puede cambiar el rol al editar
             if ($this->isSuperAdmin() && $this->role) {
+                abort_unless(
+                    $this->isRoleAllowedForUser($this->role, $user),
+                    403,
+                    'El rol seleccionado no está permitido para el tipo de negocio del usuario.'
+                );
                 $user->syncRoles([$this->role]);
             }
 
+            LogUserHistoricalAction::run(
+                action: 'updated',
+                module: 'users',
+                description: "Actualizó el usuario {$user->username}",
+                subject: $user,
+                subject_label: $user->full_name ?: $user->username,
+                properties: [
+                    'username' => $user->username,
+                    'email'    => $user->email,
+                    'status'   => $user->status,
+                    'role'     => $user->roles->pluck('name')->first(),
+                ],
+            );
+
             $this->dispatch('swal', ['title' => 'Usuario actualizado correctamente.', 'icon' => 'success']);
         } else {
-            $assignedRole = $this->isSuperAdmin() ? $this->role : 'Comercio';
-
             $user = User::create([
                 'first_name'   => $this->first_name,
                 'last_name'    => $this->last_name,
@@ -203,9 +248,38 @@ class Index extends Component
                 'phone_number' => $this->phone_number ?: null,
                 'status'       => $this->status,
                 'password'     => Hash::make($this->password),
-                'business_id'  => $this->isSuperAdmin() ? null : auth()->user()->business_id,
             ]);
-            $user->assignRole($assignedRole);
+
+            if (! $this->isSuperAdmin()) {
+                $primary_business_id = auth()->user()->business_id;
+
+                if ($primary_business_id) {
+                    $user->attachBusiness($primary_business_id, is_primary: true);
+                }
+            }
+
+            $user->load('businesses');
+
+            abort_unless(
+                $this->isRoleAllowedForUser($this->role, $user),
+                403,
+                'El rol seleccionado no está permitido para el tipo de negocio del usuario.'
+            );
+            $user->assignRole($this->role);
+
+            LogUserHistoricalAction::run(
+                action: 'created',
+                module: 'users',
+                description: "Creó el usuario {$user->username}",
+                subject: $user,
+                subject_label: $user->full_name ?: $user->username,
+                properties: [
+                    'username' => $user->username,
+                    'email'    => $user->email,
+                    'status'   => $user->status,
+                    'role'     => $this->role,
+                ],
+            );
 
             $this->dispatch('swal', ['title' => 'Usuario creado correctamente.', 'icon' => 'success']);
         }
@@ -231,7 +305,18 @@ class Index extends Component
         }
 
         $user->update(['status' => ! $user->status]);
-        $label = $user->fresh()->status ? 'activado' : 'desactivado';
+        $user  = $user->fresh();
+        $label = $user->status ? 'activado' : 'desactivado';
+
+        LogUserHistoricalAction::run(
+            action: 'status_changed',
+            module: 'users',
+            description: ($user->status ? 'Activó' : 'Desactivó') . " el usuario {$user->username}",
+            subject: $user,
+            subject_label: $user->full_name ?: $user->username,
+            properties: ['status' => $user->status],
+        );
+
         $this->dispatch('swal', ['title' => "Usuario {$label}.", 'icon' => 'success']);
     }
 
@@ -255,6 +340,18 @@ class Index extends Component
                 return;
             }
 
+            LogUserHistoricalAction::run(
+                action: 'deleted',
+                module: 'users',
+                description: "Eliminó el usuario {$user->username}",
+                subject: $user,
+                subject_label: $user->full_name ?: $user->username,
+                properties: [
+                    'username' => $user->username,
+                    'email'    => $user->email,
+                ],
+            );
+
             $user->delete();
 
             $this->alertDeleteSuccess('Usuario eliminado correctamente.');
@@ -277,6 +374,19 @@ class Index extends Component
         $this->showModal = false;
     }
 
+    private function isRoleAllowedForUser(string $role_name, User $user): bool
+    {
+        if ($this->isSuperAdmin() && $user->businesses->isEmpty()) {
+            return Role::query()
+                ->where('guard_name', 'web')
+                ->where('name', $role_name)
+                ->whereNotIn('name', BusinessAccess::systemRoleNames())
+                ->exists();
+        }
+
+        return BusinessAccess::roleAllowedForUser($role_name, $user);
+    }
+
     private function findAuthorized(int $id): User
     {
         return $this->baseQuery()->where('id', $id)->firstOrFail();
@@ -297,14 +407,18 @@ class Index extends Component
             ->paginate(15);
 
         // Pre-computar el ID del usuario principal por cada negocio presente en la página
-        $businessIds = $users->pluck('business_id')->filter()->unique()->values()->all();
+        $businessIds = $users->flatMap(fn (User $user) => $user->businesses->pluck('id'))
+            ->unique()
+            ->values()
+            ->all();
         $primaryUserIds = [];
-        if (! empty($businessIds)) {
-            $primaryUserIds = User::whereIn('business_id', $businessIds)
-                ->selectRaw('MIN(id) as id, business_id')
-                ->groupBy('business_id')
-                ->pluck('id')
-                ->all();
+
+        foreach ($businessIds as $businessId) {
+            $primaryId = $this->primaryIdForBusiness((int) $businessId);
+
+            if ($primaryId) {
+                $primaryUserIds[] = $primaryId;
+            }
         }
 
         $stats = [
@@ -316,8 +430,19 @@ class Index extends Component
                 ->count(),
         ];
 
-        // superAdmin elige rol; Comercio no necesita selector (se asigna automáticamente)
-        $roles = $this->isSuperAdmin() ? Role::orderBy('name')->get() : collect();
+        $target_user = ($this->editing && $this->selected_id)
+            ? User::with('businesses')->find($this->selected_id)
+            : null;
+
+        $roles = $this->isSuperAdmin()
+            ? ($target_user
+                ? BusinessAccess::assignableRolesForUser($target_user)
+                : Role::query()
+                    ->where('guard_name', 'web')
+                    ->whereNotIn('name', BusinessAccess::systemRoleNames())
+                    ->orderBy('name')
+                    ->get())
+            : BusinessAccess::assignableRolesForUser(auth()->user());
 
         return view('livewire.admin.user.index', compact('users', 'stats', 'roles', 'primaryUserIds'));
     }

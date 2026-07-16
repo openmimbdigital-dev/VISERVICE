@@ -19,7 +19,10 @@ class CreateOrUpdateEquipmentModelAction
      */
     public function handle(?int $equipment_model_id, array $data): EquipmentModel
     {
-        abort_unless(auth()->user()->can('settings.edit'), 403);
+        abort_unless(
+            auth()->user()->can($equipment_model_id ? 'settings.model_equipment.edit' : 'settings.model_equipment.create'),
+            403
+        );
 
         $user = auth()->user();
         $is_super_admin = $user->hasRole('superAdmin');
@@ -37,7 +40,7 @@ class CreateOrUpdateEquipmentModelAction
         ];
 
         if ($equipment_model_id) {
-            $equipment_model = EquipmentModel::findOrFail($equipment_model_id);
+            $equipment_model = EquipmentModel::query()->visibleToUser($user)->findOrFail($equipment_model_id);
             abort_unless($equipment_model->isEditableBy($user), 403);
 
             $attributes['business_id'] = $is_super_admin ? null : $user->business_id;

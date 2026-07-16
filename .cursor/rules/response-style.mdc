@@ -1,0 +1,11 @@
+---
+description: Estilo de respuestas del agente — breve y conciso por defecto
+alwaysApply: true
+---
+
+# Estilo de respuestas
+
+- Responder **breve y conciso** por defecto.
+- Explicación **detallada** solo cuando el usuario la pida explícitamente (ej. "explícame en detalle", "¿por qué?", "documenta").
+- En correcciones de bugs: qué se cambió + una línea de causa, sin párrafos largos.
+- Evitar resúmenes extensos al final si la tarea fue simple.

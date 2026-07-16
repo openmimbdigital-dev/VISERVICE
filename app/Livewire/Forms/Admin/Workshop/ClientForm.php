@@ -10,6 +10,7 @@ class ClientForm extends Form
 {
     public ?int $client_id = null;
     public ?int $business_id = null;
+    public ?int $city_id = null;
 
     public string $name            = '';
     public string $document_type   = 'CC';
@@ -25,6 +26,7 @@ class ClientForm extends Form
     {
         $this->client_id       = $client->id;
         $this->business_id     = $client->business_id;
+        $this->city_id         = $client->city_id;
         $this->name            = $client->name;
         $this->document_type   = $client->document_type;
         $this->document_number = $client->document_number ?? '';
@@ -58,6 +60,7 @@ class ClientForm extends Form
 
         $rules = [
             'name'            => ['required', 'string', 'max:150'],
+            'city_id'         => ['required', 'integer', Rule::exists('cities', 'id')->whereNull('deleted_at')],
             'document_type'   => ['required', Rule::in(['CC', 'NIT', 'CE', 'PA', 'PPT', 'TI'])],
             'document_number' => [
                 'nullable',
@@ -87,6 +90,8 @@ class ClientForm extends Form
         return [
             'name.required'          => 'El nombre o razón social es obligatorio.',
             'name.max'               => 'El nombre no puede superar 150 caracteres.',
+            'city_id.required'       => 'Debes seleccionar una ciudad.',
+            'city_id.exists'         => 'La ciudad seleccionada no es válida.',
             'document_type.required' => 'El tipo de documento es obligatorio.',
             'document_type.in'       => 'El tipo de documento seleccionado no es válido.',
             'document_number.max'    => 'El número de documento no puede superar 30 caracteres.',
@@ -111,6 +116,7 @@ class ClientForm extends Form
         $this->validate();
 
         return [
+            'city_id'         => (int) $this->city_id,
             'name'            => $this->name,
             'document_type'   => $this->document_type,
             'document_number' => $this->document_number ?: null,
