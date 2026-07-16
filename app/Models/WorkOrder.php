@@ -18,7 +18,7 @@ class WorkOrder extends Model
         'reference', 'status', 'km_entry', 'km_exit',
         'diagnosis', 'work_description', 'observations', 'notes',
         'estimated_delivery', 'subtotal', 'tax_percentage',
-        'tax_amount', 'total', 'created_by', 'finalized_at',
+        'tax_amount', 'total', 'document_client', 'created_by', 'finalized_at',
     ];
 
     protected function casts(): array
@@ -32,6 +32,7 @@ class WorkOrder extends Model
             'total'              => 'decimal:2',
             'km_entry'           => 'integer',
             'km_exit'            => 'integer',
+            'document_client'    => 'array',
         ];
     }
 

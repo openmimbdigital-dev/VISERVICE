@@ -40,6 +40,7 @@ use App\Livewire\Admin\Workshop\QuotationServiceTypes\Show as WorkshopQuotationS
 use App\Livewire\Admin\Workshop\WorkOrders\Form as WorkshopWorkOrdersForm;
 use App\Livewire\Admin\Workshop\WorkOrders\Index as WorkshopWorkOrdersIndex;
 use App\Livewire\Admin\Workshop\WorkOrders\Show as WorkshopWorkOrdersShow;
+use App\Livewire\Admin\Workshop\WorkOrders\AssociatedDocuments\Index as WorkshopAssociatedDocumentsIndex;
 use App\Livewire\Admin\Settings\Equipment\Attributes\Form as SettingsAttributesForm;
 use App\Livewire\Admin\Settings\Equipment\Attributes\Index as SettingsAttributesIndex;
 use App\Livewire\Admin\Settings\Equipment\Attributes\Show as SettingsAttributesShow;
@@ -206,6 +207,10 @@ Route::middleware(['auth', 'ensure.business', 'business.module'])->group(functio
         });
         Route::middleware('permission:workshop.work-orders.view')->group(function () {
             Route::get('/work-orders', WorkshopWorkOrdersIndex::class)->name('work-orders.index');
+        });
+        Route::middleware('permission:workshop.work-orders.associated-documents.view')->group(function () {
+            Route::get('/work-orders/associated-documents', WorkshopAssociatedDocumentsIndex::class)
+                ->name('work-orders.associated-documents.index');
         });
         Route::middleware('permission:workshop.work-orders.create')->group(function () {
             Route::get('/work-orders/form', WorkshopWorkOrdersForm::class)->name('work-orders.form');

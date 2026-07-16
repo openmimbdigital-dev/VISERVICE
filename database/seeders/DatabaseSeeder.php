@@ -35,6 +35,7 @@ class DatabaseSeeder extends Seeder
             ProductsSeeder::class,
             BusinessPaymentSettingsSeeder::class,
             QuotationServiceTypesSeeder::class,
+            AssociatedDocumentOtSeeder::class,
             AttributesSeeder::class,
             ClientsSeeder::class,
             EquipmentSeeder::class,

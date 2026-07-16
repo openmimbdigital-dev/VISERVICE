@@ -5,9 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Support\Str;
 
 class GeneralConfig extends Model
 {
+    public const KEY_ASSOCIATE_DOCUMENT_OT = 'asociate_document_ot';
+
     protected $fillable = [
         'business_id',
         'configurable_type',
@@ -47,5 +50,15 @@ class GeneralConfig extends Model
     public function scopeForKey($query, string $key)
     {
         return $query->where('key', $key);
+    }
+
+    public function scopeAssociatedDocumentsOt($query)
+    {
+        return $query->where('key', self::KEY_ASSOCIATE_DOCUMENT_OT);
+    }
+
+    public static function makeLabelFromValue(string $value): string
+    {
+        return (string) Str::of($value)->trim()->lower()->replaceMatches('/\s+/', '_');
     }
 }

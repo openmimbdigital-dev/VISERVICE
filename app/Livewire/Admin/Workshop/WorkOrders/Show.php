@@ -4,6 +4,8 @@ namespace App\Livewire\Admin\Workshop\WorkOrders;
 
 use App\Actions\LogEquipmentHistoricalAction;
 use App\Actions\LogUserHistoricalAction;
+use App\Actions\Workshop\SaveWorkOrderDocumentClientAction;
+use App\Models\GeneralConfig;
 use App\Models\Product;
 use App\Models\ProductType;
 use App\Models\WorkOrder;
@@ -19,6 +21,12 @@ class Show extends Component
     public WorkOrder $workOrder;
 
     public bool $showItemModal = false;
+
+    public bool $showDocumentModal = false;
+
+    public ?string $selected_document_label = null;
+
+    public string $document_input_value = '';
 
     public ?int $editing_item_id = null;
 
@@ -253,6 +261,71 @@ class Show extends Component
         );
     }
 
+    public function openDocumentModal(): void
+    {
+        abort_unless(auth()->user()?->can('workshop.work-orders.edit'), 403);
+
+        $this->workOrder->refresh();
+
+        $documents = $this->workOrder->document_client ?? [];
+
+        if ($documents !== []) {
+            $label = (string) array_key_first($documents);
+            $this->selected_document_label = $label;
+            $this->document_input_value = is_string($documents[$label] ?? null)
+                ? (string) $documents[$label]
+                : '';
+        } else {
+            $this->selected_document_label = null;
+            $this->document_input_value = '';
+        }
+
+        $this->showDocumentModal = true;
+        $this->resetValidation();
+    }
+
+    public function closeDocumentModal(): void
+    {
+        $this->showDocumentModal = false;
+        $this->selected_document_label = null;
+        $this->document_input_value = '';
+        $this->resetValidation();
+    }
+
+    public function loadDocumentClient(string $label): void
+    {
+        $this->selected_document_label = $label;
+        $existing = $this->workOrder->document_client[$label] ?? '';
+        $this->document_input_value = is_string($existing) ? $existing : '';
+        $this->resetValidation();
+    }
+
+    public function saveDocumentClient(): void
+    {
+        abort_unless(auth()->user()?->can('workshop.work-orders.edit'), 403);
+
+        $this->validate([
+            'selected_document_label' => 'required|string|max:100',
+            'document_input_value'    => 'required|string|max:255',
+        ], [
+            'selected_document_label.required' => 'Selecciona un documento asociado.',
+            'document_input_value.required'    => 'El valor del documento es obligatorio.',
+        ]);
+
+        $this->workOrder = SaveWorkOrderDocumentClientAction::run(
+            $this->workOrder->id,
+            $this->selected_document_label,
+            $this->document_input_value,
+        );
+
+        $this->closeDocumentModal();
+
+        $this->dispatch('swal', [
+            'title' => 'Documento actualizado',
+            'icon'  => 'success',
+        ]);
+    }
+
     public function closeItemModal(): void
     {
         $this->showItemModal = false;
@@ -302,10 +375,18 @@ class Show extends Component
             ->orderBy('name')
             ->get();
 
+        $associated_documents = GeneralConfig::query()
+            ->forAuthUser()
+            ->associatedDocumentsOt()
+            ->where('business_id', $this->workOrder->business_id)
+            ->orderBy('value')
+            ->get(['id', 'label', 'value']);
+
         return view('livewire.admin.workshop.work-orders.show', [
-            'product_types'    => $product_types,
-            'catalog_products' => $catalog_products,
-            'can_edit_items'   => auth()->user()->can('workshop.work-orders.edit'),
+            'product_types'         => $product_types,
+            'catalog_products'      => $catalog_products,
+            'associated_documents'  => $associated_documents,
+            'can_edit_items'        => auth()->user()->can('workshop.work-orders.edit'),
         ]);
     }
 }

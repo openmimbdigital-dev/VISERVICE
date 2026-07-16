@@ -105,6 +105,18 @@ class RolesAndPermissionsSeeder extends Seeder
             'workshop.work-orders.create',
             'workshop.work-orders.edit',
             'workshop.work-orders.delete',
+            ...$this->associatedDocumentOtPermissions(),
+        ];
+    }
+
+    /** @return list<string> */
+    private function associatedDocumentOtPermissions(): array
+    {
+        return [
+            'workshop.work-orders.associated-documents.view',
+            'workshop.work-orders.associated-documents.create',
+            'workshop.work-orders.associated-documents.edit',
+            'workshop.work-orders.associated-documents.delete',
         ];
     }
 

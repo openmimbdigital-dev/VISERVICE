@@ -17,11 +17,19 @@
                 <p class="mt-2 max-w-xl text-sm text-slate-600">Crea OTs directas o desde cotizaciones aceptadas. Gestiona ítems, estado y cierre de la orden.</p>
             </div>
             <div class="flex w-full shrink-0 flex-col gap-3 sm:w-auto">
-                @can('workshop.work-orders.create')
-                <x-ui.create-button :href="route('admin.workshop.work-orders.form')" class="w-full justify-center sm:w-auto">
-                    Nueva OT
-                </x-ui.create-button>
-                @endcan
+                <div class="flex w-full flex-col gap-2 sm:flex-row sm:justify-end">
+                    @can('workshop.work-orders.associated-documents.view')
+                    <a href="{{ route('admin.workshop.work-orders.associated-documents.index') }}" wire:navigate
+                        class="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 sm:w-auto">
+                        Documentos asociados
+                    </a>
+                    @endcan
+                    @can('workshop.work-orders.create')
+                    <x-ui.create-button :href="route('admin.workshop.work-orders.form')" class="w-full justify-center sm:w-auto">
+                        Nueva OT
+                    </x-ui.create-button>
+                    @endcan
+                </div>
                 <div class="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:max-w-md">
                     @foreach([
                         ['label'=>'Abiertas','value'=>$stats['abiertas'],'color'=>'text-blue-600'],

@@ -211,6 +211,15 @@ return [
                 'workshop.work-orders.delete' => 'Eliminar órdenes de trabajo',
             ],
         ],
+        'workshop_work_order_associated_documents' => [
+            'name' => 'Taller — Documentos asociados OT',
+            'permissions' => [
+                'workshop.work-orders.associated-documents.view'   => 'Ver documentos asociados OT',
+                'workshop.work-orders.associated-documents.create' => 'Crear documentos asociados OT',
+                'workshop.work-orders.associated-documents.edit'   => 'Editar documentos asociados OT',
+                'workshop.work-orders.associated-documents.delete' => 'Eliminar documentos asociados OT',
+            ],
+        ],
         'catalog' => [
             'name' => 'Catálogo — Productos y servicios',
             'permissions' => [

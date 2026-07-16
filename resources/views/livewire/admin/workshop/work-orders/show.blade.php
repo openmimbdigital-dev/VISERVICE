@@ -61,6 +61,12 @@
                     </div>
                     <div class="flex flex-wrap gap-2 sm:justify-end">
                         @can('workshop.work-orders.edit')
+                        <button type="button"
+                            @if($can_manage) wire:click="openDocumentModal" @else disabled @endif
+                            title="{{ $can_manage ? 'Registrar documento asociado' : 'No disponible en OTs finalizadas o canceladas' }}"
+                            class="btn btn-outline-secondary btn-sm flex-1 justify-center sm:flex-none disabled:cursor-not-allowed disabled:opacity-50">
+                            Documento asociado
+                        </button>
                         @if($can_manage)
                         <a href="{{ route('admin.workshop.work-orders.form.edit', $workOrder) }}" wire:navigate class="btn btn-outline-secondary btn-sm flex-1 justify-center sm:flex-none">
                             Editar
@@ -75,6 +81,24 @@
             </div>
         </div>
     </div>
+
+    @if(! empty($workOrder->document_client))
+    <section class="mb-6 overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
+        <div class="border-b border-slate-100 bg-slate-50/80 px-4 py-3 sm:px-5">
+            <h2 class="font-semibold text-slate-900">Documentos del cliente</h2>
+        </div>
+        <dl class="divide-y divide-slate-100 px-4 py-2 sm:px-5">
+            @foreach($workOrder->document_client as $label => $value)
+            <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                <dt class="text-xs font-medium text-slate-500">
+                    {{ $associated_documents->firstWhere('label', $label)?->value ?? $label }}
+                </dt>
+                <dd class="text-sm text-slate-900 sm:col-span-2">{{ $value }}</dd>
+            </div>
+            @endforeach
+        </dl>
+    </section>
+    @endif
 
     <section class="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
         <div class="flex flex-col gap-2 border-b border-slate-100 bg-slate-50/80 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
@@ -232,6 +256,73 @@
             <button type="button" wire:click="closeItemModal" class="w-full rounded-xl bg-slate-100 px-4 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-200 sm:w-auto">Cancelar</button>
             <button type="button" wire:click="saveItem" wire:loading.attr="disabled" class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-60 sm:w-auto">Guardar</button>
         </div>
+    </x-ui.modal>
+    @endif
+
+    @if($showDocumentModal)
+    <x-ui.modal centered maxWidth="md">
+        <x-slot:backdrop>
+            <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" wire:click="closeDocumentModal"></div>
+        </x-slot:backdrop>
+
+        <div class="flex shrink-0 items-center justify-between border-b border-slate-100 px-4 py-4 sm:px-6">
+            <h3 class="text-base font-semibold text-slate-900">Documento asociado</h3>
+            <button type="button" wire:click="closeDocumentModal" class="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+
+        <form wire:submit="saveDocumentClient" class="flex min-h-0 flex-1 flex-col">
+            <div class="flex-1 space-y-4 overflow-y-auto px-4 py-5 sm:px-6">
+                @if(! empty($workOrder->document_client))
+                <div class="rounded-xl border border-slate-200 bg-slate-50/80 p-3">
+                    <p class="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">Registrados en esta OT</p>
+                    <ul class="space-y-1.5">
+                        @foreach($workOrder->document_client as $label => $saved_value)
+                        <li>
+                            <button type="button" wire:click="loadDocumentClient({{ json_encode($label) }})"
+                                class="flex w-full items-start justify-between gap-3 rounded-lg px-2.5 py-2 text-left text-sm transition {{ $selected_document_label === $label ? 'bg-indigo-50 ring-1 ring-indigo-200' : 'hover:bg-white' }}">
+                                <span class="font-medium text-slate-800">
+                                    {{ $associated_documents->firstWhere('label', $label)?->value ?? $label }}
+                                </span>
+                                <span class="shrink-0 font-mono text-xs text-slate-600">{{ $saved_value }}</span>
+                            </button>
+                        </li>
+                        @endforeach
+                    </ul>
+                </div>
+                @endif
+
+                <div>
+                    <label class="mb-1.5 block text-xs font-medium text-slate-700">Documento <span class="text-rose-500">*</span></label>
+                    <select wire:model="selected_document_label"
+                        class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('selected_document_label') border-rose-400 bg-rose-50 @enderror">
+                        <option value="">Seleccionar…</option>
+                        @forelse($associated_documents as $doc)
+                        <option value="{{ $doc->label }}">{{ $doc->value }}</option>
+                        @empty
+                        <option value="" disabled>No hay documentos configurados</option>
+                        @endforelse
+                    </select>
+                    @error('selected_document_label') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                </div>
+
+                <div>
+                    <label class="mb-1.5 block text-xs font-medium text-slate-700">Valor <span class="text-rose-500">*</span></label>
+                    <input type="text" wire:model="document_input_value" placeholder="Ej. número o referencia del documento"
+                        class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('document_input_value') border-rose-400 bg-rose-50 @enderror">
+                    @error('document_input_value') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                </div>
+            </div>
+
+            <div class="flex shrink-0 flex-col-reverse gap-2 border-t border-slate-100 px-4 py-4 sm:flex-row sm:justify-end sm:gap-3 sm:px-6">
+                <button type="button" wire:click="closeDocumentModal" class="w-full rounded-xl bg-slate-100 px-4 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-200 sm:w-auto">Cancelar</button>
+                <button type="submit" wire:loading.attr="disabled" class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-60 sm:w-auto">
+                    <span wire:loading.remove wire:target="saveDocumentClient">Guardar</span>
+                    <span wire:loading wire:target="saveDocumentClient">Guardando...</span>
+                </button>
+            </div>
+        </form>
     </x-ui.modal>
     @endif
 </div>
