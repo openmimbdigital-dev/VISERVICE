@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CurrentBusinessController;
+use App\Http\Controllers\Workshop\WorkshopPdfController;
 use App\Livewire\Admin\Dashboard;
 use App\Livewire\Admin\Roles\Index as AdminRolesIndex;
 use App\Livewire\Admin\User\Index as AdminUserIndex;
@@ -39,8 +40,13 @@ use App\Livewire\Admin\Workshop\QuotationServiceTypes\Index as WorkshopQuotation
 use App\Livewire\Admin\Workshop\QuotationServiceTypes\Show as WorkshopQuotationServiceTypesShow;
 use App\Livewire\Admin\Workshop\WorkOrders\Form as WorkshopWorkOrdersForm;
 use App\Livewire\Admin\Workshop\WorkOrders\Index as WorkshopWorkOrdersIndex;
+use App\Livewire\Admin\Workshop\WorkOrders\PrintView as WorkshopWorkOrdersPrint;
 use App\Livewire\Admin\Workshop\WorkOrders\Show as WorkshopWorkOrdersShow;
 use App\Livewire\Admin\Workshop\WorkOrders\AssociatedDocuments\Index as WorkshopAssociatedDocumentsIndex;
+use App\Livewire\Admin\Workshop\Remissions\Form as WorkshopRemissionsForm;
+use App\Livewire\Admin\Workshop\Remissions\Index as WorkshopRemissionsIndex;
+use App\Livewire\Admin\Workshop\Remissions\PrintView as WorkshopRemissionsPrint;
+use App\Livewire\Admin\Workshop\Remissions\Show as WorkshopRemissionsShow;
 use App\Livewire\Admin\Settings\Equipment\Attributes\Form as SettingsAttributesForm;
 use App\Livewire\Admin\Settings\Equipment\Attributes\Index as SettingsAttributesIndex;
 use App\Livewire\Admin\Settings\Equipment\Attributes\Show as SettingsAttributesShow;
@@ -199,6 +205,7 @@ Route::middleware(['auth', 'ensure.business', 'business.module'])->group(functio
         });
         Route::middleware('permission:workshop.quotations.view')->group(function () {
             Route::get('/quotations/{quotation}/print', WorkshopQuotationsPrint::class)->name('quotations.print');
+            Route::get('/quotations/{quotation}/pdf', [WorkshopPdfController::class, 'quotation'])->name('quotations.pdf');
             Route::get('/quotations/{quotation}', WorkshopQuotationsShow::class)->name('quotations.show');
         });
         Route::middleware('permission:workshop.quotation_service_types.view')->group(function () {
@@ -219,7 +226,23 @@ Route::middleware(['auth', 'ensure.business', 'business.module'])->group(functio
             Route::get('/work-orders/{workOrder}/form', WorkshopWorkOrdersForm::class)->name('work-orders.form.edit');
         });
         Route::middleware('permission:workshop.work-orders.view')->group(function () {
+            Route::get('/work-orders/{workOrder}/print', WorkshopWorkOrdersPrint::class)->name('work-orders.print');
+            Route::get('/work-orders/{workOrder}/pdf', [WorkshopPdfController::class, 'workOrder'])->name('work-orders.pdf');
             Route::get('/work-orders/{workOrder}', WorkshopWorkOrdersShow::class)->name('work-orders.show');
+        });
+        Route::middleware('permission:workshop.remissions.view')->group(function () {
+            Route::get('/remissions', WorkshopRemissionsIndex::class)->name('remissions.index');
+        });
+        Route::middleware('permission:workshop.remissions.create')->group(function () {
+            Route::get('/remissions/form', WorkshopRemissionsForm::class)->name('remissions.form');
+        });
+        Route::middleware('permission:workshop.remissions.edit')->group(function () {
+            Route::get('/remissions/{remission}/form', WorkshopRemissionsForm::class)->name('remissions.form.edit');
+        });
+        Route::middleware('permission:workshop.remissions.view')->group(function () {
+            Route::get('/remissions/{remission}/print', WorkshopRemissionsPrint::class)->name('remissions.print');
+            Route::get('/remissions/{remission}/pdf', [WorkshopPdfController::class, 'remission'])->name('remissions.pdf');
+            Route::get('/remissions/{remission}', WorkshopRemissionsShow::class)->name('remissions.show');
         });
     });
 

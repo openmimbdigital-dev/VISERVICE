@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class WorkOrderItem extends Model
 {
@@ -43,6 +44,11 @@ class WorkOrderItem extends Model
     public function productType(): BelongsTo
     {
         return $this->belongsTo(ProductType::class);
+    }
+
+    public function remissionItems(): HasMany
+    {
+        return $this->hasMany(RemissionItem::class);
     }
 
     public function calculateSubtotal(): float

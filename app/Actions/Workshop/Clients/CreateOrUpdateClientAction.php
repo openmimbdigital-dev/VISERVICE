@@ -30,6 +30,7 @@ class CreateOrUpdateClientAction
 
         $attributes = [
             'business_id'     => $business_id,
+            'city_id'         => $data['city_id'] ?? null,
             'name'            => $data['name'],
             'document_type'   => $data['document_type'],
             'document_number' => $data['document_number'],

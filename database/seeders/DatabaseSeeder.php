@@ -41,6 +41,7 @@ class DatabaseSeeder extends Seeder
             EquipmentSeeder::class,
             QuotationsSeeder::class,
             WorkOrdersSeeder::class,
+            RemissionsSeeder::class,
         ]);
     }
 }

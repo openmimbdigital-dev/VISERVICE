@@ -16,6 +16,7 @@ use App\Models\ProductCategory;
 use App\Models\ProductType;
 use App\Models\Quotation;
 use App\Models\QuotationServiceType;
+use App\Models\Remission;
 use App\Models\TeamPosition;
 use App\Models\Unit;
 use App\Models\WorkOrder;
@@ -81,6 +82,11 @@ class AppServiceProvider extends ServiceProvider
             ->firstOrFail());
 
         Route::bind('workOrder', fn (string $value) => WorkOrder::query()
+            ->forAuthUser()
+            ->whereKey($value)
+            ->firstOrFail());
+
+        Route::bind('remission', fn (string $value) => Remission::query()
             ->forAuthUser()
             ->whereKey($value)
             ->firstOrFail());

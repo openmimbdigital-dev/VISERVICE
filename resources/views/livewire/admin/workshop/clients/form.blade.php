@@ -51,6 +51,25 @@
             </div>
 
             <div class="relative">
+                <label class="label-up">Ciudad *</label>
+                <select wire:model="form.city_id" class="form-select w-full border px-3 py-2 text-sm">
+                    <option value="">Seleccionar ciudad</option>
+                    @foreach($cities as $city)
+                        <option value="{{ $city->id }}">
+                            {{ $city->name }}{{ $city->state_province ? ' — ' . $city->state_province : '' }}
+                        </option>
+                    @endforeach
+                </select>
+                @error('form.city_id')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+            </div>
+
+            <div class="relative">
+                <label class="label-up">Contacto</label>
+                <input type="text" wire:model="form.contact_name" class="form-input w-full border px-3 py-2 text-sm" placeholder="Persona de contacto" />
+                @error('form.contact_name')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+            </div>
+
+            <div class="relative">
                 <label class="label-up">Tipo documento *</label>
                 <select wire:model="form.document_type" class="form-select w-full border px-3 py-2 text-sm">
                     @foreach(['CC', 'NIT', 'CE', 'PA', 'PPT', 'TI'] as $tipo)
@@ -82,12 +101,6 @@
                 <label class="label-up">Dirección</label>
                 <input type="text" wire:model="form.address" class="form-input w-full border px-3 py-2 text-sm" />
                 @error('form.address')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
-            </div>
-
-            <div class="relative">
-                <label class="label-up">Contacto</label>
-                <input type="text" wire:model="form.contact_name" class="form-input w-full border px-3 py-2 text-sm" placeholder="Persona de contacto" />
-                @error('form.contact_name')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
             </div>
 
             <div class="flex flex-col justify-end pb-1">

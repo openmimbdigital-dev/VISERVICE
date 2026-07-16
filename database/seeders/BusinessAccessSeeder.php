@@ -53,6 +53,7 @@ class BusinessAccessSeeder extends Seeder
             'workshop.equipment.delete',
             ...$this->quotationModulePermissions(),
             ...$this->workOrderModulePermissions(),
+            ...$this->remissionModulePermissions(),
         ]));
     }
 
@@ -64,6 +65,17 @@ class BusinessAccessSeeder extends Seeder
             'workshop.work-orders.create',
             'workshop.work-orders.edit',
             'workshop.work-orders.delete',
+        ];
+    }
+
+    /** @return list<string> */
+    private function remissionModulePermissions(): array
+    {
+        return [
+            'workshop.remissions.view',
+            'workshop.remissions.create',
+            'workshop.remissions.edit',
+            'workshop.remissions.delete',
         ];
     }
 

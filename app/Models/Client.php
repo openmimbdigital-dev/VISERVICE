@@ -13,7 +13,7 @@ class Client extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'business_id', 'name', 'document_type', 'document_number',
+        'business_id', 'city_id', 'name', 'document_type', 'document_number',
         'phone', 'email', 'address', 'contact_name',
         'status', 'notes', 'created_by',
     ];
@@ -28,6 +28,11 @@ class Client extends Model
     public function business(): BelongsTo
     {
         return $this->belongsTo(Business::class);
+    }
+
+    public function city(): BelongsTo
+    {
+        return $this->belongsTo(City::class);
     }
 
     public function createdBy(): BelongsTo
@@ -48,6 +53,11 @@ class Client extends Model
     public function workOrders(): HasMany
     {
         return $this->hasMany(WorkOrder::class);
+    }
+
+    public function remissions(): HasMany
+    {
+        return $this->hasMany(Remission::class);
     }
 
     public function user_historicals(): HasMany

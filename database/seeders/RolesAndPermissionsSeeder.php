@@ -94,6 +94,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'workshop.equipment.delete',
             ...$this->quotationPermissions(),
             ...$this->workOrderPermissions(),
+            ...$this->remissionPermissions(),
         ];
     }
 
@@ -117,6 +118,17 @@ class RolesAndPermissionsSeeder extends Seeder
             'workshop.work-orders.associated-documents.create',
             'workshop.work-orders.associated-documents.edit',
             'workshop.work-orders.associated-documents.delete',
+        ];
+    }
+
+    /** @return list<string> */
+    private function remissionPermissions(): array
+    {
+        return [
+            'workshop.remissions.view',
+            'workshop.remissions.create',
+            'workshop.remissions.edit',
+            'workshop.remissions.delete',
         ];
     }
 
@@ -167,6 +179,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'workshop.view',
             ...$this->quotationPermissions(),
             ...$this->workOrderPermissions(),
+            ...$this->remissionPermissions(),
             // Gestión de Negocios (solo superAdmin)
             ...$this->businessManagementPermissions(),
             // Negocios — Cargos del equipo

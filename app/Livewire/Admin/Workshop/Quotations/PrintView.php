@@ -28,6 +28,9 @@ class PrintView extends Component
     {
         return view('livewire.admin.workshop.quotations.print', [
             'category_subtotals' => $this->quotation->subtotalsByPdfCategory(),
+        ])->layoutData([
+            'pdfUrl'  => route('admin.workshop.quotations.pdf', $this->quotation),
+            'backUrl' => route('admin.workshop.quotations.show', $this->quotation),
         ]);
     }
 }

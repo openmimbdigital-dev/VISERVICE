@@ -51,4 +51,9 @@ class City extends Model
     {
         return $this->hasMany(User::class, 'city_id');
     }
+
+    public function clients(): HasMany
+    {
+        return $this->hasMany(Client::class, 'city_id');
+    }
 }

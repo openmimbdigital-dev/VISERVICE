@@ -179,6 +179,11 @@ class Business extends Model
         return $this->morphMany(GeneralConfig::class, 'configurable');
     }
 
+    public function remissions(): HasMany
+    {
+        return $this->hasMany(Remission::class);
+    }
+
     public function attributes(): BelongsToMany
     {
         return $this->belongsToMany(Attribute::class, 'attribute_business')

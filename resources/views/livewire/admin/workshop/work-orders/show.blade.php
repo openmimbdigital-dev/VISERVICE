@@ -60,6 +60,10 @@
                         <p class="text-2xl font-bold text-indigo-700">{{ col_money($workOrder->total) }}</p>
                     </div>
                     <div class="flex flex-wrap gap-2 sm:justify-end">
+                        <a href="{{ route('admin.workshop.work-orders.print', $workOrder) }}" target="_blank"
+                            class="btn btn-outline-secondary btn-sm flex-1 justify-center sm:flex-none">
+                            Imprimir / PDF
+                        </a>
                         @can('workshop.work-orders.edit')
                         <button type="button"
                             @if($can_manage) wire:click="openDocumentModal" @else disabled @endif

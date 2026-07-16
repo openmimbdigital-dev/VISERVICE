@@ -220,6 +220,15 @@ return [
                 'workshop.work-orders.associated-documents.delete' => 'Eliminar documentos asociados OT',
             ],
         ],
+        'workshop_remissions' => [
+            'name' => 'Taller — Remisiones',
+            'permissions' => [
+                'workshop.remissions.view'   => 'Ver remisiones',
+                'workshop.remissions.create' => 'Crear remisiones',
+                'workshop.remissions.edit'   => 'Editar remisiones',
+                'workshop.remissions.delete' => 'Eliminar remisiones',
+            ],
+        ],
         'catalog' => [
             'name' => 'Catálogo — Productos y servicios',
             'permissions' => [

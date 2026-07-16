@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Business;
+use App\Models\City;
 use App\Models\Client;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -11,9 +12,12 @@ class ClientsSeeder extends Seeder
 {
     public function run(): void
     {
+        $city_ids = City::query()->whereIn('code', ['BOG', 'MED', 'CAL'])->pluck('id', 'code');
+
         $businesses = [
             'transportes-transad' => [
                 'created_by_username' => 'admin',
+                'city_code'           => 'BOG',
                 'clients'             => [
                     [
                         'name'            => 'Transportes Andinos Ltda.',
@@ -74,6 +78,7 @@ class ClientsSeeder extends Seeder
             ],
             'carga-rapida-sas' => [
                 'created_by_username' => 'operador',
+                'city_code'           => 'MED',
                 'clients'             => [
                     [
                         'name'            => 'Logística Express Medellín',
@@ -134,6 +139,7 @@ class ClientsSeeder extends Seeder
             ],
             'transportes-del-valle' => [
                 'created_by_username' => 'admin.valle',
+                'city_code'           => 'CAL',
                 'clients'             => [
                     [
                         'name'            => 'Cafexportadores del Pacífico',
@@ -206,6 +212,7 @@ class ClientsSeeder extends Seeder
             }
 
             $created_by = User::where('username', $config['created_by_username'])->value('id');
+            $city_id    = $city_ids[$config['city_code']] ?? null;
 
             foreach ($config['clients'] as $client_data) {
                 Client::updateOrCreate(
@@ -215,6 +222,7 @@ class ClientsSeeder extends Seeder
                     ],
                     array_merge($client_data, [
                         'business_id' => $business->id,
+                        'city_id'     => $city_id,
                         'created_by'  => $created_by,
                     ])
                 );
