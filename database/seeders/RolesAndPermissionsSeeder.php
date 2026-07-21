@@ -61,6 +61,32 @@ class RolesAndPermissionsSeeder extends Seeder
     }
 
     /** @return list<string> */
+    private function churchEventsSettingsPermissions(): array
+    {
+        return [
+            'settings.event_categories.view', 'settings.event_categories.create',
+            'settings.event_categories.edit', 'settings.event_categories.delete',
+            'settings.attendee_types.view', 'settings.attendee_types.create',
+            'settings.attendee_types.edit', 'settings.attendee_types.delete',
+        ];
+    }
+
+    /** @return list<string> */
+    private function eventTeamsPermissions(): array
+    {
+        return [
+            'events.teams.view',
+            'events.teams.create',
+            'events.teams.edit',
+            'events.teams.delete',
+            'events.team_roles.view',
+            'events.team_roles.create',
+            'events.team_roles.edit',
+            'events.team_roles.delete',
+        ];
+    }
+
+    /** @return list<string> */
     private function quotationServiceTypePermissions(): array
     {
         return [
@@ -151,6 +177,10 @@ class RolesAndPermissionsSeeder extends Seeder
             'reports.view', 'reports.export',
             // Configuración
             'settings.view', 'settings.edit',
+            // Configuración — Eventos
+            ...$this->churchEventsSettingsPermissions(),
+            // Evento — Equipos
+            ...$this->eventTeamsPermissions(),
             // Configuración — Atributos de equipo
             'settings.attributes.view', 'settings.attributes.create',
             'settings.attributes.edit', 'settings.attributes.delete',
@@ -195,14 +225,14 @@ class RolesAndPermissionsSeeder extends Seeder
 
         // ── Roles ───────────────────────────────────────────────────────────
 
-        $superAdmin  = Role::firstOrCreate(['name' => 'superAdmin',    'guard_name' => $guard]);
-        $admin       = Role::firstOrCreate(['name' => 'Administrador', 'guard_name' => $guard]);
-        $comercio    = Role::firstOrCreate(['name' => 'Comercio',      'guard_name' => $guard]);
-        $supervisor  = Role::firstOrCreate(['name' => 'Supervisor',    'guard_name' => $guard]);
-        $operador    = Role::firstOrCreate(['name' => 'Operador',      'guard_name' => $guard]);
-        $pastor      = Role::firstOrCreate(['name' => 'Pastor',        'guard_name' => $guard]);
-        $secretario  = Role::firstOrCreate(['name' => 'Secretario',    'guard_name' => $guard]);
-        $lider       = Role::firstOrCreate(['name' => 'Lider de congregacion', 'guard_name' => $guard]);
+        $superAdmin = Role::firstOrCreate(['name' => 'superAdmin',    'guard_name' => $guard]);
+        $admin = Role::firstOrCreate(['name' => 'Administrador', 'guard_name' => $guard]);
+        $comercio = Role::firstOrCreate(['name' => 'Comercio',      'guard_name' => $guard]);
+        $supervisor = Role::firstOrCreate(['name' => 'Supervisor',    'guard_name' => $guard]);
+        $operador = Role::firstOrCreate(['name' => 'Operador',      'guard_name' => $guard]);
+        $pastor = Role::firstOrCreate(['name' => 'Pastor',        'guard_name' => $guard]);
+        $secretario = Role::firstOrCreate(['name' => 'Secretario',    'guard_name' => $guard]);
+        $lider = Role::firstOrCreate(['name' => 'Lider de congregacion', 'guard_name' => $guard]);
 
         // superAdmin: todos los permisos del sistema
         $superAdmin->syncPermissions($perms->values());
@@ -229,6 +259,8 @@ class RolesAndPermissionsSeeder extends Seeder
             ...$business_payment_settings,
             ...$this->catalogProductsPermissions(),
             ...$this->catalogProductsSettingsPermissions(),
+            ...$this->churchEventsSettingsPermissions(),
+            ...$this->eventTeamsPermissions(),
         ])->values());
 
         // Comercio: propietario del negocio registrado vía onboarding.
@@ -249,6 +281,8 @@ class RolesAndPermissionsSeeder extends Seeder
             ...$business_payment_settings,
             ...$this->catalogProductsPermissions(),
             ...$this->catalogProductsSettingsPermissions(),
+            ...$this->churchEventsSettingsPermissions(),
+            ...$this->eventTeamsPermissions(),
         ])->values());
 
         // Supervisor / Operador: sin permisos de órdenes de trabajo (solo Admin, Comercio y superAdmin).
@@ -266,11 +300,14 @@ class RolesAndPermissionsSeeder extends Seeder
             'users.view', 'users.create', 'users.edit', 'users.activate', 'users.deactivate',
             'businesses.view', 'businesses.edit',
             'reports.view', 'reports.export',
+            'settings.view',
             'businesses.view', 'businesses.create', 'businesses.edit', 'businesses.delete',
             'businesses.activate', 'businesses.deactivate',
             'roles.view', 'roles.create',
             'permissions.view', 'permissions.assign',
             ...$this->teamPositionPermissions(),
+            ...$this->churchEventsSettingsPermissions(),
+            ...$this->eventTeamsPermissions(),
         ])->values());
 
         // Secretario: administración
@@ -278,7 +315,10 @@ class RolesAndPermissionsSeeder extends Seeder
             'users.view', 'users.create', 'users.edit',
             'businesses.view',
             'reports.view',
+            'settings.view',
             'team_positions.view', 'team_positions.create', 'team_positions.edit',
+            ...$this->churchEventsSettingsPermissions(),
+            ...$this->eventTeamsPermissions(),
         ])->values());
 
         // Líder de congregación: operación de campo
@@ -286,6 +326,11 @@ class RolesAndPermissionsSeeder extends Seeder
             'users.view',
             'businesses.view',
             'reports.view',
+            'settings.view',
+            'settings.event_categories.view',
+            'settings.attendee_types.view',
+            'events.teams.view',
+            'events.team_roles.view',
         ])->values());
 
         app()[PermissionRegistrar::class]->forgetCachedPermissions();

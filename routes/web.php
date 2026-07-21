@@ -3,29 +3,65 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CurrentBusinessController;
 use App\Http\Controllers\Workshop\WorkshopPdfController;
-use App\Livewire\Admin\Dashboard;
-use App\Livewire\Admin\Roles\Index as AdminRolesIndex;
-use App\Livewire\Admin\User\Index as AdminUserIndex;
-use App\Livewire\Admin\Subscriptions\Index as AdminSubscriptionsIndex;
-use App\Livewire\Admin\Subscriptions\Plans\Index as AdminSubscriptionPlansIndex;
-use App\Livewire\Admin\Payments\Index as AdminPaymentsIndex;
 use App\Livewire\Admin\BankAccounts\Index as AdminBankAccountsIndex;
 use App\Livewire\Admin\Banks\Index as AdminBanksIndex;
-use App\Livewire\Admin\Finance\Index as AdminFinanceIndex;
-use App\Livewire\Admin\Businesses\Index as AdminBusinessesIndex;
-use App\Livewire\Admin\Businesses\Form as AdminBusinessesForm;
-use App\Livewire\Admin\Businesses\ModuleAccess as AdminBusinessesModuleAccess;
-use App\Livewire\Admin\Businesses\Show as AdminBusinessesShow;
-use App\Livewire\Admin\BusinessTypes\Index as AdminBusinessTypesIndex;
-use App\Livewire\Admin\OrganizationTypes\Access as AdminOrganizationTypesAccess;
-use App\Livewire\Admin\OrganizationTypes\Index as AdminOrganizationTypesIndex;
-use App\Livewire\Admin\TeamPositions\Index as AdminTeamPositionsIndex;
-use App\Livewire\Admin\TeamPositions\Show as AdminTeamPositionsShow;
-use App\Livewire\Admin\Businesses\PaymentMethods\Index as AdminBusinessPaymentMethodsIndex;
-use App\Livewire\Admin\Businesses\PaymentMethods\Show as AdminBusinessPaymentMethodsShow;
 use App\Livewire\Admin\Businesses\BankAccounts\Index as AdminBusinessBankAccountsIndex;
 use App\Livewire\Admin\Businesses\BankAccounts\Show as AdminBusinessBankAccountsShow;
-use App\Livewire\Comercio\Business\Edit as ComercioBusinessEdit;
+use App\Livewire\Admin\Businesses\Form as AdminBusinessesForm;
+use App\Livewire\Admin\Businesses\Index as AdminBusinessesIndex;
+use App\Livewire\Admin\Businesses\ModuleAccess as AdminBusinessesModuleAccess;
+use App\Livewire\Admin\Businesses\PaymentMethods\Index as AdminBusinessPaymentMethodsIndex;
+use App\Livewire\Admin\Businesses\PaymentMethods\Show as AdminBusinessPaymentMethodsShow;
+use App\Livewire\Admin\Businesses\Show as AdminBusinessesShow;
+use App\Livewire\Admin\BusinessTypes\Index as AdminBusinessTypesIndex;
+use App\Livewire\Admin\Catalog\Products\Form as CatalogProductsForm;
+use App\Livewire\Admin\Catalog\Products\Index as CatalogProductsIndex;
+use App\Livewire\Admin\Catalog\Products\Show as CatalogProductsShow;
+use App\Livewire\Admin\Dashboard;
+use App\Livewire\Admin\Events\TeamRoles\Form as EventsTeamRolesForm;
+use App\Livewire\Admin\Events\TeamRoles\Index as EventsTeamRolesIndex;
+use App\Livewire\Admin\Events\TeamRoles\Show as EventsTeamRolesShow;
+use App\Livewire\Admin\Events\Teams\Form as EventsTeamsForm;
+use App\Livewire\Admin\Events\Teams\Index as EventsTeamsIndex;
+use App\Livewire\Admin\Events\Teams\Show as EventsTeamsShow;
+use App\Livewire\Admin\Finance\Index as AdminFinanceIndex;
+use App\Livewire\Admin\OrganizationTypes\Access as AdminOrganizationTypesAccess;
+use App\Livewire\Admin\OrganizationTypes\Index as AdminOrganizationTypesIndex;
+use App\Livewire\Admin\Payments\Index as AdminPaymentsIndex;
+use App\Livewire\Admin\Roles\Index as AdminRolesIndex;
+use App\Livewire\Admin\Settings\Catalog\Brands\Form as SettingsCatalogBrandsForm;
+use App\Livewire\Admin\Settings\Catalog\Brands\Index as SettingsCatalogBrandsIndex;
+use App\Livewire\Admin\Settings\Catalog\Brands\Show as SettingsCatalogBrandsShow;
+use App\Livewire\Admin\Settings\Catalog\Index as SettingsCatalogProductsIndex;
+use App\Livewire\Admin\Settings\Catalog\ProductCategories\Index as SettingsProductCategoriesIndex;
+use App\Livewire\Admin\Settings\Catalog\ProductCategories\Show as SettingsProductCategoriesShow;
+use App\Livewire\Admin\Settings\Catalog\ProductTypes\Index as SettingsProductTypesIndex;
+use App\Livewire\Admin\Settings\Catalog\ProductTypes\Show as SettingsProductTypesShow;
+use App\Livewire\Admin\Settings\Catalog\Units\Index as SettingsUnitsIndex;
+use App\Livewire\Admin\Settings\Catalog\Units\Show as SettingsUnitsShow;
+use App\Livewire\Admin\Settings\Equipment\Attributes\Form as SettingsAttributesForm;
+use App\Livewire\Admin\Settings\Equipment\Attributes\Index as SettingsAttributesIndex;
+use App\Livewire\Admin\Settings\Equipment\Attributes\Show as SettingsAttributesShow;
+use App\Livewire\Admin\Settings\Equipment\Brands\Index as SettingsBrandsIndex;
+use App\Livewire\Admin\Settings\Equipment\Brands\Show as SettingsBrandsShow;
+use App\Livewire\Admin\Settings\Equipment\Index as SettingsEquipmentIndex;
+use App\Livewire\Admin\Settings\Equipment\Models\Index as SettingsEquipmentModelsIndex;
+use App\Livewire\Admin\Settings\Equipment\Models\Show as SettingsEquipmentModelsShow;
+use App\Livewire\Admin\Settings\Equipment\SectionIndex as SettingsEquipmentSectionIndex;
+use App\Livewire\Admin\Settings\Equipment\Types\Index as SettingsEquipmentTypesIndex;
+use App\Livewire\Admin\Settings\Equipment\Types\Show as SettingsEquipmentTypesShow;
+use App\Livewire\Admin\Settings\Events\AttendeeTypes\Form as SettingsAttendeeTypesForm;
+use App\Livewire\Admin\Settings\Events\AttendeeTypes\Index as SettingsAttendeeTypesIndex;
+use App\Livewire\Admin\Settings\Events\AttendeeTypes\Show as SettingsAttendeeTypesShow;
+use App\Livewire\Admin\Settings\Events\EventCategories\Form as SettingsEventCategoriesForm;
+use App\Livewire\Admin\Settings\Events\EventCategories\Index as SettingsEventCategoriesIndex;
+use App\Livewire\Admin\Settings\Events\EventCategories\Show as SettingsEventCategoriesShow;
+use App\Livewire\Admin\Settings\Events\Index as SettingsEventsIndex;
+use App\Livewire\Admin\Subscriptions\Index as AdminSubscriptionsIndex;
+use App\Livewire\Admin\Subscriptions\Plans\Index as AdminSubscriptionPlansIndex;
+use App\Livewire\Admin\TeamPositions\Index as AdminTeamPositionsIndex;
+use App\Livewire\Admin\TeamPositions\Show as AdminTeamPositionsShow;
+use App\Livewire\Admin\User\Index as AdminUserIndex;
 use App\Livewire\Admin\Workshop\Clients\Form as WorkshopClientsForm;
 use App\Livewire\Admin\Workshop\Clients\Index as WorkshopClientsIndex;
 use App\Livewire\Admin\Workshop\Equipment\Form as WorkshopEquipmentForm;
@@ -38,40 +74,17 @@ use App\Livewire\Admin\Workshop\Quotations\PrintView as WorkshopQuotationsPrint;
 use App\Livewire\Admin\Workshop\Quotations\Show as WorkshopQuotationsShow;
 use App\Livewire\Admin\Workshop\QuotationServiceTypes\Index as WorkshopQuotationServiceTypesIndex;
 use App\Livewire\Admin\Workshop\QuotationServiceTypes\Show as WorkshopQuotationServiceTypesShow;
-use App\Livewire\Admin\Workshop\WorkOrders\Form as WorkshopWorkOrdersForm;
-use App\Livewire\Admin\Workshop\WorkOrders\Index as WorkshopWorkOrdersIndex;
-use App\Livewire\Admin\Workshop\WorkOrders\PrintView as WorkshopWorkOrdersPrint;
-use App\Livewire\Admin\Workshop\WorkOrders\Show as WorkshopWorkOrdersShow;
-use App\Livewire\Admin\Workshop\WorkOrders\AssociatedDocuments\Index as WorkshopAssociatedDocumentsIndex;
 use App\Livewire\Admin\Workshop\Remissions\Form as WorkshopRemissionsForm;
 use App\Livewire\Admin\Workshop\Remissions\Index as WorkshopRemissionsIndex;
 use App\Livewire\Admin\Workshop\Remissions\PrintView as WorkshopRemissionsPrint;
 use App\Livewire\Admin\Workshop\Remissions\Show as WorkshopRemissionsShow;
-use App\Livewire\Admin\Settings\Equipment\Attributes\Form as SettingsAttributesForm;
-use App\Livewire\Admin\Settings\Equipment\Attributes\Index as SettingsAttributesIndex;
-use App\Livewire\Admin\Settings\Equipment\Attributes\Show as SettingsAttributesShow;
-use App\Livewire\Admin\Settings\Equipment\Brands\Index as SettingsBrandsIndex;
-use App\Livewire\Admin\Settings\Equipment\Brands\Show as SettingsBrandsShow;
-use App\Livewire\Admin\Settings\Equipment\Models\Index as SettingsEquipmentModelsIndex;
-use App\Livewire\Admin\Settings\Equipment\Models\Show as SettingsEquipmentModelsShow;
-use App\Livewire\Admin\Settings\Equipment\Types\Index as SettingsEquipmentTypesIndex;
-use App\Livewire\Admin\Settings\Equipment\Types\Show as SettingsEquipmentTypesShow;
-use App\Livewire\Admin\Settings\Equipment\Index as SettingsEquipmentIndex;
-use App\Livewire\Admin\Settings\Equipment\SectionIndex as SettingsEquipmentSectionIndex;
-use App\Livewire\Admin\Settings\Catalog\Index as SettingsCatalogProductsIndex;
-use App\Livewire\Admin\Settings\Catalog\ProductTypes\Index as SettingsProductTypesIndex;
-use App\Livewire\Admin\Settings\Catalog\ProductTypes\Show as SettingsProductTypesShow;
-use App\Livewire\Admin\Settings\Catalog\ProductCategories\Index as SettingsProductCategoriesIndex;
-use App\Livewire\Admin\Settings\Catalog\ProductCategories\Show as SettingsProductCategoriesShow;
-use App\Livewire\Admin\Settings\Catalog\Units\Index as SettingsUnitsIndex;
-use App\Livewire\Admin\Settings\Catalog\Units\Show as SettingsUnitsShow;
-use App\Livewire\Admin\Settings\Catalog\Brands\Form as SettingsCatalogBrandsForm;
-use App\Livewire\Admin\Settings\Catalog\Brands\Index as SettingsCatalogBrandsIndex;
-use App\Livewire\Admin\Settings\Catalog\Brands\Show as SettingsCatalogBrandsShow;
-use App\Livewire\Admin\Catalog\Products\Form as CatalogProductsForm;
-use App\Livewire\Admin\Catalog\Products\Index as CatalogProductsIndex;
-use App\Livewire\Admin\Catalog\Products\Show as CatalogProductsShow;
+use App\Livewire\Admin\Workshop\WorkOrders\AssociatedDocuments\Index as WorkshopAssociatedDocumentsIndex;
+use App\Livewire\Admin\Workshop\WorkOrders\Form as WorkshopWorkOrdersForm;
+use App\Livewire\Admin\Workshop\WorkOrders\Index as WorkshopWorkOrdersIndex;
+use App\Livewire\Admin\Workshop\WorkOrders\PrintView as WorkshopWorkOrdersPrint;
+use App\Livewire\Admin\Workshop\WorkOrders\Show as WorkshopWorkOrdersShow;
 use App\Livewire\Auth\RegisterWizard;
+use App\Livewire\Comercio\Business\Edit as ComercioBusinessEdit;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -246,6 +259,35 @@ Route::middleware(['auth', 'ensure.business', 'business.module'])->group(functio
         });
     });
 
+    // Evento — Equipos y roles (solo iglesias y superAdmin)
+    Route::prefix('events')->name('admin.events.')->group(function () {
+        Route::middleware('permission:events.team_roles.view')->group(function () {
+            Route::get('/team-roles', EventsTeamRolesIndex::class)->name('team-roles.index');
+        });
+        Route::middleware('permission:events.team_roles.create')->group(function () {
+            Route::get('/team-roles/create', EventsTeamRolesForm::class)->name('team-roles.create');
+        });
+        Route::middleware('permission:events.team_roles.edit')->group(function () {
+            Route::get('/team-roles/{eventTeamRole}/edit', EventsTeamRolesForm::class)->name('team-roles.edit');
+        });
+        Route::middleware('permission:events.team_roles.view')->group(function () {
+            Route::get('/team-roles/{eventTeamRole}', EventsTeamRolesShow::class)->name('team-roles.show');
+        });
+
+        Route::middleware('permission:events.teams.view')->group(function () {
+            Route::get('/teams', EventsTeamsIndex::class)->name('teams.index');
+        });
+        Route::middleware('permission:events.teams.create')->group(function () {
+            Route::get('/teams/create', EventsTeamsForm::class)->name('teams.create');
+        });
+        Route::middleware('permission:events.teams.edit')->group(function () {
+            Route::get('/teams/{eventTeam}/edit', EventsTeamsForm::class)->name('teams.edit');
+        });
+        Route::middleware('permission:events.teams.view')->group(function () {
+            Route::get('/teams/{eventTeam}', EventsTeamsShow::class)->name('teams.show');
+        });
+    });
+
     // Configuración
     Route::middleware('permission:settings.view')->prefix('settings')->name('admin.settings.')->group(function () {
         Route::get('/equipment', SettingsEquipmentIndex::class)->name('equipment.index');
@@ -304,6 +346,35 @@ Route::middleware(['auth', 'ensure.business', 'business.module'])->group(functio
         });
         Route::middleware('permission:settings.brands.view')->group(function () {
             Route::get('/catalog-products/brands/{brand}', SettingsCatalogBrandsShow::class)->name('catalog-products.brands.show');
+        });
+
+        // Configuración — Eventos (solo iglesias y superAdmin)
+        Route::get('/events', SettingsEventsIndex::class)->name('events.index');
+
+        Route::middleware('permission:settings.event_categories.view')->group(function () {
+            Route::get('/events/categories', SettingsEventCategoriesIndex::class)->name('events.event-categories.index');
+        });
+        Route::middleware('permission:settings.event_categories.create')->group(function () {
+            Route::get('/events/categories/create', SettingsEventCategoriesForm::class)->name('events.event-categories.create');
+        });
+        Route::middleware('permission:settings.event_categories.edit')->group(function () {
+            Route::get('/events/categories/{eventCategory}/edit', SettingsEventCategoriesForm::class)->name('events.event-categories.edit');
+        });
+        Route::middleware('permission:settings.event_categories.view')->group(function () {
+            Route::get('/events/categories/{eventCategory}', SettingsEventCategoriesShow::class)->name('events.event-categories.show');
+        });
+
+        Route::middleware('permission:settings.attendee_types.view')->group(function () {
+            Route::get('/events/attendee-types', SettingsAttendeeTypesIndex::class)->name('events.attendee-types.index');
+        });
+        Route::middleware('permission:settings.attendee_types.create')->group(function () {
+            Route::get('/events/attendee-types/create', SettingsAttendeeTypesForm::class)->name('events.attendee-types.create');
+        });
+        Route::middleware('permission:settings.attendee_types.edit')->group(function () {
+            Route::get('/events/attendee-types/{attendeeType}/edit', SettingsAttendeeTypesForm::class)->name('events.attendee-types.edit');
+        });
+        Route::middleware('permission:settings.attendee_types.view')->group(function () {
+            Route::get('/events/attendee-types/{attendeeType}', SettingsAttendeeTypesShow::class)->name('events.attendee-types.show');
         });
     });
 

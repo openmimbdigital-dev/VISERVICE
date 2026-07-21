@@ -107,6 +107,27 @@ class User extends Authenticatable
         return $this->hasMany(EquipmentHistorical::class)->orderByDesc('created_at');
     }
 
+    public function event_team_memberships(): HasMany
+    {
+        return $this->hasMany(EventTeamMember::class);
+    }
+
+    public function event_teams(): BelongsToMany
+    {
+        return $this->belongsToMany(EventTeam::class, 'event_team_members')
+            ->withPivot(['business_id', 'event_team_role_id'])
+            ->wherePivotNull('deleted_at')
+            ->withTimestamps();
+    }
+
+    public function event_team_roles(): BelongsToMany
+    {
+        return $this->belongsToMany(EventTeamRole::class, 'event_team_members')
+            ->withPivot(['business_id', 'event_team_id'])
+            ->wherePivotNull('deleted_at')
+            ->withTimestamps();
+    }
+
     public function primaryBusiness(): ?Business
     {
         if ($this->relationLoaded('businesses')) {

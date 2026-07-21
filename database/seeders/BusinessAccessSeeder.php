@@ -115,6 +115,22 @@ class BusinessAccessSeeder extends Seeder
         ];
     }
 
+    /** @return list<string> */
+    private function churchEventsSettingsPermissions(): array
+    {
+        return [
+            'settings.view',
+            'settings.event_categories.view', 'settings.event_categories.create',
+            'settings.event_categories.edit', 'settings.event_categories.delete',
+            'settings.attendee_types.view', 'settings.attendee_types.create',
+            'settings.attendee_types.edit', 'settings.attendee_types.delete',
+            'events.teams.view', 'events.teams.create',
+            'events.teams.edit', 'events.teams.delete',
+            'events.team_roles.view', 'events.team_roles.create',
+            'events.team_roles.edit', 'events.team_roles.delete',
+        ];
+    }
+
     /** @var list<string> */
     private array $workshop_roles = [
         'Administrador',
@@ -160,14 +176,24 @@ class BusinessAccessSeeder extends Seeder
     {
         $taller = OrganizationType::where('label', 'taller')->first();
         $iglesia = OrganizationType::where('label', 'iglesia')->first();
-        $centro  = OrganizationType::where('label', 'centro_educativo')->first();
+        $centro = OrganizationType::where('label', 'centro_educativo')->first();
 
         if ($taller) {
             $this->syncBusinessesOfType($taller, $this->workshop_roles, $this->tallerPermissions());
         }
 
         if ($iglesia) {
-            $this->syncBusinessesOfType($iglesia, $this->church_roles, $this->withPlatformExcludedBusinessPermissions($this->church_base_permissions));
+            $this->syncBusinessesOfType(
+                $iglesia,
+                $this->church_roles,
+                array_values(array_unique([
+                    ...$this->church_base_permissions,
+                    ...$this->teamPositionPermissions(),
+                    ...$this->businessPaymentSettingsPermissions(),
+                    ...$this->catalogProductsPermissions(),
+                    ...$this->churchEventsSettingsPermissions(),
+                ]))
+            );
         }
 
         if ($centro) {
