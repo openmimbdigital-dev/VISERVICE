@@ -184,6 +184,31 @@ class Business extends Model
         return $this->hasMany(Remission::class);
     }
 
+    public function event_categories(): HasMany
+    {
+        return $this->hasMany(EventCategory::class);
+    }
+
+    public function attendee_types(): HasMany
+    {
+        return $this->hasMany(AttendeeType::class);
+    }
+
+    public function event_teams(): HasMany
+    {
+        return $this->hasMany(EventTeam::class);
+    }
+
+    public function event_team_roles(): HasMany
+    {
+        return $this->hasMany(EventTeamRole::class);
+    }
+
+    public function event_team_members(): HasMany
+    {
+        return $this->hasMany(EventTeamMember::class);
+    }
+
     public function attributes(): BelongsToMany
     {
         return $this->belongsToMany(Attribute::class, 'attribute_business')

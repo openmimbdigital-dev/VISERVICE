@@ -21,3 +21,36 @@ if (! function_exists('col_money')) {
         return '$' . col_number($value, 2);
     }
 }
+
+if (! function_exists('org_term')) {
+    /**
+     * Traduce un término de UI según el tipo de organización del negocio
+     * actual del usuario (lang/es/org.php). Si no hay traducción definida,
+     * devuelve el término original.
+     * Ejemplo (negocio tipo iglesia): org_term('Negocios') → "Iglesias"
+     */
+    function org_term(?string $term): string
+    {
+        static $overrides_cache = [];
+
+        if ($term === null || $term === '') {
+            return (string) $term;
+        }
+
+        $user = auth()->user();
+
+        if (! $user) {
+            return $term;
+        }
+
+        $cache_key = (string) ($user->business_id ?? 0);
+
+        if (! array_key_exists($cache_key, $overrides_cache)) {
+            $label = $user->business?->organization_type?->label;
+            $overrides = $label ? trans("org.{$label}", [], 'es') : null;
+            $overrides_cache[$cache_key] = is_array($overrides) ? $overrides : [];
+        }
+
+        return $overrides_cache[$cache_key][$term] ?? $term;
+    }
+}

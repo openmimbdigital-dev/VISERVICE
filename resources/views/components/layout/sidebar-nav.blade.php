@@ -1,13 +1,14 @@
 @props(['sections' => []])
 
 @foreach($sections as $section)
+    @php $section_name = org_term($section['name']); @endphp
     @if($section['behavior'] === 'single_link')
         {{-- Enlace directo --}}
         <div x-cloak x-show="showSidebarIconsOnly()">
             <a href="{{ $section['url'] }}" wire:navigate
                 class="flex w-full items-center justify-center rounded-lg px-2.5 py-2.5 text-sm font-medium transition
                     {{ $section['is_active'] ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white' }}"
-                title="{{ $section['name'] }}">
+                title="{{ $section_name }}">
                 <x-layout.sidebar-icon :path="$section['icon_svg_path']" :class="$section['icon_color_class']" size="md" />
             </a>
         </div>
@@ -16,7 +17,7 @@
                 class="flex items-center gap-3 rounded-lg px-2.5 py-2.5 text-sm font-medium transition
                     {{ $section['is_active'] ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white' }}">
                 <x-layout.sidebar-icon :path="$section['icon_svg_path']" :class="$section['icon_color_class']" size="md" />
-                <span class="truncate">{{ $section['name'] }}</span>
+                <span class="truncate">{{ $section_name }}</span>
             </a>
         </div>
     @else
@@ -26,7 +27,7 @@
             <button type="button" @click.stop="toggleCollapsedMenu('{{ $slug }}')"
                 class="flex w-full items-center justify-center rounded-lg px-2.5 py-2.5 text-sm font-medium transition
                     {{ $section['is_active'] ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white' }}"
-                title="{{ $section['name'] }}"
+                title="{{ $section_name }}"
                 :aria-expanded="collapsedOpen === '{{ $slug }}'">
                 <x-layout.sidebar-icon :path="$section['icon_svg_path']" :class="$section['icon_color_class']" size="md" />
             </button>
@@ -41,7 +42,7 @@
                 @foreach($section['items'] as $item)
                 <a href="{{ $item['url'] }}" wire:navigate @click="closeCollapsedMenu()"
                     class="flex items-center justify-center rounded-lg py-2.5 transition {{ $item['is_active'] ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}"
-                    title="{{ $item['name'] }}">
+                    title="{{ org_term($item['name']) }}">
                     <x-layout.sidebar-icon
                         :path="$item['icon_svg_path'] ?? $section['icon_svg_path']"
                         :class="$item['icon_color_class'] ?? $section['icon_color_class']"
@@ -57,7 +58,7 @@
                 class="w-full flex items-center gap-3 rounded-lg px-2.5 py-2.5 text-sm font-medium transition text-left
                     {{ $section['is_active'] ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white' }}">
                 <x-layout.sidebar-icon :path="$section['icon_svg_path']" :class="$section['icon_color_class']" size="md" />
-                <span class="truncate flex-1">{{ $section['name'] }}</span>
+                <span class="truncate flex-1">{{ $section_name }}</span>
                 <svg class="h-4 w-4 shrink-0 text-slate-400 transition-transform duration-200"
                     :class="isNavOpen('{{ $slug }}') ? 'rotate-180' : ''"
                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -68,12 +69,12 @@
                 @foreach($section['items'] as $item)
                 <a href="{{ $item['url'] }}" wire:navigate
                     class="flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm transition {{ $item['is_active'] ? 'bg-slate-800/90 text-white font-medium' : 'text-slate-400 hover:bg-slate-800/60 hover:text-white' }}"
-                    title="{{ $item['name'] }}">
+                    title="{{ org_term($item['name']) }}">
                     <x-layout.sidebar-icon
                         :path="$item['icon_svg_path'] ?? $section['icon_svg_path']"
                         :class="$item['icon_color_class'] ?? $section['icon_color_class']"
                         size="sm" />
-                    <span class="truncate">{{ $item['name'] }}</span>
+                    <span class="truncate">{{ org_term($item['name']) }}</span>
                     @if(! empty($item['badge']))
                     <span class="ml-auto shrink-0 inline-flex items-center justify-center h-5 min-w-5 px-1.5 rounded-full bg-amber-500 text-white text-[10px] font-bold">{{ $item['badge'] }}</span>
                     @endif
