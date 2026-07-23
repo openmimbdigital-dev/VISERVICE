@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('business_id')->constrained('businesses')->cascadeOnDelete();
             $table->foreignId('subscription_plan_id')->constrained('subscription_plans');
-            $table->enum('status', ['trial', 'active', 'past_due', 'cancelled', 'expired'])->default('active');
+            $table->enum('status', ['pending', 'trial', 'active', 'past_due', 'cancelled', 'expired'])->default('active');
             $table->enum('billing_cycle', ['monthly', 'quarterly', 'semiannual', 'annual'])->default('monthly');
             $table->decimal('monthly_price', 10, 2);     // precio mensual al momento de suscribir
             $table->decimal('total_price', 10, 2);       // total del ciclo de facturación
