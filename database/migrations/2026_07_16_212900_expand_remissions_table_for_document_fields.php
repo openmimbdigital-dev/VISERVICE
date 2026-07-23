@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\DatabaseSchema;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -14,27 +15,27 @@ return new class extends Migration
     {
         Schema::table('remissions', function (Blueprint $table) {
             if (! Schema::hasColumn('remissions', 'client_id')) {
-                $table->foreignId('client_id')->nullable()->after('work_order_id')->constrained('clients')->nullOnDelete();
+                $table->foreignId('client_id')->nullable()->constrained('clients')->nullOnDelete();
             }
 
             if (! Schema::hasColumn('remissions', 'equipment_id')) {
-                $table->foreignId('equipment_id')->nullable()->after('client_id')->constrained('equipment')->nullOnDelete();
+                $table->foreignId('equipment_id')->nullable()->constrained('equipment')->nullOnDelete();
             }
 
             if (! Schema::hasColumn('remissions', 'type')) {
-                $table->enum('type', ['entrega', 'devolucion', 'traslado'])->default('entrega')->after('reference');
+                $table->enum('type', ['entrega', 'devolucion', 'traslado'])->default('entrega');
             }
 
             if (! Schema::hasColumn('remissions', 'quotation_or_po_reference')) {
-                $table->string('quotation_or_po_reference')->nullable()->after('status');
+                $table->string('quotation_or_po_reference')->nullable();
             }
 
             if (! Schema::hasColumn('remissions', 'issue_date')) {
-                $table->date('issue_date')->nullable()->after('quotation_or_po_reference');
+                $table->date('issue_date')->nullable();
             }
 
             if (! Schema::hasColumn('remissions', 'delivery_address')) {
-                $table->string('delivery_address')->nullable()->after('issue_date');
+                $table->string('delivery_address')->nullable();
                 $table->string('delivery_city')->nullable();
                 $table->string('delivery_contact')->nullable();
                 $table->string('delivery_phone', 50)->nullable();
@@ -52,7 +53,7 @@ return new class extends Migration
             }
 
             if (! Schema::hasColumn('remissions', 'delivered_by_signature')) {
-                $table->string('delivered_by_signature')->nullable()->after('delivered_at');
+                $table->string('delivered_by_signature')->nullable();
             }
 
             if (! Schema::hasColumn('remissions', 'received_by_name')) {
@@ -70,6 +71,7 @@ return new class extends Migration
 
         if (Schema::hasColumn('remissions', 'notes') && Schema::hasColumn('remissions', 'observations')) {
             DB::statement('UPDATE remissions SET observations = notes WHERE observations IS NULL AND notes IS NOT NULL');
+
             Schema::table('remissions', function (Blueprint $table) {
                 $table->dropColumn('notes');
             });
@@ -81,19 +83,17 @@ return new class extends Migration
             });
         }
 
-        $this->addIndexIfMissing('remissions_business_deleted_type_idx', ['business_id', 'deleted_at', 'type']);
-        $this->addIndexIfMissing('remissions_client_deleted_idx', ['client_id', 'deleted_at']);
-        $this->addIndexIfMissing('remissions_equipment_deleted_idx', ['equipment_id', 'deleted_at']);
+        DatabaseSchema::addIndexIfMissing('remissions', 'remissions_business_deleted_type_idx', ['business_id', 'deleted_at', 'type']);
+        DatabaseSchema::addIndexIfMissing('remissions', 'remissions_client_deleted_idx', ['client_id', 'deleted_at']);
+        DatabaseSchema::addIndexIfMissing('remissions', 'remissions_equipment_deleted_idx', ['equipment_id', 'deleted_at']);
     }
 
     public function down(): void
     {
         Schema::table('remissions', function (Blueprint $table) {
             foreach (['remissions_business_deleted_type_idx', 'remissions_client_deleted_idx', 'remissions_equipment_deleted_idx'] as $index) {
-                try {
+                if (DatabaseSchema::hasIndex('remissions', $index)) {
                     $table->dropIndex($index);
-                } catch (\Throwable) {
-                    //
                 }
             }
         });
@@ -124,23 +124,6 @@ return new class extends Migration
             if (! Schema::hasColumn('remissions', 'items')) {
                 $table->json('items')->nullable();
             }
-        });
-    }
-
-    /** @param  list<string>  $columns */
-    private function addIndexIfMissing(string $index_name, array $columns): void
-    {
-        $indexes = collect(DB::select('SHOW INDEX FROM remissions'))
-            ->pluck('Key_name')
-            ->unique()
-            ->all();
-
-        if (in_array($index_name, $indexes, true)) {
-            return;
-        }
-
-        Schema::table('remissions', function (Blueprint $table) use ($index_name, $columns) {
-            $table->index($columns, $index_name);
         });
     }
 };
