@@ -40,7 +40,13 @@ COPY routes ./routes
 COPY lang ./lang
 COPY artisan ./
 
-RUN composer dump-autoload --optimize --classmap-authoritative --no-dev --no-interaction
+RUN mkdir -p \
+        storage/framework/cache/data \
+        storage/framework/sessions \
+        storage/framework/views \
+        storage/logs \
+        bootstrap/cache \
+    && composer dump-autoload --optimize --classmap-authoritative --no-dev --no-interaction
 
 
 # ── Imagen de producción ────────────────────────────────────────────────────
