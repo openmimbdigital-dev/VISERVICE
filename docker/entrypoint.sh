@@ -3,10 +3,15 @@ set -euo pipefail
 
 PORT="${PORT:-10000}"
 
-# Render exige escuchar en 0.0.0.0:$PORT (no hardcodear 80).
+# Render/Railway: escuchar en 0.0.0.0:$PORT (no hardcodear 80).
 sed -i "s/^Listen .*/Listen ${PORT}/" /etc/apache2/ports.conf
 sed -i "s/:80>/:${PORT}>/" /etc/apache2/sites-available/000-default.conf
 sed -i "s/:80>/:${PORT}>/" /etc/apache2/sites-enabled/000-default.conf 2>/dev/null || true
+
+# Garantiza un solo MPM antes de arrancar Apache (AH00534).
+a2dismod mpm_event >/dev/null 2>&1 || true
+a2dismod mpm_worker >/dev/null 2>&1 || true
+a2enmod mpm_prefork >/dev/null 2>&1 || true
 
 cd /var/www/html
 
