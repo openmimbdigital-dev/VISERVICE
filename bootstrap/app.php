@@ -11,6 +11,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Railway/Render terminan HTTPS delante del contenedor (HTTP interno).
+        $middleware->trustProxies(at: '*');
+
         $middleware->alias([
             'permission'          => \App\Http\Middleware\CheckPermission::class,
             'role'                => \App\Http\Middleware\CheckRole::class,

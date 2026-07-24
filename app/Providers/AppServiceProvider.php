@@ -23,6 +23,7 @@ use App\Models\WorkOrder;
 use App\Support\CurrentBusiness;
 use App\Support\SidebarMenuBuilder;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
@@ -41,6 +42,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Evita Mixed Content: @vite/asset() deben ser https detrás del proxy.
+        if (! $this->app->environment('local')) {
+            URL::forceScheme('https');
+        }
+
         Route::bind('client', fn (string $value) => Client::query()
             ->forAuthUser()
             ->whereKey($value)
