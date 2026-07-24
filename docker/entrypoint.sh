@@ -13,6 +13,14 @@ a2dismod mpm_event >/dev/null 2>&1 || true
 a2dismod mpm_worker >/dev/null 2>&1 || true
 a2enmod mpm_prefork >/dev/null 2>&1 || true
 
+# AH00558: ServerName global (usa host de APP_URL si existe).
+SERVER_NAME="localhost"
+if [ -n "${APP_URL:-}" ]; then
+    SERVER_NAME="$(php -r 'echo parse_url(getenv("APP_URL"), PHP_URL_HOST) ?: "localhost";')"
+fi
+printf 'ServerName %s\n' "${SERVER_NAME}" > /etc/apache2/conf-available/servername.conf
+a2enconf servername >/dev/null 2>&1 || true
+
 cd /var/www/html
 
 mkdir -p \

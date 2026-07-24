@@ -95,7 +95,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN (a2dismod mpm_event || true) \
     && (a2dismod mpm_worker || true) \
     && a2enmod mpm_prefork \
-    && a2enmod rewrite headers
+    && a2enmod rewrite headers \
+    && printf '%s\n' 'ServerName localhost' > /etc/apache2/conf-available/servername.conf \
+    && a2enconf servername
 
 # DocumentRoot → public/ + AllowOverride para rutas de Laravel
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf \
