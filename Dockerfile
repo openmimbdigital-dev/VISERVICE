@@ -89,8 +89,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         pdo_mysql \
         pdo_pgsql \
         zip \
-    && a2enmod rewrite headers \
     && rm -rf /var/lib/apt/lists/*
+
+# mod_php requiere un solo MPM (prefork). Evita AH00534: More than one MPM loaded.
+RUN (a2dismod mpm_event || true) \
+    && (a2dismod mpm_worker || true) \
+    && a2enmod mpm_prefork \
+    && a2enmod rewrite headers
 
 # DocumentRoot → public/ + AllowOverride para rutas de Laravel
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf \
