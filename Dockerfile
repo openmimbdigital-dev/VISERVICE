@@ -57,6 +57,7 @@ LABEL org.opencontainers.image.title="VISERVICE" \
 
 ENV APP_ENV=production \
     APP_DEBUG=false \
+    APP_CUSTOM_ERROR_PAGES=false \
     LOG_CHANNEL=stderr \
     COMPOSER_ALLOW_SUPERUSER=1 \
     APACHE_DOCUMENT_ROOT=/var/www/html/public \

@@ -21,5 +21,15 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        // Vistas branded en resources/views/errors/* (activar/desactivar con APP_CUSTOM_ERROR_PAGES).
+        $exceptions->render(function (\Throwable $e, \Illuminate\Http\Request $request) {
+            if (config('app.custom_error_pages', true)) {
+                return null;
+            }
+
+            // Desactivado: forzar detalle de excepción en lugar de la vista de error.
+            config(['app.debug' => true]);
+
+            return null;
+        });
     })->create();
