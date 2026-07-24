@@ -31,9 +31,15 @@ php artisan config:cache
 php artisan route:cache
 php artisan view:cache
 
-# Migraciones al arrancar (desactiva con RUN_MIGRATIONS=false si usas un job aparte)
+# Migraciones al arrancar (desactiva con RUN_MIGRATIONS=false)
 if [ "${RUN_MIGRATIONS:-true}" = "true" ]; then
     php artisan migrate --force
+fi
+
+# Datos demo / catálogos (desactiva con RUN_SEEDERS=false).
+# Debe correr en runtime (necesita DB); no en el build de la imagen.
+if [ "${RUN_SEEDERS:-true}" = "true" ]; then
+    php artisan db:seed --force
 fi
 
 exec "$@"
