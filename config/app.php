@@ -43,6 +43,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Custom Error Pages
+    |--------------------------------------------------------------------------
+    |
+    | When true (and APP_DEBUG=false), Laravel uses the branded views in
+    | resources/views/errors/*. Set APP_CUSTOM_ERROR_PAGES=false to skip those
+    | views and show the detailed exception page instead (useful for debugging).
+    | Re-enable later with APP_CUSTOM_ERROR_PAGES=true.
+    |
+    */
+
+    'custom_error_pages' => filter_var(env('APP_CUSTOM_ERROR_PAGES', true), FILTER_VALIDATE_BOOLEAN),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application URL
     |--------------------------------------------------------------------------
     |
