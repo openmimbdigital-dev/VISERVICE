@@ -4,7 +4,7 @@ namespace App\Livewire\Admin\Events\Manage;
 
 use App\Models\Event;
 use App\Models\EventCategory;
-use App\Support\ChurchEventsAccess;
+use App\Support\EventsAccess;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
@@ -17,8 +17,7 @@ class CategoryIndex extends Component
 
     public function mount(EventCategory $eventCategory): void
     {
-        ChurchEventsAccess::authorize();
-        abort_unless(auth()->user()?->can('events.events.view'), 403);
+        EventsAccess::authorizeViewEvents();
 
         $this->event_category = $eventCategory;
     }
@@ -49,6 +48,7 @@ class CategoryIndex extends Component
         return view('livewire.admin.events.manage.category-index', [
             'events_count' => $events_query->count(),
             'month_filter' => $month,
+            'can_create' => EventsAccess::canCreateEvents(),
         ])->layoutData([
             'title' => 'Gestión de eventos — '.$this->event_category->name,
         ]);

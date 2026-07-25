@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\Events\ScheduleEventsFeedController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CurrentBusinessController;
 use App\Http\Controllers\Workshop\WorkshopPdfController;
@@ -23,6 +24,8 @@ use App\Livewire\Admin\Events\Manage\CategoryIndex as EventsManageCategoryIndex;
 use App\Livewire\Admin\Events\Manage\Form as EventsManageForm;
 use App\Livewire\Admin\Events\Manage\Index as EventsManageIndex;
 use App\Livewire\Admin\Events\Manage\Show as EventsManageShow;
+use App\Livewire\Admin\Events\Schedule\Index as EventsScheduleIndex;
+use App\Livewire\Admin\Events\Schedule\Show as EventsScheduleShow;
 use App\Livewire\Admin\Events\TeamRoles\Form as EventsTeamRolesForm;
 use App\Livewire\Admin\Events\TeamRoles\Index as EventsTeamRolesIndex;
 use App\Livewire\Admin\Events\TeamRoles\Show as EventsTeamRolesShow;
@@ -268,6 +271,12 @@ Route::middleware(['auth', 'ensure.business', 'business.module'])->group(functio
     Route::prefix('events')->name('admin.events.')->group(function () {
         Route::middleware('role_or_permission:events.events.view|events.schedule.view')->group(function () {
             Route::get('/', EventsIndex::class)->name('index');
+        });
+
+        Route::middleware('permission:events.schedule.view')->group(function () {
+            Route::get('/schedule', EventsScheduleIndex::class)->name('schedule.index');
+            Route::get('/schedule/events', ScheduleEventsFeedController::class)->name('schedule.feed');
+            Route::get('/schedule/{event}', EventsScheduleShow::class)->name('schedule.show');
         });
 
         Route::middleware('permission:events.events.view')->group(function () {

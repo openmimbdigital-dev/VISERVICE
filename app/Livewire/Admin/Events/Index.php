@@ -41,9 +41,9 @@ class Index extends Component
             ],
             'agenda' => [
                 'title'       => 'Agenda de eventos',
-                'description' => 'Visualiza los eventos programados en formato de agenda.',
+                'description' => 'Visualiza los eventos programados en formato de calendario.',
                 'button_text' => 'Ver agenda',
-                'route'       => null,
+                'route'       => 'admin.events.schedule.index',
                 'permission'  => 'events.schedule.view',
                 'card_bg'     => 'bg-sky-50/60 border-sky-100/80',
                 'icon_bg'     => 'bg-sky-100',

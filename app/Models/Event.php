@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Support\EventsAccess;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 
 class Event extends Model
 {
@@ -21,6 +24,9 @@ class Event extends Model
         'day',
         'start_time',
         'end_time',
+        'attendance_enabled',
+        'participation_enabled',
+        'attendance_closed',
         'attendance',
     ];
 
@@ -28,6 +34,9 @@ class Event extends Model
     {
         return [
             'date'       => 'date',
+            'attendance_enabled' => 'boolean',
+            'participation_enabled' => 'boolean',
+            'attendance_closed' => 'boolean',
             'attendance' => 'integer',
         ];
     }
@@ -72,18 +81,165 @@ class Event extends Model
         return $query->whereIn('events.business_id', $business_ids);
     }
 
+    public function canEdit(?User $user = null): bool
+    {
+        return EventsAccess::canEditEvent($this, $user);
+    }
+
     public function canDelete(?User $user = null): bool
     {
-        $user ??= auth()->user();
+        return EventsAccess::canDeleteEvent($this, $user);
+    }
 
-        if (! $user?->can('events.events.delete')) {
+    public function isWithinSchedule(?CarbonInterface $now = null): bool
+    {
+        $now = $this->resolvedNow($now);
+
+        if (! $this->date?->isSameDay($now)) {
             return false;
         }
 
-        if ($user->hasRole('superAdmin')) {
-            return true;
+        return $now->betweenIncluded(
+            $this->scheduleStartAt($now),
+            $this->scheduleEndAt($now)
+        );
+    }
+
+    /**
+     * @return array{available: bool, message: string|null}
+     */
+    public function attendanceCaptureState(?CarbonInterface $now = null): array
+    {
+        return $this->captureState(
+            enabled: (bool) $this->attendance_enabled,
+            subject: 'asistencia',
+            now: $now
+        );
+    }
+
+    /**
+     * @return array{available: bool, message: string|null}
+     */
+    public function participationCaptureState(?CarbonInterface $now = null): array
+    {
+        return $this->captureState(
+            enabled: (bool) $this->participation_enabled,
+            subject: 'participación',
+            now: $now
+        );
+    }
+
+    /**
+     * @return array{available: bool, message: string|null}
+     */
+    private function captureState(bool $enabled, string $subject, ?CarbonInterface $now = null): array
+    {
+        $now = $this->resolvedNow($now);
+        $date_label = $this->date?->format('d/m/Y') ?? '—';
+        $start_label = $this->timeLabel($this->start_time);
+        $end_label = $this->timeLabel($this->end_time);
+
+        if (! $enabled) {
+            return [
+                'available' => false,
+                'message' => "La toma de {$subject} no está habilitada para este evento.",
+            ];
         }
 
-        return $user->belongsToBusiness($this->business_id);
+        if ($this->date === null) {
+            return [
+                'available' => false,
+                'message' => "No podemos abrir la toma de {$subject} porque el evento no tiene fecha definida.",
+            ];
+        }
+
+        if ($now->lt($this->date->copy()->startOfDay())) {
+            return [
+                'available' => false,
+                'message' => "La toma de {$subject} estará disponible el día del evento ({$date_label}), entre {$start_label} y {$end_label}.",
+            ];
+        }
+
+        if ($now->gt($this->date->copy()->endOfDay())) {
+            return [
+                'available' => false,
+                'message' => "La toma de {$subject} solo estuvo disponible el día del evento ({$date_label}).",
+            ];
+        }
+
+        if ($now->lt($this->scheduleStartAt($now))) {
+            return [
+                'available' => false,
+                'message' => "Aún no inicia el horario del evento. Podrás tomar {$subject} a partir de las {$start_label}.",
+            ];
+        }
+
+        if ($now->gt($this->scheduleEndAt($now))) {
+            return [
+                'available' => false,
+                'message' => "El horario del evento ya finalizó. La toma de {$subject} solo estuvo disponible entre {$start_label} y {$end_label}.",
+            ];
+        }
+
+        return [
+            'available' => true,
+            'message' => null,
+        ];
+    }
+
+    public function startTimeLabel(): string
+    {
+        return $this->timeLabel($this->start_time);
+    }
+
+    public function endTimeLabel(): string
+    {
+        return $this->timeLabel($this->end_time);
+    }
+
+    public function scheduleRangeLabel(): string
+    {
+        return $this->startTimeLabel().' – '.$this->endTimeLabel();
+    }
+
+    private function scheduleStartAt(CarbonInterface $now): Carbon
+    {
+        return $this->date
+            ->copy()
+            ->setTimezone($now->getTimezone())
+            ->setTimeFromTimeString($this->normalizedTime($this->start_time));
+    }
+
+    private function scheduleEndAt(CarbonInterface $now): Carbon
+    {
+        return $this->date
+            ->copy()
+            ->setTimezone($now->getTimezone())
+            ->setTimeFromTimeString($this->normalizedTime($this->end_time));
+    }
+
+    private function resolvedNow(?CarbonInterface $now): Carbon
+    {
+        return Carbon::instance($now ?? now());
+    }
+
+    private function normalizedTime(mixed $time): string
+    {
+        $value = substr((string) $time, 0, 8);
+
+        return strlen($value) === 5 ? $value.':00' : $value;
+    }
+
+    private function timeLabel(mixed $time): string
+    {
+        $normalized = $this->normalizedTime($time);
+
+        if ($normalized === '' || $normalized === ':00') {
+            return '—';
+        }
+
+        return Carbon::createFromFormat('H:i:s', $normalized)
+            ->locale('es')
+            ->isoFormat('h:mm a');
     }
 }

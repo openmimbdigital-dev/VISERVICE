@@ -153,6 +153,7 @@ class BusinessAccessSeeder extends Seeder
         'Pastor',
         'Secretario',
         'Lider de congregacion',
+        'Miembro',
         'Comercio',
     ];
 

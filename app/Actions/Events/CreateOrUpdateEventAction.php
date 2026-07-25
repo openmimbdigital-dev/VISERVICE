@@ -6,7 +6,7 @@ use App\Enums\Weekday;
 use App\Models\Event;
 use App\Models\EventCategory;
 use App\Models\EventTeam;
-use App\Support\ChurchEventsAccess;
+use App\Support\EventsAccess;
 use Illuminate\Support\Facades\DB;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -22,6 +22,8 @@ class CreateOrUpdateEventAction
      *     date: string,
      *     start_time: string,
      *     end_time: string,
+     *     attendance_enabled: bool,
+     *     participation_enabled: bool,
      *     event_team_ids?: list<int>
      * }  $data
      */
@@ -29,11 +31,11 @@ class CreateOrUpdateEventAction
     {
         $user = auth()->user();
 
-        ChurchEventsAccess::authorize($user);
-        abort_unless(
-            $user->can($event_id ? 'events.events.edit' : 'events.events.create'),
-            403
-        );
+        abort_unless($user !== null, 403);
+
+        if (! $event_id) {
+            EventsAccess::authorizeCreateEvents($user);
+        }
 
         if (! $user->hasRole('superAdmin')) {
             abort_unless((int) $business_id === (int) $user->business_id, 403);
@@ -49,6 +51,8 @@ class CreateOrUpdateEventAction
             'day' => Weekday::labelFromDate($data['date']),
             'start_time' => $data['start_time'],
             'end_time' => $data['end_time'],
+            'attendance_enabled' => $data['attendance_enabled'],
+            'participation_enabled' => $data['participation_enabled'],
         ];
 
         $team_ids = $data['event_team_ids'] ?? [];
@@ -60,6 +64,8 @@ class CreateOrUpdateEventAction
                     ->findOrFail($event_id);
 
                 abort_unless((int) $event->business_id === (int) $business_id, 403);
+
+                EventsAccess::authorizeEditEvent($event, $user);
 
                 $event->update($payload);
                 $this->syncTeams($event, $business_id, $team_ids);

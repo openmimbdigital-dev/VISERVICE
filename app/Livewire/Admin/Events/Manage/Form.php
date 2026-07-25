@@ -8,7 +8,7 @@ use App\Enums\Weekday;
 use App\Livewire\Forms\Admin\Events\EventForm;
 use App\Models\Event;
 use App\Models\EventCategory;
-use App\Support\ChurchEventsAccess;
+use App\Support\EventsAccess;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
@@ -21,25 +21,23 @@ class Form extends Component
 
     public function mount(EventCategory $eventCategory, ?Event $event = null): void
     {
-        ChurchEventsAccess::authorize();
-
         $this->event_category = $eventCategory;
 
         if ($event?->exists) {
-            abort_unless(auth()->user()?->can('events.events.edit'), 403);
-
             $record = Event::query()
                 ->forAuthUser()
                 ->where('event_category_id', $eventCategory->id)
                 ->with('teams:id')
                 ->findOrFail($event->id);
 
+            EventsAccess::authorizeEditEvent($record);
+
             $this->form->setEvent($record);
 
             return;
         }
 
-        abort_unless(auth()->user()?->can('events.events.create'), 403);
+        EventsAccess::authorizeCreateEvents();
         $this->form->reset();
         $this->form->setCategory($eventCategory);
         $this->form->year = (string) now()->year;
@@ -54,16 +52,25 @@ class Form extends Component
         $this->form->event_team_ids = [];
     }
 
+    private function authorizeSave(): void
+    {
+        if (! $this->form->isEditing()) {
+            EventsAccess::authorizeCreateEvents();
+
+            return;
+        }
+
+        $record = Event::query()
+            ->forAuthUser()
+            ->where('event_category_id', $this->event_category->id)
+            ->findOrFail($this->form->event_id);
+
+        EventsAccess::authorizeEditEvent($record);
+    }
+
     public function save(): void
     {
-        abort_unless(
-            auth()->user()?->can(
-                $this->form->isEditing()
-                    ? 'events.events.edit'
-                    : 'events.events.create'
-            ),
-            403
-        );
+        $this->authorizeSave();
 
         $this->form->event_category_id = $this->event_category->id;
 

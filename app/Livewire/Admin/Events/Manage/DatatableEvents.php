@@ -5,7 +5,7 @@ namespace App\Livewire\Admin\Events\Manage;
 use App\Actions\Events\DeleteEventAction;
 use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
 use App\Models\Event;
-use App\Support\ChurchEventsAccess;
+use App\Support\EventsAccess;
 use Arm092\LivewireDatatables\Column;
 use Arm092\LivewireDatatables\DateColumn;
 use Arm092\LivewireDatatables\Livewire\LivewireDatatable;
@@ -26,7 +26,7 @@ class DatatableEvents extends LivewireDatatable
 
     public function builder(): Builder
     {
-        ChurchEventsAccess::authorize();
+        EventsAccess::authorizeViewEvents();
 
         $query = Event::query()
             ->forAuthUser()
@@ -85,10 +85,9 @@ class DatatableEvents extends LivewireDatatable
             ['events.id', 'events.business_id', 'events.event_category_id'],
             function ($id, $business_id, $event_category_id) {
                 $user = auth()->user();
-                $can_edit = $user?->can('events.events.edit')
-                    && ($user->hasRole('superAdmin') || $user->belongsToBusiness((int) $business_id));
-                $can_delete = $user?->can('events.events.delete')
-                    && ($user->hasRole('superAdmin') || $user->belongsToBusiness((int) $business_id));
+                $belongs_to_business = EventsAccess::belongsToBusiness((int) $business_id, $user);
+                $can_edit = $belongs_to_business && $user?->can('events.events.edit');
+                $can_delete = $belongs_to_business && $user?->can('events.events.delete');
 
                 return view('livewire.admin.events.manage.actions', [
                     'id' => $id,
@@ -104,8 +103,10 @@ class DatatableEvents extends LivewireDatatable
 
     public function deleteRecord(int $id): void
     {
-        ChurchEventsAccess::authorize();
-        abort_unless(auth()->user()->can('events.events.delete'), 403);
+        $event = Event::query()->forAuthUser()->findOrFail($id);
+
+        EventsAccess::authorizeDeleteEvent($event);
+
         $this->askDeleteConfirmation($id, '¿Eliminar este evento?');
     }
 

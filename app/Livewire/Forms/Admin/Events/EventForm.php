@@ -30,6 +30,10 @@ class EventForm extends Form
 
     public string $end_time = '';
 
+    public bool $attendance_enabled = true;
+
+    public bool $participation_enabled = true;
+
     public string $year = '';
 
     public string $start_month = '';
@@ -52,6 +56,8 @@ class EventForm extends Form
         $this->date = $event->date?->format('Y-m-d') ?? '';
         $this->start_time = substr((string) $event->start_time, 0, 5);
         $this->end_time = substr((string) $event->end_time, 0, 5);
+        $this->attendance_enabled = (bool) $event->attendance_enabled;
+        $this->participation_enabled = (bool) $event->participation_enabled;
         $this->event_team_ids = $event->teams()
             ->pluck('event_teams.id')
             ->map(fn ($id) => (int) $id)
@@ -202,6 +208,8 @@ class EventForm extends Form
             'description' => ['nullable', 'string', 'max:2000'],
             'start_time' => ['required', 'date_format:H:i'],
             'end_time' => ['required', 'date_format:H:i', 'after:start_time'],
+            'attendance_enabled' => ['required', 'boolean'],
+            'participation_enabled' => ['required', 'boolean'],
             'event_team_ids' => ['nullable', 'array'],
             'event_team_ids.*' => ['integer', Rule::in($team_ids)],
         ];
@@ -265,6 +273,8 @@ class EventForm extends Form
      *     date?: string,
      *     start_time: string,
      *     end_time: string,
+     *     attendance_enabled: bool,
+     *     participation_enabled: bool,
      *     year?: int,
      *     start_month?: int,
      *     end_month?: int,
@@ -283,6 +293,8 @@ class EventForm extends Form
             'description' => ($data['description'] ?? '') !== '' ? $data['description'] : null,
             'start_time' => $data['start_time'],
             'end_time' => $data['end_time'],
+            'attendance_enabled' => (bool) $data['attendance_enabled'],
+            'participation_enabled' => (bool) $data['participation_enabled'],
             'event_team_ids' => array_values(array_map('intval', $data['event_team_ids'] ?? [])),
         ];
 

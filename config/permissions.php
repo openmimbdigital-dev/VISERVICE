@@ -124,6 +124,8 @@ return [
                 'events.events.edit' => 'Editar eventos',
                 'events.events.delete' => 'Eliminar eventos',
                 'events.schedule.view' => 'Ver agenda de eventos',
+                'events.attendance.start' => 'Iniciar toma de asistencia',
+                'events.attendance.close' => 'Cerrar toma de asistencia',
             ],
         ],
         'events_teams' => [

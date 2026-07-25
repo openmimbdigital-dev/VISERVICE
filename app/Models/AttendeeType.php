@@ -43,6 +43,11 @@ class AttendeeType extends Model
             ->withTimestamps();
     }
 
+    public function ageRangeLabel(): string
+    {
+        return $this->minimum_range.' – '.$this->maximum_range.' años';
+    }
+
     public function canDelete(?User $user = null): bool
     {
         $user ??= auth()->user();

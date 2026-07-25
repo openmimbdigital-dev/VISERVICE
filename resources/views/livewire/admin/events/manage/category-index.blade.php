@@ -24,7 +24,7 @@
                 <a href="{{ route('admin.events.manage.index') }}" wire:navigate class="btn btn-outline-secondary btn-sm flex-1 justify-center sm:flex-none">
                     Volver
                 </a>
-                @can('events.events.create')
+                @if($can_create)
                     <x-ui.create-button
                         :href="route('admin.events.manage.category.create', $event_category)"
                         size="sm"
@@ -32,7 +32,7 @@
                     >
                         Nuevo evento
                     </x-ui.create-button>
-                @endcan
+                @endif
             </div>
         </div>
     </header>

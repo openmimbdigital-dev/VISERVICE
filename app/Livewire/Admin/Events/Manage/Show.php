@@ -5,7 +5,7 @@ namespace App\Livewire\Admin\Events\Manage;
 use App\Actions\Events\DeleteEventAction;
 use App\Models\Event;
 use App\Models\EventCategory;
-use App\Support\ChurchEventsAccess;
+use App\Support\EventsAccess;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -20,8 +20,7 @@ class Show extends Component
 
     public function mount(EventCategory $eventCategory, Event $event): void
     {
-        ChurchEventsAccess::authorize();
-        abort_unless(auth()->user()?->can('events.events.view'), 403);
+        EventsAccess::authorizeViewEvents();
 
         $this->event_category = $eventCategory;
 
@@ -34,8 +33,7 @@ class Show extends Component
 
     public function delete(): void
     {
-        ChurchEventsAccess::authorize();
-        abort_unless(auth()->user()?->can('events.events.delete'), 403);
+        EventsAccess::authorizeDeleteEvent($this->event);
 
         DeleteEventAction::run($this->event->id);
 
@@ -49,12 +47,10 @@ class Show extends Component
 
     public function render()
     {
-        $user = auth()->user();
-
         return view('livewire.admin.events.manage.show', [
-            'can_edit' => $user?->can('events.events.edit')
-                && ($user->hasRole('superAdmin') || $user->belongsToBusiness($this->event->business_id)),
-            'can_delete' => $this->event->canDelete($user),
+            'can_edit' => EventsAccess::canEditEvent($this->event),
+            'can_delete' => EventsAccess::canDeleteEvent($this->event),
+            'can_view_schedule' => EventsAccess::canViewSchedule(),
         ]);
     }
 }

@@ -20,6 +20,9 @@
             </div>
             <div class="flex w-full shrink-0 flex-wrap gap-2 sm:w-auto">
                 <a href="{{ route('admin.events.manage.category.index', $event_category) }}" wire:navigate class="btn btn-outline-secondary btn-sm flex-1 justify-center sm:flex-none">Volver</a>
+                @if($can_view_schedule)
+                    <a href="{{ route('admin.events.schedule.show', $event) }}" wire:navigate class="btn btn-outline-secondary btn-sm flex-1 justify-center sm:flex-none">Ver en agenda</a>
+                @endif
                 @if($can_edit)
                     <a href="{{ route('admin.events.manage.category.edit', [$event_category, $event]) }}" wire:navigate class="btn btn-primary btn-sm flex-1 justify-center sm:flex-none">Editar</a>
                 @endif
@@ -60,6 +63,22 @@
                     <dd class="text-sm text-slate-900 sm:col-span-2">{{ $event->description ?: 'Sin descripción.' }}</dd>
                 </div>
                 <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt class="text-xs font-medium text-slate-500">Toma de asistencia</dt>
+                    <dd class="text-sm sm:col-span-2">
+                        <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold {{ $event->attendance_enabled ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20' : 'bg-slate-100 text-slate-600 ring-1 ring-slate-500/15' }}">
+                            {{ $event->attendance_enabled ? 'Activa' : 'Inactiva' }}
+                        </span>
+                    </dd>
+                </div>
+                <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt class="text-xs font-medium text-slate-500">Toma de participación</dt>
+                    <dd class="text-sm sm:col-span-2">
+                        <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold {{ $event->participation_enabled ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20' : 'bg-slate-100 text-slate-600 ring-1 ring-slate-500/15' }}">
+                            {{ $event->participation_enabled ? 'Activa' : 'Inactiva' }}
+                        </span>
+                    </dd>
+                </div>
+                <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
                     <dt class="text-xs font-medium text-slate-500">Equipos</dt>
                     <dd class="text-sm text-slate-900 sm:col-span-2">
                         @if($event->teams->isEmpty())
@@ -87,9 +106,7 @@
                 </div>
                 <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
                     <dt class="text-xs font-medium text-slate-500">Horario</dt>
-                    <dd class="text-sm text-slate-900 sm:col-span-2">
-                        {{ substr((string) $event->start_time, 0, 5) }} – {{ substr((string) $event->end_time, 0, 5) }}
-                    </dd>
+                    <dd class="text-sm text-slate-900 sm:col-span-2">{{ $event->scheduleRangeLabel() }}</dd>
                 </div>
             </dl>
         </section>

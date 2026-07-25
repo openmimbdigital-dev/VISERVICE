@@ -133,6 +133,30 @@
                     </div>
 
                     <div class="sm:col-span-2">
+                        <label class="mb-1.5 block text-xs font-medium text-slate-700">Controles del evento</label>
+                        <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                            <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-sm text-slate-700 transition hover:border-indigo-200 hover:bg-indigo-50/40">
+                                <input type="checkbox" wire:model="form.attendance_enabled"
+                                    class="mt-0.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500/30">
+                                <span>
+                                    <span class="block font-medium text-slate-800">Toma de asistencia activa</span>
+                                    <span class="mt-0.5 block text-xs text-slate-500">Permite registrar la asistencia del evento.</span>
+                                </span>
+                            </label>
+                            <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-sm text-slate-700 transition hover:border-indigo-200 hover:bg-indigo-50/40">
+                                <input type="checkbox" wire:model="form.participation_enabled"
+                                    class="mt-0.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500/30">
+                                <span>
+                                    <span class="block font-medium text-slate-800">Toma de participación activa</span>
+                                    <span class="mt-0.5 block text-xs text-slate-500">Permite registrar la participación del evento.</span>
+                                </span>
+                            </label>
+                        </div>
+                        @error('form.attendance_enabled') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                        @error('form.participation_enabled') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                    </div>
+
+                    <div class="sm:col-span-2">
                         <label class="mb-1.5 block text-xs font-medium text-slate-700">Equipos</label>
                         @if($is_super_admin && ! $form->business_id)
                             <p class="text-sm text-slate-500">Selecciona una iglesia para ver sus equipos.</p>

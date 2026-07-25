@@ -3,7 +3,7 @@
 namespace App\Actions\Events;
 
 use App\Models\Event;
-use App\Support\ChurchEventsAccess;
+use App\Support\EventsAccess;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 class DeleteEventAction
@@ -12,14 +12,11 @@ class DeleteEventAction
 
     public function handle(int $event_id): void
     {
-        ChurchEventsAccess::authorize();
-        abort_unless(auth()->user()?->can('events.events.delete'), 403);
-
         $event = Event::query()
             ->forAuthUser()
             ->findOrFail($event_id);
 
-        abort_unless($event->canDelete(), 403);
+        EventsAccess::authorizeDeleteEvent($event);
 
         $event->delete();
     }

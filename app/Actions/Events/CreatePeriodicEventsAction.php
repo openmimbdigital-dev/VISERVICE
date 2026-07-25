@@ -7,7 +7,7 @@ use App\Enums\Weekday;
 use App\Models\Event;
 use App\Models\EventCategory;
 use App\Models\EventTeam;
-use App\Support\ChurchEventsAccess;
+use App\Support\EventsAccess;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -23,6 +23,8 @@ class CreatePeriodicEventsAction
      *     description: ?string,
      *     start_time: string,
      *     end_time: string,
+     *     attendance_enabled: bool,
+     *     participation_enabled: bool,
      *     year: int,
      *     start_month: int,
      *     end_month: int,
@@ -35,8 +37,7 @@ class CreatePeriodicEventsAction
     {
         $user = auth()->user();
 
-        ChurchEventsAccess::authorize($user);
-        abort_unless($user->can('events.events.create'), 403);
+        EventsAccess::authorizeCreateEvents($user);
 
         if (! $user->hasRole('superAdmin')) {
             abort_unless((int) $business_id === (int) $user->business_id, 403);
@@ -78,6 +79,8 @@ class CreatePeriodicEventsAction
                     'day' => Weekday::labelFromDate($date),
                     'start_time' => $data['start_time'],
                     'end_time' => $data['end_time'],
+                    'attendance_enabled' => $data['attendance_enabled'],
+                    'participation_enabled' => $data['participation_enabled'],
                 ]);
 
                 $event->teams()->sync($team_ids);
