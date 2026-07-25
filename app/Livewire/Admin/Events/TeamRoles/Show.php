@@ -10,7 +10,7 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 
 #[Layout('layouts.app')]
-#[Title('Evento — Rol del equipo')]
+#[Title('Gestión de eventos — Rol del equipo')]
 class Show extends Component
 {
     public EventTeamRole $event_team_role;

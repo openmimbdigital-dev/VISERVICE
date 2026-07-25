@@ -9,7 +9,8 @@
 
 ## Convenciones
 - Variables en **snake_case** (ver README)
-- Todos los textos de UI en **español**
+- **Código en inglés** (permisos, rutas, clases, columnas); **UI en español** (Blade, títulos, labels de permisos)
+- Ejemplo permiso: `'events.schedule.view' => 'Ver agenda de eventos'` — clave EN (agenda→schedule), etiqueta ES
 - Clases CSS: usar clases `.btn`, `.btn-primary`, `.btn-danger`, etc. (definidas en `resources/css/app.css`)
 - Eventos SweetAlert desde Livewire: `$this->dispatch('swal', ['title' => '...', 'icon' => 'success'])`
 

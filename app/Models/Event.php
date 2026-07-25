@@ -6,24 +6,28 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class EventTeam extends Model
+class Event extends Model
 {
     use SoftDeletes;
 
     protected $fillable = [
         'business_id',
+        'event_category_id',
         'name',
         'description',
-        'active',
+        'date',
+        'start_time',
+        'end_time',
+        'attendance',
     ];
 
     protected function casts(): array
     {
         return [
-            'active' => 'boolean',
+            'date'       => 'date',
+            'attendance' => 'integer',
         ];
     }
 
@@ -32,28 +36,21 @@ class EventTeam extends Model
         return $this->belongsTo(Business::class);
     }
 
-    public function roles(): BelongsToMany
+    public function category(): BelongsTo
     {
-        return $this->belongsToMany(EventTeamRole::class, 'event_team_role')
+        return $this->belongsTo(EventCategory::class, 'event_category_id');
+    }
+
+    public function attendee_types(): BelongsToMany
+    {
+        return $this->belongsToMany(AttendeeType::class, 'event_attendee_type')
+            ->withPivot('attendance')
             ->withTimestamps();
     }
 
-    public function events(): BelongsToMany
+    public function teams(): BelongsToMany
     {
-        return $this->belongsToMany(Event::class, 'event_event_team')
-            ->withTimestamps();
-    }
-
-    public function members(): HasMany
-    {
-        return $this->hasMany(EventTeamMember::class);
-    }
-
-    public function users(): BelongsToMany
-    {
-        return $this->belongsToMany(User::class, 'event_team_members')
-            ->withPivot(['business_id', 'event_team_role_id'])
-            ->wherePivotNull('deleted_at')
+        return $this->belongsToMany(EventTeam::class, 'event_event_team')
             ->withTimestamps();
     }
 
@@ -71,14 +68,14 @@ class EventTeam extends Model
             return $query->whereRaw('0 = 1');
         }
 
-        return $query->whereIn('event_teams.business_id', $business_ids);
+        return $query->whereIn('events.business_id', $business_ids);
     }
 
     public function canDelete(?User $user = null): bool
     {
         $user ??= auth()->user();
 
-        if (! $user?->can('events.teams.delete')) {
+        if (! $user?->can('events.events.delete')) {
             return false;
         }
 

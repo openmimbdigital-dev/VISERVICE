@@ -223,8 +223,8 @@ class MenuSeeder extends Seeder
                 ],
             ],
             [
-                'slug' => 'evento',
-                'name' => 'Evento',
+                'slug' => 'gestion-eventos',
+                'name' => 'Gestión de eventos',
                 'icon_svg_path' => 'M8 7V3m8 4V3M5 11h14M5 5h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z',
                 'icon_color_class' => 'text-violet-400',
                 'route_patterns' => ['admin.events.*'],
@@ -232,6 +232,14 @@ class MenuSeeder extends Seeder
                 'permission' => 'events.teams.view',
                 'sort_order' => 45,
                 'items' => [
+                    [
+                        'name' => 'Eventos',
+                        'route_name' => 'admin.events.index',
+                        'active_route_pattern' => 'admin.events.index',
+                        'icon_svg_path' => 'M8 7V3m8 4V3M5 11h14M5 5h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z',
+                        'permission' => 'events.events.view|events.schedule.view',
+                        'sort_order' => 1,
+                    ],
                     [
                         'name' => 'Roles del equipo',
                         'route_name' => 'admin.events.team-roles.index',
@@ -275,7 +283,7 @@ class MenuSeeder extends Seeder
             'mi-negocio' => true,
             'catalogo' => true,
             'taller' => true,
-            'evento' => true,
+            'gestion-eventos' => true,
             'configuracion' => true,
         ];
 
@@ -334,6 +342,27 @@ class MenuSeeder extends Seeder
             MenuItem::query()->where('menu_section_id', $legacy_cargos->id)->delete();
             $legacy_cargos->businesses()->detach();
             $legacy_cargos->delete();
+        }
+
+        // Renombre Evento → Gestión de eventos
+        $legacy_evento = MenuSection::query()->where('slug', 'evento')->first();
+        $event_management = MenuSection::query()->where('slug', 'gestion-eventos')->first();
+        if ($legacy_evento && $event_management) {
+            MenuItem::query()
+                ->where('menu_section_id', $legacy_evento->id)
+                ->update(['menu_section_id' => $event_management->id]);
+
+            foreach ($legacy_evento->businesses()->pluck('id') as $business_id) {
+                $event_management->businesses()->syncWithoutDetaching([(int) $business_id]);
+            }
+
+            $legacy_evento->businesses()->detach();
+            $legacy_evento->delete();
+        } elseif ($legacy_evento) {
+            $legacy_evento->update([
+                'slug' => 'gestion-eventos',
+                'name' => 'Gestión de eventos',
+            ]);
         }
 
         $this->command?->info('Menú sincronizado.');

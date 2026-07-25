@@ -194,6 +194,11 @@ class Business extends Model
         return $this->hasMany(AttendeeType::class);
     }
 
+    public function events(): HasMany
+    {
+        return $this->hasMany(Event::class);
+    }
+
     public function event_teams(): HasMany
     {
         return $this->hasMany(EventTeam::class);

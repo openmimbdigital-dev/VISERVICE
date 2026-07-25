@@ -18,6 +18,7 @@ use App\Livewire\Admin\Catalog\Products\Form as CatalogProductsForm;
 use App\Livewire\Admin\Catalog\Products\Index as CatalogProductsIndex;
 use App\Livewire\Admin\Catalog\Products\Show as CatalogProductsShow;
 use App\Livewire\Admin\Dashboard;
+use App\Livewire\Admin\Events\Index as EventsIndex;
 use App\Livewire\Admin\Events\TeamRoles\Form as EventsTeamRolesForm;
 use App\Livewire\Admin\Events\TeamRoles\Index as EventsTeamRolesIndex;
 use App\Livewire\Admin\Events\TeamRoles\Show as EventsTeamRolesShow;
@@ -259,8 +260,12 @@ Route::middleware(['auth', 'ensure.business', 'business.module'])->group(functio
         });
     });
 
-    // Evento — Equipos y roles (solo iglesias y superAdmin)
+    // Gestión de eventos — Equipos y roles (solo iglesias y superAdmin)
     Route::prefix('events')->name('admin.events.')->group(function () {
+        Route::middleware('role_or_permission:events.events.view|events.schedule.view')->group(function () {
+            Route::get('/', EventsIndex::class)->name('index');
+        });
+
         Route::middleware('permission:events.team_roles.view')->group(function () {
             Route::get('/team-roles', EventsTeamRolesIndex::class)->name('team-roles.index');
         });

@@ -6,6 +6,7 @@ use App\Enums\EventCategoryType;
 use App\Models\Concerns\InteractsWithSharedCatalog;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class EventCategory extends Model
@@ -32,6 +33,11 @@ class EventCategory extends Model
     public function business(): BelongsTo
     {
         return $this->belongsTo(Business::class);
+    }
+
+    public function events(): HasMany
+    {
+        return $this->hasMany(Event::class);
     }
 
     public function canDelete(?User $user = null): bool

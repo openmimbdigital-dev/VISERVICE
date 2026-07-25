@@ -8,7 +8,7 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 
 #[Layout('layouts.app')]
-#[Title('Evento — Equipos de evento')]
+#[Title('Gestión de eventos — Equipos de evento')]
 class Index extends Component
 {
     public function mount(): void

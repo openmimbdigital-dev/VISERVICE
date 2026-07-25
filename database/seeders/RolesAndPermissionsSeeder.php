@@ -72,6 +72,15 @@ class RolesAndPermissionsSeeder extends Seeder
     }
 
     /** @return list<string> */
+    private function eventsManagementPermissions(): array
+    {
+        return [
+            'events.events.view',
+            'events.schedule.view',
+        ];
+    }
+
+    /** @return list<string> */
     private function eventTeamsPermissions(): array
     {
         return [
@@ -179,7 +188,9 @@ class RolesAndPermissionsSeeder extends Seeder
             'settings.view', 'settings.edit',
             // Configuración — Eventos
             ...$this->churchEventsSettingsPermissions(),
-            // Evento — Equipos
+            // Gestión de eventos — Eventos y agenda
+            ...$this->eventsManagementPermissions(),
+            // Gestión de eventos — Equipos
             ...$this->eventTeamsPermissions(),
             // Configuración — Atributos de equipo
             'settings.attributes.view', 'settings.attributes.create',
@@ -307,6 +318,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'permissions.view', 'permissions.assign',
             ...$this->teamPositionPermissions(),
             ...$this->churchEventsSettingsPermissions(),
+            ...$this->eventsManagementPermissions(),
             ...$this->eventTeamsPermissions(),
         ])->values());
 
