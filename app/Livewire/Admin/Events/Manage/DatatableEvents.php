@@ -1,0 +1,128 @@
+<?php
+
+namespace App\Livewire\Admin\Events\Manage;
+
+use App\Actions\Events\DeleteEventAction;
+use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
+use App\Models\Event;
+use App\Support\EventsAccess;
+use Arm092\LivewireDatatables\Column;
+use Arm092\LivewireDatatables\DateColumn;
+use Arm092\LivewireDatatables\Livewire\LivewireDatatable;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+
+class DatatableEvents extends LivewireDatatable
+{
+    use ConfirmsDeletionWithLivewireAlert;
+
+    public bool $exportable = true;
+
+    public ?int $perPage = 25;
+
+    public ?int $event_category_id = null;
+
+    public ?string $date = null;
+
+    public ?int $month = null;
+
+    public function builder(): Builder
+    {
+        EventsAccess::authorizeViewEvents();
+
+        $query = Event::query()
+            ->forAuthUser()
+            ->select('events.*')
+            ->leftJoin('businesses', 'events.business_id', '=', 'businesses.id')
+            ->orderByRaw('CASE WHEN YEAR(events.date) = ? THEN 0 ELSE 1 END', [now()->year])
+            ->orderByDesc('events.date')
+            ->orderByDesc('events.start_time');
+
+        if ($this->event_category_id) {
+            $query->where('events.event_category_id', $this->event_category_id);
+        }
+
+        if ($this->date) {
+            $query->whereDate('events.date', $this->date);
+        }
+
+        if ($this->month !== null && $this->month >= 1 && $this->month <= 12) {
+            $query->whereMonth('events.date', $this->month);
+        }
+
+        return $query;
+    }
+
+    public function getColumns(): Model|array
+    {
+        $columns = [
+            Column::name('events.name')
+                ->label('Nombre')
+                ->searchable()
+                ->sortable(),
+            DateColumn::name('events.date')
+                ->label('Fecha')
+                ->format('d/m/Y')
+                ->sortable()
+                ->searchable(),
+            Column::raw("DATE_FORMAT(events.date, '%d/%m/%Y') AS event_date_formatted")
+                ->label('Fecha formateada')
+                ->searchable()
+                ->hide(),
+            Column::name('events.day')
+                ->label('Día')
+                ->searchable()
+                ->sortable(),
+            Column::callback(['events.start_time', 'events.end_time'], function ($start, $end) {
+                $start_label = $start ? substr((string) $start, 0, 5) : '—';
+                $end_label = $end ? substr((string) $end, 0, 5) : '—';
+
+                return e($start_label.' – '.$end_label);
+            })->label('Horario')->unsortable(),
+        ];
+
+        if (auth()->user()->hasRole('superAdmin')) {
+            $columns[] = Column::callback(['businesses.name'], function ($business_name) {
+                return $business_name ? e($business_name) : '<span class="text-slate-400">—</span>';
+            })->label('Iglesia');
+        }
+
+        $columns[] = Column::callback(
+            ['events.id', 'events.business_id', 'events.event_category_id'],
+            function ($id, $business_id, $event_category_id) {
+                $user = auth()->user();
+                $belongs_to_business = EventsAccess::belongsToBusiness((int) $business_id, $user);
+                $can_edit = $belongs_to_business && $user?->can('events.events.edit');
+                $can_delete = $belongs_to_business && $user?->can('events.events.delete');
+
+                return view('livewire.admin.events.manage.actions', [
+                    'id' => $id,
+                    'event_category_id' => $event_category_id,
+                    'can_edit' => $can_edit,
+                    'can_delete' => $can_delete,
+                ]);
+            }
+        )->label('Acciones')->unsortable();
+
+        return $columns;
+    }
+
+    public function deleteRecord(int $id): void
+    {
+        $event = Event::query()->forAuthUser()->findOrFail($id);
+
+        EventsAccess::authorizeDeleteEvent($event);
+
+        $this->askDeleteConfirmation($id, '¿Eliminar este evento?');
+    }
+
+    protected function onDeleteConfirmed(): void
+    {
+        try {
+            DeleteEventAction::run($this->delete_id);
+            $this->alertDeleteSuccess('Evento eliminado correctamente.');
+        } catch (\Throwable) {
+            $this->alertDeleteError('No se pudo eliminar el evento.');
+        }
+    }
+}

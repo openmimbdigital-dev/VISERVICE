@@ -73,8 +73,8 @@ class Form extends Component
             'businesses' => $this->form->isSuperAdmin() ? $this->form->getBusinesses() : collect(),
         ])->layoutData([
             'title' => $this->form->isEditing()
-                ? 'Evento — Editar rol del equipo'
-                : 'Evento — Nuevo rol del equipo',
+                ? 'Gestión de eventos — Editar rol del equipo'
+                : 'Gestión de eventos — Nuevo rol del equipo',
         ]);
     }
 }

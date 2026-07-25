@@ -1,0 +1,68 @@
+---
+description: Código en inglés, textos de UI y etiquetas en español
+alwaysApply: true
+---
+
+# Idioma y nomenclatura — VISERVICE
+
+## Regla obligatoria
+
+| Qué | Idioma | Ejemplo |
+|-----|--------|---------|
+| Identificadores de código | **Inglés** | permisos, rutas, clases, variables, columnas, slugs técnicos de config |
+| Textos visibles al usuario | **Español** | Blade, títulos Livewire, mensajes de validación, labels de permisos |
+
+**Nunca** uses español en claves técnicas (permisos Spatie, `route_name`, nombres de clase, propiedades PHP, columnas BD, keys de arrays de config).
+
+## Permisos (`config/permissions.php`)
+
+- **Clave** (código): inglés, notación con puntos → `modulo.recurso.accion`
+- **Valor** (etiqueta UI): español
+
+```php
+// ✅ Correcto — clave en inglés, etiqueta en español
+'events.schedule.view' => 'Ver agenda de eventos',
+'events.events.view' => 'Administrar eventos',
+
+// ❌ Incorrecto — clave en español ("agenda" es español, usar "schedule")
+'events.agenda.view' => 'Ver agenda de eventos',
+'eventos.agenda.ver' => 'Ver agenda de eventos',
+```
+
+Traduce el concepto al inglés en la clave aunque la etiqueta lo diga en español: agenda → `schedule`, taller → `workshop`, negocio → `business`, periódico → `periodic`, eventual → `occasional`.
+
+Enums y columnas BD: valores técnicos en inglés; `label()` / opciones de select en español.
+En migraciones, usa la clase enum — no hardcodees el array:
+
+```php
+$table->enum('type', array_column(EventCategoryType::cases(), 'value'));
+```
+
+```php
+enum EventCategoryType: string
+{
+    case Periodic = 'periodic';      // UI: Periódico
+    case Occasional = 'occasional';  // UI: Eventual
+}
+```
+
+Misma separación en menú: `permission` / `route_name` en inglés; `name` del ítem en español.
+
+```php
+[
+    'name' => 'Eventos',                          // UI es
+    'route_name' => 'admin.events.index',         // código en
+    'permission' => 'events.events.view|events.schedule.view', // código en
+]
+```
+
+## Rutas, clases y archivos
+
+- Rutas: `admin.events.index`, `admin.events.agenda.index`
+- Namespaces/clases: `App\Livewire\Admin\Events\Index`
+- Variables/propiedades: `snake_case` en inglés (`event_category_id`, `start_time`)
+
+## UI
+
+- Breadcrumbs, headers, botones, `@error`, SweetAlert: **español**
+- `#[Title('Gestión de eventos — Eventos')]` → español (es lo que ve el usuario)

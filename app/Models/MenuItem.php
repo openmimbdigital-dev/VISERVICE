@@ -49,7 +49,10 @@ class MenuItem extends Model
 
     public function isActiveForRequest(): bool
     {
-        return request()->routeIs($this->activePattern());
+        $patterns = preg_split('/\s*\|\s*/', $this->activePattern()) ?: [];
+        $patterns = array_values(array_filter($patterns));
+
+        return $patterns !== [] && request()->routeIs(...$patterns);
     }
 
     public function isVisibleTo(?User $user): bool
@@ -62,8 +65,15 @@ class MenuItem extends Model
             return false;
         }
 
-        if ($this->permission && ! $user->can($this->permission)) {
-            return false;
+        if ($this->permission) {
+            $permissions = preg_split('/\s*\|\s*/', $this->permission) ?: [];
+            $allowed = collect($permissions)->contains(
+                fn (string $permission) => $permission !== '' && $user->can($permission)
+            );
+
+            if (! $allowed) {
+                return false;
+            }
         }
 
         if (! BusinessModuleAccess::menuItemEnabledForUser($user, $this)) {

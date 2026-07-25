@@ -32,32 +32,32 @@ class EventCategoriesAndAttendeeTypesSeeder extends Seeder
             [
                 'name'        => 'Culto dominical',
                 'description' => 'Reunión general de adoración todos los domingos.',
-                'type'        => EventCategoryType::Periodico,
+                'type'        => EventCategoryType::Periodic,
             ],
             [
                 'name'        => 'Reunión de oración',
                 'description' => 'Encuentro semanal de oración e intercesión.',
-                'type'        => EventCategoryType::Periodico,
+                'type'        => EventCategoryType::Periodic,
             ],
             [
                 'name'        => 'Escuela dominical',
                 'description' => 'Clases de formación bíblica por edades.',
-                'type'        => EventCategoryType::Periodico,
+                'type'        => EventCategoryType::Periodic,
             ],
             [
                 'name'        => 'Vigilia',
                 'description' => 'Noche de oración y adoración extendida.',
-                'type'        => EventCategoryType::Eventual,
+                'type'        => EventCategoryType::Occasional,
             ],
             [
                 'name'        => 'Conferencia anual',
                 'description' => 'Evento especial con invitados y ministraciones.',
-                'type'        => EventCategoryType::Eventual,
+                'type'        => EventCategoryType::Occasional,
             ],
             [
                 'name'        => 'Bautismos',
                 'description' => 'Ceremonia de bautismos en agua.',
-                'type'        => EventCategoryType::Eventual,
+                'type'        => EventCategoryType::Occasional,
             ],
         ];
 

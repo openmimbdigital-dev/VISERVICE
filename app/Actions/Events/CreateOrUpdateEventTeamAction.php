@@ -2,6 +2,7 @@
 
 namespace App\Actions\Events;
 
+use App\Actions\LogUserHistoricalAction;
 use App\Models\EventTeam;
 use App\Models\EventTeamMember;
 use App\Models\EventTeamRole;
@@ -42,6 +43,8 @@ class CreateOrUpdateEventTeamAction
         $this->assertMembersAreValid($business_id, $role_ids, $data['members']);
 
         return DB::transaction(function () use ($business_id, $event_team_id, $data, $role_ids, $user) {
+            $is_editing = (bool) $event_team_id;
+
             if ($event_team_id) {
                 $event_team = EventTeam::query()
                     ->forAuthUser($user)
@@ -66,7 +69,23 @@ class CreateOrUpdateEventTeamAction
             $event_team->roles()->sync($role_ids);
             $this->syncMembers($event_team, $business_id, $data['members']);
 
-            return $event_team->fresh(['roles', 'members']);
+            $event_team = $event_team->fresh(['roles', 'members']);
+
+            LogUserHistoricalAction::run(
+                action: $is_editing ? 'updated' : 'created',
+                module: 'events.teams',
+                description: ($is_editing ? 'Actualizó' : 'Creó')." el equipo de evento {$event_team->name}",
+                subject: $event_team,
+                subject_label: $event_team->name,
+                properties: [
+                    'active' => (bool) $event_team->active,
+                    'roles_count' => $event_team->roles->count(),
+                    'members_count' => $event_team->members->count(),
+                ],
+                business_id: $business_id,
+            );
+
+            return $event_team;
         });
     }
 

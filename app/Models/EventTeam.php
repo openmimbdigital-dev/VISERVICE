@@ -38,6 +38,12 @@ class EventTeam extends Model
             ->withTimestamps();
     }
 
+    public function events(): BelongsToMany
+    {
+        return $this->belongsToMany(Event::class, 'event_event_team')
+            ->withTimestamps();
+    }
+
     public function members(): HasMany
     {
         return $this->hasMany(EventTeamMember::class);

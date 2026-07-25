@@ -116,8 +116,21 @@ return [
                 'settings.attendee_types.delete' => 'Eliminar tipos de asistente',
             ],
         ],
+        'events_management' => [
+            'name' => 'Gestión de eventos — Eventos',
+            'permissions' => [
+                'events.events.view' => 'Ver eventos',
+                'events.events.create' => 'Crear eventos',
+                'events.events.edit' => 'Editar eventos',
+                'events.events.delete' => 'Eliminar eventos',
+                'events.schedule.view' => 'Ver agenda de eventos',
+                'events.attendance.start' => 'Iniciar toma de asistencia',
+                'events.attendance.close' => 'Cerrar toma de asistencia',
+                'events.reports.attendance.view' => 'Ver reporte de asistencia de eventos',
+            ],
+        ],
         'events_teams' => [
-            'name' => 'Evento — Equipos de evento',
+            'name' => 'Gestión de eventos — Equipos de evento',
             'permissions' => [
                 'events.teams.view' => 'Ver equipos de evento',
                 'events.teams.create' => 'Crear equipos de evento',
@@ -126,7 +139,7 @@ return [
             ],
         ],
         'events_team_roles' => [
-            'name' => 'Evento — Roles del equipo',
+            'name' => 'Gestión de eventos — Roles del equipo',
             'permissions' => [
                 'events.team_roles.view' => 'Ver roles del equipo',
                 'events.team_roles.create' => 'Crear roles del equipo',

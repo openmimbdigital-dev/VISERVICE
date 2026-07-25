@@ -11,6 +11,8 @@ use App\Models\Client;
 use App\Models\Equipment;
 use App\Models\EquipmentModel;
 use App\Models\EquipmentType;
+use App\Models\Event;
+use App\Models\EventCategory;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\ProductType;
@@ -128,6 +130,16 @@ class AppServiceProvider extends ServiceProvider
             ->firstOrFail());
 
         Route::bind('bankAccount', fn (string $value) => BusinessBankAccount::query()
+            ->forAuthUser()
+            ->whereKey($value)
+            ->firstOrFail());
+
+        Route::bind('eventCategory', fn (string $value) => EventCategory::query()
+            ->visibleToUser()
+            ->whereKey($value)
+            ->firstOrFail());
+
+        Route::bind('event', fn (string $value) => Event::query()
             ->forAuthUser()
             ->whereKey($value)
             ->firstOrFail());

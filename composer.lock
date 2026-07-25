@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "67ff5b146d48de684c323c4b68e82f84",
+    "content-hash": "588df7b91454b6eeaaf24380e6b180ea",
     "packages": [
         {
             "name": "arm092/livewire-datatables",

@@ -61,8 +61,7 @@ ENV APP_ENV=production \
     LOG_CHANNEL=stderr \
     COMPOSER_ALLOW_SUPERUSER=1 \
     APACHE_DOCUMENT_ROOT=/var/www/html/public \
-    RUN_MIGRATIONS=true \
-    RUN_SEEDERS=true
+    RUN_MIGRATIONS=true
 
 # Extensiones requeridas: MySQL/Postgres, DomPDF (gd/zip), Laravel, Spatie, etc.
 RUN apt-get update && apt-get install -y --no-install-recommends \

@@ -101,8 +101,8 @@ class Form extends Component
             'users' => $this->form->getUsers(),
         ])->layoutData([
             'title' => $this->form->isEditing()
-                ? 'Evento — Editar equipo'
-                : 'Evento — Nuevo equipo',
+                ? 'Gestión de eventos — Editar equipo'
+                : 'Gestión de eventos — Nuevo equipo',
         ]);
     }
 }

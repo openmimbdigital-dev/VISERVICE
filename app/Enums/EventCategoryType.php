@@ -4,14 +4,14 @@ namespace App\Enums;
 
 enum EventCategoryType: string
 {
-    case Periodico = 'periodico';
-    case Eventual  = 'eventual';
+    case Periodic = 'periodic';
+    case Occasional = 'occasional';
 
     public function label(): string
     {
         return match ($this) {
-            self::Periodico => 'Periódico',
-            self::Eventual  => 'Eventual',
+            self::Periodic => 'Periódico',
+            self::Occasional => 'Eventual',
         };
     }
 
