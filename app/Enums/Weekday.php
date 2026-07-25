@@ -36,4 +36,11 @@ enum Weekday: int
 
         return $options;
     }
+
+    public static function labelFromDate(\DateTimeInterface|string $date): string
+    {
+        $weekday = self::tryFrom(\Illuminate\Support\Carbon::parse($date)->isoWeekday());
+
+        return $weekday?->label() ?? '';
+    }
 }

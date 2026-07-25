@@ -7,6 +7,7 @@ use App\Enums\Weekday;
 use App\Models\Business;
 use App\Models\Event;
 use App\Models\EventCategory;
+use App\Models\EventTeam;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Livewire\Form;
@@ -38,6 +39,9 @@ class EventForm extends Form
     /** @var list<int|string> */
     public array $weekdays = [];
 
+    /** @var list<int|string> */
+    public array $event_team_ids = [];
+
     public function setEvent(Event $event): void
     {
         $this->event_id = $event->id;
@@ -48,6 +52,11 @@ class EventForm extends Form
         $this->date = $event->date?->format('Y-m-d') ?? '';
         $this->start_time = substr((string) $event->start_time, 0, 5);
         $this->end_time = substr((string) $event->end_time, 0, 5);
+        $this->event_team_ids = $event->teams()
+            ->pluck('event_teams.id')
+            ->map(fn ($id) => (int) $id)
+            ->values()
+            ->all();
     }
 
     public function setCategory(EventCategory $category): void
@@ -97,6 +106,52 @@ class EventForm extends Form
             ->get(['id', 'name']);
     }
 
+    /** @return Collection<int, EventTeam> */
+    public function getTeams(): Collection
+    {
+        if ($this->isSuperAdmin() && ! $this->business_id) {
+            return collect();
+        }
+
+        $business_id = $this->resolvedBusinessId();
+
+        if ($business_id <= 0) {
+            return collect();
+        }
+
+        return EventTeam::query()
+            ->forAuthUser()
+            ->where('business_id', $business_id)
+            ->where(function ($query) {
+                $query->where('active', true);
+
+                if ($this->event_team_ids !== []) {
+                    $query->orWhereIn('id', array_map('intval', $this->event_team_ids));
+                }
+            })
+            ->orderBy('name')
+            ->get(['id', 'name', 'active']);
+    }
+
+    /** @return list<int> */
+    public function allowedTeamIds(): array
+    {
+        return $this->getTeams()->pluck('id')->map(fn ($id) => (int) $id)->all();
+    }
+
+    /** @return array<int, string> */
+    public function yearOptions(): array
+    {
+        $current_year = (int) now()->year;
+        $options = [];
+
+        for ($year = $current_year; $year <= $current_year + 5; $year++) {
+            $options[$year] = (string) $year;
+        }
+
+        return $options;
+    }
+
     /** @return array<int, string> */
     public function monthOptions(): array
     {
@@ -120,6 +175,7 @@ class EventForm extends Form
     {
         $business_id = $this->resolvedBusinessId();
         $is_periodic = $this->isPeriodicCategory();
+        $team_ids = $this->allowedTeamIds();
 
         $category_ids = EventCategory::query()
             ->visibleToUser()
@@ -146,10 +202,12 @@ class EventForm extends Form
             'description' => ['nullable', 'string', 'max:2000'],
             'start_time' => ['required', 'date_format:H:i'],
             'end_time' => ['required', 'date_format:H:i', 'after:start_time'],
+            'event_team_ids' => ['nullable', 'array'],
+            'event_team_ids.*' => ['integer', Rule::in($team_ids)],
         ];
 
         if ($is_periodic) {
-            $rules['year'] = ['required', 'integer', 'min:2000', 'max:2100'];
+            $rules['year'] = ['required', 'integer', Rule::in(array_keys($this->yearOptions()))];
             $rules['start_month'] = ['required', 'integer', 'min:1', 'max:12'];
             $rules['end_month'] = ['required', 'integer', 'min:1', 'max:12', 'gte:start_month'];
             $rules['weekdays'] = ['required', 'array', 'min:1'];
@@ -189,11 +247,13 @@ class EventForm extends Form
             'end_time.date_format' => 'La hora de fin no es válida.',
             'end_time.after' => 'La hora de fin debe ser posterior a la de inicio.',
             'year.required' => 'El año es obligatorio.',
+            'year.in' => 'Selecciona un año válido.',
             'start_month.required' => 'El mes de inicio es obligatorio.',
             'end_month.required' => 'El mes de fin es obligatorio.',
             'end_month.gte' => 'El mes de fin debe ser igual o posterior al de inicio.',
             'weekdays.required' => 'Selecciona al menos un día de la semana.',
             'weekdays.min' => 'Selecciona al menos un día de la semana.',
+            'event_team_ids.*.in' => 'Uno de los equipos seleccionados no es válido.',
         ];
     }
 
@@ -208,7 +268,8 @@ class EventForm extends Form
      *     year?: int,
      *     start_month?: int,
      *     end_month?: int,
-     *     weekdays?: list<int>
+     *     weekdays?: list<int>,
+     *     event_team_ids: list<int>
      * }
      */
     public function validated(): array
@@ -222,6 +283,7 @@ class EventForm extends Form
             'description' => ($data['description'] ?? '') !== '' ? $data['description'] : null,
             'start_time' => $data['start_time'],
             'end_time' => $data['end_time'],
+            'event_team_ids' => array_values(array_map('intval', $data['event_team_ids'] ?? [])),
         ];
 
         if ($is_periodic) {

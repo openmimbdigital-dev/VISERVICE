@@ -44,6 +44,7 @@ class DatabaseSeeder extends Seeder
             RemissionsSeeder::class,
             EventCategoriesAndAttendeeTypesSeeder::class,
             EventTeamsSeeder::class,
+            EventsSeeder::class,
         ]);
     }
 }

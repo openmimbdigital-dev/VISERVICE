@@ -28,7 +28,7 @@ class Show extends Component
         $this->event = Event::query()
             ->forAuthUser()
             ->where('event_category_id', $eventCategory->id)
-            ->with(['business:id,name', 'category:id,name,type'])
+            ->with(['business:id,name', 'category:id,name,type', 'teams:id,name'])
             ->findOrFail($event->id);
     }
 

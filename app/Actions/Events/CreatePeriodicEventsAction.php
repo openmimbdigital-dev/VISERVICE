@@ -3,8 +3,10 @@
 namespace App\Actions\Events;
 
 use App\Enums\EventCategoryType;
+use App\Enums\Weekday;
 use App\Models\Event;
 use App\Models\EventCategory;
+use App\Models\EventTeam;
 use App\Support\ChurchEventsAccess;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -24,7 +26,8 @@ class CreatePeriodicEventsAction
      *     year: int,
      *     start_month: int,
      *     end_month: int,
-     *     weekdays: list<int>
+     *     weekdays: list<int>,
+     *     event_team_ids?: list<int>
      * }  $data
      * @return Collection<int, Event>
      */
@@ -56,19 +59,29 @@ class CreatePeriodicEventsAction
             abort(422, 'No hay fechas que coincidan con el rango y los días seleccionados.');
         }
 
-        return DB::transaction(function () use ($business_id, $data, $dates) {
+        $team_ids = EventTeam::query()
+            ->where('business_id', $business_id)
+            ->whereIn('id', $data['event_team_ids'] ?? [])
+            ->pluck('id')
+            ->all();
+
+        return DB::transaction(function () use ($business_id, $data, $dates, $team_ids) {
             $events = collect();
 
             foreach ($dates as $date) {
-                $events->push(Event::query()->create([
+                $event = Event::query()->create([
                     'business_id' => $business_id,
                     'event_category_id' => $data['event_category_id'],
                     'name' => $data['name'],
                     'description' => $data['description'],
                     'date' => $date,
+                    'day' => Weekday::labelFromDate($date),
                     'start_time' => $data['start_time'],
                     'end_time' => $data['end_time'],
-                ]));
+                ]);
+
+                $event->teams()->sync($team_ids);
+                $events->push($event);
             }
 
             return $events;

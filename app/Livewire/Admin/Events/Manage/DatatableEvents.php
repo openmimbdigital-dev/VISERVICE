@@ -7,6 +7,7 @@ use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
 use App\Models\Event;
 use App\Support\ChurchEventsAccess;
 use Arm092\LivewireDatatables\Column;
+use Arm092\LivewireDatatables\DateColumn;
 use Arm092\LivewireDatatables\Livewire\LivewireDatatable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -21,6 +22,8 @@ class DatatableEvents extends LivewireDatatable
 
     public ?int $event_category_id = null;
 
+    public ?int $month = null;
+
     public function builder(): Builder
     {
         ChurchEventsAccess::authorize();
@@ -29,11 +32,16 @@ class DatatableEvents extends LivewireDatatable
             ->forAuthUser()
             ->select('events.*')
             ->leftJoin('businesses', 'events.business_id', '=', 'businesses.id')
+            ->orderByRaw('CASE WHEN YEAR(events.date) = ? THEN 0 ELSE 1 END', [now()->year])
             ->orderByDesc('events.date')
             ->orderByDesc('events.start_time');
 
         if ($this->event_category_id) {
             $query->where('events.event_category_id', $this->event_category_id);
+        }
+
+        if ($this->month !== null && $this->month >= 1 && $this->month <= 12) {
+            $query->whereMonth('events.date', $this->month);
         }
 
         return $query;
@@ -46,17 +54,19 @@ class DatatableEvents extends LivewireDatatable
                 ->label('Nombre')
                 ->searchable()
                 ->sortable(),
-            Column::callback(['events.date'], function ($date) {
-                if (! $date) {
-                    return '<span class="text-slate-400">—</span>';
-                }
-
-                try {
-                    return e(\Illuminate\Support\Carbon::parse($date)->format('d/m/Y'));
-                } catch (\Throwable) {
-                    return e((string) $date);
-                }
-            })->label('Fecha')->sortable(),
+            DateColumn::name('events.date')
+                ->label('Fecha')
+                ->format('d/m/Y')
+                ->sortable()
+                ->searchable(),
+            Column::raw("DATE_FORMAT(events.date, '%d/%m/%Y') AS event_date_formatted")
+                ->label('Fecha formateada')
+                ->searchable()
+                ->hide(),
+            Column::name('events.day')
+                ->label('Día')
+                ->searchable()
+                ->sortable(),
             Column::callback(['events.start_time', 'events.end_time'], function ($start, $end) {
                 $start_label = $start ? substr((string) $start, 0, 5) : '—';
                 $end_label = $end ? substr((string) $end, 0, 5) : '—';

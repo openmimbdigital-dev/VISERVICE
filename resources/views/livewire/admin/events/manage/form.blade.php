@@ -39,7 +39,7 @@
                 @if($is_super_admin)
                     <div>
                         <label class="mb-1.5 block text-xs font-medium text-slate-700">Iglesia <span class="text-rose-500">*</span></label>
-                        <select wire:model="form.business_id"
+                        <select wire:model.live="form.business_id"
                             class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('form.business_id') border-rose-400 bg-rose-50 @enderror">
                             <option value="">Selecciona una iglesia</option>
                             @foreach($businesses as $business)
@@ -61,8 +61,13 @@
                     @if($is_periodic)
                         <div>
                             <label class="mb-1.5 block text-xs font-medium text-slate-700">Año <span class="text-rose-500">*</span></label>
-                            <input wire:model="form.year" type="number" min="2000" max="2100"
+                            <select wire:model="form.year"
                                 class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('form.year') border-rose-400 bg-rose-50 @enderror">
+                                <option value="">Selecciona</option>
+                                @foreach($year_options as $value => $label)
+                                    <option value="{{ $value }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
                             @error('form.year') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                         </div>
 
@@ -125,6 +130,32 @@
                         <input wire:model="form.end_time" type="time"
                             class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('form.end_time') border-rose-400 bg-rose-50 @enderror">
                         @error('form.end_time') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                    </div>
+
+                    <div class="sm:col-span-2">
+                        <label class="mb-1.5 block text-xs font-medium text-slate-700">Equipos</label>
+                        @if($is_super_admin && ! $form->business_id)
+                            <p class="text-sm text-slate-500">Selecciona una iglesia para ver sus equipos.</p>
+                        @elseif($teams->isEmpty())
+                            <p class="text-sm text-slate-500">No hay equipos activos disponibles para esta iglesia.</p>
+                        @else
+                            <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                @foreach($teams as $team)
+                                    <label class="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 transition hover:border-indigo-200 hover:bg-indigo-50/40">
+                                        <input type="checkbox" wire:model="form.event_team_ids" value="{{ $team->id }}"
+                                            class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500/30">
+                                        <span class="min-w-0">
+                                            {{ $team->name }}
+                                            @unless($team->active)
+                                                <span class="text-xs text-slate-400">(inactivo)</span>
+                                            @endunless
+                                        </span>
+                                    </label>
+                                @endforeach
+                            </div>
+                        @endif
+                        @error('form.event_team_ids') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                        @error('form.event_team_ids.*') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                     </div>
 
                     <div class="sm:col-span-2">

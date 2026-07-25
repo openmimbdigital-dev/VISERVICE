@@ -31,6 +31,7 @@ class Form extends Component
             $record = Event::query()
                 ->forAuthUser()
                 ->where('event_category_id', $eventCategory->id)
+                ->with('teams:id')
                 ->findOrFail($event->id);
 
             $this->form->setEvent($record);
@@ -46,6 +47,11 @@ class Form extends Component
         if (! $this->form->isSuperAdmin()) {
             $this->form->business_id = auth()->user()?->business_id;
         }
+    }
+
+    public function updatedFormBusinessId(): void
+    {
+        $this->form->event_team_ids = [];
     }
 
     public function save(): void
@@ -99,7 +105,9 @@ class Form extends Component
             'is_super_admin' => $this->form->isSuperAdmin(),
             'is_periodic' => $this->form->isPeriodicCategory(),
             'businesses' => $this->form->isSuperAdmin() ? $this->form->getBusinesses() : collect(),
+            'teams' => $this->form->getTeams(),
             'month_options' => $this->form->monthOptions(),
+            'year_options' => $this->form->yearOptions(),
             'weekday_options' => Weekday::options(),
         ])->layoutData([
             'title' => $this->form->isEditing()

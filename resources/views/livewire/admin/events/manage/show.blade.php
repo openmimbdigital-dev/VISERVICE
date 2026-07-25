@@ -59,6 +59,16 @@
                     <dt class="text-xs font-medium text-slate-500">Descripción</dt>
                     <dd class="text-sm text-slate-900 sm:col-span-2">{{ $event->description ?: 'Sin descripción.' }}</dd>
                 </div>
+                <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt class="text-xs font-medium text-slate-500">Equipos</dt>
+                    <dd class="text-sm text-slate-900 sm:col-span-2">
+                        @if($event->teams->isEmpty())
+                            Sin equipos asignados.
+                        @else
+                            {{ $event->teams->pluck('name')->join(', ') }}
+                        @endif
+                    </dd>
+                </div>
             </dl>
         </section>
 
@@ -70,6 +80,10 @@
                 <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
                     <dt class="text-xs font-medium text-slate-500">Fecha</dt>
                     <dd class="text-sm text-slate-900 sm:col-span-2">{{ $event->date?->format('d/m/Y') ?? '—' }}</dd>
+                </div>
+                <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt class="text-xs font-medium text-slate-500">Día</dt>
+                    <dd class="text-sm text-slate-900 sm:col-span-2">{{ $event->day ?: '—' }}</dd>
                 </div>
                 <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
                     <dt class="text-xs font-medium text-slate-500">Horario</dt>
