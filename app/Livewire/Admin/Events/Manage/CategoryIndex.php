@@ -13,6 +13,8 @@ class CategoryIndex extends Component
 {
     public EventCategory $event_category;
 
+    public string $date = '';
+
     public string $month = '';
 
     public function mount(EventCategory $eventCategory): void
@@ -39,6 +41,10 @@ class CategoryIndex extends Component
             ->forAuthUser()
             ->where('event_category_id', $this->event_category->id);
 
+        if ($this->date !== '') {
+            $events_query->whereDate('date', $this->date);
+        }
+
         $month = $this->resolvedMonth();
 
         if ($month !== null) {
@@ -47,6 +53,7 @@ class CategoryIndex extends Component
 
         return view('livewire.admin.events.manage.category-index', [
             'events_count' => $events_query->count(),
+            'date_filter' => $this->date !== '' ? $this->date : null,
             'month_filter' => $month,
             'can_create' => EventsAccess::canCreateEvents(),
         ])->layoutData([

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\Events\ScheduleEventsFeedController;
+use App\Http\Controllers\Admin\Reports\Events\EventAttendancePdfController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CurrentBusinessController;
 use App\Http\Controllers\Workshop\WorkshopPdfController;
@@ -36,6 +37,9 @@ use App\Livewire\Admin\Finance\Index as AdminFinanceIndex;
 use App\Livewire\Admin\OrganizationTypes\Access as AdminOrganizationTypesAccess;
 use App\Livewire\Admin\OrganizationTypes\Index as AdminOrganizationTypesIndex;
 use App\Livewire\Admin\Payments\Index as AdminPaymentsIndex;
+use App\Livewire\Admin\Reports\Events\Attendance\CategoryIndex as ReportsEventsAttendanceCategoryIndex;
+use App\Livewire\Admin\Reports\Events\Attendance\Index as ReportsEventsAttendanceIndex;
+use App\Livewire\Admin\Reports\Events\Attendance\Show as ReportsEventsAttendanceShow;
 use App\Livewire\Admin\Roles\Index as AdminRolesIndex;
 use App\Livewire\Admin\Settings\Catalog\Brands\Form as SettingsCatalogBrandsForm;
 use App\Livewire\Admin\Settings\Catalog\Brands\Index as SettingsCatalogBrandsIndex;
@@ -317,6 +321,18 @@ Route::middleware(['auth', 'ensure.business', 'business.module'])->group(functio
         });
         Route::middleware('permission:events.teams.view')->group(function () {
             Route::get('/teams/{eventTeam}', EventsTeamsShow::class)->name('teams.show');
+        });
+    });
+
+    // Reportes
+    Route::prefix('reports')->name('admin.reports.')->group(function () {
+        Route::middleware('permission:events.reports.attendance.view')->prefix('events/attendance')->name('events.attendance.')->group(function () {
+            Route::get('/', ReportsEventsAttendanceIndex::class)->name('index');
+            Route::middleware('permission:reports.export')->group(function () {
+                Route::get('/{eventCategory}/{event}/pdf', EventAttendancePdfController::class)->name('pdf');
+            });
+            Route::get('/{eventCategory}/{event}', ReportsEventsAttendanceShow::class)->name('show');
+            Route::get('/{eventCategory}', ReportsEventsAttendanceCategoryIndex::class)->name('category');
         });
     });
 

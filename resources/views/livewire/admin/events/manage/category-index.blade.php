@@ -38,26 +38,38 @@
     </header>
 
     <section class="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
-        <div class="flex flex-col gap-3 border-b border-slate-100 bg-slate-50/80 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+        <div class="flex flex-col gap-3 border-b border-slate-100 bg-slate-50/80 px-4 py-4 sm:px-5">
             <h2 class="font-semibold text-slate-800">Listado de eventos</h2>
-            <div class="flex w-full items-center gap-2 sm:w-auto">
-                <label for="events-month-filter" class="shrink-0 text-xs font-medium text-slate-600">Mes</label>
-                <input
-                    id="events-month-filter"
-                    type="number"
-                    min="1"
-                    max="12"
-                    wire:model.live.debounce.400ms="month"
-                    placeholder="1-12"
-                    class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 sm:w-28"
-                >
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:max-w-md">
+                <div>
+                    <label for="events-date-filter" class="mb-1.5 block text-xs font-medium text-slate-600">Fecha</label>
+                    <input
+                        id="events-date-filter"
+                        type="date"
+                        wire:model.live="date"
+                        class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                    >
+                </div>
+                <div>
+                    <label for="events-month-filter" class="mb-1.5 block text-xs font-medium text-slate-600">Mes</label>
+                    <input
+                        id="events-month-filter"
+                        type="number"
+                        min="1"
+                        max="12"
+                        wire:model.live.debounce.400ms="month"
+                        placeholder="1-12"
+                        class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                    >
+                </div>
             </div>
         </div>
         <div class="overflow-x-auto p-3 sm:p-4">
             <livewire:admin.events.manage.datatable-events
                 :event_category_id="$event_category->id"
+                :date="$date_filter"
                 :month="$month_filter"
-                :key="'events-manage-datatable-'.$event_category->id.'-'.($month_filter ?? 'all')"
+                :key="'events-manage-datatable-'.$event_category->id.'-'.($date_filter ?? 'all-dates').'-'.($month_filter ?? 'all')"
             />
         </div>
     </section>

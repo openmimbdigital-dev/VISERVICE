@@ -2,6 +2,7 @@
 
 namespace App\Actions\Events;
 
+use App\Actions\LogUserHistoricalAction;
 use App\Enums\Weekday;
 use App\Models\Event;
 use App\Models\EventCategory;
@@ -70,7 +71,23 @@ class CreateOrUpdateEventAction
                 $event->update($payload);
                 $this->syncTeams($event, $business_id, $team_ids);
 
-                return $event->fresh(['category', 'business', 'teams']);
+                $event = $event->fresh(['category', 'business', 'teams']);
+
+                LogUserHistoricalAction::run(
+                    action: 'updated',
+                    module: 'events.events',
+                    description: "Actualizó el evento {$event->name}",
+                    subject: $event,
+                    subject_label: $event->name,
+                    properties: [
+                        'date' => $event->date?->toDateString(),
+                        'day' => $event->day,
+                        'event_category_id' => $event->event_category_id,
+                    ],
+                    business_id: $business_id,
+                );
+
+                return $event;
             }
 
             $event = Event::query()->create([
@@ -80,7 +97,23 @@ class CreateOrUpdateEventAction
 
             $this->syncTeams($event, $business_id, $team_ids);
 
-            return $event->load(['category', 'business', 'teams']);
+            $event = $event->load(['category', 'business', 'teams']);
+
+            LogUserHistoricalAction::run(
+                action: 'created',
+                module: 'events.events',
+                description: "Creó el evento {$event->name}",
+                subject: $event,
+                subject_label: $event->name,
+                properties: [
+                    'date' => $event->date?->toDateString(),
+                    'day' => $event->day,
+                    'event_category_id' => $event->event_category_id,
+                ],
+                business_id: $business_id,
+            );
+
+            return $event;
         });
     }
 

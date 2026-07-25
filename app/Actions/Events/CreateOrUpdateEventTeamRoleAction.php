@@ -2,6 +2,7 @@
 
 namespace App\Actions\Events;
 
+use App\Actions\LogUserHistoricalAction;
 use App\Models\EventTeamRole;
 use App\Support\ChurchEventsAccess;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -37,10 +38,37 @@ class CreateOrUpdateEventTeamRoleAction
 
             abort_unless((int) $role->business_id === (int) $business_id, 403);
             $role->update($attributes);
+            $role = $role->fresh();
 
-            return $role->fresh();
+            LogUserHistoricalAction::run(
+                action: 'updated',
+                module: 'events.team_roles',
+                description: "Actualizó el rol de equipo {$role->name}",
+                subject: $role,
+                subject_label: $role->name,
+                properties: [
+                    'active' => (bool) $role->active,
+                ],
+                business_id: $business_id,
+            );
+
+            return $role;
         }
 
-        return EventTeamRole::query()->create($attributes);
+        $role = EventTeamRole::query()->create($attributes);
+
+        LogUserHistoricalAction::run(
+            action: 'created',
+            module: 'events.team_roles',
+            description: "Creó el rol de equipo {$role->name}",
+            subject: $role,
+            subject_label: $role->name,
+            properties: [
+                'active' => (bool) $role->active,
+            ],
+            business_id: $business_id,
+        );
+
+        return $role;
     }
 }

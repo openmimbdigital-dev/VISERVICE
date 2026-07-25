@@ -2,6 +2,7 @@
 
 namespace App\Actions\Events;
 
+use App\Actions\LogUserHistoricalAction;
 use App\Models\AttendeeType;
 use App\Models\Event;
 use App\Support\EventsAccess;
@@ -65,7 +66,22 @@ class StartEventAttendanceAction
 
             $event->attendee_types()->syncWithoutDetaching($sync);
 
-            return $event->fresh(['attendee_types']);
+            $event = $event->fresh(['attendee_types']);
+
+            LogUserHistoricalAction::run(
+                action: 'started',
+                module: 'events.attendance',
+                description: "Inició la toma de asistencia del evento {$event->name}",
+                subject: $event,
+                subject_label: $event->name,
+                properties: [
+                    'attendee_type_ids' => $valid_ids,
+                    'date' => $event->date?->toDateString(),
+                ],
+                business_id: (int) $event->business_id,
+            );
+
+            return $event;
         });
     }
 }

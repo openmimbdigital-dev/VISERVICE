@@ -2,6 +2,7 @@
 
 namespace App\Actions\Events;
 
+use App\Actions\LogUserHistoricalAction;
 use App\Enums\EventCategoryType;
 use App\Enums\Weekday;
 use App\Models\Event;
@@ -86,6 +87,26 @@ class CreatePeriodicEventsAction
                 $event->teams()->sync($team_ids);
                 $events->push($event);
             }
+
+            $first = $events->first();
+            $count = $events->count();
+
+            LogUserHistoricalAction::run(
+                action: 'created',
+                module: 'events.events',
+                description: "Creó {$count} eventos periódicos «{$data['name']}»",
+                subject: $first,
+                subject_label: $data['name'],
+                properties: [
+                    'count' => $count,
+                    'year' => (int) $data['year'],
+                    'start_month' => (int) $data['start_month'],
+                    'end_month' => (int) $data['end_month'],
+                    'weekdays' => $data['weekdays'],
+                    'event_category_id' => $data['event_category_id'],
+                ],
+                business_id: $business_id,
+            );
 
             return $events;
         });

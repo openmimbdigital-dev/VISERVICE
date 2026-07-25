@@ -108,6 +108,32 @@ class EventsAccess
         abort_unless(static::canCloseAttendance($event, $user), 403);
     }
 
+    public static function canViewAttendanceReport(?User $user = null): bool
+    {
+        $user ??= auth()->user();
+
+        return ChurchEventsAccess::allowed($user)
+            && (bool) $user?->can('events.reports.attendance.view');
+    }
+
+    public static function authorizeViewAttendanceReport(?User $user = null): void
+    {
+        abort_unless(static::canViewAttendanceReport($user), 403);
+    }
+
+    public static function canExportAttendanceReport(?User $user = null): bool
+    {
+        $user ??= auth()->user();
+
+        return static::canViewAttendanceReport($user)
+            && (bool) $user?->can('reports.export');
+    }
+
+    public static function authorizeExportAttendanceReport(?User $user = null): void
+    {
+        abort_unless(static::canExportAttendanceReport($user), 403);
+    }
+
     public static function belongsToBusiness(int $business_id, ?User $user = null): bool
     {
         $user ??= auth()->user();

@@ -2,6 +2,7 @@
 
 namespace App\Actions\Events;
 
+use App\Actions\LogUserHistoricalAction;
 use App\Models\Event;
 use App\Support\EventsAccess;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -25,7 +26,21 @@ class ReopenEventAttendanceAction
         abort_unless($event->attendance_closed, 422, 'La toma de asistencia no está cerrada.');
 
         $event->update(['attendance_closed' => false]);
+        $event = $event->fresh(['attendee_types']);
 
-        return $event->fresh(['attendee_types']);
+        LogUserHistoricalAction::run(
+            action: 'reopened',
+            module: 'events.attendance',
+            description: "Desbloqueó la toma de asistencia del evento {$event->name}",
+            subject: $event,
+            subject_label: $event->name,
+            properties: [
+                'date' => $event->date?->toDateString(),
+                'attendance_closed' => false,
+            ],
+            business_id: (int) $event->business_id,
+        );
+
+        return $event;
     }
 }

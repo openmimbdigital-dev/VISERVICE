@@ -128,6 +128,11 @@ class BusinessAccessSeeder extends Seeder
             'events.teams.edit', 'events.teams.delete',
             'events.team_roles.view', 'events.team_roles.create',
             'events.team_roles.edit', 'events.team_roles.delete',
+            'events.events.view', 'events.events.create',
+            'events.events.edit', 'events.events.delete',
+            'events.schedule.view',
+            'events.attendance.start', 'events.attendance.close',
+            'events.reports.attendance.view',
         ];
     }
 
@@ -154,6 +159,10 @@ class BusinessAccessSeeder extends Seeder
         'Secretario',
         'Lider de congregacion',
         'Miembro',
+        'Lider diacono',
+        'Diacono',
+        'Maestro',
+        'Coordinador educativo',
         'Comercio',
     ];
 

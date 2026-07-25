@@ -126,6 +126,7 @@ return [
                 'events.schedule.view' => 'Ver agenda de eventos',
                 'events.attendance.start' => 'Iniciar toma de asistencia',
                 'events.attendance.close' => 'Cerrar toma de asistencia',
+                'events.reports.attendance.view' => 'Ver reporte de asistencia de eventos',
             ],
         ],
         'events_teams' => [

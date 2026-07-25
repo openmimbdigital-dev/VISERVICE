@@ -229,7 +229,7 @@ class MenuSeeder extends Seeder
                 'icon_color_class' => 'text-violet-400',
                 'route_patterns' => ['admin.events.*'],
                 'behavior' => 'collapsible',
-                'permission' => 'events.teams.view',
+                'permission' => 'events.events.view|events.schedule.view|events.teams.view|events.team_roles.view',
                 'sort_order' => 45,
                 'items' => [
                     [
@@ -254,6 +254,26 @@ class MenuSeeder extends Seeder
                         'active_route_pattern' => 'admin.events.teams.*',
                         'icon_svg_path' => 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z',
                         'permission' => 'events.teams.view',
+                        'sort_order' => 10,
+                    ],
+                ],
+            ],
+            [
+                'slug' => 'reportes',
+                'name' => 'Reportes',
+                'icon_svg_path' => 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
+                'icon_color_class' => 'text-emerald-400',
+                'route_patterns' => ['admin.reports.*'],
+                'behavior' => 'collapsible',
+                'permission' => 'events.reports.attendance.view|reports.view',
+                'sort_order' => 50,
+                'items' => [
+                    [
+                        'name' => 'Reporte de asistencia eventos',
+                        'route_name' => 'admin.reports.events.attendance.index',
+                        'active_route_pattern' => 'admin.reports.events.attendance.*',
+                        'icon_svg_path' => 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z',
+                        'permission' => 'events.reports.attendance.view',
                         'sort_order' => 10,
                     ],
                 ],
@@ -284,6 +304,7 @@ class MenuSeeder extends Seeder
             'catalogo' => true,
             'taller' => true,
             'gestion-eventos' => true,
+            'reportes' => true,
             'configuracion' => true,
         ];
 

@@ -22,6 +22,8 @@ class DatatableEvents extends LivewireDatatable
 
     public ?int $event_category_id = null;
 
+    public ?string $date = null;
+
     public ?int $month = null;
 
     public function builder(): Builder
@@ -38,6 +40,10 @@ class DatatableEvents extends LivewireDatatable
 
         if ($this->event_category_id) {
             $query->where('events.event_category_id', $this->event_category_id);
+        }
+
+        if ($this->date) {
+            $query->whereDate('events.date', $this->date);
         }
 
         if ($this->month !== null && $this->month >= 1 && $this->month <= 12) {

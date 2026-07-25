@@ -67,8 +67,15 @@ class MenuSection extends Model
             return false;
         }
 
-        if ($this->permission && ! $user->can($this->permission)) {
-            return false;
+        if ($this->permission) {
+            $permissions = preg_split('/\s*\|\s*/', $this->permission) ?: [];
+            $allowed = collect($permissions)->contains(
+                fn (string $permission) => $permission !== '' && $user->can($permission)
+            );
+
+            if (! $allowed) {
+                return false;
+            }
         }
 
         if (! BusinessModuleAccess::sectionEnabledForUser($user, $this)) {
