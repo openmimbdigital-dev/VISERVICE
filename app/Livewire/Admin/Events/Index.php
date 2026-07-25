@@ -29,9 +29,9 @@ class Index extends Component
         return [
             'manage' => [
                 'title'       => 'Administrar eventos',
-                'description' => 'Crea, edita y consulta los eventos de la iglesia.',
+                'description' => 'Elige una categoría y gestiona sus eventos periódicos o eventuales.',
                 'button_text' => 'Administrar eventos',
-                'route'       => null,
+                'route'       => 'admin.events.manage.index',
                 'permission'  => 'events.events.view',
                 'card_bg'     => 'bg-violet-50/60 border-violet-100/80',
                 'icon_bg'     => 'bg-violet-100',

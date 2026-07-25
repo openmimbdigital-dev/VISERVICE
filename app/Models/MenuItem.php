@@ -49,7 +49,10 @@ class MenuItem extends Model
 
     public function isActiveForRequest(): bool
     {
-        return request()->routeIs($this->activePattern());
+        $patterns = preg_split('/\s*\|\s*/', $this->activePattern()) ?: [];
+        $patterns = array_values(array_filter($patterns));
+
+        return $patterns !== [] && request()->routeIs(...$patterns);
     }
 
     public function isVisibleTo(?User $user): bool

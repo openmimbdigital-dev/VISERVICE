@@ -19,6 +19,10 @@ use App\Livewire\Admin\Catalog\Products\Index as CatalogProductsIndex;
 use App\Livewire\Admin\Catalog\Products\Show as CatalogProductsShow;
 use App\Livewire\Admin\Dashboard;
 use App\Livewire\Admin\Events\Index as EventsIndex;
+use App\Livewire\Admin\Events\Manage\CategoryIndex as EventsManageCategoryIndex;
+use App\Livewire\Admin\Events\Manage\Form as EventsManageForm;
+use App\Livewire\Admin\Events\Manage\Index as EventsManageIndex;
+use App\Livewire\Admin\Events\Manage\Show as EventsManageShow;
 use App\Livewire\Admin\Events\TeamRoles\Form as EventsTeamRolesForm;
 use App\Livewire\Admin\Events\TeamRoles\Index as EventsTeamRolesIndex;
 use App\Livewire\Admin\Events\TeamRoles\Show as EventsTeamRolesShow;
@@ -264,6 +268,20 @@ Route::middleware(['auth', 'ensure.business', 'business.module'])->group(functio
     Route::prefix('events')->name('admin.events.')->group(function () {
         Route::middleware('role_or_permission:events.events.view|events.schedule.view')->group(function () {
             Route::get('/', EventsIndex::class)->name('index');
+        });
+
+        Route::middleware('permission:events.events.view')->group(function () {
+            Route::get('/manage', EventsManageIndex::class)->name('manage.index');
+        });
+        Route::middleware('permission:events.events.create')->group(function () {
+            Route::get('/manage/{eventCategory}/create', EventsManageForm::class)->name('manage.category.create');
+        });
+        Route::middleware('permission:events.events.edit')->group(function () {
+            Route::get('/manage/{eventCategory}/{event}/edit', EventsManageForm::class)->name('manage.category.edit');
+        });
+        Route::middleware('permission:events.events.view')->group(function () {
+            Route::get('/manage/{eventCategory}/{event}', EventsManageShow::class)->name('manage.category.show');
+            Route::get('/manage/{eventCategory}', EventsManageCategoryIndex::class)->name('manage.category.index');
         });
 
         Route::middleware('permission:events.team_roles.view')->group(function () {

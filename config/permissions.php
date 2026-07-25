@@ -119,7 +119,10 @@ return [
         'events_management' => [
             'name' => 'Gestión de eventos — Eventos',
             'permissions' => [
-                'events.events.view' => 'Administrar eventos',
+                'events.events.view' => 'Ver eventos',
+                'events.events.create' => 'Crear eventos',
+                'events.events.edit' => 'Editar eventos',
+                'events.events.delete' => 'Eliminar eventos',
                 'events.schedule.view' => 'Ver agenda de eventos',
             ],
         ],

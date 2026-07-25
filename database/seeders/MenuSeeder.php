@@ -235,7 +235,7 @@ class MenuSeeder extends Seeder
                     [
                         'name' => 'Eventos',
                         'route_name' => 'admin.events.index',
-                        'active_route_pattern' => 'admin.events.index',
+                        'active_route_pattern' => 'admin.events.index|admin.events.manage.*',
                         'icon_svg_path' => 'M8 7V3m8 4V3M5 11h14M5 5h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z',
                         'permission' => 'events.events.view|events.schedule.view',
                         'sort_order' => 1,

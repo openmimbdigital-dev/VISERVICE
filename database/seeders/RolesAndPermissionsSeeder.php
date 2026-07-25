@@ -76,6 +76,9 @@ class RolesAndPermissionsSeeder extends Seeder
     {
         return [
             'events.events.view',
+            'events.events.create',
+            'events.events.edit',
+            'events.events.delete',
             'events.schedule.view',
         ];
     }

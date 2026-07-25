@@ -29,7 +29,22 @@ alwaysApply: true
 'eventos.agenda.ver' => 'Ver agenda de eventos',
 ```
 
-Traduce el concepto al inglés en la clave aunque la etiqueta lo diga en español: agenda → `schedule`, taller → `workshop`, negocio → `business`.
+Traduce el concepto al inglés en la clave aunque la etiqueta lo diga en español: agenda → `schedule`, taller → `workshop`, negocio → `business`, periódico → `periodic`, eventual → `occasional`.
+
+Enums y columnas BD: valores técnicos en inglés; `label()` / opciones de select en español.
+En migraciones, usa la clase enum — no hardcodees el array:
+
+```php
+$table->enum('type', array_column(EventCategoryType::cases(), 'value'));
+```
+
+```php
+enum EventCategoryType: string
+{
+    case Periodic = 'periodic';      // UI: Periódico
+    case Occasional = 'occasional';  // UI: Eventual
+}
+```
 
 Misma separación en menú: `permission` / `route_name` en inglés; `name` del ítem en español.
 
