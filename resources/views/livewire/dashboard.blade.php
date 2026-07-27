@@ -7,7 +7,7 @@
         <div class="absolute -bottom-16 -left-10 h-48 w-48 rounded-full bg-primary-700/20 blur-3xl"></div>
 
         <div class="relative z-10 flex flex-col sm:flex-row items-start sm:items-center gap-6">
-            <img src="{{ asset('images/logo-initial.png') }}" alt="VISERVICE" class="h-16 w-auto drop-shadow-lg shrink-0">
+            <img src="{{ asset('images/logo-initial.jpeg') }}" alt="SouulBi" class="h-16 w-auto drop-shadow-lg shrink-0">
             <div>
                 <p class="text-indigo-300 text-xs font-semibold uppercase tracking-widest mb-1">Panel de control</p>
                 <h1 class="text-2xl sm:text-3xl font-bold text-white leading-tight">
@@ -110,7 +110,7 @@
             <div class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></div>
             <span class="text-sm text-slate-600">Sistema operativo y en línea</span>
         </div>
-        <span class="text-xs text-slate-400">VISERVICE v1.0 · Laravel 12 + Livewire 3</span>
+        <span class="text-xs text-slate-400">SouulBi v1.0 · Laravel 12 + Livewire 3</span>
     </div>
 
 </div>

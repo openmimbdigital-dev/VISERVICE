@@ -30,7 +30,7 @@
                 </svg>
             </div>
             <div class="min-w-0 space-y-3 text-sm text-indigo-950">
-                <p class="font-semibold text-indigo-900">¿Cómo funciona el acceso en VISERVICE?</p>
+                <p class="font-semibold text-indigo-900">¿Cómo funciona el acceso en SouulBi?</p>
                 <p class="text-indigo-900/90">
                     El sistema valida el acceso en <strong>dos capas</strong>. Un usuario solo ve una pantalla o accede a una ruta cuando cumple <strong>ambas</strong>:
                 </p>

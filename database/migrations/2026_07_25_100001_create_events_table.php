@@ -24,7 +24,6 @@ return new class extends Migration
             $table->boolean('attendance_enabled')->default(true);
             $table->boolean('participation_enabled')->default(true);
             $table->boolean('attendance_closed')->default(false);
-            $table->unsignedInteger('attendance')->default(0);
             $table->timestamps();
             $table->softDeletes();
 

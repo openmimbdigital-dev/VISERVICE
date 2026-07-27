@@ -23,7 +23,7 @@ use Livewire\Component;
 use Livewire\WithFileUploads;
 
 #[Layout('layouts.auth')]
-#[Title('Crear cuenta — VISERVICE')]
+#[Title('Crear cuenta — SouulBi')]
 class RegisterWizard extends Component
 {
     use WithFileUploads;

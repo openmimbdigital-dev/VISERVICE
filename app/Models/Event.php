@@ -27,7 +27,7 @@ class Event extends Model
         'attendance_enabled',
         'participation_enabled',
         'attendance_closed',
-        'attendance',
+
     ];
 
     protected function casts(): array
@@ -37,7 +37,7 @@ class Event extends Model
             'attendance_enabled' => 'boolean',
             'participation_enabled' => 'boolean',
             'attendance_closed' => 'boolean',
-            'attendance' => 'integer',
+
         ];
     }
 

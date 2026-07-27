@@ -8,8 +8,8 @@
 
         {{-- Logo --}}
         <div class="relative z-10 flex items-center gap-3 mb-12">
-            <img src="{{ asset('images/logo-initial.png') }}" alt="VISERVICE" class="h-10 w-auto drop-shadow-xl select-none">
-            <span class="text-2xl font-extrabold text-white tracking-tight">VIS<span class="text-indigo-400">ERVICE</span></span>
+            <img src="{{ asset('images/logo-initial.jpeg') }}" alt="SouulBi" class="h-10 w-auto drop-shadow-xl select-none">
+            <span class="text-2xl font-extrabold text-white tracking-tight">Souul<span class="text-indigo-400">Bi</span></span>
         </div>
 
         {{-- Pasos --}}
@@ -47,7 +47,7 @@
             </div>
         </div>
 
-        <p class="relative z-10 text-xs text-slate-600 mt-8">© {{ date('Y') }} VISERVICE · Todos los derechos reservados</p>
+        <p class="relative z-10 text-xs text-slate-600 mt-8">© {{ date('Y') }} SouulBi · Todos los derechos reservados</p>
     </div>
 
     {{-- Panel derecho — Formulario --}}
@@ -56,8 +56,8 @@
 
             {{-- Breadcrumb mobile --}}
             <div class="flex items-center gap-2 mb-6 lg:hidden">
-                <img src="{{ asset('images/logo-initial.png') }}" alt="VISERVICE" class="h-8 w-auto">
-                <span class="text-base font-bold text-slate-800">VISERVICE</span>
+                <img src="{{ asset('images/logo-initial.jpeg') }}" alt="SouulBi" class="h-8 w-auto">
+                <span class="text-base font-bold text-slate-800">SouulBi</span>
                 <span class="text-slate-300 mx-1">·</span>
                 <span class="text-sm text-slate-500">Paso {{ $step }} de {{ $totalSteps }}</span>
             </div>
