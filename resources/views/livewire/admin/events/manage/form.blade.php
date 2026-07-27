@@ -165,16 +165,28 @@
                         @else
                             <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
                                 @foreach($teams as $team)
-                                    <label class="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 transition hover:border-indigo-200 hover:bg-indigo-50/40">
-                                        <input type="checkbox" wire:model="form.event_team_ids" value="{{ $team->id }}"
-                                            class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500/30">
-                                        <span class="min-w-0">
-                                            {{ $team->name }}
-                                            @unless($team->active)
-                                                <span class="text-xs text-slate-400">(inactivo)</span>
-                                            @endunless
-                                        </span>
-                                    </label>
+                                    <div class="flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 px-2 py-1.5 text-sm text-slate-700 transition hover:border-indigo-200 hover:bg-indigo-50/40">
+                                        <label class="flex min-w-0 flex-1 cursor-pointer items-center gap-2 px-1 py-1">
+                                            <input type="checkbox" wire:model="form.event_team_ids" value="{{ $team->id }}"
+                                                class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500/30">
+                                            <span class="min-w-0 truncate">
+                                                {{ $team->name }}
+                                                @unless($team->active)
+                                                    <span class="text-xs text-slate-400">(inactivo)</span>
+                                                @endunless
+                                            </span>
+                                        </label>
+                                        <button type="button"
+                                            wire:click="openTeamDetail({{ $team->id }})"
+                                            title="Ver roles e integrantes"
+                                            class="shrink-0 rounded-lg p-2 text-slate-400 transition hover:bg-white hover:text-indigo-600">
+                                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                            </svg>
+                                            <span class="sr-only">Ver equipo</span>
+                                        </button>
+                                    </div>
                                 @endforeach
                             </div>
                         @endif
@@ -208,4 +220,55 @@
             </button>
         </div>
     </form>
+
+    @if($show_team_modal && $preview_team)
+    <x-ui.modal centered maxWidth="lg">
+        <x-slot:backdrop>
+            <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" wire:click="closeTeamDetail"></div>
+        </x-slot:backdrop>
+
+        <div class="flex shrink-0 items-center justify-between border-b border-slate-100 px-4 py-4 sm:px-6">
+            <div class="min-w-0">
+                <h3 class="truncate text-base font-semibold text-slate-900">{{ $preview_team->name }}</h3>
+                <p class="mt-0.5 text-xs text-slate-500">Roles, funciones e integrantes del equipo</p>
+            </div>
+            <button type="button" wire:click="closeTeamDetail" class="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+
+        <div class="flex min-h-0 flex-1 flex-col">
+            <div class="max-h-[60vh] flex-1 space-y-3 overflow-y-auto px-4 py-5 sm:px-6">
+                @forelse($preview_team->roles as $role)
+                    @php
+                        $role_members = $preview_team->members->where('event_team_role_id', $role->id);
+                    @endphp
+                    <div class="rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3">
+                        <p class="text-sm font-semibold text-slate-900">{{ $role->name }}</p>
+                        <p class="mt-1 text-xs leading-relaxed text-slate-500">
+                            {{ $role->functions ?: 'Sin funciones definidas.' }}
+                        </p>
+                        <div class="mt-3 border-t border-slate-200/80 pt-3">
+                            <p class="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Usuarios asignados</p>
+                            @forelse($role_members as $member)
+                                <p class="text-sm text-slate-800">{{ $member->user?->full_name ?? '—' }}</p>
+                            @empty
+                                <p class="text-sm text-slate-400">Sin usuarios asignados a este rol.</p>
+                            @endforelse
+                        </div>
+                    </div>
+                @empty
+                    <p class="py-6 text-center text-sm text-slate-500">Este equipo no tiene roles configurados.</p>
+                @endforelse
+            </div>
+
+            <div class="flex shrink-0 justify-end border-t border-slate-100 px-4 py-4 sm:px-6">
+                <button type="button" wire:click="closeTeamDetail"
+                    class="w-full rounded-xl bg-slate-100 px-4 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-200 sm:w-auto">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    </x-ui.modal>
+    @endif
 </div>

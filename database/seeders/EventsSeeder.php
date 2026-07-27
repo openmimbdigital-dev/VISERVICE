@@ -53,7 +53,6 @@ class EventsSeeder extends Seeder
                     'day' => Weekday::labelFromDate($date),
                     'start_time' => '09:00',
                     'end_time' => '11:00',
-                    'attendance' => 0,
                     'deleted_at' => null,
                 ]
             );

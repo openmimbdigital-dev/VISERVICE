@@ -8,6 +8,7 @@ use App\Enums\Weekday;
 use App\Livewire\Forms\Admin\Events\EventForm;
 use App\Models\Event;
 use App\Models\EventCategory;
+use App\Models\EventTeam;
 use App\Support\EventsAccess;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -18,6 +19,10 @@ class Form extends Component
     public EventForm $form;
 
     public EventCategory $event_category;
+
+    public bool $show_team_modal = false;
+
+    public ?int $preview_team_id = null;
 
     public function mount(EventCategory $eventCategory, ?Event $event = null): void
     {
@@ -50,6 +55,48 @@ class Form extends Component
     public function updatedFormBusinessId(): void
     {
         $this->form->event_team_ids = [];
+        $this->closeTeamDetail();
+    }
+
+    public function openTeamDetail(int $team_id): void
+    {
+        $business_id = $this->form->resolvedBusinessId();
+
+        abort_unless(
+            EventTeam::query()
+                ->forAuthUser()
+                ->when($business_id > 0, fn ($query) => $query->where('business_id', $business_id))
+                ->whereKey($team_id)
+                ->exists(),
+            404
+        );
+
+        $this->preview_team_id = $team_id;
+        $this->show_team_modal = true;
+    }
+
+    public function closeTeamDetail(): void
+    {
+        $this->show_team_modal = false;
+        $this->preview_team_id = null;
+    }
+
+    private function previewTeam(): ?EventTeam
+    {
+        if (! $this->show_team_modal || ! $this->preview_team_id) {
+            return null;
+        }
+
+        return EventTeam::query()
+            ->forAuthUser()
+            ->with([
+                'roles' => fn ($query) => $query->orderBy('name')->select('event_team_roles.id', 'event_team_roles.name', 'event_team_roles.functions'),
+                'members' => fn ($query) => $query->with([
+                    'user:id,first_name,last_name',
+                    'role:id,name',
+                ]),
+            ])
+            ->find($this->preview_team_id);
     }
 
     private function authorizeSave(): void
@@ -113,6 +160,7 @@ class Form extends Component
             'is_periodic' => $this->form->isPeriodicCategory(),
             'businesses' => $this->form->isSuperAdmin() ? $this->form->getBusinesses() : collect(),
             'teams' => $this->form->getTeams(),
+            'preview_team' => $this->previewTeam(),
             'month_options' => $this->form->monthOptions(),
             'year_options' => $this->form->yearOptions(),
             'weekday_options' => Weekday::options(),
