@@ -34,8 +34,8 @@ class DatatableEvents extends LivewireDatatable
             ->forAuthUser()
             ->select('events.*')
             ->leftJoin('businesses', 'events.business_id', '=', 'businesses.id')
-            ->orderByRaw('CASE WHEN YEAR(events.date) = ? THEN 0 ELSE 1 END', [now()->year])
-            ->orderByDesc('events.date')
+            ->orderByRaw('CASE WHEN YEAR(events.date_start) = ? THEN 0 ELSE 1 END', [now()->year])
+            ->orderByDesc('events.date_start')
             ->orderByDesc('events.start_time');
 
         if ($this->event_category_id) {
@@ -43,11 +43,16 @@ class DatatableEvents extends LivewireDatatable
         }
 
         if ($this->date) {
-            $query->whereDate('events.date', $this->date);
+            $query->whereDate('events.date_start', '<=', $this->date)
+                ->whereDate('events.date_end', '>=', $this->date);
         }
 
         if ($this->month !== null && $this->month >= 1 && $this->month <= 12) {
-            $query->whereMonth('events.date', $this->month);
+            $query->where(function ($month_query) {
+                $month_query
+                    ->whereMonth('events.date_start', $this->month)
+                    ->orWhereMonth('events.date_end', $this->month);
+            });
         }
 
         return $query;
@@ -60,13 +65,22 @@ class DatatableEvents extends LivewireDatatable
                 ->label('Nombre')
                 ->searchable()
                 ->sortable(),
-            DateColumn::name('events.date')
-                ->label('Fecha')
+            DateColumn::name('events.date_start')
+                ->label('Inicio')
                 ->format('d/m/Y')
                 ->sortable()
                 ->searchable(),
-            Column::raw("DATE_FORMAT(events.date, '%d/%m/%Y') AS event_date_formatted")
-                ->label('Fecha formateada')
+            DateColumn::name('events.date_end')
+                ->label('Fin')
+                ->format('d/m/Y')
+                ->sortable()
+                ->searchable(),
+            Column::raw("DATE_FORMAT(events.date_start, '%d/%m/%Y') AS event_date_start_formatted")
+                ->label('Inicio formateado')
+                ->searchable()
+                ->hide(),
+            Column::raw("DATE_FORMAT(events.date_end, '%d/%m/%Y') AS event_date_end_formatted")
+                ->label('Fin formateado')
                 ->searchable()
                 ->hide(),
             Column::name('events.day')

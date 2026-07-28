@@ -20,7 +20,8 @@ class Event extends Model
         'event_category_id',
         'name',
         'description',
-        'date',
+        'date_start',
+        'date_end',
         'day',
         'start_time',
         'end_time',
@@ -33,7 +34,8 @@ class Event extends Model
     protected function casts(): array
     {
         return [
-            'date'       => 'date',
+            'date_start' => 'date',
+            'date_end' => 'date',
             'attendance_enabled' => 'boolean',
             'participation_enabled' => 'boolean',
             'attendance_closed' => 'boolean',
@@ -95,7 +97,7 @@ class Event extends Model
     {
         $now = $this->resolvedNow($now);
 
-        if (! $this->date?->isSameDay($now)) {
+        if ($this->date_start === null || $this->date_end === null) {
             return false;
         }
 
@@ -135,7 +137,7 @@ class Event extends Model
     private function captureState(bool $enabled, string $subject, ?CarbonInterface $now = null): array
     {
         $now = $this->resolvedNow($now);
-        $date_label = $this->date?->format('d/m/Y') ?? '—';
+        $date_label = $this->dateRangeLabel();
         $start_label = $this->timeLabel($this->start_time);
         $end_label = $this->timeLabel($this->end_time);
 
@@ -146,24 +148,24 @@ class Event extends Model
             ];
         }
 
-        if ($this->date === null) {
+        if ($this->date_start === null || $this->date_end === null) {
             return [
                 'available' => false,
                 'message' => "No podemos abrir la toma de {$subject} porque el evento no tiene fecha definida.",
             ];
         }
 
-        if ($now->lt($this->date->copy()->startOfDay())) {
+        if ($now->lt($this->date_start->copy()->startOfDay())) {
             return [
                 'available' => false,
-                'message' => "La toma de {$subject} estará disponible el día del evento ({$date_label}), entre {$start_label} y {$end_label}.",
+                'message' => "La toma de {$subject} estará disponible durante el evento ({$date_label}), entre {$start_label} y {$end_label}.",
             ];
         }
 
-        if ($now->gt($this->date->copy()->endOfDay())) {
+        if ($now->gt($this->date_end->copy()->endOfDay())) {
             return [
                 'available' => false,
-                'message' => "La toma de {$subject} solo estuvo disponible el día del evento ({$date_label}).",
+                'message' => "La toma de {$subject} solo estuvo disponible durante el evento ({$date_label}).",
             ];
         }
 
@@ -202,9 +204,24 @@ class Event extends Model
         return $this->startTimeLabel().' – '.$this->endTimeLabel();
     }
 
+    public function dateRangeLabel(): string
+    {
+        if ($this->date_start === null) {
+            return '—';
+        }
+
+        $start_label = $this->date_start->format('d/m/Y');
+
+        if ($this->date_end === null || $this->date_start->isSameDay($this->date_end)) {
+            return $start_label;
+        }
+
+        return $start_label.' – '.$this->date_end->format('d/m/Y');
+    }
+
     private function scheduleStartAt(CarbonInterface $now): Carbon
     {
-        return $this->date
+        return $this->date_start
             ->copy()
             ->setTimezone($now->getTimezone())
             ->setTimeFromTimeString($this->normalizedTime($this->start_time));
@@ -212,7 +229,7 @@ class Event extends Model
 
     private function scheduleEndAt(CarbonInterface $now): Carbon
     {
-        return $this->date
+        return $this->date_end
             ->copy()
             ->setTimezone($now->getTimezone())
             ->setTimeFromTimeString($this->normalizedTime($this->end_time));

@@ -98,7 +98,7 @@
             <dl class="divide-y divide-slate-100 px-5 py-2">
                 <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
                     <dt class="text-xs font-medium text-slate-500">Fecha</dt>
-                    <dd class="text-sm text-slate-900 sm:col-span-2">{{ $event->date?->format('d/m/Y') ?? '—' }}</dd>
+                    <dd class="text-sm text-slate-900 sm:col-span-2">{{ $event->dateRangeLabel() }}</dd>
                 </div>
                 <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
                     <dt class="text-xs font-medium text-slate-500">Día</dt>

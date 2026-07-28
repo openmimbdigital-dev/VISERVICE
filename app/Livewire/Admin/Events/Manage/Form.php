@@ -10,6 +10,7 @@ use App\Models\Event;
 use App\Models\EventCategory;
 use App\Models\EventTeam;
 use App\Support\EventsAccess;
+use Illuminate\Support\Carbon;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
@@ -45,7 +46,9 @@ class Form extends Component
         EventsAccess::authorizeCreateEvents();
         $this->form->reset();
         $this->form->setCategory($eventCategory);
+        $this->form->schedule_mode = 'weekdays';
         $this->form->year = (string) now()->year;
+        $this->form->specific_month = (string) now()->month;
 
         if (! $this->form->isSuperAdmin()) {
             $this->form->business_id = auth()->user()?->business_id;
@@ -56,6 +59,69 @@ class Form extends Component
     {
         $this->form->event_team_ids = [];
         $this->closeTeamDetail();
+    }
+
+    public function updatedFormScheduleMode(string $value): void
+    {
+        if ($value === 'weekdays') {
+            $this->form->specific_dates = [];
+            $this->form->resetErrorBag('specific_dates', 'specific_month', 'specific_dates.*');
+
+            return;
+        }
+
+        $this->form->weekdays = [];
+        $this->form->start_month = '';
+        $this->form->end_month = '';
+        $this->form->resetErrorBag('weekdays', 'weekdays.*', 'start_month', 'end_month');
+
+        if ($this->form->specific_month === '') {
+            $this->form->specific_month = (string) now()->month;
+        }
+    }
+
+    public function updatedFormYear(): void
+    {
+        $this->form->specific_dates = [];
+    }
+
+    public function updatedFormSpecificMonth(): void
+    {
+        $this->form->specific_dates = [];
+    }
+
+    public function toggleSpecificDate(string $date): void
+    {
+        abort_unless($this->form->isPeriodicCategory(), 403);
+        abort_unless($this->form->usesSpecificDatesSchedule(), 403);
+
+        if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+            return;
+        }
+
+        $carbon = Carbon::createFromFormat('Y-m-d', $date)->startOfDay();
+
+        if (
+            (int) $carbon->year !== (int) $this->form->year
+            || (int) $carbon->month !== (int) $this->form->specific_month
+            || $carbon->lt(now()->startOfDay())
+        ) {
+            return;
+        }
+
+        if (in_array($date, $this->form->specific_dates, true)) {
+            $this->form->specific_dates = array_values(array_filter(
+                $this->form->specific_dates,
+                fn (string $selected) => $selected !== $date
+            ));
+
+            return;
+        }
+
+        $this->form->specific_dates[] = $date;
+        $dates = $this->form->specific_dates;
+        sort($dates);
+        $this->form->specific_dates = $dates;
     }
 
     public function openTeamDetail(int $team_id): void
@@ -164,6 +230,10 @@ class Form extends Component
             'month_options' => $this->form->monthOptions(),
             'year_options' => $this->form->yearOptions(),
             'weekday_options' => Weekday::options(),
+            'calendar_weeks' => $this->form->isPeriodicCategory() && $this->form->usesSpecificDatesSchedule()
+                ? $this->form->specificDatesCalendarWeeks()
+                : [],
+            'calendar_weekday_headers' => ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
         ])->layoutData([
             'title' => $this->form->isEditing()
                 ? 'Gestión de eventos — Editar evento'

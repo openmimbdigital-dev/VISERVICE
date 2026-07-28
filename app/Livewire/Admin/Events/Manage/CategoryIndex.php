@@ -42,13 +42,19 @@ class CategoryIndex extends Component
             ->where('event_category_id', $this->event_category->id);
 
         if ($this->date !== '') {
-            $events_query->whereDate('date', $this->date);
+            $events_query
+                ->whereDate('date_start', '<=', $this->date)
+                ->whereDate('date_end', '>=', $this->date);
         }
 
         $month = $this->resolvedMonth();
 
         if ($month !== null) {
-            $events_query->whereMonth('date', $month);
+            $events_query->where(function ($query) use ($month) {
+                $query
+                    ->whereMonth('date_start', $month)
+                    ->orWhereMonth('date_end', $month);
+            });
         }
 
         return view('livewire.admin.events.manage.category-index', [

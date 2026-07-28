@@ -49,7 +49,8 @@ class EventsSeeder extends Seeder
                 ],
                 [
                     'description' => $category->description,
-                    'date' => $date->toDateString(),
+                    'date_start' => $date->toDateString(),
+                    'date_end' => $date->toDateString(),
                     'day' => Weekday::labelFromDate($date),
                     'start_time' => '09:00',
                     'end_time' => '11:00',

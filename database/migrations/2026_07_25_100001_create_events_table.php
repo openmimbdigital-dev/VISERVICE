@@ -17,7 +17,8 @@ return new class extends Migration
                 ->nullOnDelete();
             $table->string('name');
             $table->text('description')->nullable();
-            $table->date('date');
+            $table->date('date_start');
+            $table->date('date_end');
             $table->string('day');
             $table->time('start_time');
             $table->time('end_time');
@@ -28,8 +29,8 @@ return new class extends Migration
             $table->softDeletes();
 
             $table->index(
-                ['business_id', 'deleted_at', 'date'],
-                'events_business_deleted_date_idx'
+                ['business_id', 'deleted_at', 'date_start'],
+                'events_business_deleted_date_start_idx'
             );
             $table->index(
                 ['business_id', 'deleted_at', 'event_category_id'],
