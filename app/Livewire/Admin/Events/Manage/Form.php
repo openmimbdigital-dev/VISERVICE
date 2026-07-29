@@ -11,6 +11,7 @@ use App\Models\EventCategory;
 use App\Models\EventTeam;
 use App\Support\EventsAccess;
 use Illuminate\Support\Carbon;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
@@ -190,33 +191,47 @@ class Form extends Component
         $business_id = $this->form->resolvedBusinessId();
         $data = $this->form->validated();
 
-        if (! $this->form->isEditing() && $this->form->isPeriodicCategory()) {
-            $events = CreatePeriodicEventsAction::run($business_id, $data);
+        try {
+            if (! $this->form->isEditing() && $this->form->isPeriodicCategory()) {
+                $events = CreatePeriodicEventsAction::run($business_id, $data);
+
+                $this->dispatch('swal', [
+                    'title' => 'Se crearon '.$events->count().' eventos correctamente.',
+                    'icon' => 'success',
+                ]);
+
+                $this->redirectRoute('admin.events.manage.category.index', $this->event_category, navigate: true);
+
+                return;
+            }
+
+            CreateOrUpdateEventAction::run(
+                $business_id,
+                $this->form->event_id,
+                $data
+            );
 
             $this->dispatch('swal', [
-                'title' => 'Se crearon '.$events->count().' eventos correctamente.',
+                'title' => $this->form->isEditing()
+                    ? 'Evento actualizado correctamente.'
+                    : 'Evento creado correctamente.',
                 'icon' => 'success',
             ]);
 
             $this->redirectRoute('admin.events.manage.category.index', $this->event_category, navigate: true);
+        } catch (ValidationException $exception) {
+            $message = collect($exception->errors())->flatten()->first()
+                ?? 'No se pudo guardar el evento. Revisa los datos.';
 
-            return;
+            foreach ($exception->errors() as $field => $messages) {
+                $this->addError($field, $messages[0]);
+            }
+
+            $this->dispatch('swal', [
+                'title' => $message,
+                'icon' => 'warning',
+            ]);
         }
-
-        CreateOrUpdateEventAction::run(
-            $business_id,
-            $this->form->event_id,
-            $data
-        );
-
-        $this->dispatch('swal', [
-            'title' => $this->form->isEditing()
-                ? 'Evento actualizado correctamente.'
-                : 'Evento creado correctamente.',
-            'icon' => 'success',
-        ]);
-
-        $this->redirectRoute('admin.events.manage.category.index', $this->event_category, navigate: true);
     }
 
     public function render()

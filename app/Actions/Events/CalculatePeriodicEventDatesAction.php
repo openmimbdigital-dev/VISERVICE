@@ -33,6 +33,16 @@ class CalculatePeriodicEventDatesAction
 
         $start = Carbon::create($year, $start_month, 1)->startOfDay();
         $end = Carbon::create($year, $end_month, 1)->endOfMonth()->startOfDay();
+        $today = Carbon::today();
+
+        // Solo fechas de hoy en adelante (crear eventos periódicos por día de semana).
+        if ($start->lt($today)) {
+            $start = $today->copy();
+        }
+
+        if ($start->gt($end)) {
+            return [];
+        }
 
         $dates = [];
 

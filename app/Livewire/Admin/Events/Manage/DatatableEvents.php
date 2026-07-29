@@ -34,9 +34,8 @@ class DatatableEvents extends LivewireDatatable
             ->forAuthUser()
             ->select('events.*')
             ->leftJoin('businesses', 'events.business_id', '=', 'businesses.id')
-            ->orderByRaw('CASE WHEN YEAR(events.date_start) = ? THEN 0 ELSE 1 END', [now()->year])
-            ->orderByDesc('events.date_start')
-            ->orderByDesc('events.start_time');
+            ->orderBy('events.date_start')
+            ->orderBy('events.start_time');
 
         if ($this->event_category_id) {
             $query->where('events.event_category_id', $this->event_category_id);

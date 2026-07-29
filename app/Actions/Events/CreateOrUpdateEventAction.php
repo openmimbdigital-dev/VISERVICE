@@ -8,7 +8,9 @@ use App\Models\Event;
 use App\Models\EventCategory;
 use App\Models\EventTeam;
 use App\Support\EventsAccess;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 class CreateOrUpdateEventAction
@@ -37,6 +39,7 @@ class CreateOrUpdateEventAction
 
         if (! $event_id) {
             EventsAccess::authorizeCreateEvents($user);
+            $this->assertCreateDatesNotInPast($data['date_start'], $data['date_end']);
         }
 
         if (! $user->hasRole('superAdmin')) {
@@ -119,6 +122,31 @@ class CreateOrUpdateEventAction
 
             return $event;
         });
+    }
+
+    private function assertCreateDatesNotInPast(string $date_start, string $date_end): void
+    {
+        $today = Carbon::today();
+        $start = Carbon::parse($date_start)->startOfDay();
+        $end = Carbon::parse($date_end)->startOfDay();
+
+        if ($start->lt($today)) {
+            throw ValidationException::withMessages([
+                'form.date_start' => 'La fecha de inicio no puede ser anterior al día de hoy.',
+            ]);
+        }
+
+        if ($end->lt($today)) {
+            throw ValidationException::withMessages([
+                'form.date_end' => 'La fecha de fin no puede ser anterior al día de hoy.',
+            ]);
+        }
+
+        if ($end->lt($start)) {
+            throw ValidationException::withMessages([
+                'form.date_end' => 'La fecha de fin debe ser igual o posterior a la de inicio.',
+            ]);
+        }
     }
 
     /**

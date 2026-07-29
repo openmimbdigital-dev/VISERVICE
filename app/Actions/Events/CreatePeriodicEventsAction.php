@@ -9,8 +9,10 @@ use App\Models\Event;
 use App\Models\EventCategory;
 use App\Models\EventTeam;
 use App\Support\EventsAccess;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 class CreatePeriodicEventsAction
@@ -55,8 +57,19 @@ class CreatePeriodicEventsAction
 
         $dates = $this->resolveDates($data);
 
+        // Días de la semana: omitir fechas pasadas y crear solo las ≥ hoy.
+        if (($data['schedule_mode'] ?? '') === 'weekdays') {
+            $dates = $this->rejectPastDates($dates);
+        }
+
         if ($dates === []) {
-            abort(422, 'No hay fechas que coincidan con la selección.');
+            $field = ($data['schedule_mode'] ?? '') === 'specific_dates'
+                ? 'form.specific_dates'
+                : 'form.weekdays';
+
+            throw ValidationException::withMessages([
+                $field => 'No hay fechas válidas a partir de hoy con la selección indicada.',
+            ]);
         }
 
         $team_ids = EventTeam::query()
@@ -140,5 +153,19 @@ class CreatePeriodicEventsAction
             (int) $data['end_month'],
             $data['weekdays'] ?? []
         );
+    }
+
+    /**
+     * @param  list<string>  $dates
+     * @return list<string>
+     */
+    private function rejectPastDates(array $dates): array
+    {
+        $today = Carbon::today()->toDateString();
+
+        return array_values(array_filter(
+            $dates,
+            fn (string $date) => $date >= $today
+        ));
     }
 }
