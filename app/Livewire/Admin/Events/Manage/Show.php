@@ -27,7 +27,13 @@ class Show extends Component
         $this->event = Event::query()
             ->forAuthUser()
             ->where('event_category_id', $eventCategory->id)
-            ->with(['business:id,name', 'category:id,name,type', 'teams:id,name'])
+            ->whereNull('parent_id')
+            ->with([
+                'business:id,name',
+                'category:id,name,type',
+                'teams:id,name',
+                'children' => fn ($query) => $query->orderBy('date_start'),
+            ])
             ->findOrFail($event->id);
     }
 

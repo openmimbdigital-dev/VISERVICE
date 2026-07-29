@@ -11,6 +11,7 @@ use Arm092\LivewireDatatables\DateColumn;
 use Arm092\LivewireDatatables\Livewire\LivewireDatatable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 
 class DatatableEvents extends LivewireDatatable
 {
@@ -32,6 +33,7 @@ class DatatableEvents extends LivewireDatatable
 
         $query = Event::query()
             ->forAuthUser()
+            ->whereNull('events.parent_id')
             ->select('events.*')
             ->leftJoin('businesses', 'events.business_id', '=', 'businesses.id')
             ->orderBy('events.date_start')
@@ -86,11 +88,13 @@ class DatatableEvents extends LivewireDatatable
                 ->label('Día')
                 ->searchable()
                 ->sortable(),
+            Column::callback(['events.active'], function ($active) {
+                return $active
+                    ? '<span class="inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-600/20">Activo</span>'
+                    : '<span class="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600 ring-1 ring-slate-500/15">Inactivo</span>';
+            })->label('Estado')->unsortable(),
             Column::callback(['events.start_time', 'events.end_time'], function ($start, $end) {
-                $start_label = $start ? substr((string) $start, 0, 5) : '—';
-                $end_label = $end ? substr((string) $end, 0, 5) : '—';
-
-                return e($start_label.' – '.$end_label);
+                return e($this->formatTimeAmPm($start).' – '.$this->formatTimeAmPm($end));
             })->label('Horario')->unsortable(),
         ];
 
@@ -136,6 +140,21 @@ class DatatableEvents extends LivewireDatatable
             $this->alertDeleteSuccess('Evento eliminado correctamente.');
         } catch (\Throwable) {
             $this->alertDeleteError('No se pudo eliminar el evento.');
+        }
+    }
+
+    private function formatTimeAmPm(mixed $time): string
+    {
+        if ($time === null || $time === '') {
+            return '—';
+        }
+
+        try {
+            return Carbon::parse((string) $time)
+                ->locale('es')
+                ->isoFormat('h:mm a');
+        } catch (\Throwable) {
+            return '—';
         }
     }
 }

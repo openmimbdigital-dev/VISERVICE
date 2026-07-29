@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin\Events\Manage;
 
+use App\Actions\Events\CreateMultiDayEventAction;
 use App\Actions\Events\CreateOrUpdateEventAction;
 use App\Actions\Events\CreatePeriodicEventsAction;
 use App\Enums\Weekday;
@@ -34,7 +35,11 @@ class Form extends Component
             $record = Event::query()
                 ->forAuthUser()
                 ->where('event_category_id', $eventCategory->id)
-                ->with('teams:id')
+                ->whereNull('parent_id')
+                ->with([
+                    'teams:id',
+                    'children' => fn ($query) => $query->orderBy('date_start'),
+                ])
                 ->findOrFail($event->id);
 
             EventsAccess::authorizeEditEvent($record);
@@ -125,6 +130,16 @@ class Form extends Component
         $this->form->specific_dates = $dates;
     }
 
+    public function updatedFormDateStart(): void
+    {
+        $this->form->syncDaySchedules();
+    }
+
+    public function updatedFormDateEnd(): void
+    {
+        $this->form->syncDaySchedules();
+    }
+
     public function openTeamDetail(int $team_id): void
     {
         $business_id = $this->form->resolvedBusinessId();
@@ -177,6 +192,7 @@ class Form extends Component
         $record = Event::query()
             ->forAuthUser()
             ->where('event_category_id', $this->event_category->id)
+            ->whereNull('parent_id')
             ->findOrFail($this->form->event_id);
 
         EventsAccess::authorizeEditEvent($record);
@@ -197,6 +213,28 @@ class Form extends Component
 
                 $this->dispatch('swal', [
                     'title' => 'Se crearon '.$events->count().' eventos correctamente.',
+                    'icon' => 'success',
+                ]);
+
+                $this->redirectRoute('admin.events.manage.category.index', $this->event_category, navigate: true);
+
+                return;
+            }
+
+            if (
+                ! $this->form->isPeriodicCategory()
+                && ($data['date_start'] ?? '') < ($data['date_end'] ?? '')
+            ) {
+                CreateMultiDayEventAction::run(
+                    $business_id,
+                    $this->form->event_id,
+                    $data
+                );
+
+                $this->dispatch('swal', [
+                    'title' => $this->form->isEditing()
+                        ? 'Evento multi-día actualizado correctamente.'
+                        : 'Evento multi-día creado correctamente.',
                     'icon' => 'success',
                 ]);
 
@@ -239,6 +277,7 @@ class Form extends Component
         return view('livewire.admin.events.manage.form', [
             'is_super_admin' => $this->form->isSuperAdmin(),
             'is_periodic' => $this->form->isPeriodicCategory(),
+            'is_multi_day' => $this->form->isMultiDayOccasional(),
             'businesses' => $this->form->isSuperAdmin() ? $this->form->getBusinesses() : collect(),
             'teams' => $this->form->getTeams(),
             'preview_team' => $this->previewTeam(),

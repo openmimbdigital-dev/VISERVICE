@@ -199,31 +199,82 @@
                     @else
                         <div>
                             <label class="mb-1.5 block text-xs font-medium text-slate-700">Fecha de inicio <span class="text-rose-500">*</span></label>
-                            <input wire:model="form.date_start" type="date"
+                            <input wire:model.live="form.date_start" type="date"
                                 class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('form.date_start') border-rose-400 bg-rose-50 @enderror">
                             @error('form.date_start') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                         </div>
 
                         <div>
                             <label class="mb-1.5 block text-xs font-medium text-slate-700">Fecha de fin <span class="text-rose-500">*</span></label>
-                            <input wire:model="form.date_end" type="date"
+                            <input wire:model.live="form.date_end" type="date"
                                 class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('form.date_end') border-rose-400 bg-rose-50 @enderror">
                             @error('form.date_end') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                         </div>
                     @endif
 
-                    <div>
-                        <label class="mb-1.5 block text-xs font-medium text-slate-700">Hora de inicio <span class="text-rose-500">*</span></label>
-                        <input wire:model="form.start_time" type="time"
-                            class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('form.start_time') border-rose-400 bg-rose-50 @enderror">
-                        @error('form.start_time') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
-                    </div>
+                    @unless($is_multi_day)
+                        <div>
+                            <label class="mb-1.5 block text-xs font-medium text-slate-700">Hora de inicio <span class="text-rose-500">*</span></label>
+                            <input wire:model="form.start_time" type="time"
+                                class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('form.start_time') border-rose-400 bg-rose-50 @enderror">
+                            @error('form.start_time') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                        </div>
 
-                    <div>
-                        <label class="mb-1.5 block text-xs font-medium text-slate-700">Hora de fin <span class="text-rose-500">*</span></label>
-                        <input wire:model="form.end_time" type="time"
-                            class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('form.end_time') border-rose-400 bg-rose-50 @enderror">
-                        @error('form.end_time') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                        <div>
+                            <label class="mb-1.5 block text-xs font-medium text-slate-700">Hora de fin <span class="text-rose-500">*</span></label>
+                            <input wire:model="form.end_time" type="time"
+                                class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('form.end_time') border-rose-400 bg-rose-50 @enderror">
+                            @error('form.end_time') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                        </div>
+                    @endunless
+
+                    @if($is_multi_day)
+                        <div class="sm:col-span-2">
+                            <label class="mb-1.5 block text-xs font-medium text-slate-700">Horario por día <span class="text-rose-500">*</span></label>
+                            <p class="mb-3 text-xs text-slate-500">Define la hora de inicio y fin para cada día del evento.</p>
+                            <div class="space-y-2">
+                                @foreach($form->day_schedules as $index => $schedule)
+                                    <div class="grid grid-cols-1 gap-2 rounded-xl border border-slate-200 bg-slate-50/70 p-3 sm:grid-cols-3 sm:items-end">
+                                        <div>
+                                            <p class="mb-1.5 text-xs font-medium text-slate-700">Fecha</p>
+                                            <p class="rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-800">
+                                                {{ \Illuminate\Support\Carbon::parse($schedule['date'])->format('d/m/Y') }}
+                                                <span class="ml-1 text-xs font-normal text-slate-500">({{ \App\Enums\Weekday::labelFromDate($schedule['date']) }})</span>
+                                            </p>
+                                            <input type="hidden" wire:model="form.day_schedules.{{ $index }}.date">
+                                        </div>
+                                        <div>
+                                            <label class="mb-1.5 block text-xs font-medium text-slate-700">Hora inicio</label>
+                                            <input wire:model="form.day_schedules.{{ $index }}.start_time" type="time"
+                                                class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('form.day_schedules.'.$index.'.start_time') border-rose-400 bg-rose-50 @enderror">
+                                            @error('form.day_schedules.'.$index.'.start_time') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                                        </div>
+                                        <div>
+                                            <label class="mb-1.5 block text-xs font-medium text-slate-700">Hora fin</label>
+                                            <input wire:model="form.day_schedules.{{ $index }}.end_time" type="time"
+                                                class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('form.day_schedules.'.$index.'.end_time') border-rose-400 bg-rose-50 @enderror">
+                                            @error('form.day_schedules.'.$index.'.end_time') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                            @error('form.day_schedules') <p class="mt-2 text-xs text-rose-600">{{ $message }}</p> @enderror
+                        </div>
+                    @endif
+
+                    <div class="sm:col-span-2">
+                        <label class="mb-1.5 block text-xs font-medium text-slate-700">Estado</label>
+                        <div class="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3">
+                            <div>
+                                <p class="text-sm font-medium text-slate-800">{{ $form->active ? 'Activo' : 'Inactivo' }}</p>
+                                <p class="mt-0.5 text-xs text-slate-500">Indica si el evento está activo o inactivo.</p>
+                            </div>
+                            <button type="button" wire:click="$toggle('form.active')"
+                                class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500/30 {{ $form->active ? 'bg-indigo-600' : 'bg-slate-300' }}">
+                                <span class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {{ $form->active ? 'translate-x-5' : 'translate-x-0' }}"></span>
+                            </button>
+                        </div>
+                        @error('form.active') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                     </div>
 
                     <div class="sm:col-span-2">

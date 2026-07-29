@@ -15,6 +15,10 @@ return new class extends Migration
                 ->nullable()
                 ->constrained('event_categories')
                 ->nullOnDelete();
+            $table->foreignId('parent_id')
+                ->nullable()
+                ->constrained('events')
+                ->nullOnDelete();
             $table->string('name');
             $table->text('description')->nullable();
             $table->date('date_start');
@@ -22,6 +26,8 @@ return new class extends Migration
             $table->string('day');
             $table->time('start_time');
             $table->time('end_time');
+            $table->boolean('active')->default(true);
+            $table->boolean('multi_day')->default(false);
             $table->boolean('attendance_enabled')->default(true);
             $table->boolean('participation_enabled')->default(true);
             $table->boolean('attendance_closed')->default(false);

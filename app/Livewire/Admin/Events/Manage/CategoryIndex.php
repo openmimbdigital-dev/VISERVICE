@@ -39,6 +39,7 @@ class CategoryIndex extends Component
     {
         $events_query = Event::query()
             ->forAuthUser()
+            ->whereNull('parent_id')
             ->where('event_category_id', $this->event_category->id);
 
         if ($this->date !== '') {

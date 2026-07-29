@@ -33,6 +33,8 @@ class EventForm extends Form
 
     public string $end_time = '';
 
+    public bool $active = true;
+
     public bool $attendance_enabled = true;
 
     public bool $participation_enabled = true;
@@ -55,6 +57,13 @@ class EventForm extends Form
     /** @var list<string> fechas Y-m-d */
     public array $specific_dates = [];
 
+    /**
+     * Horarios por día cuando el evento eventual dura más de un día.
+     *
+     * @var list<array{date: string, start_time: string, end_time: string}>
+     */
+    public array $day_schedules = [];
+
     /** @var list<int|string> */
     public array $event_team_ids = [];
 
@@ -69,6 +78,7 @@ class EventForm extends Form
         $this->date_end = $event->date_end?->format('Y-m-d') ?? '';
         $this->start_time = substr((string) $event->start_time, 0, 5);
         $this->end_time = substr((string) $event->end_time, 0, 5);
+        $this->active = (bool) $event->active;
         $this->attendance_enabled = (bool) $event->attendance_enabled;
         $this->participation_enabled = (bool) $event->participation_enabled;
         $this->event_team_ids = $event->teams()
@@ -76,6 +86,74 @@ class EventForm extends Form
             ->map(fn ($id) => (int) $id)
             ->values()
             ->all();
+
+        if ($event->multi_day) {
+            $children = $event->relationLoaded('children')
+                ? $event->children
+                : $event->children()->orderBy('date_start')->get();
+
+            $this->day_schedules = $children
+                ->map(fn (Event $child) => [
+                    'date' => $child->date_start?->format('Y-m-d') ?? '',
+                    'start_time' => substr((string) $child->start_time, 0, 5),
+                    'end_time' => substr((string) $child->end_time, 0, 5),
+                ])
+                ->values()
+                ->all();
+
+            if ($this->day_schedules === []) {
+                $this->syncDaySchedules();
+            }
+        } else {
+            $this->day_schedules = [];
+        }
+    }
+
+    public function isMultiDayOccasional(): bool
+    {
+        if ($this->isPeriodicCategory()) {
+            return false;
+        }
+
+        if ($this->date_start === '' || $this->date_end === '') {
+            return false;
+        }
+
+        return $this->date_start < $this->date_end;
+    }
+
+    public function syncDaySchedules(): void
+    {
+        if (! $this->isMultiDayOccasional()) {
+            $this->day_schedules = [];
+
+            return;
+        }
+
+        $existing = collect($this->day_schedules)->keyBy('date');
+        $schedules = [];
+
+        $cursor = Carbon::parse($this->date_start)->startOfDay();
+        $end = Carbon::parse($this->date_end)->startOfDay();
+
+        while ($cursor->lte($end)) {
+            $date = $cursor->toDateString();
+            $previous = $existing->get($date);
+
+            $schedules[] = [
+                'date' => $date,
+                'start_time' => is_array($previous) && ($previous['start_time'] ?? '') !== ''
+                    ? (string) $previous['start_time']
+                    : $this->start_time,
+                'end_time' => is_array($previous) && ($previous['end_time'] ?? '') !== ''
+                    ? (string) $previous['end_time']
+                    : $this->end_time,
+            ];
+
+            $cursor->addDay();
+        }
+
+        $this->day_schedules = $schedules;
     }
 
     public function setCategory(EventCategory $category): void
@@ -279,8 +357,9 @@ class EventForm extends Form
                 'max:150',
             ],
             'description' => ['nullable', 'string', 'max:2000'],
-            'start_time' => ['required', 'date_format:H:i'],
-            'end_time' => ['required', 'date_format:H:i'],
+            'start_time' => ['nullable', 'date_format:H:i'],
+            'end_time' => ['nullable', 'date_format:H:i'],
+            'active' => ['required', 'boolean'],
             'attendance_enabled' => ['required', 'boolean'],
             'participation_enabled' => ['required', 'boolean'],
             'event_team_ids' => ['nullable', 'array'],
@@ -288,7 +367,8 @@ class EventForm extends Form
         ];
 
         if ($is_periodic) {
-            $rules['end_time'][] = 'after:start_time';
+            $rules['start_time'] = ['required', 'date_format:H:i'];
+            $rules['end_time'] = ['required', 'date_format:H:i', 'after:start_time'];
             $rules['schedule_mode'] = ['required', Rule::in(['weekdays', 'specific_dates'])];
             $rules['year'] = ['required', 'integer', Rule::in(array_keys($this->yearOptions()))];
 
@@ -335,14 +415,27 @@ class EventForm extends Form
                 $rules['date_start'][] = 'after_or_equal:today';
             }
 
-            if ($this->date_end === '' || $this->date_start === $this->date_end) {
-                $rules['end_time'][] = 'after:start_time';
+            if ($this->isMultiDayOccasional()) {
+                $this->syncDaySchedules();
+
+                $rules['day_schedules'] = ['required', 'array', 'min:2'];
+                $rules['day_schedules.*.date'] = ['required', 'date_format:Y-m-d'];
+                $rules['day_schedules.*.start_time'] = ['required', 'date_format:H:i'];
+                $rules['day_schedules.*.end_time'] = ['required', 'date_format:H:i'];
+
+                foreach (array_keys($this->day_schedules) as $index) {
+                    $rules["day_schedules.{$index}.end_time"][] = "after:day_schedules.{$index}.start_time";
+                }
+            } else {
+                $rules['start_time'] = ['required', 'date_format:H:i'];
+                $rules['end_time'] = ['required', 'date_format:H:i', 'after:start_time'];
             }
 
             $rules['name'][] = Rule::unique('events', 'name')
                 ->where(fn ($query) => $query
                     ->where('business_id', $business_id)
                     ->where('date_start', $this->date_start !== '' ? $this->date_start : null)
+                    ->whereNull('parent_id')
                     ->whereNull('deleted_at'))
                 ->ignore($this->event_id);
         }
@@ -368,6 +461,11 @@ class EventForm extends Form
             'end_time.required' => 'La hora de fin es obligatoria.',
             'end_time.date_format' => 'La hora de fin no es válida.',
             'end_time.after' => 'La hora de fin debe ser posterior a la de inicio.',
+            'day_schedules.required' => 'Define el horario de cada día del evento.',
+            'day_schedules.min' => 'Un evento de varios días debe incluir al menos dos fechas.',
+            'day_schedules.*.start_time.required' => 'La hora de inicio del día es obligatoria.',
+            'day_schedules.*.end_time.required' => 'La hora de fin del día es obligatoria.',
+            'day_schedules.*.end_time.after' => 'La hora de fin debe ser posterior a la de inicio en ese día.',
             'schedule_mode.required' => 'Selecciona cómo definir las fechas.',
             'schedule_mode.in' => 'La opción de fechas seleccionada no es válida.',
             'year.required' => 'El año es obligatorio.',
@@ -393,8 +491,10 @@ class EventForm extends Form
      *     date_end?: string,
      *     start_time: string,
      *     end_time: string,
+     *     active: bool,
      *     attendance_enabled: bool,
      *     participation_enabled: bool,
+     *     day_schedules?: list<array{date: string, start_time: string, end_time: string}>,
      *     schedule_mode?: string,
      *     year?: int,
      *     start_month?: int,
@@ -414,8 +514,9 @@ class EventForm extends Form
             'event_category_id' => (int) $data['event_category_id'],
             'name' => $data['name'],
             'description' => ($data['description'] ?? '') !== '' ? $data['description'] : null,
-            'start_time' => $data['start_time'],
-            'end_time' => $data['end_time'],
+            'start_time' => $data['start_time'] ?? '',
+            'end_time' => $data['end_time'] ?? '',
+            'active' => (bool) $data['active'],
             'attendance_enabled' => (bool) $data['attendance_enabled'],
             'participation_enabled' => (bool) $data['participation_enabled'],
             'event_team_ids' => array_values(array_map('intval', $data['event_team_ids'] ?? [])),
@@ -437,6 +538,23 @@ class EventForm extends Form
         } else {
             $payload['date_start'] = $data['date_start'];
             $payload['date_end'] = $data['date_end'];
+
+            if ($this->isMultiDayOccasional()) {
+                $payload['day_schedules'] = array_values(array_map(
+                    fn (array $schedule) => [
+                        'date' => $schedule['date'],
+                        'start_time' => $schedule['start_time'],
+                        'end_time' => $schedule['end_time'],
+                    ],
+                    $data['day_schedules'] ?? $this->day_schedules
+                ));
+
+                $first = $payload['day_schedules'][0] ?? null;
+                $last = $payload['day_schedules'][array_key_last($payload['day_schedules'])] ?? null;
+
+                $payload['start_time'] = $first['start_time'] ?? '';
+                $payload['end_time'] = $last['end_time'] ?? '';
+            }
         }
 
         return $payload;

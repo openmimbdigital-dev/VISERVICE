@@ -26,6 +26,7 @@ class CreatePeriodicEventsAction
      *     description: ?string,
      *     start_time: string,
      *     end_time: string,
+     *     active: bool,
      *     attendance_enabled: bool,
      *     participation_enabled: bool,
      *     schedule_mode: string,
@@ -92,6 +93,7 @@ class CreatePeriodicEventsAction
                     'day' => Weekday::labelFromDate($date),
                     'start_time' => $data['start_time'],
                     'end_time' => $data['end_time'],
+                    'active' => (bool) ($data['active'] ?? true),
                     'attendance_enabled' => $data['attendance_enabled'],
                     'participation_enabled' => $data['participation_enabled'],
                 ]);

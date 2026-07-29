@@ -63,6 +63,14 @@
                     <dd class="text-sm text-slate-900 sm:col-span-2">{{ $event->description ?: 'Sin descripción.' }}</dd>
                 </div>
                 <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt class="text-xs font-medium text-slate-500">Estado</dt>
+                    <dd class="text-sm sm:col-span-2">
+                        <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold {{ $event->active ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20' : 'bg-slate-100 text-slate-600 ring-1 ring-slate-500/15' }}">
+                            {{ $event->active ? 'Activo' : 'Inactivo' }}
+                        </span>
+                    </dd>
+                </div>
+                <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
                     <dt class="text-xs font-medium text-slate-500">Toma de asistencia</dt>
                     <dd class="text-sm sm:col-span-2">
                         <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold {{ $event->attendance_enabled ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20' : 'bg-slate-100 text-slate-600 ring-1 ring-slate-500/15' }}">
@@ -108,7 +116,41 @@
                     <dt class="text-xs font-medium text-slate-500">Horario</dt>
                     <dd class="text-sm text-slate-900 sm:col-span-2">{{ $event->scheduleRangeLabel() }}</dd>
                 </div>
+                @if($event->multi_day)
+                    <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                        <dt class="text-xs font-medium text-slate-500">Tipo</dt>
+                        <dd class="text-sm text-slate-900 sm:col-span-2">Multi-día</dd>
+                    </div>
+                @endif
             </dl>
         </section>
     </div>
+
+    @if($event->multi_day && $event->children->isNotEmpty())
+        <section class="mt-4 overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
+            <div class="border-b border-slate-100 bg-slate-50/80 px-5 py-4">
+                <h2 class="font-semibold text-slate-800">Días del evento</h2>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-slate-100 text-left text-sm">
+                    <thead class="bg-slate-50/80 text-xs font-medium uppercase tracking-wide text-slate-500">
+                        <tr>
+                            <th class="px-3 py-3 sm:px-5">Fecha</th>
+                            <th class="px-3 py-3 sm:px-5">Día</th>
+                            <th class="px-3 py-3 sm:px-5">Horario</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        @foreach($event->children as $child)
+                            <tr>
+                                <td class="px-3 py-4 text-slate-900 sm:px-5">{{ $child->date_start?->format('d/m/Y') ?? '—' }}</td>
+                                <td class="px-3 py-4 text-slate-700 sm:px-5">{{ $child->day ?: '—' }}</td>
+                                <td class="px-3 py-4 text-slate-700 sm:px-5">{{ $child->scheduleRangeLabel() }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    @endif
 </div>

@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
@@ -18,6 +19,7 @@ class Event extends Model
     protected $fillable = [
         'business_id',
         'event_category_id',
+        'parent_id',
         'name',
         'description',
         'date_start',
@@ -25,6 +27,8 @@ class Event extends Model
         'day',
         'start_time',
         'end_time',
+        'active',
+        'multi_day',
         'attendance_enabled',
         'participation_enabled',
         'attendance_closed',
@@ -39,6 +43,8 @@ class Event extends Model
             'attendance_enabled' => 'boolean',
             'participation_enabled' => 'boolean',
             'attendance_closed' => 'boolean',
+            'multi_day' => 'boolean',
+            'active' => 'boolean',
 
         ];
     }
@@ -51,6 +57,16 @@ class Event extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(EventCategory::class, 'event_category_id');
+    }
+
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'parent_id');
+    }
+
+    public function children(): HasMany
+    {
+        return $this->hasMany(self::class, 'parent_id');
     }
 
     public function attendee_types(): BelongsToMany

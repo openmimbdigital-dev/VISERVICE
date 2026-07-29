@@ -26,6 +26,7 @@ class CreateOrUpdateEventAction
      *     date_end: string,
      *     start_time: string,
      *     end_time: string,
+     *     active: bool,
      *     attendance_enabled: bool,
      *     participation_enabled: bool,
      *     event_team_ids?: list<int>
@@ -57,6 +58,9 @@ class CreateOrUpdateEventAction
             'day' => Weekday::labelFromDate($data['date_start']),
             'start_time' => $data['start_time'],
             'end_time' => $data['end_time'],
+            'active' => (bool) ($data['active'] ?? true),
+            'multi_day' => false,
+            'parent_id' => null,
             'attendance_enabled' => $data['attendance_enabled'],
             'participation_enabled' => $data['participation_enabled'],
         ];
@@ -88,6 +92,7 @@ class CreateOrUpdateEventAction
                         'date_start' => $event->date_start?->toDateString(),
                         'date_end' => $event->date_end?->toDateString(),
                         'day' => $event->day,
+                        'active' => (bool) $event->active,
                         'event_category_id' => $event->event_category_id,
                     ],
                     business_id: $business_id,
@@ -115,6 +120,7 @@ class CreateOrUpdateEventAction
                     'date_start' => $event->date_start?->toDateString(),
                     'date_end' => $event->date_end?->toDateString(),
                     'day' => $event->day,
+                    'active' => (bool) $event->active,
                     'event_category_id' => $event->event_category_id,
                 ],
                 business_id: $business_id,
