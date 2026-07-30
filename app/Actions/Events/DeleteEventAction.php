@@ -6,6 +6,7 @@ use App\Actions\LogUserHistoricalAction;
 use App\Models\Event;
 use App\Support\EventsAccess;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 class DeleteEventAction
@@ -18,6 +19,12 @@ class DeleteEventAction
             ->forAuthUser()
             ->whereNull('parent_id')
             ->findOrFail($event_id);
+
+        if ($event->hasStartedAttendance()) {
+            throw ValidationException::withMessages([
+                'event' => 'No se puede eliminar: ya se inició la toma de asistencia de este evento.',
+            ]);
+        }
 
         EventsAccess::authorizeDeleteEvent($event);
 

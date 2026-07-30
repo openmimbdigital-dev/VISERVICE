@@ -24,20 +24,47 @@
                     <a href="{{ route('admin.events.schedule.show', $event) }}" wire:navigate class="btn btn-outline-secondary btn-sm flex-1 justify-center sm:flex-none">Ver en agenda</a>
                 @endif
                 @if($can_edit)
-                    <a href="{{ route('admin.events.manage.category.edit', [$event_category, $event]) }}" wire:navigate class="btn btn-primary btn-sm flex-1 justify-center sm:flex-none">Editar</a>
+                    @if($edit_disabled)
+                        <button
+                            type="button"
+                            disabled
+                            title="{{ $edit_disabled_title }}"
+                            class="btn btn-primary btn-sm flex-1 justify-center opacity-50 sm:flex-none"
+                        >
+                            Editar
+                        </button>
+                    @else
+                        <a href="{{ route('admin.events.manage.category.edit', [$event_category, $event]) }}" wire:navigate class="btn btn-primary btn-sm flex-1 justify-center sm:flex-none">Editar</a>
+                    @endif
                 @endif
                 @if($can_delete)
-                    <button
-                        type="button"
-                        wire:click="delete"
-                        wire:confirm="¿Eliminar este evento?"
-                        class="btn btn-danger btn-sm flex-1 justify-center sm:flex-none disabled:opacity-50"
-                    >
-                        Eliminar
-                    </button>
+                    @if($delete_disabled)
+                        <button
+                            type="button"
+                            disabled
+                            title="{{ $delete_disabled_title }}"
+                            class="btn btn-danger btn-sm flex-1 justify-center opacity-50 sm:flex-none"
+                        >
+                            Eliminar
+                        </button>
+                    @else
+                        <button
+                            type="button"
+                            wire:click="delete"
+                            wire:confirm="¿Eliminar este evento?"
+                            class="btn btn-danger btn-sm flex-1 justify-center sm:flex-none disabled:opacity-50"
+                        >
+                            Eliminar
+                        </button>
+                    @endif
                 @endif
             </div>
         </div>
+        @if($edit_disabled || $delete_disabled)
+            <p class="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                Este evento ya tiene toma de asistencia iniciada; no se puede editar ni eliminar.
+            </p>
+        @endif
     </header>
 
     <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">

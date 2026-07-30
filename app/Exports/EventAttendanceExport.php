@@ -19,6 +19,10 @@ class EventAttendanceExport implements FromCollection, ShouldAutoSize, WithHeadi
 
     private string $generated_by;
 
+    private string $event_type_label;
+
+    private string $parent_event_label;
+
     public function __construct(
         private readonly Event $event,
         private readonly ?User $user = null,
@@ -29,6 +33,12 @@ class EventAttendanceExport implements FromCollection, ShouldAutoSize, WithHeadi
         $this->entity_label = $is_church ? 'Iglesia' : 'Negocio';
         $this->business_name = $business?->name ?: '—';
         $this->generated_by = trim(($user?->first_name ?? '').' '.($user?->last_name ?? '')) ?: ($user?->username ?? '—');
+        $this->event_type_label = $this->event->isMultiDayChild()
+            ? 'Día de evento multi-día'
+            : 'Evento de un día';
+        $this->parent_event_label = $this->event->isMultiDayChild() && $this->event->parent
+            ? $this->event->parent->name.' ('.$this->event->parent->dateRangeLabel().')'
+            : '—';
     }
 
     public function collection(): Collection
@@ -55,6 +65,8 @@ class EventAttendanceExport implements FromCollection, ShouldAutoSize, WithHeadi
             $this->entity_label,
             'Generado por',
             'Evento',
+            'Tipo de evento',
+            'Evento padre',
             'Categoría',
             'Fecha',
             'Día',
@@ -62,24 +74,31 @@ class EventAttendanceExport implements FromCollection, ShouldAutoSize, WithHeadi
             'Tipo de asistencia',
             'Rango de edad',
             'Asistencia',
+            'Aclaración',
         ];
     }
 
     /** @return list<string|int> */
     public function map($row): array
     {
+        $clarification = $this->event->multiDayContextLabel()
+            ?? 'Asistencia del evento en la fecha indicada.';
+
         if (is_object($row) && ! isset($row->pivot)) {
             return [
                 $this->business_name,
                 $this->generated_by,
                 $this->event->name,
+                $this->event_type_label,
+                $this->parent_event_label,
                 $this->event->category?->name ?? '—',
-                $this->event->date?->format('d/m/Y') ?? '—',
+                $this->event->dateRangeLabel(),
                 $this->event->day ?: '—',
                 $this->event->scheduleRangeLabel(),
                 (string) ($row->name ?? '—'),
                 (string) ($row->age_range ?? '—'),
                 (int) ($row->attendance ?? 0),
+                $clarification,
             ];
         }
 
@@ -87,13 +106,16 @@ class EventAttendanceExport implements FromCollection, ShouldAutoSize, WithHeadi
             $this->business_name,
             $this->generated_by,
             $this->event->name,
+            $this->event_type_label,
+            $this->parent_event_label,
             $this->event->category?->name ?? '—',
-            $this->event->date?->format('d/m/Y') ?? '—',
+            $this->event->dateRangeLabel(),
             $this->event->day ?: '—',
             $this->event->scheduleRangeLabel(),
             $row->name,
             $row->ageRangeLabel(),
             (int) $row->pivot->attendance,
+            $clarification,
         ];
     }
 

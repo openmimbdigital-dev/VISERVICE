@@ -12,6 +12,8 @@ use Arm092\LivewireDatatables\Livewire\LivewireDatatable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class DatatableEvents extends LivewireDatatable
 {
@@ -31,10 +33,31 @@ class DatatableEvents extends LivewireDatatable
     {
         EventsAccess::authorizeViewEvents();
 
+        $attendance_lock = DB::table('events as e')
+            ->select('e.id')
+            ->selectRaw('
+                CASE WHEN (
+                    EXISTS (
+                        SELECT 1
+                        FROM event_attendee_type AS eat
+                        WHERE eat.event_id = e.id
+                    )
+                    OR EXISTS (
+                        SELECT 1
+                        FROM events AS child
+                        INNER JOIN event_attendee_type AS eat ON eat.event_id = child.id
+                        WHERE child.parent_id = e.id
+                          AND child.deleted_at IS NULL
+                    )
+                ) THEN 1 ELSE 0 END AS attendance_started
+            ');
+
         $query = Event::query()
             ->forAuthUser()
             ->whereNull('events.parent_id')
             ->select('events.*')
+            ->addSelect('attendance_lock.attendance_started')
+            ->leftJoinSub($attendance_lock, 'attendance_lock', 'attendance_lock.id', '=', 'events.id')
             ->leftJoin('businesses', 'events.business_id', '=', 'businesses.id')
             ->orderBy('events.date_start')
             ->orderBy('events.start_time');
@@ -105,18 +128,22 @@ class DatatableEvents extends LivewireDatatable
         }
 
         $columns[] = Column::callback(
-            ['events.id', 'events.business_id', 'events.event_category_id'],
-            function ($id, $business_id, $event_category_id) {
+            ['events.id', 'events.business_id', 'events.event_category_id', 'attendance_lock.attendance_started'],
+            function ($id, $business_id, $event_category_id, $attendance_started) {
                 $user = auth()->user();
                 $belongs_to_business = EventsAccess::belongsToBusiness((int) $business_id, $user);
-                $can_edit = $belongs_to_business && $user?->can('events.events.edit');
-                $can_delete = $belongs_to_business && $user?->can('events.events.delete');
+                $locked = (bool) $attendance_started;
+                $locked_title = 'Ya se inició la toma de asistencia';
 
                 return view('livewire.admin.events.manage.actions', [
                     'id' => $id,
                     'event_category_id' => $event_category_id,
-                    'can_edit' => $can_edit,
-                    'can_delete' => $can_delete,
+                    'can_edit' => $belongs_to_business && $user?->can('events.events.edit'),
+                    'can_delete' => $belongs_to_business && $user?->can('events.events.delete'),
+                    'edit_disabled' => $locked,
+                    'delete_disabled' => $locked,
+                    'edit_disabled_title' => $locked_title,
+                    'delete_disabled_title' => $locked_title,
                 ]);
             }
         )->label('Acciones')->unsortable();
@@ -128,6 +155,12 @@ class DatatableEvents extends LivewireDatatable
     {
         $event = Event::query()->forAuthUser()->findOrFail($id);
 
+        if ($event->hasStartedAttendance()) {
+            $this->alertDeleteError('No se puede eliminar: ya se inició la toma de asistencia de este evento.');
+
+            return;
+        }
+
         EventsAccess::authorizeDeleteEvent($event);
 
         $this->askDeleteConfirmation($id, '¿Eliminar este evento?');
@@ -138,6 +171,10 @@ class DatatableEvents extends LivewireDatatable
         try {
             DeleteEventAction::run($this->delete_id);
             $this->alertDeleteSuccess('Evento eliminado correctamente.');
+        } catch (ValidationException $exception) {
+            $message = collect($exception->errors())->flatten()->first()
+                ?? 'No se pudo eliminar el evento.';
+            $this->alertDeleteError($message);
         } catch (\Throwable) {
             $this->alertDeleteError('No se pudo eliminar el evento.');
         }

@@ -42,6 +42,16 @@ class Form extends Component
                 ])
                 ->findOrFail($event->id);
 
+            if ($record->hasStartedAttendance()) {
+                $this->redirectRoute(
+                    'admin.events.manage.category.show',
+                    [$eventCategory, $record],
+                    navigate: true
+                );
+
+                return;
+            }
+
             EventsAccess::authorizeEditEvent($record);
 
             $this->form->setEvent($record);

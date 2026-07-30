@@ -28,7 +28,7 @@ class EventsAccess
         return ChurchEventsAccess::allowed($user) && (bool) $user?->can('events.schedule.view');
     }
 
-    public static function canEditEvent(Event $event, ?User $user = null): bool
+    public static function hasEditPermission(Event $event, ?User $user = null): bool
     {
         $user ??= auth()->user();
 
@@ -37,13 +37,25 @@ class EventsAccess
             && static::belongsToUserBusiness($event, $user);
     }
 
-    public static function canDeleteEvent(Event $event, ?User $user = null): bool
+    public static function hasDeletePermission(Event $event, ?User $user = null): bool
     {
         $user ??= auth()->user();
 
         return ChurchEventsAccess::allowed($user)
             && (bool) $user?->can('events.events.delete')
             && static::belongsToUserBusiness($event, $user);
+    }
+
+    public static function canEditEvent(Event $event, ?User $user = null): bool
+    {
+        return static::hasEditPermission($event, $user)
+            && ! $event->hasStartedAttendance();
+    }
+
+    public static function canDeleteEvent(Event $event, ?User $user = null): bool
+    {
+        return static::hasDeletePermission($event, $user)
+            && ! $event->hasStartedAttendance();
     }
 
     public static function canManageEvent(Event $event, ?User $user = null): bool

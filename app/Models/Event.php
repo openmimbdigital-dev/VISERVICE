@@ -109,6 +109,25 @@ class Event extends Model
         return EventsAccess::canDeleteEvent($this, $user);
     }
 
+    /**
+     * La toma de asistencia ya inició si existe al menos un registro en event_attendee_type
+     * (en el propio evento o en alguno de sus días hijos).
+     */
+    public function hasStartedAttendance(): bool
+    {
+        if ($this->attendee_types()->exists()) {
+            return true;
+        }
+
+        if ($this->parent_id !== null) {
+            return false;
+        }
+
+        return $this->children()
+            ->whereHas('attendee_types')
+            ->exists();
+    }
+
     public function isWithinSchedule(?CarbonInterface $now = null): bool
     {
         $now = $this->resolvedNow($now);
@@ -233,6 +252,28 @@ class Event extends Model
         }
 
         return $start_label.' – '.$this->date_end->format('d/m/Y');
+    }
+
+    public function isMultiDayChild(): bool
+    {
+        return $this->parent_id !== null;
+    }
+
+    public function multiDayContextLabel(): ?string
+    {
+        if (! $this->isMultiDayChild()) {
+            return null;
+        }
+
+        $parent = $this->relationLoaded('parent')
+            ? $this->parent
+            : $this->parent()->first();
+
+        if (! $parent) {
+            return 'Este registro pertenece a un evento de varios días.';
+        }
+
+        return 'Día '.$this->dateRangeLabel().' del evento multi-día «'.$parent->name.'» ('.$parent->dateRangeLabel().').';
     }
 
     private function scheduleStartAt(CarbonInterface $now): Carbon

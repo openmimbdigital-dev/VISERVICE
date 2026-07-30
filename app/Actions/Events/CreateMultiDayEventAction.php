@@ -79,6 +79,13 @@ class CreateMultiDayEventAction
                     ->findOrFail($event_id);
 
                 abort_unless((int) $parent->business_id === (int) $business_id, 403);
+
+                if ($parent->hasStartedAttendance()) {
+                    throw ValidationException::withMessages([
+                        'form.name' => 'No se puede editar: ya se inició la toma de asistencia de este evento.',
+                    ]);
+                }
+
                 EventsAccess::authorizeEditEvent($parent, $user);
 
                 $parent->update($parent_payload);

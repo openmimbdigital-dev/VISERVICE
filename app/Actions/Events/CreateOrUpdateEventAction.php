@@ -75,6 +75,12 @@ class CreateOrUpdateEventAction
 
                 abort_unless((int) $event->business_id === (int) $business_id, 403);
 
+                if ($event->hasStartedAttendance()) {
+                    throw ValidationException::withMessages([
+                        'form.name' => 'No se puede editar: ya se inició la toma de asistencia de este evento.',
+                    ]);
+                }
+
                 EventsAccess::authorizeEditEvent($event, $user);
 
                 $event->update($payload);

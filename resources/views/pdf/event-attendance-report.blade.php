@@ -107,13 +107,25 @@
             <td class="label">Nombre</td>
             <td class="bold">{{ $event->name }}</td>
         </tr>
+        @if($event->isMultiDayChild())
+            <tr>
+                <td class="label">Tipo</td>
+                <td>Día de evento multi-día</td>
+            </tr>
+            @if($event->parent)
+                <tr>
+                    <td class="label">Evento padre</td>
+                    <td>{{ $event->parent->name }} ({{ $event->parent->dateRangeLabel() }})</td>
+                </tr>
+            @endif
+        @endif
         <tr>
             <td class="label">Categoría</td>
             <td>{{ $event->category?->name ?? '—' }}</td>
         </tr>
         <tr>
             <td class="label">Fecha</td>
-            <td>{{ $event->date?->format('d/m/Y') ?? '—' }} · {{ $event->day ?: '—' }}</td>
+            <td>{{ $event->dateRangeLabel() }} · {{ $event->day ?: '—' }}</td>
         </tr>
         <tr>
             <td class="label">Horario</td>
@@ -129,6 +141,12 @@
                 @endif
             </td>
         </tr>
+        @if($multi_day_context)
+            <tr>
+                <td class="label">Aclaración</td>
+                <td>{{ $multi_day_context }} La asistencia de este informe corresponde únicamente a este día.</td>
+            </tr>
+        @endif
         @if($event->description)
             <tr>
                 <td class="label">Descripción</td>
@@ -142,6 +160,9 @@
     <div class="section-title">Resumen</div>
     <p><span class="bold">Asistencia total:</span> {{ number_format($attendance_total, 0, ',', '.') }}</p>
     <p><span class="bold">Tipos registrados:</span> {{ $attendance_rows->count() }}</p>
+    @if($multi_day_context)
+        <p class="muted">Gráfico y totales limitados al día reportado del evento multi-día.</p>
+    @endif
 </div>
 
 <div class="section">

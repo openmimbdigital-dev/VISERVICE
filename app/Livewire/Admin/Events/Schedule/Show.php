@@ -35,10 +35,12 @@ class Show extends Component
 
         $this->event = Event::query()
             ->forAuthUser()
+            ->where('multi_day', false)
             ->with([
                 'business:id,name',
                 'category:id,name,type',
                 'teams:id,name',
+                'parent:id,name,date_start,date_end',
                 'attendee_types' => fn ($query) => $query->orderBy('name'),
             ])
             ->findOrFail($event->id);
@@ -186,7 +188,9 @@ class Show extends Component
 
         return view('livewire.admin.events.schedule.show', [
             'can_manage' => $has_category && EventsAccess::canManageEvent($this->event),
-            'can_edit' => $has_category && EventsAccess::canEditEvent($this->event),
+            'can_edit' => $has_category && EventsAccess::hasEditPermission($this->event),
+            'edit_disabled' => $this->event->hasStartedAttendance(),
+            'edit_disabled_title' => 'Ya se inició la toma de asistencia',
             'attendance_capture' => $attendance_capture,
             'participation_capture' => $this->event->participationCaptureState(),
             'now_date_label' => now()->locale('es')->isoFormat('dddd, D [de] MMMM [de] YYYY'),
@@ -218,10 +222,12 @@ class Show extends Component
     {
         $this->event = Event::query()
             ->forAuthUser()
+            ->where('multi_day', false)
             ->with([
                 'business:id,name',
                 'category:id,name,type',
                 'teams:id,name',
+                'parent:id,name,date_start,date_end',
                 'attendee_types' => fn ($query) => $query->orderBy('name'),
             ])
             ->findOrFail($this->event->id);

@@ -94,12 +94,18 @@
                         <tr class="hover:bg-slate-50/60">
                             <td class="px-3 py-4 sm:px-5">
                                 <p class="font-medium text-slate-900">{{ $event->name }}</p>
+                                @if($event->isMultiDayChild())
+                                    <p class="mt-0.5 text-xs text-indigo-700">Día de evento multi-día</p>
+                                @endif
                                 <p class="mt-0.5 text-xs text-slate-500 sm:hidden">
-                                    {{ $event->date?->format('d/m/Y') ?? '—' }}
+                                    {{ $event->dateRangeLabel() }}
                                 </p>
                             </td>
                             <td class="hidden px-3 py-4 text-slate-700 sm:table-cell sm:px-5">
-                                {{ $event->date?->format('d/m/Y') ?? '—' }}
+                                {{ $event->dateRangeLabel() }}
+                                @if($event->isMultiDayChild() && $event->parent)
+                                    <p class="mt-0.5 text-xs text-indigo-600">{{ $event->parent->dateRangeLabel() }}</p>
+                                @endif
                             </td>
                             <td class="hidden px-3 py-4 text-slate-700 md:table-cell sm:px-5">
                                 {{ $event->day ?: '—' }}

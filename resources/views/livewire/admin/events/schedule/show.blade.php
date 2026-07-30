@@ -15,6 +15,23 @@
                 <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-indigo-600/90">Agenda de eventos</p>
                 <h1 class="mt-2 text-2xl font-bold tracking-tight text-slate-900">{{ $event->name }}</h1>
                 <p class="mt-2 max-w-xl text-sm text-slate-600">Información del evento seleccionado en la agenda.</p>
+                @if($event->parent_id && $event->parent)
+                    <div class="mt-3 rounded-xl border border-indigo-100 bg-indigo-50/80 px-3.5 py-3 text-sm text-indigo-900">
+                        <p class="font-medium">Día de un evento multi-día</p>
+                        <p class="mt-1 text-indigo-800/90">
+                            Este registro corresponde al día
+                            <span class="font-semibold">{{ $event->date_start?->format('d/m/Y') ?? '—' }}</span>
+                            del evento
+                            <span class="font-semibold">«{{ $event->parent->name }}»</span>
+                            @if($event->parent->date_start && $event->parent->date_end)
+                                ({{ $event->parent->dateRangeLabel() }}).
+                            @else
+                                .
+                            @endif
+                            La toma de asistencia o participación aplica solo a este día.
+                        </p>
+                    </div>
+                @endif
                 <p class="mt-3 text-sm text-slate-700">
                     <span class="font-medium text-slate-900">Fecha y hora actual:</span>
                     {{ ucfirst($now_date_label) }} · {{ $now_time_label }}
@@ -30,9 +47,20 @@
                     </a>
                 @endif
                 @if($can_edit)
-                    <a href="{{ route('admin.events.manage.category.edit', [$event->category, $event]) }}" wire:navigate class="btn btn-primary btn-sm flex-1 justify-center sm:flex-none">
-                        Editar evento
-                    </a>
+                    @if($edit_disabled)
+                        <button
+                            type="button"
+                            disabled
+                            title="{{ $edit_disabled_title }}"
+                            class="btn btn-primary btn-sm flex-1 justify-center opacity-50 sm:flex-none"
+                        >
+                            Editar evento
+                        </button>
+                    @else
+                        <a href="{{ route('admin.events.manage.category.edit', [$event->category, $event]) }}" wire:navigate class="btn btn-primary btn-sm flex-1 justify-center sm:flex-none">
+                            Editar evento
+                        </a>
+                    @endif
                 @endif
             </div>
         </div>
@@ -48,6 +76,15 @@
                     <dt class="text-xs font-medium text-slate-500">Nombre</dt>
                     <dd class="text-sm text-slate-900 sm:col-span-2">{{ $event->name }}</dd>
                 </div>
+                @if($event->parent_id && $event->parent)
+                    <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                        <dt class="text-xs font-medium text-slate-500">Evento padre</dt>
+                        <dd class="text-sm text-slate-900 sm:col-span-2">
+                            {{ $event->parent->name }}
+                            <span class="text-slate-500">({{ $event->parent->dateRangeLabel() }})</span>
+                        </dd>
+                    </div>
+                @endif
                 <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
                     <dt class="text-xs font-medium text-slate-500">Categoría</dt>
                     <dd class="text-sm text-slate-900 sm:col-span-2">
@@ -101,7 +138,7 @@
             <dl class="divide-y divide-slate-100 px-5 py-2">
                 <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
                     <dt class="text-xs font-medium text-slate-500">Fecha</dt>
-                    <dd class="text-sm text-slate-900 sm:col-span-2">{{ $event->date?->format('d/m/Y') ?? '—' }}</dd>
+                    <dd class="text-sm text-slate-900 sm:col-span-2">{{ $event->dateRangeLabel() }}</dd>
                 </div>
                 <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
                     <dt class="text-xs font-medium text-slate-500">Día</dt>

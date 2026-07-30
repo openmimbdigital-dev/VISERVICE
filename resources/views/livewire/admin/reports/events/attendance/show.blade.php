@@ -15,8 +15,17 @@
                 <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-indigo-600/90">Estadística de asistencia</p>
                 <h1 class="mt-2 text-2xl font-bold tracking-tight text-slate-900">{{ $event->name }}</h1>
                 <p class="mt-2 max-w-xl text-sm text-slate-600">
-                    {{ $event->date?->format('d/m/Y') ?? '—' }} · {{ $event->scheduleRangeLabel() }}
+                    {{ $event->dateRangeLabel() }} · {{ $event->scheduleRangeLabel() }}
                 </p>
+                @if($event->isMultiDayChild() && $event->parent)
+                    <div class="mt-3 rounded-xl border border-indigo-100 bg-indigo-50/80 px-3.5 py-3 text-sm text-indigo-900">
+                        <p class="font-medium">Día de un evento multi-día</p>
+                        <p class="mt-1 text-indigo-800/90">
+                            {{ $event->multiDayContextLabel() }}
+                            Esta estadística y gráfica corresponden únicamente a este día.
+                        </p>
+                    </div>
+                @endif
             </div>
             <div class="flex w-full shrink-0 flex-wrap gap-2 sm:w-auto">
                 <a href="{{ route('admin.reports.events.attendance.category', $event_category) }}" wire:navigate class="btn btn-outline-secondary btn-sm flex-1 justify-center sm:flex-none">Volver</a>
@@ -57,6 +66,19 @@
                     <dt class="text-xs font-medium text-slate-500">Nombre</dt>
                     <dd class="text-sm text-slate-900 sm:col-span-2">{{ $event->name }}</dd>
                 </div>
+                @if($event->isMultiDayChild() && $event->parent)
+                    <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                        <dt class="text-xs font-medium text-slate-500">Evento padre</dt>
+                        <dd class="text-sm text-slate-900 sm:col-span-2">
+                            {{ $event->parent->name }}
+                            <span class="text-slate-500">({{ $event->parent->dateRangeLabel() }})</span>
+                        </dd>
+                    </div>
+                    <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                        <dt class="text-xs font-medium text-slate-500">Tipo</dt>
+                        <dd class="text-sm text-slate-900 sm:col-span-2">Día de evento multi-día</dd>
+                    </div>
+                @endif
                 <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
                     <dt class="text-xs font-medium text-slate-500">Categoría</dt>
                     <dd class="text-sm text-slate-900 sm:col-span-2">{{ $event->category?->name ?? '—' }}</dd>
@@ -71,7 +93,7 @@
                 </div>
                 <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
                     <dt class="text-xs font-medium text-slate-500">Fecha</dt>
-                    <dd class="text-sm text-slate-900 sm:col-span-2">{{ $event->date?->format('d/m/Y') ?? '—' }}</dd>
+                    <dd class="text-sm text-slate-900 sm:col-span-2">{{ $event->dateRangeLabel() }}</dd>
                 </div>
                 <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
                     <dt class="text-xs font-medium text-slate-500">Día</dt>
@@ -124,7 +146,13 @@
         <div class="flex flex-col gap-3 border-b border-slate-100 bg-slate-50/80 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <h2 class="font-semibold text-slate-800">Gráfico de asistencia</h2>
-                <p class="mt-1 text-xs text-slate-500">Totales registrados para este evento.</p>
+                <p class="mt-1 text-xs text-slate-500">
+                    @if($event->isMultiDayChild())
+                        Totales de este día del evento multi-día.
+                    @else
+                        Totales registrados para este evento.
+                    @endif
+                </p>
             </div>
             <button
                 type="button"
