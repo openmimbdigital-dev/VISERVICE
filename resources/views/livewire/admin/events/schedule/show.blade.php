@@ -42,7 +42,7 @@
                     Volver a agenda
                 </a>
                 @if($can_manage)
-                    <a href="{{ route('admin.events.manage.category.show', [$event->category, $event]) }}" wire:navigate class="btn btn-outline-secondary btn-sm flex-1 justify-center sm:flex-none">
+                    <a href="{{ route('admin.events.manage.category.show', [$event->category, $event->parent ?? $event]) }}" wire:navigate class="btn btn-outline-secondary btn-sm flex-1 justify-center sm:flex-none">
                         Ver en administración
                     </a>
                 @endif
@@ -57,7 +57,7 @@
                             Editar evento
                         </button>
                     @else
-                        <a href="{{ route('admin.events.manage.category.edit', [$event->category, $event]) }}" wire:navigate class="btn btn-primary btn-sm flex-1 justify-center sm:flex-none">
+                        <a href="{{ route('admin.events.manage.category.edit', [$event->category, $event->parent ?? $event]) }}" wire:navigate class="btn btn-primary btn-sm flex-1 justify-center sm:flex-none">
                             Editar evento
                         </a>
                     @endif

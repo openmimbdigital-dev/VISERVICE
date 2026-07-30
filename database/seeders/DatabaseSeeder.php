@@ -46,6 +46,7 @@ class DatabaseSeeder extends Seeder
             EventCategoriesAndAttendeeTypesSeeder::class,
             EventTeamsSeeder::class,
             EventsSeeder::class,
+            ParticipantsSeeder::class,
         ]);
     }
 }

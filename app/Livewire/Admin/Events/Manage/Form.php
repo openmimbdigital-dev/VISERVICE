@@ -32,6 +32,21 @@ class Form extends Component
         $this->event_category = $eventCategory;
 
         if ($event?->exists) {
+            if ($event->parent_id) {
+                $parent = Event::query()
+                    ->forAuthUser()
+                    ->whereNull('parent_id')
+                    ->findOrFail($event->parent_id);
+
+                $this->redirectRoute(
+                    'admin.events.manage.category.edit',
+                    [$parent->event_category_id, $parent],
+                    navigate: true
+                );
+
+                return;
+            }
+
             $record = Event::query()
                 ->forAuthUser()
                 ->where('event_category_id', $eventCategory->id)

@@ -214,6 +214,16 @@ class Business extends Model
         return $this->hasMany(EventTeamMember::class);
     }
 
+    public function participants(): HasMany
+    {
+        return $this->hasMany(Participant::class);
+    }
+
+    public function participant_roles(): HasMany
+    {
+        return $this->hasMany(ParticipantRole::class);
+    }
+
     public function attributes(): BelongsToMany
     {
         return $this->belongsToMany(Attribute::class, 'attribute_business')

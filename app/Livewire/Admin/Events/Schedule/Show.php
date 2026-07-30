@@ -186,10 +186,12 @@ class Show extends Component
         $attendance_started = $attendance_rows->isNotEmpty();
         $attendance_closed = (bool) $this->event->attendance_closed;
 
+        $manage_event = $this->event->parent ?? $this->event;
+
         return view('livewire.admin.events.schedule.show', [
-            'can_manage' => $has_category && EventsAccess::canManageEvent($this->event),
-            'can_edit' => $has_category && EventsAccess::hasEditPermission($this->event),
-            'edit_disabled' => $this->event->hasStartedAttendance(),
+            'can_manage' => $has_category && EventsAccess::canManageEvent($manage_event),
+            'can_edit' => $has_category && EventsAccess::hasEditPermission($manage_event),
+            'edit_disabled' => $manage_event->hasStartedAttendance(),
             'edit_disabled_title' => 'Ya se inició la toma de asistencia',
             'attendance_capture' => $attendance_capture,
             'participation_capture' => $this->event->participationCaptureState(),

@@ -25,6 +25,21 @@ class Show extends Component
 
         $this->event_category = $eventCategory;
 
+        if ($event->parent_id) {
+            $parent = Event::query()
+                ->forAuthUser()
+                ->whereNull('parent_id')
+                ->findOrFail($event->parent_id);
+
+            $this->redirectRoute(
+                'admin.events.manage.category.show',
+                [$parent->event_category_id, $parent],
+                navigate: true
+            );
+
+            return;
+        }
+
         $this->event = Event::query()
             ->forAuthUser()
             ->where('event_category_id', $eventCategory->id)
