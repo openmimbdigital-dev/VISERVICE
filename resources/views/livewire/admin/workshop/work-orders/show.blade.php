@@ -1,13 +1,8 @@
 <div class="relative mx-auto w-full max-w-[90rem] p-4 sm:p-6">
     @php
-    $statusBadge = [
-        'abierta'    => 'bg-blue-50 text-blue-700 ring-blue-600/20',
-        'en_proceso' => 'bg-yellow-50 text-yellow-700 ring-yellow-600/20',
-        'finalizada' => 'bg-emerald-50 text-emerald-700 ring-emerald-600/20',
-        'cancelada'  => 'bg-red-50 text-red-700 ring-red-600/20',
-    ];
-    $badge = $statusBadge[$workOrder->status] ?? 'bg-slate-100 text-slate-600 ring-slate-500/20';
-    $can_manage = ($can_edit_items ?? false) && ! in_array($workOrder->status, ['finalizada', 'cancelada'], true);
+    $badge = $workOrder->status instanceof \App\Enums\WorkOrderStatus
+        ? $workOrder->status->badgeClass()
+        : 'bg-slate-100 text-slate-600 ring-1 ring-slate-500/20';
     $itemStatusBadge = [
         'pendiente'  => 'bg-slate-100 text-slate-600',
         'en_proceso' => 'bg-yellow-50 text-yellow-700',
@@ -32,7 +27,7 @@
                 <div class="min-w-0">
                     <div class="flex flex-wrap items-center gap-3">
                         <h1 class="font-mono text-2xl font-bold text-slate-900">{{ $workOrder->reference }}</h1>
-                        <span class="inline-flex items-center rounded-full px-3 py-1 text-sm font-medium ring-1 {{ $badge }}">
+                        <span class="inline-flex items-center rounded-full px-3 py-1 text-sm font-medium {{ $badge }}">
                             {{ $workOrder->status_label }}
                         </span>
                         @if($workOrder->quotation_id)
@@ -53,6 +48,11 @@
                     @if($workOrder->diagnosis)
                     <p class="mt-2 max-w-2xl text-sm text-slate-500">{{ $workOrder->diagnosis }}</p>
                     @endif
+                    @if($edit_disabled)
+                    <p class="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                        Esta OT está {{ strtolower($workOrder->status_label) }}; no se puede editar, asociar documentos ni cambiar de estado.
+                    </p>
+                    @endif
                 </div>
                 <div class="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:items-end">
                     <div class="text-left sm:text-right">
@@ -64,19 +64,24 @@
                             class="btn btn-outline-secondary btn-sm flex-1 justify-center sm:flex-none">
                             Imprimir / PDF
                         </a>
-                        @can('workshop.work-orders.edit')
+                        @if($can_edit)
                         <button type="button"
                             @if($can_manage) wire:click="openDocumentModal" @else disabled @endif
-                            title="{{ $can_manage ? 'Registrar documento asociado' : 'No disponible en OTs finalizadas o canceladas' }}"
+                            title="{{ $can_manage ? 'Registrar documento asociado' : $edit_disabled_title }}"
                             class="btn btn-outline-secondary btn-sm flex-1 justify-center sm:flex-none disabled:cursor-not-allowed disabled:opacity-50">
                             Documento asociado
                         </button>
-                        @if($can_manage)
+                        @if($edit_disabled)
+                        <button type="button" disabled title="{{ $edit_disabled_title }}"
+                            class="btn btn-outline-secondary btn-sm flex-1 justify-center opacity-50 sm:flex-none">
+                            Editar
+                        </button>
+                        @else
                         <a href="{{ route('admin.workshop.work-orders.form.edit', $workOrder) }}" wire:navigate class="btn btn-outline-secondary btn-sm flex-1 justify-center sm:flex-none">
                             Editar
                         </a>
                         @endif
-                        @endcan
+                        @endif
                         <button type="button" wire:click="confirmWorkOrder" class="btn btn-primary btn-sm flex-1 justify-center sm:flex-none">
                             Confirmar OT
                         </button>
@@ -86,8 +91,10 @@
         </div>
     </div>
 
+    <div class="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div class="lg:col-span-2 space-y-6">
     @if(! empty($workOrder->document_client))
-    <section class="mb-6 overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
+    <section class="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
         <div class="border-b border-slate-100 bg-slate-50/80 px-4 py-3 sm:px-5">
             <h2 class="font-semibold text-slate-900">Documentos del cliente</h2>
         </div>
@@ -198,6 +205,112 @@
             </table>
         </div>
     </section>
+        </div>
+
+        <div class="space-y-4">
+            @if($can_change_status)
+            <section class="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
+                <div class="border-b border-slate-100 bg-slate-50/80 px-4 py-4 sm:px-5">
+                    <h3 class="font-semibold text-slate-900">Estado de la OT</h3>
+                    <p class="mt-1 text-xs text-slate-500">
+                        @if($status_change_disabled)
+                            Esta OT está finalizada o cancelada y ya no admite cambios de estado.
+                        @else
+                            Actualiza el seguimiento de la orden de trabajo.
+                        @endif
+                    </p>
+                </div>
+                @if($status_change_disabled)
+                    <div class="space-y-3 p-4 sm:p-5">
+                        <div>
+                            <label class="mb-1.5 block text-xs font-medium text-slate-700">Estado</label>
+                            <input type="text" disabled value="{{ $workOrder->status_label }}"
+                                class="w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-100 px-3.5 py-2.5 text-sm text-slate-500 opacity-70">
+                        </div>
+                        @if($workOrder->finalized_at)
+                            <div>
+                                <label class="mb-1.5 block text-xs font-medium text-slate-700">Finalizada el</label>
+                                <input type="text" disabled value="{{ $workOrder->finalized_at->format('d/m/Y H:i') }}"
+                                    class="w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-100 px-3.5 py-2.5 text-sm text-slate-500 opacity-70">
+                            </div>
+                        @endif
+                        @if(! empty($workOrder->status_comments))
+                        <div class="space-y-2">
+                            <p class="text-xs font-medium text-slate-500">Historial de comentarios</p>
+                            <ul class="max-h-40 space-y-2 overflow-y-auto">
+                                @foreach(array_reverse($workOrder->status_comments) as $entry)
+                                <li class="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                                    <p class="font-medium text-slate-800">{{ $entry['comment'] ?? '' }}</p>
+                                    <p class="mt-1 text-[11px] text-slate-400">
+                                        {{ \App\Enums\WorkOrderStatus::tryFrom($entry['status'] ?? '')?->label() ?? ($entry['status'] ?? '') }}
+                                        @if(! empty($entry['user_name'])) · {{ $entry['user_name'] }} @endif
+                                        @if(! empty($entry['changed_at']))
+                                            · {{ \Illuminate\Support\Carbon::parse($entry['changed_at'])->format('d/m/Y H:i') }}
+                                        @endif
+                                    </p>
+                                </li>
+                                @endforeach
+                            </ul>
+                        </div>
+                        @endif
+                    </div>
+                @else
+                <form wire:submit="updateStatus" class="space-y-4 p-4 sm:p-5">
+                    <div>
+                        <label class="mb-1.5 block text-xs font-medium text-slate-700">Estado</label>
+                        <select wire:model.live="status"
+                            class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('status') border-rose-400 bg-rose-50 @enderror">
+                            @foreach($status_options as $value => $label)
+                                <option value="{{ $value }}">{{ $label }}</option>
+                            @endforeach
+                        </select>
+                        @error('status') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                    </div>
+
+                    <div>
+                        <label class="mb-1.5 block text-xs font-medium text-slate-700">
+                            Comentario
+                            @if($status === \App\Enums\WorkOrderStatus::Cancelled->value)
+                                <span class="text-rose-500">*</span>
+                            @endif
+                        </label>
+                        <textarea wire:model="status_comment" rows="3"
+                            class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('status_comment') border-rose-400 bg-rose-50 @enderror"
+                            placeholder="{{ $status === \App\Enums\WorkOrderStatus::Cancelled->value ? 'Motivo de la cancelación…' : 'Opcional: nota del cambio de estado…' }}"></textarea>
+                        @error('status_comment') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                    </div>
+
+                    @if(! empty($workOrder->status_comments))
+                    <div class="space-y-2">
+                        <p class="text-xs font-medium text-slate-500">Historial de comentarios</p>
+                        <ul class="max-h-40 space-y-2 overflow-y-auto">
+                            @foreach(array_reverse($workOrder->status_comments) as $entry)
+                            <li class="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                                <p class="font-medium text-slate-800">{{ $entry['comment'] ?? '' }}</p>
+                                <p class="mt-1 text-[11px] text-slate-400">
+                                    {{ \App\Enums\WorkOrderStatus::tryFrom($entry['status'] ?? '')?->label() ?? ($entry['status'] ?? '') }}
+                                    @if(! empty($entry['user_name'])) · {{ $entry['user_name'] }} @endif
+                                    @if(! empty($entry['changed_at']))
+                                        · {{ \Illuminate\Support\Carbon::parse($entry['changed_at'])->format('d/m/Y H:i') }}
+                                    @endif
+                                </p>
+                            </li>
+                            @endforeach
+                        </ul>
+                    </div>
+                    @endif
+
+                    <button type="submit" wire:loading.attr="disabled"
+                        class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-60 sm:w-auto">
+                        <span wire:loading.remove wire:target="updateStatus">Guardar estado</span>
+                        <span wire:loading wire:target="updateStatus">Guardando…</span>
+                    </button>
+                </form>
+                @endif
+            </section>
+            @endif
+        </div>
+    </div>
 
     @if($showItemModal)
     <x-ui.modal centered maxWidth="xl">

@@ -3,6 +3,7 @@
 namespace App\Actions;
 
 use App\Enums\QuotationStatus;
+use App\Enums\WorkOrderStatus;
 use App\Models\Equipment;
 use App\Models\EquipmentHistorical;
 use App\Models\Quotation;
@@ -75,7 +76,9 @@ class LogEquipmentHistoricalAction
         if ($subject instanceof WorkOrder) {
             $subject->loadMissing(['client:id,name', 'items']);
             $subject_reference = $subject->reference;
-            $subject_status = (string) $subject->status;
+            $subject_status = $subject->status instanceof WorkOrderStatus
+                ? $subject->status->value
+                : (string) $subject->status;
             $subtotal = $subject->subtotal;
             $tax_percentage = $subject->tax_percentage;
             $tax_amount = $subject->tax_amount;

@@ -14,7 +14,7 @@
             <div class="min-w-0 flex-1 border-l-4 border-indigo-600 pl-4 sm:pl-5">
                 <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-indigo-600/90">Taller</p>
                 <h1 class="mt-2 text-2xl font-bold tracking-tight text-slate-900">Remisiones</h1>
-                <p class="mt-2 max-w-xl text-sm text-slate-600">Documentos de entrega asociados a órdenes de trabajo abiertas o en proceso.</p>
+                <p class="mt-2 max-w-xl text-sm text-slate-600">Documentos de entrega asociados a órdenes de trabajo creadas o en proceso.</p>
             </div>
             @can('workshop.remissions.create')
             <x-ui.create-button :href="route('admin.workshop.remissions.form')" class="w-full justify-center sm:w-auto">
@@ -24,11 +24,12 @@
         </div>
     </header>
 
-    <div class="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+    <div class="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         @foreach([
-            ['label' => 'Borrador', 'value' => $stats['borrador']],
-            ['label' => 'Emitidas', 'value' => $stats['emitida']],
-            ['label' => 'Entregadas', 'value' => $stats['entregada']],
+            ['label' => 'Creadas', 'value' => $stats['creada']],
+            ['label' => 'En proceso', 'value' => $stats['en_proceso']],
+            ['label' => 'Finalizadas', 'value' => $stats['finalizada']],
+            ['label' => 'Canceladas', 'value' => $stats['cancelada']],
         ] as $stat)
         <div class="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm ring-1 ring-slate-900/[0.035]">
             <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">{{ $stat['label'] }}</p>

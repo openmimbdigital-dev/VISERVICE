@@ -33,7 +33,7 @@ class Show extends Component
     public function deleteRemission(): void
     {
         abort_unless(auth()->user()?->can('workshop.remissions.delete'), 403);
-        abort_unless($this->remission->status !== 'entregada', 403);
+        abort_unless($this->remission->isEditable(), 403);
         $this->askDeleteConfirmation($this->remission->id, '¿Eliminar esta remisión?');
     }
 
@@ -76,9 +76,9 @@ class Show extends Component
             'document_client' => $document_client,
             'document_labels' => $document_labels,
             'can_edit'        => auth()->user()->can('workshop.remissions.edit')
-                && $this->remission->status !== 'entregada',
+                && $this->remission->isEditable(),
             'can_delete'      => auth()->user()->can('workshop.remissions.delete')
-                && $this->remission->status !== 'entregada',
+                && $this->remission->isEditable(),
         ]);
     }
 }

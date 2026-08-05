@@ -50,6 +50,13 @@ class Form extends Component
             );
 
             $quotation->load(['items.productType', 'items.productCategory', 'workOrder']);
+
+            if ($quotation->isRejected()) {
+                $this->redirectRoute('admin.workshop.quotations.show', $quotation, navigate: true);
+
+                return;
+            }
+
             $this->form->setQuotation($quotation);
             $this->reference = $quotation->reference;
             $this->quotation_status = $quotation->status->value;

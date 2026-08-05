@@ -41,6 +41,8 @@ return new class extends Migration
             $table->decimal('tax_percentage', 5, 2)->default(0);
             $table->decimal('tax_amount', 12, 2)->default(0);
             $table->decimal('total', 12, 2)->default(0);
+            $table->decimal('advance_percentage', 5, 2)->default(0);
+            $table->decimal('advance_amount', 12, 2)->default(0);
             $table->text('notes')->nullable();
             $table->text('observations')->nullable();
             $table->string('reject_reason', 500)->nullable();

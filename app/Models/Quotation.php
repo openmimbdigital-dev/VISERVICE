@@ -27,6 +27,7 @@ class Quotation extends Model
         'reference', 'status', 'diagnosis', 'hours_entry',
         'validity_days', 'valid_until', 'execution_time',
         'subtotal', 'tax_percentage', 'tax_amount', 'total',
+        'advance_percentage', 'advance_amount',
         'notes', 'observations', 'reject_reason',
         'approved_by_name', 'approved_by_position', 'approved_signature',
         'created_by', 'issued_at', 'sent_at', 'accepted_at', 'rejected_at',
@@ -183,6 +184,21 @@ class Quotation extends Model
         return $this->status instanceof QuotationStatus
             ? $this->status->label()
             : (string) $this->status;
+    }
+
+    public function isRejected(): bool
+    {
+        return $this->status === QuotationStatus::Rechazada;
+    }
+
+    public function isEditable(): bool
+    {
+        return ! $this->isRejected();
+    }
+
+    public function canChangeStatus(): bool
+    {
+        return ! $this->isRejected();
     }
 
     public function getStatusColorAttribute(): string

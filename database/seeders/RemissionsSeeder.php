@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Enums\WorkOrderStatus;
 use App\Models\Remission;
 use App\Models\RemissionItem;
 use App\Models\User;
@@ -19,43 +20,43 @@ class RemissionsSeeder extends Seeder
                 'work_order' => 'SEED-OT-TRANSAD-001',
                 'reference'  => 'SEED-REM-TRANSAD-001',
                 'type'       => 'entrega',
-                'status'     => 'borrador',
+                'status'     => WorkOrderStatus::Created,
             ],
             [
                 'work_order' => 'SEED-OT-TRANSAD-002',
                 'reference'  => 'SEED-REM-TRANSAD-002',
                 'type'       => 'entrega',
-                'status'     => 'emitida',
+                'status'     => WorkOrderStatus::InProgress,
             ],
             [
                 'work_order' => 'SEED-OT-TRANSAD-003',
                 'reference'  => 'SEED-REM-TRANSAD-003',
                 'type'       => 'entrega',
-                'status'     => 'entregada',
+                'status'     => WorkOrderStatus::Completed,
             ],
             [
                 'work_order' => 'SEED-OT-TRANSAD-004',
                 'reference'  => 'SEED-REM-TRANSAD-004',
                 'type'       => 'devolucion',
-                'status'     => 'emitida',
+                'status'     => WorkOrderStatus::InProgress,
             ],
             [
                 'work_order' => 'SEED-OT-CARGA-001',
                 'reference'  => 'SEED-REM-CARGA-001',
                 'type'       => 'entrega',
-                'status'     => 'borrador',
+                'status'     => WorkOrderStatus::Created,
             ],
             [
                 'work_order' => 'SEED-OT-CARGA-002',
                 'reference'  => 'SEED-REM-CARGA-002',
                 'type'       => 'traslado',
-                'status'     => 'emitida',
+                'status'     => WorkOrderStatus::InProgress,
             ],
             [
                 'work_order' => 'SEED-OT-VALLE-001',
                 'reference'  => 'SEED-REM-VALLE-001',
                 'type'       => 'entrega',
-                'status'     => 'entregada',
+                'status'     => WorkOrderStatus::Completed,
             ],
         ];
 
@@ -79,15 +80,16 @@ class RemissionsSeeder extends Seeder
                 continue;
             }
 
-            if (! in_array($work_order->status, ['abierta', 'en_proceso'], true)) {
-                $this->command?->warn("Remisiones: OT {$entry['work_order']} no está abierta/en proceso, se omite.");
+            if (! ($work_order->status?->isOpen() ?? false)) {
+                $this->command?->warn("Remisiones: OT {$entry['work_order']} no está creada/en proceso, se omite.");
 
                 continue;
             }
 
             $client = $work_order->client;
-            $is_issued = in_array($entry['status'], ['emitida', 'entregada'], true);
-            $is_delivered = $entry['status'] === 'entregada';
+            $status = $entry['status'];
+            $is_issued = in_array($status, [WorkOrderStatus::InProgress, WorkOrderStatus::Completed], true);
+            $is_delivered = $status === WorkOrderStatus::Completed;
 
             $remission = Remission::withTrashed()->updateOrCreate(
                 [

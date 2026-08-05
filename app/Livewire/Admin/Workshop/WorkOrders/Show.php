@@ -5,11 +5,15 @@ namespace App\Livewire\Admin\Workshop\WorkOrders;
 use App\Actions\LogEquipmentHistoricalAction;
 use App\Actions\LogUserHistoricalAction;
 use App\Actions\Workshop\SaveWorkOrderDocumentClientAction;
+use App\Actions\Workshop\UpdateWorkOrderStatusAction;
+use App\Enums\WorkOrderStatus;
 use App\Models\GeneralConfig;
 use App\Models\Product;
 use App\Models\ProductType;
 use App\Models\WorkOrder;
 use App\Models\WorkOrderItem;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -19,6 +23,10 @@ use Livewire\Component;
 class Show extends Component
 {
     public WorkOrder $workOrder;
+
+    public string $status = '';
+
+    public string $status_comment = '';
 
     public bool $showItemModal = false;
 
@@ -50,12 +58,90 @@ class Show extends Component
     {
         abort_unless(auth()->user()?->can('workshop.work-orders.view'), 403);
 
+        abort_unless(
+            WorkOrder::query()->forAuthUser()->whereKey($workOrder->id)->exists(),
+            404
+        );
+
         $this->workOrder = $workOrder;
+        $this->status = $workOrder->status instanceof WorkOrderStatus
+            ? $workOrder->status->value
+            : (string) $workOrder->status;
+    }
+
+    public function updateStatus(): void
+    {
+        abort_unless(auth()->user()?->can('workshop.work-orders.edit'), 403);
+
+        if (! $this->workOrder->canChangeStatus()) {
+            $this->dispatch('swal', [
+                'title' => 'OT bloqueada',
+                'text' => 'No se puede cambiar el estado de una OT finalizada o cancelada.',
+                'icon' => 'warning',
+            ]);
+
+            return;
+        }
+
+        $this->validate([
+            'status' => ['required', Rule::enum(WorkOrderStatus::class)],
+            'status_comment' => [
+                'nullable',
+                'string',
+                'max:1000',
+                Rule::requiredIf(fn () => $this->status === WorkOrderStatus::Cancelled->value),
+            ],
+        ], [
+            'status.required' => 'Selecciona un estado.',
+            'status.enum' => 'El estado seleccionado no es válido.',
+            'status_comment.required' => 'Indica el motivo de la cancelación.',
+            'status_comment.max' => 'El comentario no puede superar 1000 caracteres.',
+        ]);
+
+        $new_status = WorkOrderStatus::from($this->status);
+
+        if ($new_status === $this->workOrder->status) {
+            $this->dispatch('swal', [
+                'title' => 'Sin cambios',
+                'text' => 'La OT ya tiene ese estado.',
+                'icon' => 'info',
+            ]);
+
+            return;
+        }
+
+        try {
+            $this->workOrder = UpdateWorkOrderStatusAction::run(
+                $this->workOrder->id,
+                $new_status,
+                $this->status_comment !== '' ? $this->status_comment : null,
+            );
+        } catch (ValidationException $exception) {
+            $message = collect($exception->errors())->flatten()->first()
+                ?? 'No se pudo actualizar el estado.';
+
+            $this->dispatch('swal', [
+                'title' => $message,
+                'icon' => 'error',
+            ]);
+
+            return;
+        }
+
+        $this->status = $this->workOrder->status->value;
+        $this->status_comment = '';
+
+        $this->dispatch('swal', [
+            'title' => 'Estado actualizado',
+            'text' => 'La OT ahora está: '.$this->workOrder->status->label(),
+            'icon' => 'success',
+        ]);
     }
 
     public function openAddItem(): void
     {
         abort_unless(auth()->user()?->can('workshop.work-orders.edit'), 403);
+        $this->assertWorkOrderEditable();
 
         $this->resetItemForm();
         $this->showItemModal = true;
@@ -64,6 +150,7 @@ class Show extends Component
     public function openEditItem(int $id): void
     {
         abort_unless(auth()->user()?->can('workshop.work-orders.edit'), 403);
+        $this->assertWorkOrderEditable();
 
         $item = WorkOrderItem::query()
             ->where('work_order_id', $this->workOrder->id)
@@ -109,6 +196,7 @@ class Show extends Component
     public function saveItem(): void
     {
         abort_unless(auth()->user()?->can('workshop.work-orders.edit'), 403);
+        $this->assertWorkOrderEditable();
 
         $this->validate([
             'item_description' => 'required|string|max:255',
@@ -182,6 +270,7 @@ class Show extends Component
     public function deleteItem(int $id): void
     {
         abort_unless(auth()->user()?->can('workshop.work-orders.edit'), 403);
+        $this->assertWorkOrderEditable();
 
         $item = WorkOrderItem::query()
             ->where('work_order_id', $this->workOrder->id)
@@ -223,6 +312,7 @@ class Show extends Component
     public function updateItemStatus(int $id, string $status): void
     {
         abort_unless(auth()->user()?->can('workshop.work-orders.edit'), 403);
+        $this->assertWorkOrderEditable();
 
         $item = WorkOrderItem::query()
             ->where('work_order_id', $this->workOrder->id)
@@ -264,6 +354,7 @@ class Show extends Component
     public function openDocumentModal(): void
     {
         abort_unless(auth()->user()?->can('workshop.work-orders.edit'), 403);
+        $this->assertWorkOrderEditable();
 
         $this->workOrder->refresh();
 
@@ -303,6 +394,7 @@ class Show extends Component
     public function saveDocumentClient(): void
     {
         abort_unless(auth()->user()?->can('workshop.work-orders.edit'), 403);
+        $this->assertWorkOrderEditable();
 
         $this->validate([
             'selected_document_label' => 'required|string|max:100',
@@ -312,11 +404,23 @@ class Show extends Component
             'document_input_value.required'    => 'El valor del documento es obligatorio.',
         ]);
 
-        $this->workOrder = SaveWorkOrderDocumentClientAction::run(
-            $this->workOrder->id,
-            $this->selected_document_label,
-            $this->document_input_value,
-        );
+        try {
+            $this->workOrder = SaveWorkOrderDocumentClientAction::run(
+                $this->workOrder->id,
+                $this->selected_document_label,
+                $this->document_input_value,
+            );
+        } catch (ValidationException $exception) {
+            $message = collect($exception->errors())->flatten()->first()
+                ?? 'No se pudo guardar el documento.';
+
+            $this->dispatch('swal', [
+                'title' => $message,
+                'icon' => 'error',
+            ]);
+
+            return;
+        }
 
         $this->closeDocumentModal();
 
@@ -344,6 +448,17 @@ class Show extends Component
         $this->item_discount = '0';
         $this->item_status = 'pendiente';
         $this->resetValidation();
+    }
+
+    private function assertWorkOrderEditable(): void
+    {
+        $this->workOrder->refresh();
+
+        abort_unless(
+            $this->workOrder->isEditable(),
+            403,
+            'La OT está finalizada o cancelada y no admite cambios.'
+        );
     }
 
     public function confirmWorkOrder(): void
@@ -382,11 +497,21 @@ class Show extends Component
             ->orderBy('value')
             ->get(['id', 'label', 'value']);
 
+        $can_edit = auth()->user()->can('workshop.work-orders.edit');
+        $is_locked = ! $this->workOrder->isEditable();
+
         return view('livewire.admin.workshop.work-orders.show', [
-            'product_types'         => $product_types,
-            'catalog_products'      => $catalog_products,
-            'associated_documents'  => $associated_documents,
-            'can_edit_items'        => auth()->user()->can('workshop.work-orders.edit'),
+            'product_types' => $product_types,
+            'catalog_products' => $catalog_products,
+            'associated_documents' => $associated_documents,
+            'can_edit' => $can_edit,
+            'can_edit_items' => $can_edit && ! $is_locked,
+            'can_manage' => $can_edit && ! $is_locked,
+            'edit_disabled' => $is_locked,
+            'edit_disabled_title' => 'La OT está finalizada o cancelada',
+            'can_change_status' => $can_edit,
+            'status_change_disabled' => $is_locked,
+            'status_options' => WorkOrderStatus::options(),
         ]);
     }
 }

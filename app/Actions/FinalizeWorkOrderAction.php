@@ -2,6 +2,7 @@
 
 namespace App\Actions;
 
+use App\Enums\WorkOrderStatus;
 use App\Models\WorkOrder;
 use Illuminate\Support\Facades\DB;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -20,7 +21,7 @@ class FinalizeWorkOrderAction
      */
     public function handle(WorkOrder $workOrder, ?int $km_exit = null, ?string $work_description = null): WorkOrder
     {
-        if ($workOrder->status === 'finalizada') {
+        if ($workOrder->status === WorkOrderStatus::Completed) {
             return $workOrder;
         }
 
@@ -28,7 +29,7 @@ class FinalizeWorkOrderAction
             $workOrder->recalculateTotals();
 
             $workOrder->update([
-                'status'           => 'finalizada',
+                'status'           => WorkOrderStatus::Completed,
                 'km_exit'          => $km_exit,
                 'work_description' => $work_description,
                 'finalized_at'     => now(),

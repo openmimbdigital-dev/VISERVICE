@@ -6,6 +6,7 @@ use App\Actions\LogEquipmentHistoricalAction;
 use App\Actions\LogUserHistoricalAction;
 use App\Models\GeneralConfig;
 use App\Models\WorkOrder;
+use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 class SaveWorkOrderDocumentClientAction
@@ -17,6 +18,12 @@ class SaveWorkOrderDocumentClientAction
         abort_unless(auth()->user()?->can('workshop.work-orders.edit'), 403);
 
         $work_order = WorkOrder::query()->forAuthUser()->findOrFail($work_order_id);
+
+        if (! $work_order->isEditable()) {
+            throw ValidationException::withMessages([
+                'document' => 'No se puede asociar documentos: la OT está finalizada o cancelada.',
+            ]);
+        }
 
         $config = GeneralConfig::query()
             ->forAuthUser()

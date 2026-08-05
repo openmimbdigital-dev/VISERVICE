@@ -8,6 +8,7 @@ use App\Enums\QuotationStatus;
 use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
 use App\Models\Quotation;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -57,6 +58,16 @@ class Show extends Component
     {
         abort_unless(auth()->user()?->can('workshop.quotations.edit'), 403);
 
+        if ($this->quotation->isRejected()) {
+            $this->dispatch('swal', [
+                'title' => 'Cotización rechazada',
+                'text'  => 'No se puede cambiar el estado de una cotización rechazada.',
+                'icon'  => 'warning',
+            ]);
+
+            return;
+        }
+
         $this->validate([
             'status'        => ['required', Rule::enum(QuotationStatus::class)],
             'reject_reason' => ['required_if:status,' . QuotationStatus::Rechazada->value, 'nullable', 'string', 'max:500'],
@@ -85,11 +96,23 @@ class Show extends Component
             return;
         }
 
-        $this->quotation = UpdateQuotationStatusAction::run(
-            $this->quotation->id,
-            $new_status,
-            $reject_reason
-        )->load('workOrder');
+        try {
+            $this->quotation = UpdateQuotationStatusAction::run(
+                $this->quotation->id,
+                $new_status,
+                $reject_reason
+            )->load('workOrder');
+        } catch (ValidationException $exception) {
+            $message = collect($exception->errors())->flatten()->first()
+                ?? 'No se pudo actualizar el estado.';
+
+            $this->dispatch('swal', [
+                'title' => $message,
+                'icon'  => 'error',
+            ]);
+
+            return;
+        }
 
         $this->status        = $this->quotation->status->value;
         $this->reject_reason = (string) ($this->quotation->reject_reason ?? '');
@@ -120,16 +143,22 @@ class Show extends Component
 
     public function render()
     {
+        $can_edit = auth()->user()->can('workshop.quotations.edit');
+        $is_rejected = $this->quotation->isRejected();
         $can_create_ot = auth()->user()->can('workshop.work-orders.create')
             && $this->quotation->status === QuotationStatus::Aceptada
             && ! $this->quotation->workOrder;
 
         return view('livewire.admin.workshop.quotations.show', [
             'category_subtotals' => $this->quotation->subtotalsByPdfCategory(),
-            'can_change_status'  => auth()->user()->can('workshop.quotations.edit'),
-            'status_options'     => QuotationStatus::options(),
-            'can_create_ot'      => $can_create_ot,
-            'linked_work_order'  => $this->quotation->workOrder,
+            'can_edit' => $can_edit,
+            'edit_disabled' => $is_rejected,
+            'edit_disabled_title' => 'La cotización está rechazada',
+            'can_change_status' => $can_edit,
+            'status_change_disabled' => $is_rejected,
+            'status_options' => QuotationStatus::options(),
+            'can_create_ot' => $can_create_ot,
+            'linked_work_order' => $this->quotation->workOrder,
         ]);
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Actions\Workshop;
 
 use App\Actions\LogUserHistoricalAction;
+use App\Enums\WorkOrderStatus;
 use App\Models\Remission;
 use App\Models\WorkOrder;
 use Illuminate\Support\Facades\DB;
@@ -27,12 +28,15 @@ class CreateOrUpdateRemissionAction
         $this->assertWorkOrderHasNoRemission($work_order, $remission_id);
 
         return DB::transaction(function () use ($business_id, $remission_id, $data, $work_order) {
+            $status = WorkOrderStatus::tryFrom((string) ($data['status'] ?? ''))
+                ?? WorkOrderStatus::Created;
+
             $payload = [
                 'work_order_id'             => $work_order->id,
                 'client_id'                 => $work_order->client_id,
                 'equipment_id'              => $work_order->equipment_id,
                 'type'                      => $data['type'],
-                'status'                    => $data['status'] ?? 'borrador',
+                'status'                    => $status,
                 'quotation_or_po_reference' => $data['quotation_or_po_reference'] ?? null,
                 'issue_date'                => $data['issue_date'] ?? null,
                 'delivery_address'          => $data['delivery_address'] ?? null,
@@ -49,12 +53,12 @@ class CreateOrUpdateRemissionAction
                 'received_by_document'      => $data['received_by_document'] ?? null,
             ];
 
-            if (($payload['status'] ?? null) === 'emitida' && empty($data['issue_date'])) {
+            if ($status === WorkOrderStatus::InProgress && empty($data['issue_date'])) {
                 $payload['issue_date'] = now()->toDateString();
                 $payload['issued_at'] = now();
             }
 
-            if (($payload['status'] ?? null) === 'entregada') {
+            if ($status === WorkOrderStatus::Completed) {
                 $payload['delivered_at'] = $payload['delivered_at'] ?? now();
                 $payload['issued_at'] = $payload['issued_at'] ?? now();
                 $payload['issue_date'] = $payload['issue_date'] ?? now()->toDateString();
@@ -65,6 +69,7 @@ class CreateOrUpdateRemissionAction
             if ($remission_id) {
                 $remission = Remission::query()->forAuthUser()->findOrFail($remission_id);
                 abort_unless((int) $remission->business_id === $business_id, 403);
+                abort_unless($remission->isEditable(), 422, 'No se puede editar una remisión finalizada o cancelada.');
                 $work_order_changed = (int) $remission->work_order_id !== (int) $work_order->id;
                 $remission->update($payload);
             } else {
@@ -95,7 +100,7 @@ class CreateOrUpdateRemissionAction
                 subject: $remission,
                 subject_label: $remission->reference,
                 properties: [
-                    'status'        => $remission->status,
+                    'status'        => $remission->status?->value,
                     'type'          => $remission->type,
                     'work_order_id' => $remission->work_order_id,
                     'total_items'   => $remission->total_items,
@@ -116,9 +121,9 @@ class CreateOrUpdateRemissionAction
             ->firstOrFail();
 
         abort_unless(
-            in_array($work_order->status, ['abierta', 'en_proceso'], true),
+            $work_order->status?->isOpen() ?? false,
             422,
-            'La remisión solo puede asociarse a una OT abierta o en proceso.'
+            'La remisión solo puede asociarse a una OT creada o en proceso.'
         );
 
         return $work_order;

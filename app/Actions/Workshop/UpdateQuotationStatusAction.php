@@ -6,6 +6,7 @@ use App\Actions\LogEquipmentHistoricalAction;
 use App\Actions\LogUserHistoricalAction;
 use App\Enums\QuotationStatus;
 use App\Models\Quotation;
+use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 class UpdateQuotationStatusAction
@@ -21,6 +22,12 @@ class UpdateQuotationStatusAction
         $user = auth()->user();
         if (! $user->hasRole('superAdmin')) {
             abort_unless((int) $quotation->business_id === (int) $user->business_id, 403);
+        }
+
+        if ($quotation->isRejected()) {
+            throw ValidationException::withMessages([
+                'status' => 'No se puede cambiar el estado: la cotización ya está rechazada.',
+            ]);
         }
 
         $previous_status = $quotation->status;

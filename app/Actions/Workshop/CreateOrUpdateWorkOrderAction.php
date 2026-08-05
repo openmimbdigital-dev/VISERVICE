@@ -5,6 +5,7 @@ namespace App\Actions\Workshop;
 use App\Actions\LogEquipmentHistoricalAction;
 use App\Actions\LogUserHistoricalAction;
 use App\Enums\QuotationStatus;
+use App\Enums\WorkOrderStatus;
 use App\Models\Client;
 use App\Models\Equipment;
 use App\Models\Product;
@@ -73,7 +74,7 @@ class CreateOrUpdateWorkOrderAction
             if ($work_order_id) {
                 $work_order = WorkOrder::query()->forAuthUser()->findOrFail($work_order_id);
                 abort_unless((int) $work_order->business_id === $business_id, 403);
-                abort_unless(in_array($work_order->status, ['abierta', 'en_proceso'], true), 422);
+                abort_unless($work_order->status?->isOpen() ?? false, 422);
 
                 $work_order->update($payload);
             } else {
@@ -81,7 +82,7 @@ class CreateOrUpdateWorkOrderAction
                     ...$payload,
                     'business_id' => $business_id,
                     'reference'   => WorkOrder::generateReference($business_id),
-                    'status'      => 'abierta',
+                    'status'      => WorkOrderStatus::Created,
                     'created_by'  => $data['created_by'] ?? auth()->id(),
                 ]);
             }

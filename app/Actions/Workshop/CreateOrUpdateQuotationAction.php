@@ -16,6 +16,7 @@ use App\Models\Quotation;
 use App\Models\QuotationItem;
 use App\Models\QuotationServiceType;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 class CreateOrUpdateQuotationAction
@@ -88,6 +89,12 @@ class CreateOrUpdateQuotationAction
             if ($quotation_id) {
                 $quotation = Quotation::query()->forAuthUser()->findOrFail($quotation_id);
                 abort_unless((int) $quotation->business_id === $business_id, 403);
+
+                if ($quotation->isRejected()) {
+                    throw ValidationException::withMessages([
+                        'form.client_id' => 'No se puede editar: la cotización está rechazada.',
+                    ]);
+                }
 
                 $quotation->update($payload);
             } else {

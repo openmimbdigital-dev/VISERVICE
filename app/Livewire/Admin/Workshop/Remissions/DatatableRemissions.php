@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin\Workshop\Remissions;
 
 use App\Actions\Workshop\DeleteRemissionAction;
+use App\Enums\WorkOrderStatus;
 use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
 use App\Models\Remission;
 use Arm092\LivewireDatatables\Column;
@@ -66,19 +67,14 @@ class DatatableRemissions extends LivewireDatatable
             ]),
 
             Column::callback(['remissions.status'], function ($status) {
-                $map = [
-                    'borrador'  => ['label' => 'Borrador',  'class' => 'bg-slate-100 text-slate-600 ring-1 ring-slate-500/20'],
-                    'emitida'   => ['label' => 'Emitida',   'class' => 'bg-blue-50 text-blue-700 ring-1 ring-blue-600/20'],
-                    'entregada' => ['label' => 'Entregada', 'class' => 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20'],
-                ];
-                $s = $map[$status] ?? ['label' => $status, 'class' => 'bg-slate-100 text-slate-600'];
+                $enum = WorkOrderStatus::tryFrom((string) $status);
 
-                return '<span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ' . $s['class'] . '">' . $s['label'] . '</span>';
-            })->label('Estado')->filterable([
-                'borrador' => 'Borrador',
-                'emitida' => 'Emitida',
-                'entregada' => 'Entregada',
-            ]),
+                if (! $enum) {
+                    return e((string) $status);
+                }
+
+                return '<span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ' . $enum->badgeClass() . '">' . e($enum->label()) . '</span>';
+            })->label('Estado')->filterable(WorkOrderStatus::options()),
 
             Column::name('remissions.total_items')
                 ->label('Ítems')

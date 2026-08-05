@@ -4,6 +4,7 @@ namespace App\Livewire\Admin\Workshop\WorkOrders;
 
 use App\Actions\Workshop\CreateOrUpdateWorkOrderAction;
 use App\Actions\Workshop\DeleteWorkOrderAction;
+use App\Enums\WorkOrderStatus;
 use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
 use App\Livewire\Forms\Admin\Workshop\WorkOrderForm;
 use App\Models\Client;
@@ -42,7 +43,7 @@ class Form extends Component
                 404
             );
 
-            abort_unless(in_array($workOrder->status, ['abierta', 'en_proceso'], true), 403);
+            abort_unless($workOrder->status?->isOpen() ?? false, 403);
 
             $workOrder->load(['items.productType', 'items.catalogProduct']);
             $this->form->setWorkOrder($workOrder);

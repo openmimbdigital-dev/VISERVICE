@@ -22,9 +22,20 @@
             </div>
             <div class="flex w-full shrink-0 flex-wrap gap-2 sm:w-auto">
                 <a href="{{ route('admin.workshop.quotations.index') }}" wire:navigate class="btn btn-outline-secondary btn-sm flex-1 sm:flex-none justify-center">Volver</a>
-                @can('workshop.quotations.edit')
-                <a href="{{ route('admin.workshop.quotations.form.edit', $quotation->id) }}" wire:navigate class="btn btn-primary btn-sm flex-1 sm:flex-none justify-center">Editar</a>
-                @endcan
+                @if($can_edit)
+                    @if($edit_disabled)
+                        <button
+                            type="button"
+                            disabled
+                            title="{{ $edit_disabled_title }}"
+                            class="btn btn-primary btn-sm flex-1 justify-center opacity-50 sm:flex-none"
+                        >
+                            Editar
+                        </button>
+                    @else
+                        <a href="{{ route('admin.workshop.quotations.form.edit', $quotation->id) }}" wire:navigate class="btn btn-primary btn-sm flex-1 sm:flex-none justify-center">Editar</a>
+                    @endif
+                @endif
                 @if($can_create_ot)
                 <a href="{{ route('admin.workshop.work-orders.form', ['quotation' => $quotation->id]) }}" wire:navigate
                     class="btn btn-success btn-sm flex-1 sm:flex-none justify-center">
@@ -156,8 +167,30 @@
             <section class="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
                 <div class="border-b border-slate-100 bg-slate-50/80 px-4 py-4 sm:px-5">
                     <h3 class="font-semibold text-slate-900">Estado de la cotización</h3>
-                    <p class="mt-1 text-xs text-slate-500">Actualiza el seguimiento de la oferta.</p>
+                    <p class="mt-1 text-xs text-slate-500">
+                        @if($status_change_disabled)
+                            Esta cotización está rechazada y ya no admite cambios de estado.
+                        @else
+                            Actualiza el seguimiento de la oferta.
+                        @endif
+                    </p>
                 </div>
+                @if($status_change_disabled)
+                    <div class="space-y-3 p-4 sm:p-5">
+                        <div>
+                            <label class="mb-1.5 block text-xs font-medium text-slate-700">Estado</label>
+                            <input type="text" disabled value="{{ $quotation->status->label() }}"
+                                class="w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-100 px-3.5 py-2.5 text-sm text-slate-500 opacity-70">
+                        </div>
+                        @if($quotation->reject_reason)
+                            <div>
+                                <label class="mb-1.5 block text-xs font-medium text-slate-700">Motivo del rechazo</label>
+                                <textarea disabled rows="3"
+                                    class="w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-100 px-3.5 py-2.5 text-sm text-slate-500 opacity-70">{{ $quotation->reject_reason }}</textarea>
+                            </div>
+                        @endif
+                    </div>
+                @else
                 <form wire:submit="updateStatus" class="space-y-4 p-4 sm:p-5">
                     <div>
                         <label class="mb-1.5 block text-xs font-medium text-slate-700">Estado</label>
@@ -184,6 +217,7 @@
                         <span wire:loading wire:target="updateStatus">Guardando…</span>
                     </button>
                 </form>
+                @endif
             </section>
             @endif
 

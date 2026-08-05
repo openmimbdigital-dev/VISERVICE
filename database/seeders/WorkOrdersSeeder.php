@@ -38,15 +38,15 @@ class WorkOrdersSeeder extends Seeder
             ->get();
 
         $plan = [
-            ['business' => $transad, 'reference' => 'SEED-OT-TRANSAD-001', 'status' => 'abierta', 'from_quotation' => 'SEED-COT-TRANSAD-004'],
-            ['business' => $transad, 'reference' => 'SEED-OT-TRANSAD-002', 'status' => 'abierta', 'from_quotation' => null],
+            ['business' => $transad, 'reference' => 'SEED-OT-TRANSAD-001', 'status' => 'creada', 'from_quotation' => 'SEED-COT-TRANSAD-004'],
+            ['business' => $transad, 'reference' => 'SEED-OT-TRANSAD-002', 'status' => 'creada', 'from_quotation' => null],
             ['business' => $transad, 'reference' => 'SEED-OT-TRANSAD-003', 'status' => 'en_proceso', 'from_quotation' => null],
             ['business' => $transad, 'reference' => 'SEED-OT-TRANSAD-004', 'status' => 'en_proceso', 'from_quotation' => null],
             ['business' => $transad, 'reference' => 'SEED-OT-TRANSAD-005', 'status' => 'finalizada', 'from_quotation' => null],
             ['business' => $transad, 'reference' => 'SEED-OT-TRANSAD-006', 'status' => 'cancelada', 'from_quotation' => null],
-            ['business_slug' => 'carga-rapida-sas', 'reference' => 'SEED-OT-CARGA-001', 'status' => 'abierta', 'from_quotation' => null],
+            ['business_slug' => 'carga-rapida-sas', 'reference' => 'SEED-OT-CARGA-001', 'status' => 'creada', 'from_quotation' => null],
             ['business_slug' => 'carga-rapida-sas', 'reference' => 'SEED-OT-CARGA-002', 'status' => 'en_proceso', 'from_quotation' => null],
-            ['business_slug' => 'transportes-del-valle', 'reference' => 'SEED-OT-VALLE-001', 'status' => 'abierta', 'from_quotation' => 'SEED-COT-VALLE-002'],
+            ['business_slug' => 'transportes-del-valle', 'reference' => 'SEED-OT-VALLE-001', 'status' => 'creada', 'from_quotation' => 'SEED-COT-VALLE-002'],
             ['business_slug' => 'transportes-del-valle', 'reference' => 'SEED-OT-VALLE-002', 'status' => 'finalizada', 'from_quotation' => null],
         ];
 

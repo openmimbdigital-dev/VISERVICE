@@ -19,7 +19,7 @@
                     {{ $is_editing ? 'Remisión ' . ($reference ?? '') : 'Nueva remisión' }}
                 </h1>
                 <p class="mt-2 max-w-xl text-sm text-slate-600">
-                    Solo puedes asociar remisiones a OTs en estado abierta o en proceso. Los ítems se toman de la OT.
+                    Solo puedes asociar remisiones a OTs en estado creada o en proceso. Los ítems se toman de la OT.
                 </p>
             </div>
             @if($is_editing)
@@ -69,9 +69,9 @@
                 <div>
                     <label class="mb-1.5 block text-xs font-medium text-slate-700">Estado <span class="text-rose-500">*</span></label>
                     <select wire:model="form.status" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm @error('form.status') border-rose-400 bg-rose-50 @enderror">
-                        <option value="borrador">Borrador</option>
-                        <option value="emitida">Emitida</option>
-                        <option value="entregada">Entregada</option>
+                        @foreach(\App\Enums\WorkOrderStatus::options() as $value => $label)
+                            <option value="{{ $value }}">{{ $label }}</option>
+                        @endforeach
                     </select>
                     @error('form.status') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                 </div>

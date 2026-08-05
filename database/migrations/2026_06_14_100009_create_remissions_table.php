@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\WorkOrderStatus;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -16,7 +17,7 @@ return new class extends Migration
             $table->foreignId('equipment_id')->nullable()->constrained('equipment')->nullOnDelete();
             $table->string('reference')->comment('REM-YYYYMM-XXXX');
             $table->enum('type', ['entrega', 'devolucion', 'traslado'])->default('entrega');
-            $table->enum('status', ['borrador', 'emitida', 'entregada'])->default('borrador');
+            $table->enum('status', array_column(WorkOrderStatus::cases(), 'value'))->default(WorkOrderStatus::Created->value);
             $table->string('quotation_or_po_reference')->nullable()->comment('Cotización / Orden de compra');
             $table->date('issue_date')->nullable()->comment('Fecha de expedición');
 

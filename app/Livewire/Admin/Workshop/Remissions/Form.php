@@ -4,6 +4,7 @@ namespace App\Livewire\Admin\Workshop\Remissions;
 
 use App\Actions\Workshop\CreateOrUpdateRemissionAction;
 use App\Actions\Workshop\DeleteRemissionAction;
+use App\Enums\WorkOrderStatus;
 use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
 use App\Livewire\Forms\Admin\Workshop\RemissionForm;
 use App\Models\City;
@@ -31,7 +32,7 @@ class Form extends Component
                 Remission::query()->forAuthUser()->whereKey($remission->id)->exists(),
                 404
             );
-            abort_unless($remission->status !== 'entregada', 403);
+            abort_unless($remission->isEditable(), 403);
 
             $this->form->setRemission($remission);
             $this->reference = $remission->reference;
@@ -42,7 +43,7 @@ class Form extends Component
         abort_unless(auth()->user()?->can('workshop.remissions.create'), 403);
 
         $this->form->issue_date = now()->format('Y-m-d');
-        $this->form->status = 'borrador';
+        $this->form->status = WorkOrderStatus::Created->value;
         $this->form->type = 'entrega';
 
         $work_order_id = request()->integer('work_order');
@@ -50,7 +51,7 @@ class Form extends Component
             $work_order = WorkOrder::query()
                 ->forAuthUser()
                 ->where('business_id', $this->form->resolvedBusinessId())
-                ->whereIn('status', ['abierta', 'en_proceso'])
+                ->whereIn('status', WorkOrderStatus::openValues())
                 ->with(['client.city', 'equipment'])
                 ->find($work_order_id);
 
@@ -70,13 +71,13 @@ class Form extends Component
         $work_order = WorkOrder::query()
             ->forAuthUser()
             ->where('business_id', $this->form->resolvedBusinessId())
-            ->whereIn('status', ['abierta', 'en_proceso'])
+            ->whereIn('status', WorkOrderStatus::openValues())
             ->with(['client.city', 'equipment'])
             ->find((int) $value);
 
         if (! $work_order) {
             $this->form->work_order_id = null;
-            $this->addError('form.work_order_id', 'La OT no está disponible o no está abierta/en proceso.');
+            $this->addError('form.work_order_id', 'La OT no está disponible o no está creada/en proceso.');
 
             return;
         }
@@ -149,7 +150,7 @@ class Form extends Component
             'cities'               => City::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'state_province']),
             'can_delete'           => $this->form->isEditing()
                 && auth()->user()->can('workshop.remissions.delete')
-                && $this->form->status !== 'entregada',
+                && ! (WorkOrderStatus::tryFrom($this->form->status)?->isTerminal() ?? false),
         ]);
     }
 }

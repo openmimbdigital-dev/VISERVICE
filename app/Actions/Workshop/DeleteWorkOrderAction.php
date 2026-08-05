@@ -27,12 +27,12 @@ class DeleteWorkOrderAction
             throw new \RuntimeException('No se puede eliminar: la OT tiene remisiones, facturas u órdenes de compra asociadas.');
         }
 
-        if (! in_array($work_order->status, ['abierta', 'en_proceso'], true)) {
-            throw new \RuntimeException('Solo se pueden eliminar OTs abiertas o en proceso.');
+        if (! ($work_order->status?->isOpen() ?? false)) {
+            throw new \RuntimeException('Solo se pueden eliminar OTs creadas o en proceso.');
         }
 
         $properties = [
-            'status'       => $work_order->status,
+            'status'       => $work_order->status?->value,
             'client_id'    => $work_order->client_id,
             'equipment_id' => $work_order->equipment_id,
             'quotation_id' => $work_order->quotation_id,
