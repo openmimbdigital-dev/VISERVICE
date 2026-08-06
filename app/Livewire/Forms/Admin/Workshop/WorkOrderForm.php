@@ -19,8 +19,6 @@ class WorkOrderForm extends Form
 
     public ?int $equipment_id = null;
 
-    public string $km_entry = '0';
-
     public string $diagnosis = '';
 
     public string $estimated_delivery = '';
@@ -37,7 +35,6 @@ class WorkOrderForm extends Form
         $this->quotation_id        = $work_order->quotation_id;
         $this->client_id           = $work_order->client_id;
         $this->equipment_id        = $work_order->equipment_id;
-        $this->km_entry            = (string) ($work_order->km_entry ?? 0);
         $this->diagnosis           = $work_order->diagnosis ?? '';
         $this->estimated_delivery  = $work_order->estimated_delivery?->format('Y-m-d') ?? '';
         $this->tax_percentage      = (string) $work_order->tax_percentage;
@@ -94,7 +91,6 @@ class WorkOrderForm extends Form
                     ->where('client_id', $this->client_id)
                     ->whereNull('deleted_at')),
             ],
-            'km_entry'           => ['required', 'integer', 'min:0'],
             'diagnosis'          => ['nullable', 'string'],
             'estimated_delivery' => ['nullable', 'date'],
             'tax_percentage'     => ['required', 'numeric', 'min:0', 'max:100'],
@@ -111,8 +107,6 @@ class WorkOrderForm extends Form
             'equipment_id.required'       => 'Selecciona un equipo.',
             'equipment_id.exists'         => 'El equipo seleccionado no es válido.',
             'quotation_id.exists'         => 'La cotización debe existir, pertenecer al negocio y estar aceptada.',
-            'km_entry.required'           => 'Indica el kilometraje de ingreso.',
-            'km_entry.integer'            => 'El kilometraje debe ser un número entero.',
             'tax_percentage.required'     => 'Indica el porcentaje de IVA.',
             'estimated_delivery.date'     => 'La fecha de entrega estimada no es válida.',
         ];
@@ -125,7 +119,6 @@ class WorkOrderForm extends Form
 
         return [
             'quotation_id'        => $data['quotation_id'] ?: null,
-            'km_entry'            => (int) $data['km_entry'],
             'diagnosis'           => $data['diagnosis'] ?: null,
             'estimated_delivery'  => $data['estimated_delivery'] ?: null,
             'tax_percentage'      => $data['tax_percentage'],

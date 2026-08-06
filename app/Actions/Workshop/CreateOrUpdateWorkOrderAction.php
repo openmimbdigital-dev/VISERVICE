@@ -63,7 +63,6 @@ class CreateOrUpdateWorkOrderAction
                 'client_id'          => $client_id,
                 'equipment_id'       => $equipment_id,
                 'quotation_id'       => $quotation_id,
-                'km_entry'           => (int) ($data['km_entry'] ?? 0),
                 'diagnosis'          => $data['diagnosis'] ?? null,
                 'estimated_delivery' => $data['estimated_delivery'] ?? null,
                 'tax_percentage'     => $data['tax_percentage'] ?? 19,
@@ -89,11 +88,6 @@ class CreateOrUpdateWorkOrderAction
 
             $this->syncItems($work_order, $items);
             $work_order->recalculateTotals();
-
-            $equipment = $work_order->equipment;
-            if ($equipment && $work_order->km_entry > (int) $equipment->km_current) {
-                $equipment->update(['km_current' => $work_order->km_entry]);
-            }
 
             $work_order = $work_order->fresh([
                 'items.productType',

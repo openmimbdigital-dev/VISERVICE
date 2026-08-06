@@ -16,7 +16,7 @@ class WorkOrder extends Model
 
     protected $fillable = [
         'business_id', 'client_id', 'equipment_id', 'quotation_id',
-        'reference', 'status', 'status_comments', 'km_entry', 'km_exit',
+        'reference', 'status', 'status_comments',
         'diagnosis', 'work_description', 'observations', 'notes',
         'estimated_delivery', 'subtotal', 'tax_percentage',
         'tax_amount', 'total', 'advance_percentage', 'advance_amount',
@@ -34,8 +34,6 @@ class WorkOrder extends Model
             'tax_percentage'     => 'decimal:2',
             'tax_amount'         => 'decimal:2',
             'total'              => 'decimal:2',
-            'km_entry'           => 'integer',
-            'km_exit'            => 'integer',
             'document_client'    => 'array',
         ];
     }

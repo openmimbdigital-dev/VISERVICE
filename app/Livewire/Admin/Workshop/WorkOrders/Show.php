@@ -331,9 +331,14 @@ class Show extends Component
         abort_unless(auth()->user()?->can('workshop.work-orders.edit'), 403);
         $this->assertWorkOrderEditable();
 
+        $previous_status = $this->status;
+
         $item = AdjustWorkOrderItemQuantityAction::run($this->workOrder->id, $id, $action);
 
         $this->workOrder->refresh();
+        $this->status = $this->workOrder->status instanceof WorkOrderStatus
+            ? $this->workOrder->status->value
+            : (string) $this->workOrder->status;
 
         $log_description = $action === AdjustWorkOrderItemQuantityAction::ACTION_COMPLETE
             ? "Completó cantidad de un ítem en la OT {$this->workOrder->reference}"
@@ -364,12 +369,26 @@ class Show extends Component
             properties: $properties,
             business_id: (int) $this->workOrder->business_id,
         );
+
+        if ($this->status !== $previous_status) {
+            $message = match ($this->status) {
+                WorkOrderStatus::Cancelled->value => 'Todos los ítems están cancelados. La OT pasó a Cancelada.',
+                WorkOrderStatus::Completed->value => 'Todos los ítems están completados. La OT pasó a Finalizada.',
+                WorkOrderStatus::InProgress->value => 'Se completó al menos un ítem. La OT pasó a En proceso.',
+                default => 'El estado de la OT se actualizó automáticamente.',
+            };
+
+            $this->dispatch('swal', [
+                'title' => 'Estado actualizado',
+                'text' => $message,
+                'icon' => 'success',
+            ]);
+        }
     }
 
     public function openDocumentModal(): void
     {
         abort_unless(auth()->user()?->can('workshop.work-orders.edit'), 403);
-        $this->assertWorkOrderEditable();
 
         $this->workOrder->refresh();
 
@@ -409,7 +428,6 @@ class Show extends Component
     public function saveDocumentClient(): void
     {
         abort_unless(auth()->user()?->can('workshop.work-orders.edit'), 403);
-        $this->assertWorkOrderEditable();
 
         $this->validate([
             'selected_document_label' => 'required|string|max:100',
@@ -473,11 +491,6 @@ class Show extends Component
             403,
             'La OT está finalizada o cancelada y no admite cambios.'
         );
-    }
-
-    public function confirmWorkOrder(): void
-    {
-        $this->redirectRoute('admin.workshop.work-orders.index', navigate: true);
     }
 
     public function render()

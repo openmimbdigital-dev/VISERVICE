@@ -131,19 +131,38 @@ class Form extends Component
 
     public function updatedItems(mixed $value, string $key): void
     {
-        // Livewire pasa $key como "{index}.product_id" (ej. "1.product_id").
-        if (! str_ends_with((string) $key, '.product_id') || ! $value) {
+        $parts = explode('.', (string) $key);
+        $index = (int) ($parts[0] ?? -1);
+        $field = $parts[1] ?? null;
+
+        if ($index < 0 || ! isset($this->items[$index]) || $field === null) {
             return;
         }
 
-        $index = (int) explode('.', (string) $key)[0];
+        if ($field === 'product_type_id') {
+            $this->items[$index]['product_id'] = null;
+
+            return;
+        }
+
+        if ($field !== 'product_id' || ! $value) {
+            return;
+        }
+
         $catalog = Product::query()
             ->forAuthUser()
             ->where('business_id', $this->form->resolvedBusinessId())
             ->whereKey($value)
             ->first();
 
-        if (! $catalog || ! isset($this->items[$index])) {
+        if (! $catalog) {
+            return;
+        }
+
+        $selected_type = $this->items[$index]['product_type_id'] ?? null;
+        if ($selected_type && (int) $catalog->product_type_id !== (int) $selected_type) {
+            $this->items[$index]['product_id'] = null;
+
             return;
         }
 

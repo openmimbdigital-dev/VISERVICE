@@ -19,12 +19,6 @@ class SaveWorkOrderDocumentClientAction
 
         $work_order = WorkOrder::query()->forAuthUser()->findOrFail($work_order_id);
 
-        if (! $work_order->isEditable()) {
-            throw ValidationException::withMessages([
-                'document' => 'No se puede asociar documentos: la OT está finalizada o cancelada.',
-            ]);
-        }
-
         $config = GeneralConfig::query()
             ->forAuthUser()
             ->associatedDocumentsOt()

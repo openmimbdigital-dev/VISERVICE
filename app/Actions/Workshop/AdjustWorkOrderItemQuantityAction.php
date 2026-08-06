@@ -63,6 +63,8 @@ class AdjustWorkOrderItemQuantityAction
             'quantity_canceled' => $canceled,
         ]);
 
+        SyncWorkOrderStatusFromItemsAction::run($work_order->id);
+
         return $item->fresh();
     }
 }

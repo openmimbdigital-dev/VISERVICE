@@ -28,7 +28,6 @@
                     <div class="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm text-slate-600">
                         <span class="font-medium text-slate-800">{{ $workOrder->client?->name }}</span>
                         <span>{{ $workOrder->equipment?->plate }} — {{ $workOrder->equipment?->brand_name }} {{ $workOrder->equipment?->model_name }}</span>
-                        <span>Km entrada: {{ number_format($workOrder->km_entry) }}</span>
                         @if($workOrder->estimated_delivery)
                         <span>Entrega est.: {{ $workOrder->estimated_delivery->format('d/m/Y') }}</span>
                         @endif
@@ -38,7 +37,7 @@
                     @endif
                     @if($edit_disabled)
                     <p class="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                        Esta OT está {{ strtolower($workOrder->status_label) }}; no se puede editar, asociar documentos ni cambiar de estado.
+                        Esta OT está {{ strtolower($workOrder->status_label) }}; no se puede editar ni cambiar de estado.
                     </p>
                     @endif
                 </div>
@@ -54,9 +53,9 @@
                         </a>
                         @if($can_edit)
                         <button type="button"
-                            @if($can_manage) wire:click="openDocumentModal" @else disabled @endif
-                            title="{{ $can_manage ? 'Registrar documento asociado' : $edit_disabled_title }}"
-                            class="btn btn-outline-secondary btn-sm flex-1 justify-center sm:flex-none disabled:cursor-not-allowed disabled:opacity-50">
+                            wire:click="openDocumentModal"
+                            title="Registrar documento asociado"
+                            class="btn btn-outline-secondary btn-sm flex-1 justify-center sm:flex-none">
                             Documento asociado
                         </button>
                         @if($edit_disabled)
@@ -70,9 +69,6 @@
                         </a>
                         @endif
                         @endif
-                        <button type="button" wire:click="confirmWorkOrder" class="btn btn-primary btn-sm flex-1 justify-center sm:flex-none">
-                            Confirmar OT
-                        </button>
                     </div>
                 </div>
             </div>

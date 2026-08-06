@@ -18,8 +18,6 @@ return new class extends Migration
             $table->string('status', 100)->default('created');
             $table->foreign('status')->references('name')->on('statuses')->restrictOnDelete();
             $table->json('status_comments')->nullable()->comment('Historial de comentarios por cambio de estado');
-            $table->unsignedInteger('km_entry')->default(0);
-            $table->unsignedInteger('km_exit')->nullable();
             $table->text('diagnosis')->nullable()->comment('Diagnóstico registrado al ingreso');
             $table->text('work_description')->nullable()->comment('Descripción del trabajo realizado');
             $table->text('observations')->nullable();

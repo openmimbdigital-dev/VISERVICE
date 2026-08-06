@@ -76,7 +76,6 @@ class WorkOrdersSeeder extends Seeder
 
             $sequence++;
             $is_finalized = $entry['status'] === 'completed';
-            $km_entry = 45000 + ($sequence * 1250);
 
             $work_order = WorkOrder::withTrashed()->updateOrCreate(
                 [
@@ -88,8 +87,6 @@ class WorkOrdersSeeder extends Seeder
                     'equipment_id'       => $pair['equipment']->id,
                     'quotation_id'       => $quotation?->id,
                     'status'             => $entry['status'],
-                    'km_entry'           => $km_entry,
-                    'km_exit'            => $is_finalized ? $km_entry + 35 : null,
                     'diagnosis'          => $quotation?->diagnosis ?? 'Diagnóstico inicial demo generado por seeder.',
                     'work_description'   => $is_finalized ? 'Trabajos de mantenimiento realizados según cotización/inspección.' : null,
                     'observations'       => 'OT de demostración.',

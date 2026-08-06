@@ -91,12 +91,6 @@
                         </div>
 
                         <div>
-                            <label class="mb-1.5 block text-xs font-medium text-slate-700">Km al ingreso <span class="text-rose-500">*</span></label>
-                            <input type="number" wire:model="form.km_entry" min="0" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm @error('form.km_entry') border-rose-400 bg-rose-50 @enderror">
-                            @error('form.km_entry') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
-                        </div>
-
-                        <div>
                             <label class="mb-1.5 block text-xs font-medium text-slate-700">Entrega estimada</label>
                             <input type="date" wire:model="form.estimated_delivery" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm @error('form.estimated_delivery') border-rose-400 bg-rose-50 @enderror">
                             @error('form.estimated_delivery') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
@@ -140,16 +134,18 @@
                             <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                                 <div>
                                     <label class="mb-1 block text-xs font-medium text-slate-700">Tipo</label>
-                                    <select wire:model="items.{{ $index }}.product_type_id" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">
+                                    <select wire:model.live="items.{{ $index }}.product_type_id" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">
                                         <option value="">—</option>
                                         @foreach($product_types as $type)<option value="{{ $type->id }}">{{ $type->name }}</option>@endforeach
                                     </select>
                                 </div>
                                 <div>
                                     <label class="mb-1 block text-xs font-medium text-slate-700">Catálogo</label>
-                                    <select wire:model.live="items.{{ $index }}.product_id" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">
+                                    <select wire:model.live="items.{{ $index }}.product_id" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm" @disabled(empty($row['product_type_id']))>
                                         <option value="">— Manual —</option>
-                                        @foreach($catalog_products as $ci)<option value="{{ $ci->id }}">{{ $ci->name }} ({{ col_money($ci->sale_price) }})</option>@endforeach
+                                        @foreach($catalog_products->where('product_type_id', (int) ($row['product_type_id'] ?? 0)) as $ci)
+                                        <option value="{{ $ci->id }}">{{ $ci->name }} ({{ col_money($ci->sale_price) }})</option>
+                                        @endforeach
                                     </select>
                                 </div>
                                 <div class="sm:col-span-2">

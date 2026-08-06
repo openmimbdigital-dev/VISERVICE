@@ -41,8 +41,6 @@
         <td>
             <div class="section-title">Equipo</div>
             <p>{{ $workOrder->equipment?->select_label ?? '—' }}</p>
-            <p>Km entrada: {{ number_format((int) $workOrder->km_entry) }}</p>
-            @if($workOrder->km_exit)<p>Km salida: {{ number_format((int) $workOrder->km_exit) }}</p>@endif
         </td>
     </tr>
 </table>

@@ -49,10 +49,6 @@
         <div>
             <p class="font-semibold uppercase text-slate-500">Equipo</p>
             <p>{{ $workOrder->equipment?->select_label ?? '—' }}</p>
-            <p>Km entrada: {{ number_format((int) $workOrder->km_entry) }}</p>
-            @if($workOrder->km_exit)
-            <p>Km salida: {{ number_format((int) $workOrder->km_exit) }}</p>
-            @endif
         </div>
     </section>
 

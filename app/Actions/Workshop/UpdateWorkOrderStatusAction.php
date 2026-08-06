@@ -7,6 +7,7 @@ use App\Actions\LogUserHistoricalAction;
 use App\Enums\WorkOrderStatus;
 use App\Models\Status;
 use App\Models\WorkOrder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -74,6 +75,7 @@ class UpdateWorkOrderStatusAction
         }
 
         $work_order->update($payload);
+        $this->syncItemsQuantitiesFromStatus($work_order->id, $status);
         SyncWorkOrderRemissionsStatusAction::run($work_order, $status);
         $work_order = $work_order->fresh(['client:id,name', 'equipment', 'items', 'statusDefinition', 'remissions']);
 
@@ -106,5 +108,30 @@ class UpdateWorkOrderStatusAction
         );
 
         return $work_order;
+    }
+
+    private function syncItemsQuantitiesFromStatus(int $work_order_id, WorkOrderStatus $status): void
+    {
+        if ($status === WorkOrderStatus::Completed) {
+            DB::table('work_order_items')
+                ->where('work_order_id', $work_order_id)
+                ->update([
+                    'quantity_complete' => DB::raw('quantity'),
+                    'quantity_canceled' => 0,
+                    'updated_at' => now(),
+                ]);
+
+            return;
+        }
+
+        if ($status === WorkOrderStatus::Cancelled) {
+            DB::table('work_order_items')
+                ->where('work_order_id', $work_order_id)
+                ->update([
+                    'quantity_canceled' => DB::raw('quantity'),
+                    'quantity_complete' => 0,
+                    'updated_at' => now(),
+                ]);
+        }
     }
 }
