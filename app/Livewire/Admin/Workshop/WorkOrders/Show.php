@@ -10,6 +10,7 @@ use App\Enums\WorkOrderStatus;
 use App\Models\GeneralConfig;
 use App\Models\Product;
 use App\Models\ProductType;
+use App\Models\Status;
 use App\Models\WorkOrder;
 use App\Models\WorkOrderItem;
 use Illuminate\Validation\Rule;
@@ -83,8 +84,10 @@ class Show extends Component
             return;
         }
 
+        $allowed = array_keys(Status::optionsForModule('work_orders'));
+
         $this->validate([
-            'status' => ['required', Rule::enum(WorkOrderStatus::class)],
+            'status' => ['required', 'string', Rule::in($allowed)],
             'status_comment' => [
                 'nullable',
                 'string',
@@ -93,7 +96,7 @@ class Show extends Component
             ],
         ], [
             'status.required' => 'Selecciona un estado.',
-            'status.enum' => 'El estado seleccionado no es válido.',
+            'status.in' => 'El estado seleccionado no es válido.',
             'status_comment.required' => 'Indica el motivo de la cancelación.',
             'status_comment.max' => 'El comentario no puede superar 1000 caracteres.',
         ]);
@@ -500,6 +503,27 @@ class Show extends Component
         $can_edit = auth()->user()->can('workshop.work-orders.edit');
         $is_locked = ! $this->workOrder->isEditable();
 
+        $status_badge_class = $this->workOrder->status instanceof WorkOrderStatus
+            ? $this->workOrder->status->badgeClass()
+            : 'bg-slate-100 text-slate-600 ring-1 ring-slate-500/20';
+
+        $status_comments_history = collect($this->workOrder->status_comments ?? [])
+            ->reverse()
+            ->values()
+            ->map(function (array $entry) {
+                $status_enum = WorkOrderStatus::tryFrom($entry['status'] ?? '');
+
+                return [
+                    'comment' => $entry['comment'] ?? '',
+                    'status_label' => $status_enum?->label() ?? ($entry['status'] ?? ''),
+                    'user_name' => $entry['user_name'] ?? null,
+                    'changed_at' => ! empty($entry['changed_at'])
+                        ? \Illuminate\Support\Carbon::parse($entry['changed_at'])->format('d/m/Y H:i')
+                        : null,
+                ];
+            })
+            ->all();
+
         return view('livewire.admin.workshop.work-orders.show', [
             'product_types' => $product_types,
             'catalog_products' => $catalog_products,
@@ -511,7 +535,19 @@ class Show extends Component
             'edit_disabled_title' => 'La OT está finalizada o cancelada',
             'can_change_status' => $can_edit,
             'status_change_disabled' => $is_locked,
-            'status_options' => WorkOrderStatus::options(),
+            'status_options' => Status::optionsForModule('work_orders'),
+            'status_badge_class' => $status_badge_class,
+            'show_cancel_comment_required' => $this->status === WorkOrderStatus::Cancelled->value,
+            'status_comment_placeholder' => $this->status === WorkOrderStatus::Cancelled->value
+                ? 'Motivo de la cancelación…'
+                : 'Opcional: nota del cambio de estado…',
+            'status_comments_history' => $status_comments_history,
+            'item_status_badges' => [
+                'pendiente'  => 'bg-slate-100 text-slate-600',
+                'en_proceso' => 'bg-yellow-50 text-yellow-700',
+                'completado' => 'bg-emerald-50 text-emerald-700',
+                'cancelado'  => 'bg-red-50 text-red-600',
+            ],
         ]);
     }
 }

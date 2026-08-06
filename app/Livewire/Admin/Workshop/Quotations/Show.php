@@ -7,6 +7,7 @@ use App\Actions\Workshop\UpdateQuotationStatusAction;
 use App\Enums\QuotationStatus;
 use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
 use App\Models\Quotation;
+use App\Models\Status;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
@@ -37,16 +38,18 @@ class Show extends Component
         $this->quotation = $quotation->load([
             'client', 'equipment', 'quotationServiceType', 'paymentMethod', 'bankAccount',
             'items.productType', 'items.productCategory', 'items.catalogProduct', 'createdBy', 'business',
-            'workOrder',
+            'workOrder', 'statusDefinition',
         ]);
 
-        $this->status        = $this->quotation->status->value;
+        $this->status = $this->quotation->status instanceof QuotationStatus
+            ? $this->quotation->status->value
+            : (string) $this->quotation->status;
         $this->reject_reason = (string) ($this->quotation->reject_reason ?? '');
     }
 
     public function updatedStatus(string $value): void
     {
-        if ($value !== QuotationStatus::Rechazada->value) {
+        if ($value !== QuotationStatus::Rejected->value) {
             return;
         }
 
@@ -68,25 +71,27 @@ class Show extends Component
             return;
         }
 
+        $allowed = array_keys(Status::optionsForModule('quotations'));
+
         $this->validate([
-            'status'        => ['required', Rule::enum(QuotationStatus::class)],
-            'reject_reason' => ['required_if:status,' . QuotationStatus::Rechazada->value, 'nullable', 'string', 'max:500'],
+            'status'        => ['required', 'string', Rule::in($allowed)],
+            'reject_reason' => ['required_if:status,'.QuotationStatus::Rejected->value, 'nullable', 'string', 'max:500'],
         ], [
             'status.required'           => 'Selecciona un estado.',
-            'status.enum'               => 'El estado seleccionado no es válido.',
+            'status.in'                 => 'El estado seleccionado no es válido.',
             'reject_reason.required_if' => 'Indica el motivo del rechazo.',
             'reject_reason.max'         => 'El motivo no puede superar 500 caracteres.',
         ]);
 
-        $new_status    = QuotationStatus::from($this->status);
-        $reject_reason = $new_status === QuotationStatus::Rechazada
+        $new_status = QuotationStatus::from($this->status);
+        $reject_reason = $new_status === QuotationStatus::Rejected
             ? trim($this->reject_reason)
             : null;
 
         $status_unchanged = $new_status === $this->quotation->status;
         $reason_unchanged = (string) ($reject_reason ?? '') === (string) ($this->quotation->reject_reason ?? '');
 
-        if ($status_unchanged && ($new_status !== QuotationStatus::Rechazada || $reason_unchanged)) {
+        if ($status_unchanged && ($new_status !== QuotationStatus::Rejected || $reason_unchanged)) {
             $this->dispatch('swal', [
                 'title' => 'Sin cambios',
                 'text'  => 'La cotización ya tiene ese estado.',
@@ -101,7 +106,7 @@ class Show extends Component
                 $this->quotation->id,
                 $new_status,
                 $reject_reason
-            )->load('workOrder');
+            )->load(['workOrder', 'statusDefinition']);
         } catch (ValidationException $exception) {
             $message = collect($exception->errors())->flatten()->first()
                 ?? 'No se pudo actualizar el estado.';
@@ -114,12 +119,12 @@ class Show extends Component
             return;
         }
 
-        $this->status        = $this->quotation->status->value;
+        $this->status = $this->quotation->status->value;
         $this->reject_reason = (string) ($this->quotation->reject_reason ?? '');
 
         $this->dispatch('swal', [
             'title' => 'Estado actualizado',
-            'text'  => 'La cotización ahora está: ' . $this->quotation->status->label(),
+            'text'  => 'La cotización ahora está: '.$this->quotation->status_label,
             'icon'  => 'success',
         ]);
     }
@@ -146,8 +151,12 @@ class Show extends Component
         $can_edit = auth()->user()->can('workshop.quotations.edit');
         $is_rejected = $this->quotation->isRejected();
         $can_create_ot = auth()->user()->can('workshop.work-orders.create')
-            && $this->quotation->status === QuotationStatus::Aceptada
+            && $this->quotation->status === QuotationStatus::Accepted
             && ! $this->quotation->workOrder;
+
+        $status_badge_class = $this->quotation->status instanceof QuotationStatus
+            ? $this->quotation->status->badgeClass()
+            : 'bg-slate-100 text-slate-600 ring-1 ring-slate-500/20';
 
         return view('livewire.admin.workshop.quotations.show', [
             'category_subtotals' => $this->quotation->subtotalsByPdfCategory(),
@@ -156,7 +165,9 @@ class Show extends Component
             'edit_disabled_title' => 'La cotización está rechazada',
             'can_change_status' => $can_edit,
             'status_change_disabled' => $is_rejected,
-            'status_options' => QuotationStatus::options(),
+            'status_options' => Status::optionsForModule('quotations'),
+            'show_reject_reason' => $this->status === QuotationStatus::Rejected->value,
+            'status_badge_class' => $status_badge_class,
             'can_create_ot' => $can_create_ot,
             'linked_work_order' => $this->quotation->workOrder,
         ]);

@@ -5,8 +5,10 @@ namespace App\Actions\Workshop;
 use App\Actions\LogUserHistoricalAction;
 use App\Enums\WorkOrderStatus;
 use App\Models\Remission;
+use App\Models\Status;
 use App\Models\WorkOrder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 class CreateOrUpdateRemissionAction
@@ -31,12 +33,18 @@ class CreateOrUpdateRemissionAction
             $status = WorkOrderStatus::tryFrom((string) ($data['status'] ?? ''))
                 ?? WorkOrderStatus::Created;
 
+            if (! Status::query()->forModule('remissions')->where('name', $status->value)->exists()) {
+                throw ValidationException::withMessages([
+                    'status' => 'El estado seleccionado no es válido para remisiones.',
+                ]);
+            }
+
             $payload = [
                 'work_order_id'             => $work_order->id,
                 'client_id'                 => $work_order->client_id,
                 'equipment_id'              => $work_order->equipment_id,
                 'type'                      => $data['type'],
-                'status'                    => $status,
+                'status'                    => $status->value,
                 'quotation_or_po_reference' => $data['quotation_or_po_reference'] ?? null,
                 'issue_date'                => $data['issue_date'] ?? null,
                 'delivery_address'          => $data['delivery_address'] ?? null,

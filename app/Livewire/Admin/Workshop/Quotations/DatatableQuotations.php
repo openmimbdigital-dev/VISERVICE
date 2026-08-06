@@ -65,10 +65,10 @@ class DatatableQuotations extends LivewireDatatable
             })->label('Válida hasta'),
 
             Column::callback(['quotations.status'], function ($status) {
-                $enum = QuotationStatus::tryFrom((string) $status) ?? QuotationStatus::Creada;
+                $enum = QuotationStatus::tryFrom((string) $status) ?? QuotationStatus::Created;
 
-                return '<span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ' . $enum->badgeClass() . '">' . $enum->label() . '</span>';
-            })->label('Estado')->filterable(QuotationStatus::options()),
+                return '<span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ' . $enum->badgeClass() . '">' . e($enum->label()) . '</span>';
+            })->label('Estado')->filterable(\App\Models\Status::optionsForModule('quotations')),
 
             DateColumn::name('quotations.created_at')
                 ->label('Fecha')
@@ -77,7 +77,9 @@ class DatatableQuotations extends LivewireDatatable
             Column::callback(['quotations.id', 'quotations.status', 'work_orders.id'], function ($id, $status, $work_order_id) {
                 return view('livewire.admin.workshop.quotations.actions', [
                     'id'            => $id,
-                    'status'        => $status,
+                    'can_create_ot' => $status === QuotationStatus::Accepted->value && empty($work_order_id),
+                    'has_work_order'=> ! empty($work_order_id),
+                    'is_rejected'   => $status === QuotationStatus::Rejected->value,
                     'work_order_id' => $work_order_id,
                 ]);
             })->label('Acciones')->unsortable(),

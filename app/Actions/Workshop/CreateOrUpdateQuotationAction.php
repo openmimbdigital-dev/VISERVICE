@@ -102,7 +102,7 @@ class CreateOrUpdateQuotationAction
                     ...$payload,
                     'business_id' => $business_id,
                     'reference'   => Quotation::generateReference($business_id),
-                    'status'      => QuotationStatus::Creada,
+                    'status'      => QuotationStatus::Created,
                     'created_by'  => $data['created_by'] ?? auth()->id(),
                 ]);
             }

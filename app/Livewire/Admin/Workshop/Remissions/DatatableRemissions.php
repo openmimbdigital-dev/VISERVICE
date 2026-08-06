@@ -6,6 +6,7 @@ use App\Actions\Workshop\DeleteRemissionAction;
 use App\Enums\WorkOrderStatus;
 use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
 use App\Models\Remission;
+use App\Models\Status;
 use Arm092\LivewireDatatables\Column;
 use Arm092\LivewireDatatables\DateColumn;
 use Arm092\LivewireDatatables\Livewire\LivewireDatatable;
@@ -74,7 +75,7 @@ class DatatableRemissions extends LivewireDatatable
                 }
 
                 return '<span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ' . $enum->badgeClass() . '">' . e($enum->label()) . '</span>';
-            })->label('Estado')->filterable(WorkOrderStatus::options()),
+            })->label('Estado')->filterable(Status::optionsForModule('remissions')),
 
             Column::name('remissions.total_items')
                 ->label('Ítems')
@@ -85,9 +86,11 @@ class DatatableRemissions extends LivewireDatatable
                 ->sortable(),
 
             Column::callback(['remissions.id', 'remissions.status'], function ($id, $status) {
+                $status_enum = WorkOrderStatus::tryFrom((string) $status);
+
                 return view('livewire.admin.workshop.remissions.actions', [
-                    'id'     => $id,
-                    'status' => $status,
+                    'id'         => $id,
+                    'can_mutate' => $status_enum?->isTerminal() !== true,
                 ]);
             })->label('Acciones')->unsortable(),
         ];

@@ -18,7 +18,13 @@
                 <h1 class="mt-2 text-2xl font-bold tracking-tight text-slate-900">
                     {{ $is_editing ? 'Cotización ' . ($reference ?? '') : 'Nueva cotización' }}
                 </h1>
+                @if($is_editing && $status_label)
+                <p class="mt-2">
+                    <span class="inline-flex items-center rounded-full px-3 py-1 text-sm font-medium {{ $status_badge_class }}">{{ $status_label }}</span>
+                </p>
+                @else
                 <p class="mt-2 max-w-xl text-sm text-slate-600">Datos, condiciones e ítems en un solo formulario.</p>
+                @endif
             </div>
             @if($is_editing)
             <div class="flex w-full shrink-0 flex-wrap gap-2 sm:w-auto">
@@ -189,11 +195,8 @@
                                     <label class="mb-1 block text-xs font-medium text-slate-700">Descuento (%)</label>
                                     <input type="number" wire:model.live="items.{{ $index }}.discount_percentage" min="0" max="100" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">
                                 </div>
-                                @php
-                                $line = (float)($row['quantity'] ?? 0) * (float)($row['unit_price'] ?? 0) * (1 - (float)($row['discount_percentage'] ?? 0) / 100);
-                                @endphp
                                 <div class="flex items-end">
-                                    <p class="w-full rounded-xl bg-indigo-50 px-3 py-2 text-right text-sm font-semibold text-indigo-700">{{ col_money($line) }}</p>
+                                    <p class="w-full rounded-xl bg-indigo-50 px-3 py-2 text-right text-sm font-semibold text-indigo-700">{{ col_money($item_line_totals[$index] ?? 0) }}</p>
                                 </div>
                             </div>
                         </div>

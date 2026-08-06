@@ -5,6 +5,7 @@ namespace App\Actions\Workshop;
 use App\Actions\LogEquipmentHistoricalAction;
 use App\Actions\LogUserHistoricalAction;
 use App\Enums\WorkOrderStatus;
+use App\Models\Status;
 use App\Models\WorkOrder;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -30,6 +31,17 @@ class UpdateWorkOrderStatusAction
             ]);
         }
 
+        $status_record = Status::query()
+            ->forModule('work_orders')
+            ->where('name', $status->value)
+            ->first();
+
+        if (! $status_record) {
+            throw ValidationException::withMessages([
+                'status' => 'El estado seleccionado no es válido para órdenes de trabajo.',
+            ]);
+        }
+
         $previous_status = $work_order->status;
         $comment = $comment !== null ? trim($comment) : '';
 
@@ -39,7 +51,7 @@ class UpdateWorkOrderStatusAction
             ]);
         }
 
-        $payload = ['status' => $status];
+        $payload = ['status' => $status->value];
 
         if ($status === WorkOrderStatus::Completed) {
             $payload['finalized_at'] = $work_order->finalized_at ?? now();
@@ -62,9 +74,9 @@ class UpdateWorkOrderStatusAction
         }
 
         $work_order->update($payload);
-        $work_order = $work_order->fresh(['client:id,name', 'equipment', 'items']);
+        $work_order = $work_order->fresh(['client:id,name', 'equipment', 'items', 'statusDefinition']);
 
-        $description = "Cambió el estado de la OT {$work_order->reference} a {$status->label()}";
+        $description = "Cambió el estado de la OT {$work_order->reference} a {$status_record->label}";
         $properties = [
             'from' => $previous_status instanceof WorkOrderStatus
                 ? $previous_status->value

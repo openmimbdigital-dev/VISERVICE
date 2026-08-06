@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\WorkOrderStatus;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -16,7 +15,8 @@ return new class extends Migration
             $table->foreignId('equipment_id')->constrained('equipment')->onDelete('cascade');
             $table->foreignId('quotation_id')->nullable()->constrained('quotations')->nullOnDelete();
             $table->string('reference')->comment('OT-YYYYMM-XXXX');
-            $table->enum('status', array_column(WorkOrderStatus::cases(), 'value'))->default(WorkOrderStatus::Created->value);
+            $table->string('status', 100)->default('created');
+            $table->foreign('status')->references('name')->on('statuses')->restrictOnDelete();
             $table->json('status_comments')->nullable()->comment('Historial de comentarios por cambio de estado');
             $table->unsignedInteger('km_entry')->default(0);
             $table->unsignedInteger('km_exit')->nullable();

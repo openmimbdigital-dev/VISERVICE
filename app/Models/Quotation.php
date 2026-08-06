@@ -85,6 +85,11 @@ class Quotation extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    public function statusDefinition(): BelongsTo
+    {
+        return $this->belongsTo(Status::class, 'status', 'name');
+    }
+
     public function items(): HasMany
     {
         return $this->hasMany(QuotationItem::class);
@@ -181,6 +186,10 @@ class Quotation extends Model
 
     public function getStatusLabelAttribute(): string
     {
+        if ($this->relationLoaded('statusDefinition') && $this->statusDefinition) {
+            return $this->statusDefinition->label;
+        }
+
         return $this->status instanceof QuotationStatus
             ? $this->status->label()
             : (string) $this->status;
@@ -188,7 +197,7 @@ class Quotation extends Model
 
     public function isRejected(): bool
     {
-        return $this->status === QuotationStatus::Rechazada;
+        return $this->status === QuotationStatus::Rejected;
     }
 
     public function isEditable(): bool
@@ -204,12 +213,12 @@ class Quotation extends Model
     public function getStatusColorAttribute(): string
     {
         return match ($this->status) {
-            QuotationStatus::Creada    => 'gray',
-            QuotationStatus::Enviada   => 'blue',
-            QuotationStatus::Aceptada  => 'green',
-            QuotationStatus::Rechazada => 'red',
-            QuotationStatus::Vencida   => 'orange',
-            default                    => 'gray',
+            QuotationStatus::Created => 'gray',
+            QuotationStatus::Sent => 'blue',
+            QuotationStatus::Accepted => 'green',
+            QuotationStatus::Rejected => 'red',
+            QuotationStatus::Expired => 'orange',
+            default => 'gray',
         };
     }
 

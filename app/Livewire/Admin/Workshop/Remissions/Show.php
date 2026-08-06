@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin\Workshop\Remissions;
 
 use App\Actions\Workshop\DeleteRemissionAction;
+use App\Enums\WorkOrderStatus;
 use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
 use App\Models\GeneralConfig;
 use App\Models\Remission;
@@ -27,7 +28,15 @@ class Show extends Component
             404
         );
 
-        $this->remission = $remission;
+        $this->remission = $remission->load([
+            'items.productType',
+            'items.productCategory',
+            'items.unit',
+            'client',
+            'equipment',
+            'workOrder',
+            'statusDefinition',
+        ]);
     }
 
     public function deleteRemission(): void
@@ -57,6 +66,7 @@ class Show extends Component
             'client',
             'equipment',
             'workOrder',
+            'statusDefinition',
         ]);
 
         $document_client = $this->remission->workOrder?->document_client ?? [];
@@ -72,9 +82,14 @@ class Show extends Component
                 ->all();
         }
 
+        $status_badge_class = $this->remission->status instanceof WorkOrderStatus
+            ? $this->remission->status->badgeClass()
+            : 'bg-slate-100 text-slate-600 ring-1 ring-slate-500/20';
+
         return view('livewire.admin.workshop.remissions.show', [
             'document_client' => $document_client,
             'document_labels' => $document_labels,
+            'status_badge_class' => $status_badge_class,
             'can_edit'        => auth()->user()->can('workshop.remissions.edit')
                 && $this->remission->isEditable(),
             'can_delete'      => auth()->user()->can('workshop.remissions.delete')

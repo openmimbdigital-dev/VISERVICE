@@ -4,6 +4,7 @@ namespace App\Livewire\Forms\Admin\Workshop;
 
 use App\Enums\WorkOrderStatus;
 use App\Models\Remission;
+use App\Models\Status;
 use App\Models\WorkOrder;
 use App\Support\CurrentBusiness;
 use Illuminate\Support\Collection;
@@ -99,7 +100,7 @@ class RemissionForm extends Form
                     ->ignore($this->remission_id),
             ],
             'type' => ['required', Rule::in(['entrega', 'devolucion', 'traslado'])],
-            'status' => ['required', Rule::enum(WorkOrderStatus::class)],
+            'status' => ['required', 'string', Rule::in(array_keys(Status::optionsForModule('remissions')))],
             'quotation_or_po_reference' => ['nullable', 'string', 'max:150'],
             'issue_date' => ['nullable', 'date'],
             'delivery_address' => ['nullable', 'string', 'max:255'],
@@ -126,6 +127,7 @@ class RemissionForm extends Form
             'type.required'          => 'Selecciona el tipo de remisión.',
             'type.in'                => 'El tipo de remisión no es válido.',
             'status.required'        => 'Selecciona el estado.',
+            'status.in'              => 'El estado seleccionado no es válido.',
             'status.in'              => 'El estado no es válido.',
             'issue_date.date'        => 'La fecha de expedición no es válida.',
             'delivered_by_name.required'     => 'El nombre de quien entrega es obligatorio.',

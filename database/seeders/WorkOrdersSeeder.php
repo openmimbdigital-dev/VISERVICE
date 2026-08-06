@@ -38,16 +38,16 @@ class WorkOrdersSeeder extends Seeder
             ->get();
 
         $plan = [
-            ['business' => $transad, 'reference' => 'SEED-OT-TRANSAD-001', 'status' => 'creada', 'from_quotation' => 'SEED-COT-TRANSAD-004'],
-            ['business' => $transad, 'reference' => 'SEED-OT-TRANSAD-002', 'status' => 'creada', 'from_quotation' => null],
-            ['business' => $transad, 'reference' => 'SEED-OT-TRANSAD-003', 'status' => 'en_proceso', 'from_quotation' => null],
-            ['business' => $transad, 'reference' => 'SEED-OT-TRANSAD-004', 'status' => 'en_proceso', 'from_quotation' => null],
-            ['business' => $transad, 'reference' => 'SEED-OT-TRANSAD-005', 'status' => 'finalizada', 'from_quotation' => null],
-            ['business' => $transad, 'reference' => 'SEED-OT-TRANSAD-006', 'status' => 'cancelada', 'from_quotation' => null],
-            ['business_slug' => 'carga-rapida-sas', 'reference' => 'SEED-OT-CARGA-001', 'status' => 'creada', 'from_quotation' => null],
-            ['business_slug' => 'carga-rapida-sas', 'reference' => 'SEED-OT-CARGA-002', 'status' => 'en_proceso', 'from_quotation' => null],
-            ['business_slug' => 'transportes-del-valle', 'reference' => 'SEED-OT-VALLE-001', 'status' => 'creada', 'from_quotation' => 'SEED-COT-VALLE-002'],
-            ['business_slug' => 'transportes-del-valle', 'reference' => 'SEED-OT-VALLE-002', 'status' => 'finalizada', 'from_quotation' => null],
+            ['business' => $transad, 'reference' => 'SEED-OT-TRANSAD-001', 'status' => 'created', 'from_quotation' => 'SEED-COT-TRANSAD-004'],
+            ['business' => $transad, 'reference' => 'SEED-OT-TRANSAD-002', 'status' => 'created', 'from_quotation' => null],
+            ['business' => $transad, 'reference' => 'SEED-OT-TRANSAD-003', 'status' => 'in_progress', 'from_quotation' => null],
+            ['business' => $transad, 'reference' => 'SEED-OT-TRANSAD-004', 'status' => 'in_progress', 'from_quotation' => null],
+            ['business' => $transad, 'reference' => 'SEED-OT-TRANSAD-005', 'status' => 'completed', 'from_quotation' => null],
+            ['business' => $transad, 'reference' => 'SEED-OT-TRANSAD-006', 'status' => 'cancelled', 'from_quotation' => null],
+            ['business_slug' => 'carga-rapida-sas', 'reference' => 'SEED-OT-CARGA-001', 'status' => 'created', 'from_quotation' => null],
+            ['business_slug' => 'carga-rapida-sas', 'reference' => 'SEED-OT-CARGA-002', 'status' => 'in_progress', 'from_quotation' => null],
+            ['business_slug' => 'transportes-del-valle', 'reference' => 'SEED-OT-VALLE-001', 'status' => 'created', 'from_quotation' => 'SEED-COT-VALLE-002'],
+            ['business_slug' => 'transportes-del-valle', 'reference' => 'SEED-OT-VALLE-002', 'status' => 'completed', 'from_quotation' => null],
         ];
 
         $created = 0;
@@ -75,7 +75,7 @@ class WorkOrdersSeeder extends Seeder
             }
 
             $sequence++;
-            $is_finalized = $entry['status'] === 'finalizada';
+            $is_finalized = $entry['status'] === 'completed';
             $km_entry = 45000 + ($sequence * 1250);
 
             $work_order = WorkOrder::withTrashed()->updateOrCreate(
@@ -135,7 +135,7 @@ class WorkOrdersSeeder extends Seeder
         $quotation = Quotation::query()
             ->where('business_id', $business->id)
             ->where('reference', $reference)
-            ->where('status', QuotationStatus::Aceptada)
+            ->where('status', QuotationStatus::Accepted)
             ->with(['client', 'equipment', 'items'])
             ->first();
 
@@ -246,7 +246,9 @@ class WorkOrdersSeeder extends Seeder
                     'unit_price'          => $item->unit_price,
                     'discount_percentage' => $item->discount_percentage,
                     'subtotal'            => $item->subtotal,
-                    'status'              => $work_order->status === 'finalizada' ? 'completado' : 'pendiente',
+                    'status'              => in_array((string) ($work_order->status instanceof \App\Enums\WorkOrderStatus ? $work_order->status->value : $work_order->status), ['completed'], true)
+                        ? 'completado'
+                        : 'pendiente',
                 ]);
             }
 
@@ -263,9 +265,13 @@ class WorkOrdersSeeder extends Seeder
             $discount = (float) $row['discount_percentage'];
             $subtotal = round($qty * $price * (1 - $discount / 100), 2);
 
-            $item_status = match ($work_order->status) {
-                'finalizada' => 'completado',
-                'en_proceso' => 'en_proceso',
+            $status_value = $work_order->status instanceof \App\Enums\WorkOrderStatus
+                ? $work_order->status->value
+                : (string) $work_order->status;
+
+            $item_status = match ($status_value) {
+                'completed' => 'completado',
+                'in_progress' => 'en_proceso',
                 default      => 'pendiente',
             };
 

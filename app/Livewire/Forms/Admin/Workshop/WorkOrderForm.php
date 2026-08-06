@@ -76,7 +76,7 @@ class WorkOrderForm extends Form
                 'integer',
                 Rule::exists('quotations', 'id')->where(fn ($q) => $q
                     ->where('business_id', $business_id)
-                    ->where('status', QuotationStatus::Aceptada->value)
+                    ->where('status', QuotationStatus::Accepted->value)
                     ->whereNull('deleted_at')),
             ],
             'client_id' => [
@@ -144,7 +144,7 @@ class WorkOrderForm extends Form
         return Quotation::query()
             ->forAuthUser()
             ->where('business_id', $business_id)
-            ->where('status', QuotationStatus::Aceptada)
+            ->where('status', QuotationStatus::Accepted)
             ->where(function ($query) use ($work_order_id) {
                 $query->whereDoesntHave('workOrder');
 

@@ -31,7 +31,8 @@ return new class extends Migration
             $table->unsignedBigInteger('business_payment_method_id')->nullable();
             $table->unsignedBigInteger('business_bank_account_id')->nullable();
             $table->string('reference')->comment('COT-YYYYMM-XXXX');
-            $table->string('status', 20)->default('creada')->comment('App\Enums\QuotationStatus');
+            $table->string('status', 100)->default('created');
+            $table->foreign('status')->references('name')->on('statuses')->restrictOnDelete();
             $table->text('diagnosis')->nullable()->comment('Diagnóstico inicial del equipo');
             $table->time('hours_entry')->nullable()->comment('Horas de uso al ingreso (formato HH:MM)');
             $table->unsignedSmallInteger('validity_days')->default(15)->comment('Días de vigencia de la oferta');

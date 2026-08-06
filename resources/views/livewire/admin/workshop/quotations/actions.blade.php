@@ -1,9 +1,3 @@
-@php
-    $can_create_ot = ($status ?? null) === 'aceptada' && empty($work_order_id);
-    $has_work_order = ! empty($work_order_id);
-    $is_rejected = ($status ?? null) === 'rechazada';
-    $edit_disabled_title = 'La cotización está rechazada';
-@endphp
 <div class="flex flex-nowrap items-center justify-end gap-1">
     @can('workshop.quotations.view')
     <a href="{{ route('admin.workshop.quotations.show', $id) }}" wire:navigate title="Ver detalle"
@@ -17,7 +11,7 @@
 
     @can('workshop.quotations.edit')
         @if($is_rejected)
-            <span title="{{ $edit_disabled_title }}"
+            <span title="La cotización está rechazada"
                 class="inline-flex shrink-0 cursor-not-allowed rounded p-1.5 text-slate-300 opacity-50"
                 aria-disabled="true">
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

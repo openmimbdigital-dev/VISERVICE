@@ -4,31 +4,31 @@ namespace App\Enums;
 
 enum QuotationStatus: string
 {
-    case Creada    = 'creada';
-    case Enviada   = 'enviada';
-    case Aceptada  = 'aceptada';
-    case Rechazada = 'rechazada';
-    case Vencida   = 'vencida';
+    case Created = 'created';
+    case Sent = 'sent';
+    case Accepted = 'accepted';
+    case Rejected = 'rejected';
+    case Expired = 'expired';
 
     public function label(): string
     {
         return match ($this) {
-            self::Creada    => 'Creada',
-            self::Enviada   => 'Enviada',
-            self::Aceptada  => 'Aceptada',
-            self::Rechazada => 'Rechazada',
-            self::Vencida   => 'Vencida',
+            self::Created => 'Creada',
+            self::Sent => 'Enviada',
+            self::Accepted => 'Aceptada',
+            self::Rejected => 'Rechazada',
+            self::Expired => 'Vencida',
         };
     }
 
     public function badgeClass(): string
     {
         return match ($this) {
-            self::Creada    => 'bg-slate-100 text-slate-600 ring-1 ring-slate-500/20',
-            self::Enviada   => 'bg-blue-50 text-blue-700 ring-1 ring-blue-600/20',
-            self::Aceptada  => 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20',
-            self::Rechazada => 'bg-red-50 text-red-700 ring-1 ring-red-600/20',
-            self::Vencida   => 'bg-orange-50 text-orange-700 ring-1 ring-orange-600/20',
+            self::Created => 'bg-slate-100 text-slate-600 ring-1 ring-slate-500/20',
+            self::Sent => 'bg-blue-50 text-blue-700 ring-1 ring-blue-600/20',
+            self::Accepted => 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20',
+            self::Rejected => 'bg-red-50 text-red-700 ring-1 ring-red-600/20',
+            self::Expired => 'bg-orange-50 text-orange-700 ring-1 ring-orange-600/20',
         };
     }
 

@@ -1,7 +1,3 @@
-@php
-    $status_enum = \App\Enums\WorkOrderStatus::tryFrom((string) $status);
-    $can_mutate = $status_enum?->isOpen() ?? false;
-@endphp
 <div class="flex flex-nowrap items-center justify-end gap-1">
     @can('workshop.work-orders.view')
     <a href="{{ route('admin.workshop.work-orders.show', $id) }}" wire:navigate title="Ver detalle"

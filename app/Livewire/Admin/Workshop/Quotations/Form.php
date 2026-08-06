@@ -16,6 +16,7 @@ use App\Models\ProductCategory;
 use App\Models\ProductType;
 use App\Models\Quotation;
 use App\Models\QuotationServiceType;
+use App\Models\Status;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -59,7 +60,9 @@ class Form extends Component
 
             $this->form->setQuotation($quotation);
             $this->reference = $quotation->reference;
-            $this->quotation_status = $quotation->status->value;
+            $this->quotation_status = $quotation->status instanceof QuotationStatus
+                ? $quotation->status->value
+                : (string) $quotation->status;
             $this->linked_work_order_id = $quotation->workOrder?->id;
             $this->linked_work_order_reference = $quotation->workOrder?->reference;
             $this->items = $quotation->items->map(fn ($item) => [
@@ -278,6 +281,33 @@ class Form extends Component
         $tax      = round($subtotal * ($tax_pct / 100), 2);
         $total    = $subtotal + $tax;
 
+        $status_enum = $this->quotation_status
+            ? QuotationStatus::tryFrom($this->quotation_status)
+            : null;
+
+        $status_label = null;
+        $status_badge_class = 'bg-slate-100 text-slate-600 ring-1 ring-slate-500/20';
+
+        if ($this->quotation_status) {
+            $status_label = Status::query()
+                ->forModule('quotations')
+                ->where('name', $this->quotation_status)
+                ->value('label')
+                ?? $status_enum?->label()
+                ?? $this->quotation_status;
+            $status_badge_class = $status_enum?->badgeClass() ?? $status_badge_class;
+        }
+
+        $item_line_totals = [];
+        foreach ($this->items as $index => $row) {
+            $item_line_totals[$index] = round(
+                (float) ($row['quantity'] ?? 0)
+                * (float) ($row['unit_price'] ?? 0)
+                * (1 - (float) ($row['discount_percentage'] ?? 0) / 100),
+                2
+            );
+        }
+
         return view('livewire.admin.workshop.quotations.form', [
             'is_editing'           => $this->form->isEditing(),
             'clients'              => $clients,
@@ -292,11 +322,14 @@ class Form extends Component
             'preview_subtotal'     => $subtotal,
             'preview_tax'          => $tax,
             'preview_total'        => $total,
+            'status_label'         => $status_label,
+            'status_badge_class'   => $status_badge_class,
+            'item_line_totals'     => $item_line_totals,
             'can_delete'           => $this->form->quotation_id
                 && auth()->user()->can('workshop.quotations.delete'),
             'can_create_ot'        => $this->form->quotation_id
                 && auth()->user()->can('workshop.work-orders.create')
-                && $this->quotation_status === QuotationStatus::Aceptada->value
+                && $this->quotation_status === QuotationStatus::Accepted->value
                 && ! $this->linked_work_order_id,
         ]);
     }

@@ -1,16 +1,4 @@
 <div class="relative mx-auto w-full max-w-[90rem] p-4 sm:p-6">
-    @php
-    $badge = $workOrder->status instanceof \App\Enums\WorkOrderStatus
-        ? $workOrder->status->badgeClass()
-        : 'bg-slate-100 text-slate-600 ring-1 ring-slate-500/20';
-    $itemStatusBadge = [
-        'pendiente'  => 'bg-slate-100 text-slate-600',
-        'en_proceso' => 'bg-yellow-50 text-yellow-700',
-        'completado' => 'bg-emerald-50 text-emerald-700',
-        'cancelado'  => 'bg-red-50 text-red-600',
-    ];
-    @endphp
-
     <div class="pointer-events-none absolute -top-4 left-1/2 h-px w-[min(100%,48rem)] -translate-x-1/2 bg-gradient-to-r from-transparent via-indigo-300/40 to-transparent" aria-hidden="true"></div>
 
     <nav class="mb-6 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-medium text-slate-500">
@@ -27,7 +15,7 @@
                 <div class="min-w-0">
                     <div class="flex flex-wrap items-center gap-3">
                         <h1 class="font-mono text-2xl font-bold text-slate-900">{{ $workOrder->reference }}</h1>
-                        <span class="inline-flex items-center rounded-full px-3 py-1 text-sm font-medium {{ $badge }}">
+                        <span class="inline-flex items-center rounded-full px-3 py-1 text-sm font-medium {{ $status_badge_class }}">
                             {{ $workOrder->status_label }}
                         </span>
                         @if($workOrder->quotation_id)
@@ -151,14 +139,14 @@
                         <td class="px-3 py-3 text-center sm:px-4">
                             @if($can_manage)
                             <select wire:change="updateItemStatus({{ $item->id }}, $event.target.value)"
-                                class="rounded-lg border border-slate-200 px-2 py-1 text-xs {{ $itemStatusBadge[$item->status] ?? '' }}">
+                                class="rounded-lg border border-slate-200 px-2 py-1 text-xs {{ $item_status_badges[$item->status] ?? '' }}">
                                 <option value="pendiente" @selected($item->status === 'pendiente')>Pendiente</option>
                                 <option value="en_proceso" @selected($item->status === 'en_proceso')>En proceso</option>
                                 <option value="completado" @selected($item->status === 'completado')>Completado</option>
                                 <option value="cancelado" @selected($item->status === 'cancelado')>Cancelado</option>
                             </select>
                             @else
-                            <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium {{ $itemStatusBadge[$item->status] ?? '' }}">{{ $item->status_label }}</span>
+                            <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium {{ $item_status_badges[$item->status] ?? '' }}">{{ $item->status_label }}</span>
                             @endif
                         </td>
                         @if($can_manage)
@@ -234,19 +222,17 @@
                                     class="w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-100 px-3.5 py-2.5 text-sm text-slate-500 opacity-70">
                             </div>
                         @endif
-                        @if(! empty($workOrder->status_comments))
+                        @if(! empty($status_comments_history))
                         <div class="space-y-2">
                             <p class="text-xs font-medium text-slate-500">Historial de comentarios</p>
                             <ul class="max-h-40 space-y-2 overflow-y-auto">
-                                @foreach(array_reverse($workOrder->status_comments) as $entry)
+                                @foreach($status_comments_history as $entry)
                                 <li class="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-xs text-slate-600">
-                                    <p class="font-medium text-slate-800">{{ $entry['comment'] ?? '' }}</p>
+                                    <p class="font-medium text-slate-800">{{ $entry['comment'] }}</p>
                                     <p class="mt-1 text-[11px] text-slate-400">
-                                        {{ \App\Enums\WorkOrderStatus::tryFrom($entry['status'] ?? '')?->label() ?? ($entry['status'] ?? '') }}
+                                        {{ $entry['status_label'] }}
                                         @if(! empty($entry['user_name'])) · {{ $entry['user_name'] }} @endif
-                                        @if(! empty($entry['changed_at']))
-                                            · {{ \Illuminate\Support\Carbon::parse($entry['changed_at'])->format('d/m/Y H:i') }}
-                                        @endif
+                                        @if(! empty($entry['changed_at'])) · {{ $entry['changed_at'] }} @endif
                                     </p>
                                 </li>
                                 @endforeach
@@ -270,29 +256,27 @@
                     <div>
                         <label class="mb-1.5 block text-xs font-medium text-slate-700">
                             Comentario
-                            @if($status === \App\Enums\WorkOrderStatus::Cancelled->value)
+                            @if($show_cancel_comment_required)
                                 <span class="text-rose-500">*</span>
                             @endif
                         </label>
                         <textarea wire:model="status_comment" rows="3"
                             class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('status_comment') border-rose-400 bg-rose-50 @enderror"
-                            placeholder="{{ $status === \App\Enums\WorkOrderStatus::Cancelled->value ? 'Motivo de la cancelación…' : 'Opcional: nota del cambio de estado…' }}"></textarea>
+                            placeholder="{{ $status_comment_placeholder }}"></textarea>
                         @error('status_comment') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                     </div>
 
-                    @if(! empty($workOrder->status_comments))
+                    @if(! empty($status_comments_history))
                     <div class="space-y-2">
                         <p class="text-xs font-medium text-slate-500">Historial de comentarios</p>
                         <ul class="max-h-40 space-y-2 overflow-y-auto">
-                            @foreach(array_reverse($workOrder->status_comments) as $entry)
+                            @foreach($status_comments_history as $entry)
                             <li class="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-xs text-slate-600">
-                                <p class="font-medium text-slate-800">{{ $entry['comment'] ?? '' }}</p>
+                                <p class="font-medium text-slate-800">{{ $entry['comment'] }}</p>
                                 <p class="mt-1 text-[11px] text-slate-400">
-                                    {{ \App\Enums\WorkOrderStatus::tryFrom($entry['status'] ?? '')?->label() ?? ($entry['status'] ?? '') }}
+                                    {{ $entry['status_label'] }}
                                     @if(! empty($entry['user_name'])) · {{ $entry['user_name'] }} @endif
-                                    @if(! empty($entry['changed_at']))
-                                        · {{ \Illuminate\Support\Carbon::parse($entry['changed_at'])->format('d/m/Y H:i') }}
-                                    @endif
+                                    @if(! empty($entry['changed_at'])) · {{ $entry['changed_at'] }} @endif
                                 </p>
                             </li>
                             @endforeach

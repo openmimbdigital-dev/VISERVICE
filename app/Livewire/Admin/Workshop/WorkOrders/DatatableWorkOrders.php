@@ -5,6 +5,7 @@ namespace App\Livewire\Admin\Workshop\WorkOrders;
 use App\Actions\Workshop\DeleteWorkOrderAction;
 use App\Enums\WorkOrderStatus;
 use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
+use App\Models\Status;
 use App\Models\WorkOrder;
 use Arm092\LivewireDatatables\Column;
 use Arm092\LivewireDatatables\DateColumn;
@@ -63,16 +64,18 @@ class DatatableWorkOrders extends LivewireDatatable
                 }
 
                 return '<span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ' . $enum->badgeClass() . '">' . e($enum->label()) . '</span>';
-            })->label('Estado')->filterable(WorkOrderStatus::options()),
+            })->label('Estado')->filterable(Status::optionsForModule('work_orders')),
 
             DateColumn::name('work_orders.created_at')
                 ->label('Fecha')
                 ->sortable(),
 
             Column::callback(['work_orders.id', 'work_orders.status'], function ($id, $status) {
+                $status_enum = WorkOrderStatus::tryFrom((string) $status);
+
                 return view('livewire.admin.workshop.work-orders.actions', [
-                    'id'     => $id,
-                    'status' => $status,
+                    'id'         => $id,
+                    'can_mutate' => $status_enum?->isOpen() ?? false,
                 ]);
             })->label('Acciones')->unsortable(),
         ];

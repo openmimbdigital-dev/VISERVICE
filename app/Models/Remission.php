@@ -80,6 +80,11 @@ class Remission extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    public function statusDefinition(): BelongsTo
+    {
+        return $this->belongsTo(Status::class, 'status', 'name');
+    }
+
     public function items(): HasMany
     {
         return $this->hasMany(RemissionItem::class)->orderBy('sort_order');
@@ -114,6 +119,10 @@ class Remission extends Model
 
     public function getStatusLabelAttribute(): string
     {
+        if ($this->relationLoaded('statusDefinition') && $this->statusDefinition) {
+            return $this->statusDefinition->label;
+        }
+
         return $this->status instanceof WorkOrderStatus
             ? $this->status->label()
             : (string) $this->status;

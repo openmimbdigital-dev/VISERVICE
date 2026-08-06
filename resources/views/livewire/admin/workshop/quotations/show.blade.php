@@ -13,7 +13,7 @@
                 <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-indigo-600/90">Taller</p>
                 <div class="mt-2 flex flex-wrap items-center gap-3">
                     <h1 class="text-2xl font-bold tracking-tight text-slate-900">{{ $quotation->reference }}</h1>
-                    <span class="inline-flex items-center rounded-full px-3 py-1 text-sm font-medium {{ $quotation->status->badgeClass() }}">{{ $quotation->status->label() }}</span>
+                    <span class="inline-flex items-center rounded-full px-3 py-1 text-sm font-medium {{ $status_badge_class }}">{{ $quotation->status_label }}</span>
                 </div>
                 <p class="mt-2 text-sm text-slate-500">
                     {{ $quotation->client?->name }} · {{ $quotation->equipment?->select_label }}
@@ -179,7 +179,7 @@
                     <div class="space-y-3 p-4 sm:p-5">
                         <div>
                             <label class="mb-1.5 block text-xs font-medium text-slate-700">Estado</label>
-                            <input type="text" disabled value="{{ $quotation->status->label() }}"
+                            <input type="text" disabled value="{{ $quotation->status_label }}"
                                 class="w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-100 px-3.5 py-2.5 text-sm text-slate-500 opacity-70">
                         </div>
                         @if($quotation->reject_reason)
@@ -203,7 +203,7 @@
                         @error('status') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                     </div>
 
-                    <div @class(['hidden' => $status !== \App\Enums\QuotationStatus::Rechazada->value])>
+                    <div @class(['hidden' => ! $show_reject_reason])>
                         <label class="mb-1.5 block text-xs font-medium text-slate-700">Motivo del rechazo <span class="text-rose-500">*</span></label>
                         <textarea wire:model="reject_reason" rows="3"
                             class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('reject_reason') border-rose-400 bg-rose-50 @enderror"

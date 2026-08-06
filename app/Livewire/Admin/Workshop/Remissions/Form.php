@@ -9,6 +9,7 @@ use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
 use App\Livewire\Forms\Admin\Workshop\RemissionForm;
 use App\Models\City;
 use App\Models\Remission;
+use App\Models\Status;
 use App\Models\WorkOrder;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -148,6 +149,7 @@ class Form extends Component
             'is_editing'           => $this->form->isEditing(),
             'eligible_work_orders' => $this->form->getEligibleWorkOrders(),
             'cities'               => City::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'state_province']),
+            'status_options'       => Status::optionsForModule('remissions'),
             'can_delete'           => $this->form->isEditing()
                 && auth()->user()->can('workshop.remissions.delete')
                 && ! (WorkOrderStatus::tryFrom($this->form->status)?->isTerminal() ?? false),

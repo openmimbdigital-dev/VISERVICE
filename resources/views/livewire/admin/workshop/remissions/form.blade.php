@@ -69,7 +69,7 @@
                 <div>
                     <label class="mb-1.5 block text-xs font-medium text-slate-700">Estado <span class="text-rose-500">*</span></label>
                     <select wire:model="form.status" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm @error('form.status') border-rose-400 bg-rose-50 @enderror">
-                        @foreach(\App\Enums\WorkOrderStatus::options() as $value => $label)
+                        @foreach($status_options as $value => $label)
                             <option value="{{ $value }}">{{ $label }}</option>
                         @endforeach
                     </select>

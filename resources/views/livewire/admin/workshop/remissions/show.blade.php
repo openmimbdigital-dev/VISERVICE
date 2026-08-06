@@ -1,9 +1,3 @@
-@php
-    $badge = $remission->status instanceof \App\Enums\WorkOrderStatus
-        ? $remission->status->badgeClass()
-        : 'bg-slate-100 text-slate-600 ring-1 ring-slate-500/20';
-@endphp
-
 <div class="relative mx-auto w-full max-w-[90rem] p-4 sm:p-6">
     <div class="pointer-events-none absolute -top-4 left-1/2 h-px w-[min(100%,48rem)] -translate-x-1/2 bg-gradient-to-r from-transparent via-indigo-300/40 to-transparent" aria-hidden="true"></div>
 
@@ -20,7 +14,7 @@
             <div class="min-w-0 flex-1 border-l-4 border-indigo-600 pl-4 sm:pl-5">
                 <div class="flex flex-wrap items-center gap-3">
                     <h1 class="font-mono text-2xl font-bold text-slate-900">{{ $remission->reference }}</h1>
-                    <span class="inline-flex items-center rounded-full px-3 py-1 text-sm font-medium {{ $badge }}">
+                    <span class="inline-flex items-center rounded-full px-3 py-1 text-sm font-medium {{ $status_badge_class }}">
                         {{ $remission->status_label }}
                     </span>
                     <span class="inline-flex items-center rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700">

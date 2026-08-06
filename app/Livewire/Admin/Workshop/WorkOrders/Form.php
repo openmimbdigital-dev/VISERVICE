@@ -97,7 +97,7 @@ class Form extends Component
         $quotation = Quotation::query()
             ->forAuthUser()
             ->where('business_id', $this->form->resolvedBusinessId())
-            ->where('status', \App\Enums\QuotationStatus::Aceptada)
+            ->where('status', \App\Enums\QuotationStatus::Accepted)
             ->where(function ($query) {
                 $query->whereDoesntHave('workOrder');
 

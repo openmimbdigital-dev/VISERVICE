@@ -4,10 +4,10 @@ namespace App\Enums;
 
 enum WorkOrderStatus: string
 {
-    case Created = 'creada';
-    case InProgress = 'en_proceso';
-    case Completed = 'finalizada';
-    case Cancelled = 'cancelada';
+    case Created = 'created';
+    case InProgress = 'in_progress';
+    case Completed = 'completed';
+    case Cancelled = 'cancelled';
 
     public function label(): string
     {

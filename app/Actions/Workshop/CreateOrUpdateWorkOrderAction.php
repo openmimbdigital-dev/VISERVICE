@@ -141,7 +141,7 @@ class CreateOrUpdateWorkOrderAction
         $quotation = Quotation::query()
             ->forAuthUser()
             ->where('business_id', $business_id)
-            ->where('status', QuotationStatus::Aceptada)
+            ->where('status', QuotationStatus::Accepted)
             ->whereKey($quotation_id)
             ->firstOrFail();
 
