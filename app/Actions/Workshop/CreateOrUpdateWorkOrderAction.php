@@ -204,10 +204,7 @@ class CreateOrUpdateWorkOrderAction
                 $item->update($payload);
                 $kept_ids[] = (int) $item->id;
             } else {
-                $item = $work_order->items()->create([
-                    ...$payload,
-                    'status' => 'pendiente',
-                ]);
+                $item = $work_order->items()->create($payload);
                 $kept_ids[] = (int) $item->id;
             }
         }

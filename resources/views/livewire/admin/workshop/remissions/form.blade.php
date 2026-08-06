@@ -67,13 +67,15 @@
                 </div>
 
                 <div>
-                    <label class="mb-1.5 block text-xs font-medium text-slate-700">Estado <span class="text-rose-500">*</span></label>
-                    <select wire:model="form.status" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm @error('form.status') border-rose-400 bg-rose-50 @enderror">
-                        @foreach($status_options as $value => $label)
-                            <option value="{{ $value }}">{{ $label }}</option>
-                        @endforeach
-                    </select>
-                    @error('form.status') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                    <label class="mb-1.5 block text-xs font-medium text-slate-700">Estado</label>
+                    <div class="flex min-h-[42px] items-center rounded-xl border border-slate-200 bg-slate-100 px-3.5 py-2.5">
+                        @if($form->work_order_id)
+                            <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium {{ $status_badge_class }}">{{ $status_label }}</span>
+                            <span class="ml-2 text-xs text-slate-500">Heredado de la OT</span>
+                        @else
+                            <span class="text-sm text-slate-400">Selecciona una OT</span>
+                        @endif
+                    </div>
                 </div>
 
                 <div>

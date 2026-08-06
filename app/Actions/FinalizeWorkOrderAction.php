@@ -2,6 +2,7 @@
 
 namespace App\Actions;
 
+use App\Actions\Workshop\SyncWorkOrderRemissionsStatusAction;
 use App\Enums\WorkOrderStatus;
 use App\Models\WorkOrder;
 use Illuminate\Support\Facades\DB;
@@ -34,6 +35,8 @@ class FinalizeWorkOrderAction
                 'work_description' => $work_description,
                 'finalized_at'     => now(),
             ]);
+
+            SyncWorkOrderRemissionsStatusAction::run($workOrder, WorkOrderStatus::Completed);
 
             // Actualiza km del equipo con el km de salida
             if ($km_exit && $km_exit > $workOrder->equipment->km_current) {

@@ -14,10 +14,11 @@ class WorkOrderItem extends Model
         'product_type_id',
         'description',
         'quantity',
+        'quantity_complete',
+        'quantity_canceled',
         'unit_price',
         'discount_percentage',
         'subtotal',
-        'status',
         'technician_notes',
     ];
 
@@ -25,6 +26,8 @@ class WorkOrderItem extends Model
     {
         return [
             'quantity'            => 'decimal:2',
+            'quantity_complete'   => 'decimal:2',
+            'quantity_canceled'   => 'decimal:2',
             'unit_price'          => 'decimal:2',
             'discount_percentage' => 'decimal:2',
             'subtotal'            => 'decimal:2',
@@ -57,27 +60,5 @@ class WorkOrderItem extends Model
         $discount = $base * ((float) $this->discount_percentage / 100);
 
         return round($base - $discount, 2);
-    }
-
-    public function getStatusLabelAttribute(): string
-    {
-        return match ($this->status) {
-            'pendiente'  => 'Pendiente',
-            'en_proceso' => 'En proceso',
-            'completado' => 'Completado',
-            'cancelado'  => 'Cancelado',
-            default      => $this->status,
-        };
-    }
-
-    public function getStatusColorAttribute(): string
-    {
-        return match ($this->status) {
-            'pendiente'  => 'gray',
-            'en_proceso' => 'yellow',
-            'completado' => 'green',
-            'cancelado'  => 'red',
-            default      => 'gray',
-        };
     }
 }

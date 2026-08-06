@@ -15,15 +15,15 @@ return new class extends Migration
             $table->unsignedBigInteger('product_type_id')->nullable();
             $table->string('description');
             $table->decimal('quantity', 10, 2)->default(1);
+            $table->decimal('quantity_complete', 10, 2)->default(0);
+            $table->decimal('quantity_canceled', 10, 2)->default(0);
             $table->decimal('unit_price', 12, 2)->default(0);
             $table->decimal('discount_percentage', 5, 2)->default(0);
             $table->decimal('subtotal', 12, 2)->default(0);
-            $table->enum('status', ['pendiente', 'en_proceso', 'completado', 'cancelado'])->default('pendiente');
             $table->text('technician_notes')->nullable();
             $table->timestamps();
 
             $table->index(['work_order_id', 'product_type_id'], 'work_order_items_wo_type_idx');
-            $table->index(['work_order_id', 'status'], 'work_order_items_wo_status_idx');
         });
     }
 

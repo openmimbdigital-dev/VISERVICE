@@ -115,13 +115,24 @@
                         <th class="hidden px-3 py-2 text-right text-xs font-semibold uppercase text-slate-500 sm:table-cell sm:px-4">Cant.</th>
                         <th class="hidden px-3 py-2 text-right text-xs font-semibold uppercase text-slate-500 md:table-cell sm:px-4">P. Unit.</th>
                         <th class="px-3 py-2 text-right text-xs font-semibold uppercase text-slate-500 sm:px-4">Subtotal</th>
-                        <th class="px-3 py-2 text-center text-xs font-semibold uppercase text-slate-500 sm:px-4">Estado</th>
-                        @if($can_manage)<th class="px-3 py-2 sm:px-4"></th>@endif
+                        <th class="px-3 py-2 text-center text-xs font-semibold uppercase text-slate-500 sm:px-4">Completados</th>
+                        <th class="px-3 py-2 text-center text-xs font-semibold uppercase text-slate-500 sm:px-4">Cancelados</th>
+                        @if($can_manage)
+                        <th class="px-3 py-2 text-center text-xs font-semibold uppercase text-slate-500 sm:px-4">Avance</th>
+                        <th class="px-3 py-2 sm:px-4"></th>
+                        @endif
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     @forelse($workOrder->items as $item)
-                    <tr wire:key="woi-{{ $item->id }}" class="{{ $item->status === 'cancelado' ? 'opacity-50' : '' }}">
+                    @php
+                        $item_qty = (float) $item->quantity;
+                        $item_complete = (float) $item->quantity_complete;
+                        $item_canceled = (float) $item->quantity_canceled;
+                        $can_complete = $item_complete < $item_qty;
+                        $can_cancel = $item_canceled < $item_qty;
+                    @endphp
+                    <tr wire:key="woi-{{ $item->id }}">
                         <td class="px-3 py-3 sm:px-4">
                             <span class="rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700">
                                 {{ $item->productType?->name ?? '—' }}
@@ -136,20 +147,27 @@
                         <td class="hidden px-3 py-3 text-right text-sm text-slate-600 sm:table-cell sm:px-4">{{ $item->quantity }}</td>
                         <td class="hidden px-3 py-3 text-right text-sm text-slate-600 md:table-cell sm:px-4">{{ col_money($item->unit_price) }}</td>
                         <td class="px-3 py-3 text-right font-semibold text-slate-900 sm:px-4">{{ col_money($item->subtotal) }}</td>
-                        <td class="px-3 py-3 text-center sm:px-4">
-                            @if($can_manage)
-                            <select wire:change="updateItemStatus({{ $item->id }}, $event.target.value)"
-                                class="rounded-lg border border-slate-200 px-2 py-1 text-xs {{ $item_status_badges[$item->status] ?? '' }}">
-                                <option value="pendiente" @selected($item->status === 'pendiente')>Pendiente</option>
-                                <option value="en_proceso" @selected($item->status === 'en_proceso')>En proceso</option>
-                                <option value="completado" @selected($item->status === 'completado')>Completado</option>
-                                <option value="cancelado" @selected($item->status === 'cancelado')>Cancelado</option>
-                            </select>
-                            @else
-                            <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium {{ $item_status_badges[$item->status] ?? '' }}">{{ $item->status_label }}</span>
-                            @endif
-                        </td>
+                        <td class="px-3 py-3 text-center text-sm font-semibold text-emerald-700 sm:px-4">{{ $item->quantity_complete + 0 }}</td>
+                        <td class="px-3 py-3 text-center text-sm font-semibold text-rose-600 sm:px-4">{{ $item->quantity_canceled + 0 }}</td>
                         @if($can_manage)
+                        <td class="px-3 py-3 sm:px-4">
+                            <div class="flex flex-wrap items-center justify-center gap-1">
+                                <button type="button"
+                                    wire:click="completeItemQuantity({{ $item->id }})"
+                                    @disabled(! $can_complete)
+                                    class="inline-flex items-center justify-center rounded-lg bg-emerald-50 p-1.5 text-emerald-700 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-40"
+                                    title="Completar +1">
+                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                </button>
+                                <button type="button"
+                                    wire:click="cancelItemQuantity({{ $item->id }})"
+                                    @disabled(! $can_cancel)
+                                    class="inline-flex items-center justify-center rounded-lg bg-rose-50 p-1.5 text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-40"
+                                    title="Cancelar +1">
+                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                </button>
+                            </div>
+                        </td>
                         <td class="px-3 py-3 sm:px-4">
                             <div class="flex flex-wrap justify-end gap-1">
                                 <button wire:click="openEditItem({{ $item->id }})" type="button" class="rounded p-1 text-slate-400 hover:text-indigo-600" title="Editar">
@@ -164,7 +182,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="{{ $can_manage ? 7 : 6 }}" class="px-4 py-8 text-center text-sm text-slate-400">Sin ítems. Usa «Agregar ítem».</td>
+                        <td colspan="{{ $can_manage ? 9 : 7 }}" class="px-4 py-8 text-center text-sm text-slate-400">Sin ítems. Usa «Agregar ítem».</td>
                     </tr>
                     @endforelse
                 </tbody>
@@ -174,19 +192,19 @@
                         <td colspan="4" class="hidden px-4 py-2 text-right text-xs font-semibold uppercase text-slate-500 md:table-cell">Subtotal</td>
                         <td colspan="2" class="px-4 py-2 text-right text-xs font-semibold uppercase text-slate-500 md:hidden">Subtotal</td>
                         <td class="px-4 py-2 text-right font-semibold text-slate-700">{{ col_money($workOrder->subtotal) }}</td>
-                        <td colspan="{{ $can_manage ? 2 : 1 }}"></td>
+                        <td colspan="{{ $can_manage ? 4 : 2 }}"></td>
                     </tr>
                     <tr>
                         <td colspan="4" class="hidden px-4 py-1 text-right text-xs font-semibold uppercase text-slate-500 md:table-cell">IVA {{ $workOrder->tax_percentage }}%</td>
                         <td colspan="2" class="px-4 py-1 text-right text-xs font-semibold uppercase text-slate-500 md:hidden">IVA {{ $workOrder->tax_percentage }}%</td>
                         <td class="px-4 py-1 text-right font-semibold text-slate-700">{{ col_money($workOrder->tax_amount) }}</td>
-                        <td colspan="{{ $can_manage ? 2 : 1 }}"></td>
+                        <td colspan="{{ $can_manage ? 4 : 2 }}"></td>
                     </tr>
                     <tr>
                         <td colspan="4" class="hidden px-4 py-2 text-right text-sm font-bold uppercase text-slate-900 md:table-cell">Total</td>
                         <td colspan="2" class="px-4 py-2 text-right text-sm font-bold uppercase text-slate-900 md:hidden">Total</td>
                         <td class="px-4 py-2 text-right text-base font-bold text-indigo-700">{{ col_money($workOrder->total) }}</td>
-                        <td colspan="{{ $can_manage ? 2 : 1 }}"></td>
+                        <td colspan="{{ $can_manage ? 4 : 2 }}"></td>
                     </tr>
                 </tfoot>
                 @endif

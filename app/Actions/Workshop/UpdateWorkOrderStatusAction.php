@@ -74,7 +74,8 @@ class UpdateWorkOrderStatusAction
         }
 
         $work_order->update($payload);
-        $work_order = $work_order->fresh(['client:id,name', 'equipment', 'items', 'statusDefinition']);
+        SyncWorkOrderRemissionsStatusAction::run($work_order, $status);
+        $work_order = $work_order->fresh(['client:id,name', 'equipment', 'items', 'statusDefinition', 'remissions']);
 
         $description = "Cambió el estado de la OT {$work_order->reference} a {$status_record->label}";
         $properties = [

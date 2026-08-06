@@ -246,9 +246,6 @@ class WorkOrdersSeeder extends Seeder
                     'unit_price'          => $item->unit_price,
                     'discount_percentage' => $item->discount_percentage,
                     'subtotal'            => $item->subtotal,
-                    'status'              => in_array((string) ($work_order->status instanceof \App\Enums\WorkOrderStatus ? $work_order->status->value : $work_order->status), ['completed'], true)
-                        ? 'completado'
-                        : 'pendiente',
                 ]);
             }
 
@@ -265,16 +262,6 @@ class WorkOrdersSeeder extends Seeder
             $discount = (float) $row['discount_percentage'];
             $subtotal = round($qty * $price * (1 - $discount / 100), 2);
 
-            $status_value = $work_order->status instanceof \App\Enums\WorkOrderStatus
-                ? $work_order->status->value
-                : (string) $work_order->status;
-
-            $item_status = match ($status_value) {
-                'completed' => 'completado',
-                'in_progress' => 'en_proceso',
-                default      => 'pendiente',
-            };
-
             WorkOrderItem::query()->create([
                 'work_order_id'       => $work_order->id,
                 'product_id'          => $row['product_id'] ?? null,
@@ -284,7 +271,6 @@ class WorkOrdersSeeder extends Seeder
                 'unit_price'          => $price,
                 'discount_percentage' => $discount,
                 'subtotal'            => $subtotal,
-                'status'              => $item_status,
             ]);
         }
     }

@@ -4,6 +4,7 @@ namespace App\Livewire\Admin\Workshop\WorkOrders;
 
 use App\Actions\LogEquipmentHistoricalAction;
 use App\Actions\LogUserHistoricalAction;
+use App\Actions\Workshop\AdjustWorkOrderItemQuantityAction;
 use App\Actions\Workshop\SaveWorkOrderDocumentClientAction;
 use App\Actions\Workshop\UpdateWorkOrderStatusAction;
 use App\Enums\WorkOrderStatus;
@@ -50,8 +51,6 @@ class Show extends Component
     public string $item_unit_price = '0';
 
     public string $item_discount = '0';
-
-    public string $item_status = 'pendiente';
 
     public string $item_notes = '';
 
@@ -166,7 +165,6 @@ class Show extends Component
         $this->item_quantity = (string) $item->quantity;
         $this->item_unit_price = (string) $item->unit_price;
         $this->item_discount = (string) $item->discount_percentage;
-        $this->item_status = $item->status;
         $this->item_notes = $item->technician_notes ?? '';
         $this->showItemModal = true;
     }
@@ -223,18 +221,24 @@ class Show extends Component
             'unit_price'          => $price,
             'discount_percentage' => $discount,
             'subtotal'            => $subtotal,
-            'status'              => $this->item_status,
             'technician_notes'    => $this->item_notes ?: null,
         ];
 
         $is_editing_item = (bool) $this->editing_item_id;
 
         if ($this->editing_item_id) {
-            WorkOrderItem::query()
+            $item = WorkOrderItem::query()
                 ->where('work_order_id', $this->workOrder->id)
                 ->whereKey($this->editing_item_id)
-                ->firstOrFail()
-                ->update($data);
+                ->firstOrFail();
+
+            $complete = min((float) $item->quantity_complete, $qty);
+            $canceled = min((float) $item->quantity_canceled, max(0, $qty - $complete));
+
+            $data['quantity_complete'] = $complete;
+            $data['quantity_canceled'] = $canceled;
+
+            $item->update($data);
         } else {
             $this->workOrder->items()->create($data);
         }
@@ -312,30 +316,38 @@ class Show extends Component
         );
     }
 
-    public function updateItemStatus(int $id, string $status): void
+    public function completeItemQuantity(int $id): void
+    {
+        $this->adjustItemQuantity($id, AdjustWorkOrderItemQuantityAction::ACTION_COMPLETE);
+    }
+
+    public function cancelItemQuantity(int $id): void
+    {
+        $this->adjustItemQuantity($id, AdjustWorkOrderItemQuantityAction::ACTION_CANCEL);
+    }
+
+    private function adjustItemQuantity(int $id, string $action): void
     {
         abort_unless(auth()->user()?->can('workshop.work-orders.edit'), 403);
         $this->assertWorkOrderEditable();
 
-        $item = WorkOrderItem::query()
-            ->where('work_order_id', $this->workOrder->id)
-            ->whereKey($id)
-            ->firstOrFail();
-
-        $previous = $item->status;
-        $item->update(['status' => $status]);
+        $item = AdjustWorkOrderItemQuantityAction::run($this->workOrder->id, $id, $action);
 
         $this->workOrder->refresh();
 
-        $log_description = "Cambió el estado de un ítem en la OT {$this->workOrder->reference}";
+        $log_description = $action === AdjustWorkOrderItemQuantityAction::ACTION_COMPLETE
+            ? "Completó cantidad de un ítem en la OT {$this->workOrder->reference}"
+            : "Canceló cantidad de un ítem en la OT {$this->workOrder->reference}";
+
         $properties = [
-            'item_description' => $item->description,
-            'from'             => $previous,
-            'to'               => $status,
+            'item_description'  => $item->description,
+            'item_action'       => $action,
+            'quantity_complete' => (float) $item->quantity_complete,
+            'quantity_canceled' => (float) $item->quantity_canceled,
         ];
 
         LogUserHistoricalAction::run(
-            action: 'status_changed',
+            action: 'updated',
             module: 'workshop.work-orders',
             description: $log_description,
             subject: $this->workOrder,
@@ -345,7 +357,7 @@ class Show extends Component
         );
 
         LogEquipmentHistoricalAction::run(
-            action: 'status_changed',
+            action: 'updated',
             module: 'workshop.work-orders',
             description: $log_description,
             subject: $this->workOrder,
@@ -449,7 +461,6 @@ class Show extends Component
         $this->item_quantity = '1';
         $this->item_unit_price = '0';
         $this->item_discount = '0';
-        $this->item_status = 'pendiente';
         $this->resetValidation();
     }
 
@@ -542,12 +553,6 @@ class Show extends Component
                 ? 'Motivo de la cancelación…'
                 : 'Opcional: nota del cambio de estado…',
             'status_comments_history' => $status_comments_history,
-            'item_status_badges' => [
-                'pendiente'  => 'bg-slate-100 text-slate-600',
-                'en_proceso' => 'bg-yellow-50 text-yellow-700',
-                'completado' => 'bg-emerald-50 text-emerald-700',
-                'cancelado'  => 'bg-red-50 text-red-600',
-            ],
         ]);
     }
 }

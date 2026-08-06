@@ -4,7 +4,6 @@ namespace App\Livewire\Forms\Admin\Workshop;
 
 use App\Enums\WorkOrderStatus;
 use App\Models\Remission;
-use App\Models\Status;
 use App\Models\WorkOrder;
 use App\Support\CurrentBusiness;
 use Illuminate\Support\Collection;
@@ -100,7 +99,6 @@ class RemissionForm extends Form
                     ->ignore($this->remission_id),
             ],
             'type' => ['required', Rule::in(['entrega', 'devolucion', 'traslado'])],
-            'status' => ['required', 'string', Rule::in(array_keys(Status::optionsForModule('remissions')))],
             'quotation_or_po_reference' => ['nullable', 'string', 'max:150'],
             'issue_date' => ['nullable', 'date'],
             'delivery_address' => ['nullable', 'string', 'max:255'],
@@ -126,9 +124,6 @@ class RemissionForm extends Form
             'work_order_id.unique'   => 'Esta OT ya tiene una remisión generada.',
             'type.required'          => 'Selecciona el tipo de remisión.',
             'type.in'                => 'El tipo de remisión no es válido.',
-            'status.required'        => 'Selecciona el estado.',
-            'status.in'              => 'El estado seleccionado no es válido.',
-            'status.in'              => 'El estado no es válido.',
             'issue_date.date'        => 'La fecha de expedición no es válida.',
             'delivered_by_name.required'     => 'El nombre de quien entrega es obligatorio.',
             'delivered_by_position.required' => 'El cargo de quien entrega es obligatorio.',
@@ -147,7 +142,6 @@ class RemissionForm extends Form
         return [
             'work_order_id'             => (int) $data['work_order_id'],
             'type'                      => $data['type'],
-            'status'                    => $data['status'],
             'quotation_or_po_reference' => $data['quotation_or_po_reference'] ?: null,
             'issue_date'                => $data['issue_date'] ?: null,
             'delivery_address'          => $data['delivery_address'] ?: null,

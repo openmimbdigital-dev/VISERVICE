@@ -145,7 +145,6 @@ class LogEquipmentHistoricalAction
                 'unit_price'          => isset($item->unit_price) ? (float) $item->unit_price : null,
                 'discount_percentage' => isset($item->discount_percentage) ? (float) $item->discount_percentage : null,
                 'subtotal'            => isset($item->subtotal) ? (float) $item->subtotal : null,
-                'status'              => $item->status ?? null,
             ];
         }
 

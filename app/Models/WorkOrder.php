@@ -134,7 +134,7 @@ class WorkOrder extends Model
 
     public function recalculateTotals(): void
     {
-        $subtotal = $this->items()->whereNotIn('status', ['cancelado'])->sum('subtotal');
+        $subtotal = $this->items()->sum('subtotal');
         $tax      = round($subtotal * ($this->tax_percentage / 100), 2);
         $this->update([
             'subtotal'   => $subtotal,
