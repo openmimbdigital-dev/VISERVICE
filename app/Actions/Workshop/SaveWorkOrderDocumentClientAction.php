@@ -6,6 +6,7 @@ use App\Actions\LogEquipmentHistoricalAction;
 use App\Actions\LogUserHistoricalAction;
 use App\Models\GeneralConfig;
 use App\Models\WorkOrder;
+use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 class SaveWorkOrderDocumentClientAction

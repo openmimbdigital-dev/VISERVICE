@@ -18,7 +18,13 @@
                 <h1 class="mt-2 text-2xl font-bold tracking-tight text-slate-900">
                     {{ $is_editing ? 'Cotización ' . ($reference ?? '') : 'Nueva cotización' }}
                 </h1>
+                @if($is_editing && $status_label)
+                <p class="mt-2">
+                    <span class="inline-flex items-center rounded-full px-3 py-1 text-sm font-medium {{ $status_badge_class }}">{{ $status_label }}</span>
+                </p>
+                @else
                 <p class="mt-2 max-w-xl text-sm text-slate-600">Datos, condiciones e ítems en un solo formulario.</p>
+                @endif
             </div>
             @if($is_editing)
             <div class="flex w-full shrink-0 flex-wrap gap-2 sm:w-auto">
@@ -125,6 +131,15 @@
                             <input type="number" wire:model.live="form.tax_percentage" min="0" max="100" step="0.5" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm @error('form.tax_percentage') border-rose-400 @enderror">
                             @error('form.tax_percentage') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                         </div>
+                        <div>
+                            <label class="mb-1.5 block text-xs font-medium text-slate-700">Anticipo (%) <span class="text-rose-500">*</span></label>
+                            <input type="number" wire:model.live="form.advance_percentage" min="0" max="100" step="0.5" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm @error('form.advance_percentage') border-rose-400 bg-rose-50 @enderror">
+                            @error('form.advance_percentage') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                            <p class="mt-1 text-xs text-slate-500">
+                                Valor calculado: <span class="font-medium text-slate-700">{{ col_money($preview_advance_amount) }}</span>
+                                — solo define el monto acordado; los abonos se gestionan en Gestión de anticipo (tras crear la OT)
+                            </p>
+                        </div>
                         <div class="sm:col-span-2">
                             <label class="mb-1.5 block text-xs font-medium text-slate-700">Diagnóstico</label>
                             <textarea wire:model="form.diagnosis" rows="2" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm"></textarea>
@@ -152,23 +167,18 @@
                             <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                                 <div>
                                     <label class="mb-1 block text-xs font-medium text-slate-700">Tipo</label>
-                                    <select wire:model="items.{{ $index }}.product_type_id" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">
+                                    <select wire:model.live="items.{{ $index }}.product_type_id" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">
                                         <option value="">—</option>
                                         @foreach($product_types as $type)<option value="{{ $type->id }}">{{ $type->name }}</option>@endforeach
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="mb-1 block text-xs font-medium text-slate-700">Categoría</label>
-                                    <select wire:model="items.{{ $index }}.product_category_id" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">
-                                        <option value="">—</option>
-                                        @foreach($product_categories as $cat)<option value="{{ $cat->id }}">{{ $cat->name }}</option>@endforeach
-                                    </select>
-                                </div>
-                                <div class="sm:col-span-2">
                                     <label class="mb-1 block text-xs font-medium text-slate-700">Catálogo</label>
-                                    <select wire:model.live="items.{{ $index }}.product_id" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">
+                                    <select wire:model.live="items.{{ $index }}.product_id" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm" @disabled(empty($row['product_type_id']))>
                                         <option value="">— Manual —</option>
-                                        @foreach($catalog_products as $ci)<option value="{{ $ci->id }}">{{ $ci->name }} ({{ col_money($ci->sale_price) }})</option>@endforeach
+                                        @foreach($catalog_products->where('product_type_id', (int) ($row['product_type_id'] ?? 0)) as $ci)
+                                        <option value="{{ $ci->id }}">{{ $ci->name }} ({{ col_money($ci->sale_price) }})</option>
+                                        @endforeach
                                     </select>
                                 </div>
                                 <div class="sm:col-span-2">
@@ -189,11 +199,8 @@
                                     <label class="mb-1 block text-xs font-medium text-slate-700">Descuento (%)</label>
                                     <input type="number" wire:model.live="items.{{ $index }}.discount_percentage" min="0" max="100" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">
                                 </div>
-                                @php
-                                $line = (float)($row['quantity'] ?? 0) * (float)($row['unit_price'] ?? 0) * (1 - (float)($row['discount_percentage'] ?? 0) / 100);
-                                @endphp
                                 <div class="flex items-end">
-                                    <p class="w-full rounded-xl bg-indigo-50 px-3 py-2 text-right text-sm font-semibold text-indigo-700">{{ col_money($line) }}</p>
+                                    <p class="w-full rounded-xl bg-indigo-50 px-3 py-2 text-right text-sm font-semibold text-indigo-700">{{ col_money($item_line_totals[$index] ?? 0) }}</p>
                                 </div>
                             </div>
                         </div>
@@ -214,6 +221,7 @@
                         <div class="flex justify-between text-xs text-slate-500"><dt>Lubricantes</dt><dd>{{ col_money($category_subtotals['lubricantes']) }}</dd></div>
                         <div class="flex justify-between text-xs text-slate-500"><dt>Otros</dt><dd>{{ col_money($category_subtotals['otros']) }}</dd></div>
                         <div class="flex justify-between border-t border-slate-100 pt-2"><dt class="text-slate-500">Subtotal</dt><dd class="font-medium">{{ col_money($preview_subtotal) }}</dd></div>
+                        <div class="flex justify-between"><dt class="text-slate-500">Anticipo ({{ $form->advance_percentage }}%)</dt><dd class="font-medium text-amber-700">{{ col_money($preview_advance_amount) }}</dd></div>
                         <div class="flex justify-between"><dt class="text-slate-500">IVA ({{ $form->tax_percentage }}%)</dt><dd class="font-medium">{{ col_money($preview_tax) }}</dd></div>
                         <div class="flex justify-between border-t border-slate-100 pt-2 text-base font-bold"><dt>Total</dt><dd class="text-indigo-700">{{ col_money($preview_total) }}</dd></div>
                     </dl>

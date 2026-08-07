@@ -41,8 +41,6 @@
         <td>
             <div class="section-title">Equipo</div>
             <p>{{ $workOrder->equipment?->select_label ?? '—' }}</p>
-            <p>Km entrada: {{ number_format((int) $workOrder->km_entry) }}</p>
-            @if($workOrder->km_exit)<p>Km salida: {{ number_format((int) $workOrder->km_exit) }}</p>@endif
         </td>
     </tr>
 </table>
@@ -80,7 +78,6 @@
             <th class="text-right">P. Unit.</th>
             <th class="text-right">Desc.</th>
             <th class="text-right">Subtotal</th>
-            <th>Estado</th>
         </tr>
     </thead>
     <tbody>
@@ -96,7 +93,6 @@
             <td class="text-right">{{ col_money($item->unit_price) }}</td>
             <td class="text-right">{{ $item->discount_percentage > 0 ? $item->discount_percentage.'%' : '—' }}</td>
             <td class="text-right bold">{{ col_money($item->subtotal) }}</td>
-            <td>{{ $item->status_label }}</td>
         </tr>
         @endforeach
     </tbody>

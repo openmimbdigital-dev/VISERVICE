@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\WorkOrderStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -15,23 +16,26 @@ class WorkOrder extends Model
 
     protected $fillable = [
         'business_id', 'client_id', 'equipment_id', 'quotation_id',
-        'reference', 'status', 'km_entry', 'km_exit',
+        'reference', 'status', 'status_comments',
         'diagnosis', 'work_description', 'observations', 'notes',
         'estimated_delivery', 'subtotal', 'tax_percentage',
-        'tax_amount', 'total', 'document_client', 'created_by', 'finalized_at',
+        'tax_amount', 'total', 'advance_percentage', 'advance_amount',
+        'document_client', 'created_by', 'finalized_at',
     ];
 
     protected function casts(): array
     {
         return [
+            'status'             => WorkOrderStatus::class,
+            'status_comments'    => 'array',
             'estimated_delivery' => 'date',
             'finalized_at'       => 'datetime',
             'subtotal'           => 'decimal:2',
             'tax_percentage'     => 'decimal:2',
             'tax_amount'         => 'decimal:2',
             'total'              => 'decimal:2',
-            'km_entry'           => 'integer',
-            'km_exit'            => 'integer',
+            'advance_percentage' => 'decimal:2',
+            'advance_amount'     => 'decimal:2',
             'document_client'    => 'array',
         ];
     }
@@ -61,9 +65,44 @@ class WorkOrder extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    public function statusDefinition(): BelongsTo
+    {
+        return $this->belongsTo(Status::class, 'status', 'name');
+    }
+
     public function items(): HasMany
     {
         return $this->hasMany(WorkOrderItem::class);
+    }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(WorkOrderPayment::class);
+    }
+
+    public function confirmedPayments(): HasMany
+    {
+        return $this->payments()->where('status', 'confirmed');
+    }
+
+    public function advancePaidAmount(): float
+    {
+        if (array_key_exists('confirmed_paid_sum', $this->attributes)) {
+            return round((float) ($this->attributes['confirmed_paid_sum'] ?? 0), 2);
+        }
+
+        if ($this->relationLoaded('payments')) {
+            return round((float) $this->payments
+                ->where('status', 'confirmed')
+                ->sum('amount'), 2);
+        }
+
+        return round((float) $this->confirmedPayments()->sum('amount'), 2);
+    }
+
+    public function advanceRemainingAmount(): float
+    {
+        return max(0, round((float) $this->advance_amount - $this->advancePaidAmount(), 2));
     }
 
     public function remissions(): HasMany
@@ -115,17 +154,17 @@ class WorkOrder extends Model
 
     public function scopeOpen($query)
     {
-        return $query->whereIn('status', ['abierta', 'en_proceso']);
+        return $query->whereIn('status', WorkOrderStatus::openValues());
     }
 
     public function scopeFinalized($query)
     {
-        return $query->where('status', 'finalizada');
+        return $query->where('status', WorkOrderStatus::Completed);
     }
 
     public function recalculateTotals(): void
     {
-        $subtotal = $this->items()->whereNotIn('status', ['cancelado'])->sum('subtotal');
+        $subtotal = $this->items()->sum('subtotal');
         $tax      = round($subtotal * ($this->tax_percentage / 100), 2);
         $this->update([
             'subtotal'   => $subtotal,
@@ -136,23 +175,35 @@ class WorkOrder extends Model
 
     public function getStatusLabelAttribute(): string
     {
-        return match ($this->status) {
-            'abierta'    => 'Abierta',
-            'en_proceso' => 'En proceso',
-            'finalizada' => 'Finalizada',
-            'cancelada'  => 'Cancelada',
-            default      => $this->status,
-        };
+        if ($this->relationLoaded('statusDefinition') && $this->statusDefinition) {
+            return $this->statusDefinition->label;
+        }
+
+        return $this->status instanceof WorkOrderStatus
+            ? $this->status->label()
+            : (string) $this->status;
+    }
+
+    public function isEditable(): bool
+    {
+        return $this->status instanceof WorkOrderStatus
+            ? ! $this->status->isTerminal()
+            : true;
+    }
+
+    public function canChangeStatus(): bool
+    {
+        return $this->isEditable();
     }
 
     public function getStatusColorAttribute(): string
     {
         return match ($this->status) {
-            'abierta'    => 'blue',
-            'en_proceso' => 'yellow',
-            'finalizada' => 'green',
-            'cancelada'  => 'red',
-            default      => 'gray',
+            WorkOrderStatus::Created => 'blue',
+            WorkOrderStatus::InProgress => 'yellow',
+            WorkOrderStatus::Completed => 'green',
+            WorkOrderStatus::Cancelled => 'red',
+            default => 'gray',
         };
     }
 

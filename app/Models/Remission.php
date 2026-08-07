@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\WorkOrderStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -45,6 +46,7 @@ class Remission extends Model
     protected function casts(): array
     {
         return [
+            'status'       => WorkOrderStatus::class,
             'issue_date'   => 'date',
             'issued_at'    => 'datetime',
             'delivered_at' => 'datetime',
@@ -76,6 +78,11 @@ class Remission extends Model
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function statusDefinition(): BelongsTo
+    {
+        return $this->belongsTo(Status::class, 'status', 'name');
     }
 
     public function items(): HasMany
@@ -112,12 +119,20 @@ class Remission extends Model
 
     public function getStatusLabelAttribute(): string
     {
-        return match ($this->status) {
-            'borrador'  => 'Borrador',
-            'emitida'   => 'Emitida',
-            'entregada' => 'Entregada',
-            default     => $this->status,
-        };
+        if ($this->relationLoaded('statusDefinition') && $this->statusDefinition) {
+            return $this->statusDefinition->label;
+        }
+
+        return $this->status instanceof WorkOrderStatus
+            ? $this->status->label()
+            : (string) $this->status;
+    }
+
+    public function isEditable(): bool
+    {
+        return $this->status instanceof WorkOrderStatus
+            ? ! $this->status->isTerminal()
+            : true;
     }
 
     public function recalculateTotalItems(): void

@@ -15,22 +15,28 @@ return new class extends Migration
                 ->nullable()
                 ->constrained('event_categories')
                 ->nullOnDelete();
+            $table->foreignId('parent_id')
+                ->nullable()
+                ->constrained('events')
+                ->nullOnDelete();
             $table->string('name');
             $table->text('description')->nullable();
-            $table->date('date');
+            $table->date('date_start');
+            $table->date('date_end');
             $table->string('day');
             $table->time('start_time');
             $table->time('end_time');
+            $table->boolean('active')->default(true);
+            $table->boolean('multi_day')->default(false);
             $table->boolean('attendance_enabled')->default(true);
             $table->boolean('participation_enabled')->default(true);
             $table->boolean('attendance_closed')->default(false);
-            $table->unsignedInteger('attendance')->default(0);
             $table->timestamps();
             $table->softDeletes();
 
             $table->index(
-                ['business_id', 'deleted_at', 'date'],
-                'events_business_deleted_date_idx'
+                ['business_id', 'deleted_at', 'date_start'],
+                'events_business_deleted_date_start_idx'
             );
             $table->index(
                 ['business_id', 'deleted_at', 'event_category_id'],

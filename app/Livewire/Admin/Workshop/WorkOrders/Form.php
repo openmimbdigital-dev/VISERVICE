@@ -4,6 +4,7 @@ namespace App\Livewire\Admin\Workshop\WorkOrders;
 
 use App\Actions\Workshop\CreateOrUpdateWorkOrderAction;
 use App\Actions\Workshop\DeleteWorkOrderAction;
+use App\Enums\WorkOrderStatus;
 use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
 use App\Livewire\Forms\Admin\Workshop\WorkOrderForm;
 use App\Models\Client;
@@ -42,7 +43,7 @@ class Form extends Component
                 404
             );
 
-            abort_unless(in_array($workOrder->status, ['abierta', 'en_proceso'], true), 403);
+            abort_unless($workOrder->status?->isOpen() ?? false, 403);
 
             $workOrder->load(['items.productType', 'items.catalogProduct']);
             $this->form->setWorkOrder($workOrder);
@@ -96,7 +97,7 @@ class Form extends Component
         $quotation = Quotation::query()
             ->forAuthUser()
             ->where('business_id', $this->form->resolvedBusinessId())
-            ->where('status', \App\Enums\QuotationStatus::Aceptada)
+            ->where('status', \App\Enums\QuotationStatus::Accepted)
             ->where(function ($query) {
                 $query->whereDoesntHave('workOrder');
 
@@ -130,19 +131,38 @@ class Form extends Component
 
     public function updatedItems(mixed $value, string $key): void
     {
-        // Livewire pasa $key como "{index}.product_id" (ej. "1.product_id").
-        if (! str_ends_with((string) $key, '.product_id') || ! $value) {
+        $parts = explode('.', (string) $key);
+        $index = (int) ($parts[0] ?? -1);
+        $field = $parts[1] ?? null;
+
+        if ($index < 0 || ! isset($this->items[$index]) || $field === null) {
             return;
         }
 
-        $index = (int) explode('.', (string) $key)[0];
+        if ($field === 'product_type_id') {
+            $this->items[$index]['product_id'] = null;
+
+            return;
+        }
+
+        if ($field !== 'product_id' || ! $value) {
+            return;
+        }
+
         $catalog = Product::query()
             ->forAuthUser()
             ->where('business_id', $this->form->resolvedBusinessId())
             ->whereKey($value)
             ->first();
 
-        if (! $catalog || ! isset($this->items[$index])) {
+        if (! $catalog) {
+            return;
+        }
+
+        $selected_type = $this->items[$index]['product_type_id'] ?? null;
+        if ($selected_type && (int) $catalog->product_type_id !== (int) $selected_type) {
+            $this->items[$index]['product_id'] = null;
+
             return;
         }
 
@@ -194,14 +214,25 @@ class Form extends Component
             $this->validate($this->itemRules());
         }
 
-        $work_order = CreateOrUpdateWorkOrderAction::run(
-            $business_id,
-            $this->form->work_order_id,
-            (int) $this->form->client_id,
-            (int) $this->form->equipment_id,
-            $this->form->validated(),
-            $this->items
-        );
+        try {
+            $work_order = CreateOrUpdateWorkOrderAction::run(
+                $business_id,
+                $this->form->work_order_id,
+                (int) $this->form->client_id,
+                (int) $this->form->equipment_id,
+                $this->form->validated(),
+                $this->items
+            );
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            foreach ($e->errors() as $field => $messages) {
+                $this->addError(
+                    str_starts_with($field, 'form.') ? $field : 'form.'.$field,
+                    $messages[0] ?? 'Error de validación.'
+                );
+            }
+
+            return;
+        }
 
         $this->dispatch('swal', [
             'title' => $this->form->isEditing()
@@ -285,6 +316,9 @@ class Form extends Component
         $tax_pct = (float) ($this->form->tax_percentage ?: 0);
         $tax     = round($subtotal * ($tax_pct / 100), 2);
         $total   = $subtotal + $tax;
+        $advance_pct = (float) ($this->form->advance_percentage ?: 0);
+        $advance_amount = round($subtotal * ($advance_pct / 100), 2);
+        $this->form->advance_amount = (string) $advance_amount;
 
         return view('livewire.admin.workshop.work-orders.form', [
             'is_editing'           => $this->form->isEditing(),
@@ -297,6 +331,7 @@ class Form extends Component
             'preview_subtotal'     => $subtotal,
             'preview_tax'          => $tax,
             'preview_total'        => $total,
+            'preview_advance_amount' => $advance_amount,
             'can_delete'           => $this->form->work_order_id
                 && auth()->user()->can('workshop.work-orders.delete'),
         ]);

@@ -65,19 +65,29 @@ class DatatableQuotations extends LivewireDatatable
             })->label('Válida hasta'),
 
             Column::callback(['quotations.status'], function ($status) {
-                $enum = QuotationStatus::tryFrom((string) $status) ?? QuotationStatus::Creada;
+                $enum = QuotationStatus::tryFrom((string) $status) ?? QuotationStatus::Created;
 
-                return '<span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ' . $enum->badgeClass() . '">' . $enum->label() . '</span>';
-            })->label('Estado')->filterable(QuotationStatus::options()),
+                return '<span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ' . $enum->badgeClass() . '">' . e($enum->label()) . '</span>';
+            })->label('Estado')->filterable(\App\Models\Status::optionsForModule('quotations')),
 
             DateColumn::name('quotations.created_at')
                 ->label('Fecha')
                 ->sortable(),
 
             Column::callback(['quotations.id', 'quotations.status', 'work_orders.id'], function ($id, $status, $work_order_id) {
+                $is_locked = in_array($status, [
+                    QuotationStatus::Accepted->value,
+                    QuotationStatus::Rejected->value,
+                ], true);
+
                 return view('livewire.admin.workshop.quotations.actions', [
                     'id'            => $id,
-                    'status'        => $status,
+                    'can_create_ot' => $status === QuotationStatus::Accepted->value && empty($work_order_id),
+                    'has_work_order'=> ! empty($work_order_id),
+                    'is_locked'     => $is_locked,
+                    'lock_title'    => $status === QuotationStatus::Accepted->value
+                        ? 'La cotización está aceptada'
+                        : 'La cotización está rechazada',
                     'work_order_id' => $work_order_id,
                 ]);
             })->label('Acciones')->unsortable(),

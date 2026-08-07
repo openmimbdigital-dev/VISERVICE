@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Activación pendiente — VISERVICE</title>
+    <title>Activación pendiente — SouulBi</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -36,8 +36,8 @@
 
         {{-- Logo --}}
         <div class="flex items-center justify-center gap-2 mb-6">
-            <img src="{{ asset('images/logo-initial.png') }}" alt="VISERVICE" class="h-8 w-auto">
-            <span class="text-xl font-extrabold text-white">VIS<span class="text-indigo-400">ERVICE</span></span>
+            <img src="{{ asset('images/logo-initial.jpeg') }}" alt="SouulBi" class="h-8 w-auto">
+            <span class="text-xl font-extrabold text-white">Souul<span class="text-indigo-400">Bi</span></span>
         </div>
 
         {{-- Mensaje principal --}}
@@ -78,7 +78,7 @@
                 @foreach([
                     ['Verificamos tu pago', 'Nuestro equipo revisa la información enviada.', true],
                     ['Te confirmamos', 'Recibirás un aviso cuando tu cuenta esté activa.', false],
-                    ['Acceso completo', 'Podrás usar todas las funciones de VISERVICE.', false],
+                    ['Acceso completo', 'Podrás usar todas las funciones de SouulBi.', false],
                 ] as [$title, $desc, $active])
                 <div class="flex items-start gap-3">
                     <div @class(['w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5', 'bg-amber-500' => $active, 'bg-white/10' => !$active])>
@@ -109,7 +109,7 @@
             </form>
         </div>
 
-        <p class="mt-10 text-xs text-slate-600">© {{ date('Y') }} VISERVICE · Sistema de gestión de talleres</p>
+        <p class="mt-10 text-xs text-slate-600">© {{ date('Y') }} SouulBi · Sistema de gestión de talleres</p>
     </div>
 
 </body>

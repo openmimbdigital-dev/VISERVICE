@@ -25,10 +25,12 @@ class Show extends Component
         $this->event = Event::query()
             ->forAuthUser()
             ->where('event_category_id', $eventCategory->id)
+            ->where('multi_day', false)
             ->with([
                 'business:id,name',
                 'category:id,name,type',
                 'teams:id,name',
+                'parent:id,name,date_start,date_end',
                 'attendee_types' => fn ($query) => $query->orderBy('name'),
             ])
             ->findOrFail($event->id);
@@ -68,10 +70,12 @@ class Show extends Component
         $this->event = Event::query()
             ->forAuthUser()
             ->where('event_category_id', $this->event_category->id)
+            ->where('multi_day', false)
             ->with([
                 'business:id,name',
                 'category:id,name,type',
                 'teams:id,name',
+                'parent:id,name,date_start,date_end',
                 'attendee_types' => fn ($query) => $query->orderBy('name'),
             ])
             ->findOrFail($this->event->id);

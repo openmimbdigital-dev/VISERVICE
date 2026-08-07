@@ -37,7 +37,7 @@
         <div class="flex flex-col gap-3 border-b border-slate-100 bg-slate-50/80 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <h2 class="font-semibold text-slate-800">Asistencia general por tipo</h2>
-                <p class="mt-1 text-xs text-slate-500">Totales acumulados de todos los eventos visibles.</p>
+                <p class="mt-1 text-xs text-slate-500">Totales por día de evento (incluye días de eventos multi-día; excluye el registro padre).</p>
             </div>
             <button
                 type="button"

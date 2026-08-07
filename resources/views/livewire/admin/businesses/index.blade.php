@@ -6,7 +6,7 @@
             <h1 class="text-2xl font-bold text-slate-900">Negocios Registrados</h1>
             <p class="text-sm text-slate-500 mt-1">
                 @if($shows_all)
-                    Todos los comercios registrados en VISERVICE.
+                    Todos los comercios registrados en SouulBi.
                 @else
                     Negocios asignados a tu cuenta de usuario.
                 @endif

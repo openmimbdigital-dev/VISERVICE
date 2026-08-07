@@ -68,14 +68,16 @@ class CategoryIndex extends Component
         $event = Event::query()
             ->forAuthUser()
             ->where('event_category_id', $this->event_category->id)
+            ->where('multi_day', false)
             ->with([
                 'business.organization_type:id,label',
                 'category:id,name',
+                'parent:id,name,date_start,date_end',
                 'attendee_types' => fn ($query) => $query->orderBy('name'),
             ])
             ->findOrFail($event_id);
 
-        $filename = 'asistencia-evento-'.$event->id.'-'.$event->date?->format('Y-m-d').'.xlsx';
+        $filename = 'asistencia-evento-'.$event->id.'-'.($event->date_start?->format('Y-m-d') ?? 'sin-fecha').'.xlsx';
 
         return Excel::download(
             new EventAttendanceExport($event, auth()->user()),
@@ -88,7 +90,10 @@ class CategoryIndex extends Component
         $events_query = Event::query()
             ->forAuthUser()
             ->where('event_category_id', $this->event_category->id)
-            ->orderByDesc('date')
+            ->where('multi_day', false)
+            ->with(['parent:id,name,date_start,date_end'])
+            ->orderBy('date_start')
+            ->orderBy('start_time')
             ->orderByDesc('id');
 
         $name = trim($this->name);
@@ -98,13 +103,19 @@ class CategoryIndex extends Component
         }
 
         if ($this->date !== '') {
-            $events_query->whereDate('events.date', $this->date);
+            $events_query
+                ->whereDate('date_start', '<=', $this->date)
+                ->whereDate('date_end', '>=', $this->date);
         }
 
         $month = $this->resolvedMonth();
 
         if ($month !== null) {
-            $events_query->whereMonth('events.date', $month);
+            $events_query->where(function ($query) use ($month) {
+                $query
+                    ->whereMonth('date_start', $month)
+                    ->orWhereMonth('date_end', $month);
+            });
         }
 
         $events = $events_query->paginate(15);

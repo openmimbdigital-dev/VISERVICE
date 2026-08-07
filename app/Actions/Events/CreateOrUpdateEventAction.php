@@ -8,7 +8,9 @@ use App\Models\Event;
 use App\Models\EventCategory;
 use App\Models\EventTeam;
 use App\Support\EventsAccess;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 class CreateOrUpdateEventAction
@@ -20,9 +22,11 @@ class CreateOrUpdateEventAction
      *     event_category_id: ?int,
      *     name: string,
      *     description: ?string,
-     *     date: string,
+     *     date_start: string,
+     *     date_end: string,
      *     start_time: string,
      *     end_time: string,
+     *     active: bool,
      *     attendance_enabled: bool,
      *     participation_enabled: bool,
      *     event_team_ids?: list<int>
@@ -36,6 +40,7 @@ class CreateOrUpdateEventAction
 
         if (! $event_id) {
             EventsAccess::authorizeCreateEvents($user);
+            $this->assertCreateDatesNotInPast($data['date_start'], $data['date_end']);
         }
 
         if (! $user->hasRole('superAdmin')) {
@@ -48,10 +53,14 @@ class CreateOrUpdateEventAction
             'event_category_id' => $data['event_category_id'],
             'name' => $data['name'],
             'description' => $data['description'],
-            'date' => $data['date'],
-            'day' => Weekday::labelFromDate($data['date']),
+            'date_start' => $data['date_start'],
+            'date_end' => $data['date_end'],
+            'day' => Weekday::labelFromDate($data['date_start']),
             'start_time' => $data['start_time'],
             'end_time' => $data['end_time'],
+            'active' => (bool) ($data['active'] ?? true),
+            'multi_day' => false,
+            'parent_id' => null,
             'attendance_enabled' => $data['attendance_enabled'],
             'participation_enabled' => $data['participation_enabled'],
         ];
@@ -65,6 +74,12 @@ class CreateOrUpdateEventAction
                     ->findOrFail($event_id);
 
                 abort_unless((int) $event->business_id === (int) $business_id, 403);
+
+                if ($event->hasStartedAttendance()) {
+                    throw ValidationException::withMessages([
+                        'form.name' => 'No se puede editar: ya se inició la toma de asistencia de este evento.',
+                    ]);
+                }
 
                 EventsAccess::authorizeEditEvent($event, $user);
 
@@ -80,8 +95,10 @@ class CreateOrUpdateEventAction
                     subject: $event,
                     subject_label: $event->name,
                     properties: [
-                        'date' => $event->date?->toDateString(),
+                        'date_start' => $event->date_start?->toDateString(),
+                        'date_end' => $event->date_end?->toDateString(),
                         'day' => $event->day,
+                        'active' => (bool) $event->active,
                         'event_category_id' => $event->event_category_id,
                     ],
                     business_id: $business_id,
@@ -106,8 +123,10 @@ class CreateOrUpdateEventAction
                 subject: $event,
                 subject_label: $event->name,
                 properties: [
-                    'date' => $event->date?->toDateString(),
+                    'date_start' => $event->date_start?->toDateString(),
+                    'date_end' => $event->date_end?->toDateString(),
                     'day' => $event->day,
+                    'active' => (bool) $event->active,
                     'event_category_id' => $event->event_category_id,
                 ],
                 business_id: $business_id,
@@ -115,6 +134,31 @@ class CreateOrUpdateEventAction
 
             return $event;
         });
+    }
+
+    private function assertCreateDatesNotInPast(string $date_start, string $date_end): void
+    {
+        $today = Carbon::today();
+        $start = Carbon::parse($date_start)->startOfDay();
+        $end = Carbon::parse($date_end)->startOfDay();
+
+        if ($start->lt($today)) {
+            throw ValidationException::withMessages([
+                'form.date_start' => 'La fecha de inicio no puede ser anterior al día de hoy.',
+            ]);
+        }
+
+        if ($end->lt($today)) {
+            throw ValidationException::withMessages([
+                'form.date_end' => 'La fecha de fin no puede ser anterior al día de hoy.',
+            ]);
+        }
+
+        if ($end->lt($start)) {
+            throw ValidationException::withMessages([
+                'form.date_end' => 'La fecha de fin debe ser igual o posterior a la de inicio.',
+            ]);
+        }
     }
 
     /**

@@ -16,6 +16,7 @@ use App\Models\ProductCategory;
 use App\Models\ProductType;
 use App\Models\Quotation;
 use App\Models\QuotationServiceType;
+use App\Models\Status;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -50,9 +51,18 @@ class Form extends Component
             );
 
             $quotation->load(['items.productType', 'items.productCategory', 'workOrder']);
+
+            if (! $quotation->isEditable()) {
+                $this->redirectRoute('admin.workshop.quotations.show', $quotation, navigate: true);
+
+                return;
+            }
+
             $this->form->setQuotation($quotation);
             $this->reference = $quotation->reference;
-            $this->quotation_status = $quotation->status->value;
+            $this->quotation_status = $quotation->status instanceof QuotationStatus
+                ? $quotation->status->value
+                : (string) $quotation->status;
             $this->linked_work_order_id = $quotation->workOrder?->id;
             $this->linked_work_order_reference = $quotation->workOrder?->reference;
             $this->items = $quotation->items->map(fn ($item) => [
@@ -79,19 +89,38 @@ class Form extends Component
 
     public function updatedItems(mixed $value, string $key): void
     {
-        // Livewire pasa $key como "{index}.product_id" (ej. "1.product_id").
-        if (! str_ends_with((string) $key, '.product_id') || ! $value) {
+        $parts = explode('.', (string) $key);
+        $index = (int) ($parts[0] ?? -1);
+        $field = $parts[1] ?? null;
+
+        if ($index < 0 || ! isset($this->items[$index]) || $field === null) {
             return;
         }
 
-        $index = (int) explode('.', (string) $key)[0];
+        if ($field === 'product_type_id') {
+            $this->items[$index]['product_id'] = null;
+
+            return;
+        }
+
+        if ($field !== 'product_id' || ! $value) {
+            return;
+        }
+
         $catalog = Product::query()
             ->forAuthUser()
             ->where('business_id', $this->form->resolvedBusinessId())
             ->whereKey($value)
             ->first();
 
-        if (! $catalog || ! isset($this->items[$index])) {
+        if (! $catalog) {
+            return;
+        }
+
+        $selected_type = $this->items[$index]['product_type_id'] ?? null;
+        if ($selected_type && (int) $catalog->product_type_id !== (int) $selected_type) {
+            $this->items[$index]['product_id'] = null;
+
             return;
         }
 
@@ -253,7 +282,6 @@ class Form extends Component
         $payment_methods = BusinessPaymentMethod::query()->visibleToUser()->where('active', true)->orderBy('sort_order')->get();
         $bank_accounts = BusinessBankAccount::query()->forAuthUser()->where('business_id', $business_id)->where('active', true)->get();
         $product_types = ProductType::query()->visibleToUser()->where('active', true)->orderBy('name')->get();
-        $product_categories = ProductCategory::query()->visibleToUser()->where('active', true)->orderBy('name')->get();
         $catalog_products = Product::query()->forAuthUser()->where('business_id', $business_id)->active()->orderBy('name')->get();
 
         $equipment_for_client = $this->form->client_id
@@ -270,6 +298,35 @@ class Form extends Component
         $tax_pct  = (float) ($this->form->tax_percentage ?: 0);
         $tax      = round($subtotal * ($tax_pct / 100), 2);
         $total    = $subtotal + $tax;
+        $advance_pct = (float) ($this->form->advance_percentage ?: 0);
+        $advance_amount = round($subtotal * ($advance_pct / 100), 2);
+
+        $status_enum = $this->quotation_status
+            ? QuotationStatus::tryFrom($this->quotation_status)
+            : null;
+
+        $status_label = null;
+        $status_badge_class = 'bg-slate-100 text-slate-600 ring-1 ring-slate-500/20';
+
+        if ($this->quotation_status) {
+            $status_label = Status::query()
+                ->forModule('quotations')
+                ->where('name', $this->quotation_status)
+                ->value('label')
+                ?? $status_enum?->label()
+                ?? $this->quotation_status;
+            $status_badge_class = $status_enum?->badgeClass() ?? $status_badge_class;
+        }
+
+        $item_line_totals = [];
+        foreach ($this->items as $index => $row) {
+            $item_line_totals[$index] = round(
+                (float) ($row['quantity'] ?? 0)
+                * (float) ($row['unit_price'] ?? 0)
+                * (1 - (float) ($row['discount_percentage'] ?? 0) / 100),
+                2
+            );
+        }
 
         return view('livewire.admin.workshop.quotations.form', [
             'is_editing'           => $this->form->isEditing(),
@@ -278,18 +335,25 @@ class Form extends Component
             'payment_methods'      => $payment_methods,
             'bank_accounts'        => $bank_accounts,
             'product_types'        => $product_types,
-            'product_categories'   => $product_categories,
             'catalog_products'     => $catalog_products,
             'equipment_for_client' => $equipment_for_client,
             'category_subtotals'   => $category_subtotals,
             'preview_subtotal'     => $subtotal,
             'preview_tax'          => $tax,
             'preview_total'        => $total,
+            'preview_advance_amount' => $advance_amount,
+            'status_label'         => $status_label,
+            'status_badge_class'   => $status_badge_class,
+            'item_line_totals'     => $item_line_totals,
             'can_delete'           => $this->form->quotation_id
-                && auth()->user()->can('workshop.quotations.delete'),
+                && auth()->user()->can('workshop.quotations.delete')
+                && ! in_array($this->quotation_status, [
+                    QuotationStatus::Accepted->value,
+                    QuotationStatus::Rejected->value,
+                ], true),
             'can_create_ot'        => $this->form->quotation_id
                 && auth()->user()->can('workshop.work-orders.create')
-                && $this->quotation_status === QuotationStatus::Aceptada->value
+                && $this->quotation_status === QuotationStatus::Accepted->value
                 && ! $this->linked_work_order_id,
         ]);
     }

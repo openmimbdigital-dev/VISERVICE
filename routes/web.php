@@ -69,11 +69,15 @@ use App\Livewire\Admin\Settings\Events\EventCategories\Form as SettingsEventCate
 use App\Livewire\Admin\Settings\Events\EventCategories\Index as SettingsEventCategoriesIndex;
 use App\Livewire\Admin\Settings\Events\EventCategories\Show as SettingsEventCategoriesShow;
 use App\Livewire\Admin\Settings\Events\Index as SettingsEventsIndex;
+use App\Livewire\Admin\Settings\General\Index as SettingsGeneralIndex;
+use App\Livewire\Admin\Settings\General\Statuses\Index as SettingsStatusesIndex;
 use App\Livewire\Admin\Subscriptions\Index as AdminSubscriptionsIndex;
 use App\Livewire\Admin\Subscriptions\Plans\Index as AdminSubscriptionPlansIndex;
 use App\Livewire\Admin\TeamPositions\Index as AdminTeamPositionsIndex;
 use App\Livewire\Admin\TeamPositions\Show as AdminTeamPositionsShow;
 use App\Livewire\Admin\User\Index as AdminUserIndex;
+use App\Livewire\Admin\Workshop\AdvancePayments\Index as WorkshopAdvancePaymentsIndex;
+use App\Livewire\Admin\Workshop\AdvancePayments\Show as WorkshopAdvancePaymentsShow;
 use App\Livewire\Admin\Workshop\Clients\Form as WorkshopClientsForm;
 use App\Livewire\Admin\Workshop\Clients\Index as WorkshopClientsIndex;
 use App\Livewire\Admin\Workshop\Equipment\Form as WorkshopEquipmentForm;
@@ -258,6 +262,10 @@ Route::middleware(['auth', 'ensure.business', 'business.module'])->group(functio
         Route::middleware('permission:workshop.remissions.view')->group(function () {
             Route::get('/remissions', WorkshopRemissionsIndex::class)->name('remissions.index');
         });
+        Route::middleware('permission:workshop.advance-payments.view')->group(function () {
+            Route::get('/advance-payments', WorkshopAdvancePaymentsIndex::class)->name('advance-payments.index');
+            Route::get('/advance-payments/{workOrder}', WorkshopAdvancePaymentsShow::class)->name('advance-payments.show');
+        });
         Route::middleware('permission:workshop.remissions.create')->group(function () {
             Route::get('/remissions/form', WorkshopRemissionsForm::class)->name('remissions.form');
         });
@@ -338,6 +346,12 @@ Route::middleware(['auth', 'ensure.business', 'business.module'])->group(functio
 
     // Configuración
     Route::middleware('permission:settings.view')->prefix('settings')->name('admin.settings.')->group(function () {
+        // Configuración — General (solo superAdmin)
+        Route::middleware(['role:superAdmin', 'permission:settings.statuses.view'])->group(function () {
+            Route::get('/general', SettingsGeneralIndex::class)->name('general.index');
+            Route::get('/general/statuses', SettingsStatusesIndex::class)->name('general.statuses.index');
+        });
+
         Route::get('/equipment', SettingsEquipmentIndex::class)->name('equipment.index');
         Route::middleware('permission:settings.equipment_types.view')->group(function () {
             Route::get('/equipment/types', SettingsEquipmentTypesIndex::class)->name('equipment.types');

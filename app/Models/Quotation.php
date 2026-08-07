@@ -27,6 +27,7 @@ class Quotation extends Model
         'reference', 'status', 'diagnosis', 'hours_entry',
         'validity_days', 'valid_until', 'execution_time',
         'subtotal', 'tax_percentage', 'tax_amount', 'total',
+        'advance_percentage', 'advance_amount',
         'notes', 'observations', 'reject_reason',
         'approved_by_name', 'approved_by_position', 'approved_signature',
         'created_by', 'issued_at', 'sent_at', 'accepted_at', 'rejected_at',
@@ -45,6 +46,8 @@ class Quotation extends Model
             'tax_percentage'  => 'decimal:2',
             'tax_amount'      => 'decimal:2',
             'total'           => 'decimal:2',
+            'advance_percentage' => 'decimal:2',
+            'advance_amount'  => 'decimal:2',
             'validity_days'   => 'integer',
         ];
     }
@@ -82,6 +85,11 @@ class Quotation extends Model
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function statusDefinition(): BelongsTo
+    {
+        return $this->belongsTo(Status::class, 'status', 'name');
     }
 
     public function items(): HasMany
@@ -180,20 +188,49 @@ class Quotation extends Model
 
     public function getStatusLabelAttribute(): string
     {
+        if ($this->relationLoaded('statusDefinition') && $this->statusDefinition) {
+            return $this->statusDefinition->label;
+        }
+
         return $this->status instanceof QuotationStatus
             ? $this->status->label()
             : (string) $this->status;
     }
 
+    public function isRejected(): bool
+    {
+        return $this->status === QuotationStatus::Rejected;
+    }
+
+    public function isAccepted(): bool
+    {
+        return $this->status === QuotationStatus::Accepted;
+    }
+
+    public function isEditable(): bool
+    {
+        return ! $this->isRejected() && ! $this->isAccepted();
+    }
+
+    public function canBeDeleted(): bool
+    {
+        return ! $this->isRejected() && ! $this->isAccepted();
+    }
+
+    public function canChangeStatus(): bool
+    {
+        return ! $this->isRejected();
+    }
+
     public function getStatusColorAttribute(): string
     {
         return match ($this->status) {
-            QuotationStatus::Creada    => 'gray',
-            QuotationStatus::Enviada   => 'blue',
-            QuotationStatus::Aceptada  => 'green',
-            QuotationStatus::Rechazada => 'red',
-            QuotationStatus::Vencida   => 'orange',
-            default                    => 'gray',
+            QuotationStatus::Created => 'gray',
+            QuotationStatus::Sent => 'blue',
+            QuotationStatus::Accepted => 'green',
+            QuotationStatus::Rejected => 'red',
+            QuotationStatus::Expired => 'orange',
+            default => 'gray',
         };
     }
 

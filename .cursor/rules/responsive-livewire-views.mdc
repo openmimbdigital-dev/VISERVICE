@@ -216,6 +216,37 @@ Con Alpine: `<x-ui.modal centered x-show="$wire.showModal" x-cloak style="displa
 
 ---
 
+## Acciones bloqueadas (editar / eliminar / etc.)
+
+**No ocultar** iconos o botones de acción cuando el usuario **sí tiene el permiso** Spatie pero una regla de negocio impide la operación (p. ej. asistencia iniciada, registro en uso, estado cerrado).
+
+| Situación | UI |
+|-----------|-----|
+| Sin permiso Spatie | No mostrar la acción |
+| Con permiso + bloqueo de negocio | Mostrar acción **inactiva** (`disabled` / `opacity-50` / `cursor-not-allowed`) con `title` (y opcionalmente texto) explicando el motivo |
+
+```blade
+{{-- ✅ Correcto — visible e inactivo --}}
+@if($can_edit)
+    @if($edit_disabled)
+        <span title="Motivo del bloqueo" class="cursor-not-allowed rounded p-1.5 text-slate-300 opacity-50" aria-disabled="true">
+            {{-- icono editar --}}
+        </span>
+    @else
+        <a href="..." title="Editar" class="...">{{-- icono --}}</a>
+    @endif
+@endif
+
+{{-- ❌ Incorrecto — ocultar por regla de negocio --}}
+@if($can_edit && ! $edit_disabled)
+    <a href="...">...</a>
+@endif
+```
+
+En datatables/show: separar permiso (`can_edit`) de bloqueo (`edit_disabled` + `edit_disabled_title`). La autorización real sigue en Action / `authorize*`.
+
+---
+
 ## Checklist antes de entregar
 
 - [ ] Contenedor `max-w-[90rem]` con padding responsive
@@ -226,4 +257,5 @@ Con Alpine: `<x-ui.modal centered x-show="$wire.showModal" x-cloak style="displa
 - [ ] Grids `grid-cols-1 sm:grid-cols-2`
 - [ ] Footer modal con botones `w-full sm:w-auto`
 - [ ] Datatable en `overflow-x-auto`
+- [ ] Acciones con permiso pero bloqueadas por negocio: visibles e inactivas (no ocultas)
 - [ ] Textos UI en español

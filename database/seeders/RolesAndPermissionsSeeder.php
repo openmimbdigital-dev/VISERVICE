@@ -150,6 +150,17 @@ class RolesAndPermissionsSeeder extends Seeder
             ...$this->quotationPermissions(),
             ...$this->workOrderPermissions(),
             ...$this->remissionPermissions(),
+            ...$this->advancePaymentPermissions(),
+        ];
+    }
+
+    /** @return list<string> */
+    private function advancePaymentPermissions(): array
+    {
+        return [
+            'workshop.advance-payments.view',
+            'workshop.advance-payments.pay',
+            'workshop.advance-payments.void',
         ];
     }
 
@@ -226,6 +237,9 @@ class RolesAndPermissionsSeeder extends Seeder
             // Configuración — Tipos de equipo (solo superAdmin)
             'settings.equipment_types.view', 'settings.equipment_types.create',
             'settings.equipment_types.edit', 'settings.equipment_types.delete',
+            // Configuración — Estados (solo superAdmin)
+            'settings.statuses.view', 'settings.statuses.create',
+            'settings.statuses.edit', 'settings.statuses.delete',
             // Roles
             'roles.view', 'roles.create', 'roles.edit', 'roles.delete',
             'permissions.view', 'permissions.assign',
@@ -243,6 +257,7 @@ class RolesAndPermissionsSeeder extends Seeder
             ...$this->quotationPermissions(),
             ...$this->workOrderPermissions(),
             ...$this->remissionPermissions(),
+            ...$this->advancePaymentPermissions(),
             // Gestión de Negocios (solo superAdmin)
             ...$this->businessManagementPermissions(),
             // Negocios — Cargos del equipo
@@ -255,6 +270,15 @@ class RolesAndPermissionsSeeder extends Seeder
         ])->mapWithKeys(fn ($name) => [
             $name => Permission::firstOrCreate(['name' => $name, 'guard_name' => $guard]),
         ]);
+
+        Permission::query()
+            ->where('guard_name', $guard)
+            ->whereIn('name', [
+                'workshop.advance-payments.create',
+                'workshop.advance-payments.edit',
+                'workshop.advance-payments.delete',
+            ])
+            ->delete();
 
         // ── Roles ───────────────────────────────────────────────────────────
 

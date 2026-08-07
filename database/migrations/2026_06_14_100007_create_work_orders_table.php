@@ -15,9 +15,9 @@ return new class extends Migration
             $table->foreignId('equipment_id')->constrained('equipment')->onDelete('cascade');
             $table->foreignId('quotation_id')->nullable()->constrained('quotations')->nullOnDelete();
             $table->string('reference')->comment('OT-YYYYMM-XXXX');
-            $table->enum('status', ['abierta', 'en_proceso', 'finalizada', 'cancelada'])->default('abierta');
-            $table->unsignedInteger('km_entry')->default(0);
-            $table->unsignedInteger('km_exit')->nullable();
+            $table->string('status', 100)->default('created');
+            $table->foreign('status')->references('name')->on('statuses')->restrictOnDelete();
+            $table->json('status_comments')->nullable()->comment('Historial de comentarios por cambio de estado');
             $table->text('diagnosis')->nullable()->comment('Diagnóstico registrado al ingreso');
             $table->text('work_description')->nullable()->comment('Descripción del trabajo realizado');
             $table->text('observations')->nullable();
@@ -27,6 +27,8 @@ return new class extends Migration
             $table->decimal('tax_percentage', 5, 2)->default(0);
             $table->decimal('tax_amount', 12, 2)->default(0);
             $table->decimal('total', 12, 2)->default(0);
+            $table->decimal('advance_percentage', 5, 2)->default(0);
+            $table->decimal('advance_amount', 12, 2)->default(0);
             $table->json('document_client')->nullable()->comment('Documentos asociados: {label: valor}');
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamp('finalized_at')->nullable();

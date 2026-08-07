@@ -20,10 +20,12 @@ class EventAttendancePdfController extends Controller
         $event = Event::query()
             ->forAuthUser()
             ->where('event_category_id', $eventCategory->id)
+            ->where('multi_day', false)
             ->with([
                 'business.organization_type:id,label',
                 'category:id,name,type',
                 'teams:id,name',
+                'parent:id,name,date_start,date_end',
                 'attendee_types' => fn ($query) => $query->orderBy('name'),
             ])
             ->findOrFail($event->id);
@@ -37,7 +39,7 @@ class EventAttendancePdfController extends Controller
         $is_church = $business?->organization_type?->label === 'iglesia';
         $entity_label = $is_church ? 'Iglesia' : 'Negocio';
 
-        $filename = 'asistencia-evento-'.$event->id.'-'.$event->date?->format('Y-m-d').'.pdf';
+        $filename = 'asistencia-evento-'.$event->id.'-'.($event->date_start?->format('Y-m-d') ?? 'sin-fecha').'.pdf';
 
         return Pdf::loadView('pdf.event-attendance-report', [
             'event' => $event,
@@ -51,6 +53,7 @@ class EventAttendancePdfController extends Controller
             'chart_values' => $chart['values'],
             'attendance_total' => $attendance_total,
             'max_attendance' => $max_attendance > 0 ? $max_attendance : 1,
+            'multi_day_context' => $event->multiDayContextLabel(),
             'printed_by' => trim(($user?->first_name ?? '').' '.($user?->last_name ?? '')) ?: ($user?->username ?? '—'),
             'printed_by_roles' => $user?->getRoleNames()->implode(', ') ?: '—',
             'printed_at' => now()->locale('es')->isoFormat('D [de] MMMM [de] YYYY h:mm a'),

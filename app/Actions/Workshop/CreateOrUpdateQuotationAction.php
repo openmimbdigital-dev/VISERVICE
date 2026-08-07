@@ -16,6 +16,7 @@ use App\Models\Quotation;
 use App\Models\QuotationItem;
 use App\Models\QuotationServiceType;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 class CreateOrUpdateQuotationAction
@@ -81,6 +82,7 @@ class CreateOrUpdateQuotationAction
                 'validity_days'              => (int) ($data['validity_days'] ?? 15),
                 'execution_time'             => $data['execution_time'] ?? null,
                 'tax_percentage'             => $data['tax_percentage'] ?? 19,
+                'advance_percentage'         => $data['advance_percentage'] ?? 0,
                 'notes'                      => $data['notes'] ?? null,
                 'observations'               => $data['observations'] ?? null,
             ];
@@ -89,13 +91,21 @@ class CreateOrUpdateQuotationAction
                 $quotation = Quotation::query()->forAuthUser()->findOrFail($quotation_id);
                 abort_unless((int) $quotation->business_id === $business_id, 403);
 
+                if (! $quotation->isEditable()) {
+                    throw ValidationException::withMessages([
+                        'form.client_id' => $quotation->isAccepted()
+                            ? 'No se puede editar: la cotización está aceptada.'
+                            : 'No se puede editar: la cotización está rechazada.',
+                    ]);
+                }
+
                 $quotation->update($payload);
             } else {
                 $quotation = Quotation::create([
                     ...$payload,
                     'business_id' => $business_id,
                     'reference'   => Quotation::generateReference($business_id),
-                    'status'      => QuotationStatus::Creada,
+                    'status'      => QuotationStatus::Created,
                     'created_by'  => $data['created_by'] ?? auth()->id(),
                 ]);
             }
@@ -104,6 +114,12 @@ class CreateOrUpdateQuotationAction
             $quotation->save();
             $this->syncItems($quotation, $items);
             $quotation->recalculateTotals();
+
+            $advance_percentage = (float) ($data['advance_percentage'] ?? 0);
+            $quotation->update([
+                'advance_percentage' => $advance_percentage,
+                'advance_amount'     => round((float) $quotation->subtotal * ($advance_percentage / 100), 2),
+            ]);
 
             $quotation = $quotation->fresh([
                 'items.productType',
@@ -120,6 +136,8 @@ class CreateOrUpdateQuotationAction
                 'equipment_id' => $quotation->equipment_id,
                 'total'        => $quotation->total,
                 'items_count'  => $quotation->items->count(),
+                'advance_percentage' => $quotation->advance_percentage,
+                'advance_amount' => $quotation->advance_amount,
             ];
 
             LogUserHistoricalAction::run(

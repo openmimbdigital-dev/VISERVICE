@@ -32,7 +32,7 @@
                 </div>
                 <div class="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:max-w-md">
                     @foreach([
-                        ['label'=>'Abiertas','value'=>$stats['abiertas'],'color'=>'text-blue-600'],
+                        ['label'=>'Creadas','value'=>$stats['creadas'],'color'=>'text-blue-600'],
                         ['label'=>'En proceso','value'=>$stats['en_proceso'],'color'=>'text-yellow-600'],
                         ['label'=>'Finalizadas','value'=>$stats['finalizadas'],'color'=>'text-emerald-600'],
                         ['label'=>'Canceladas','value'=>$stats['canceladas'],'color'=>'text-red-600'],

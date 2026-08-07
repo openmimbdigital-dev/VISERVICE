@@ -19,13 +19,15 @@ class WorkOrderForm extends Form
 
     public ?int $equipment_id = null;
 
-    public string $km_entry = '0';
-
     public string $diagnosis = '';
 
     public string $estimated_delivery = '';
 
     public string $tax_percentage = '19';
+
+    public string $advance_percentage = '0';
+
+    public string $advance_amount = '0';
 
     public string $notes = '';
 
@@ -37,10 +39,11 @@ class WorkOrderForm extends Form
         $this->quotation_id        = $work_order->quotation_id;
         $this->client_id           = $work_order->client_id;
         $this->equipment_id        = $work_order->equipment_id;
-        $this->km_entry            = (string) ($work_order->km_entry ?? 0);
         $this->diagnosis           = $work_order->diagnosis ?? '';
         $this->estimated_delivery  = $work_order->estimated_delivery?->format('Y-m-d') ?? '';
         $this->tax_percentage      = (string) $work_order->tax_percentage;
+        $this->advance_percentage  = (string) ($work_order->advance_percentage ?? 0);
+        $this->advance_amount      = (string) ($work_order->advance_amount ?? 0);
         $this->notes               = $work_order->notes ?? '';
         $this->observations        = $work_order->observations ?? '';
     }
@@ -52,6 +55,8 @@ class WorkOrderForm extends Form
         $this->equipment_id = $quotation->equipment_id;
         $this->diagnosis    = $quotation->diagnosis ?? '';
         $this->tax_percentage = (string) ($quotation->tax_percentage ?? 19);
+        $this->advance_percentage = (string) ($quotation->advance_percentage ?? 0);
+        $this->advance_amount = (string) ($quotation->advance_amount ?? 0);
         $this->notes          = $quotation->notes ?? '';
         $this->observations   = $quotation->observations ?? '';
     }
@@ -76,7 +81,7 @@ class WorkOrderForm extends Form
                 'integer',
                 Rule::exists('quotations', 'id')->where(fn ($q) => $q
                     ->where('business_id', $business_id)
-                    ->where('status', QuotationStatus::Aceptada->value)
+                    ->where('status', QuotationStatus::Accepted->value)
                     ->whereNull('deleted_at')),
             ],
             'client_id' => [
@@ -94,10 +99,10 @@ class WorkOrderForm extends Form
                     ->where('client_id', $this->client_id)
                     ->whereNull('deleted_at')),
             ],
-            'km_entry'           => ['required', 'integer', 'min:0'],
             'diagnosis'          => ['nullable', 'string'],
             'estimated_delivery' => ['nullable', 'date'],
             'tax_percentage'     => ['required', 'numeric', 'min:0', 'max:100'],
+            'advance_percentage' => ['required', 'numeric', 'min:0', 'max:100'],
             'notes'              => ['nullable', 'string'],
             'observations'       => ['nullable', 'string'],
         ];
@@ -111,9 +116,11 @@ class WorkOrderForm extends Form
             'equipment_id.required'       => 'Selecciona un equipo.',
             'equipment_id.exists'         => 'El equipo seleccionado no es válido.',
             'quotation_id.exists'         => 'La cotización debe existir, pertenecer al negocio y estar aceptada.',
-            'km_entry.required'           => 'Indica el kilometraje de ingreso.',
-            'km_entry.integer'            => 'El kilometraje debe ser un número entero.',
             'tax_percentage.required'     => 'Indica el porcentaje de IVA.',
+            'advance_percentage.required' => 'Indica el porcentaje de anticipo.',
+            'advance_percentage.numeric'  => 'El anticipo debe ser un número.',
+            'advance_percentage.min'      => 'El anticipo no puede ser negativo.',
+            'advance_percentage.max'      => 'El anticipo no puede superar el 100%.',
             'estimated_delivery.date'     => 'La fecha de entrega estimada no es válida.',
         ];
     }
@@ -125,10 +132,11 @@ class WorkOrderForm extends Form
 
         return [
             'quotation_id'        => $data['quotation_id'] ?: null,
-            'km_entry'            => (int) $data['km_entry'],
             'diagnosis'           => $data['diagnosis'] ?: null,
             'estimated_delivery'  => $data['estimated_delivery'] ?: null,
             'tax_percentage'      => $data['tax_percentage'],
+            'advance_percentage'  => (float) ($this->advance_percentage ?: 0),
+            'advance_amount'      => (float) ($this->advance_amount ?: 0),
             'notes'               => $data['notes'] ?: null,
             'observations'        => $data['observations'] ?: null,
             'created_by'          => auth()->id(),
@@ -144,7 +152,7 @@ class WorkOrderForm extends Form
         return Quotation::query()
             ->forAuthUser()
             ->where('business_id', $business_id)
-            ->where('status', QuotationStatus::Aceptada)
+            ->where('status', QuotationStatus::Accepted)
             ->where(function ($query) use ($work_order_id) {
                 $query->whereDoesntHave('workOrder');
 

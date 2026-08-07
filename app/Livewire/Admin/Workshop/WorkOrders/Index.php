@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin\Workshop\WorkOrders;
 
+use App\Enums\WorkOrderStatus;
 use App\Models\WorkOrder;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
@@ -22,11 +23,13 @@ class Index extends Component
 
     public function render()
     {
+        $base = WorkOrder::query()->forAuthUser();
+
         $stats = [
-            'abiertas'    => WorkOrder::query()->forAuthUser()->where('status', 'abierta')->count(),
-            'en_proceso'  => WorkOrder::query()->forAuthUser()->where('status', 'en_proceso')->count(),
-            'finalizadas' => WorkOrder::query()->forAuthUser()->where('status', 'finalizada')->count(),
-            'canceladas'  => WorkOrder::query()->forAuthUser()->where('status', 'cancelada')->count(),
+            'creadas' => (clone $base)->where('status', WorkOrderStatus::Created)->count(),
+            'en_proceso' => (clone $base)->where('status', WorkOrderStatus::InProgress)->count(),
+            'finalizadas' => (clone $base)->where('status', WorkOrderStatus::Completed)->count(),
+            'canceladas' => (clone $base)->where('status', WorkOrderStatus::Cancelled)->count(),
         ];
 
         return view('livewire.admin.workshop.work-orders.index', compact('stats'));

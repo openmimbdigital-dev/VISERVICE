@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
@@ -18,26 +19,33 @@ class Event extends Model
     protected $fillable = [
         'business_id',
         'event_category_id',
+        'parent_id',
         'name',
         'description',
-        'date',
+        'date_start',
+        'date_end',
         'day',
         'start_time',
         'end_time',
+        'active',
+        'multi_day',
         'attendance_enabled',
         'participation_enabled',
         'attendance_closed',
-        'attendance',
+
     ];
 
     protected function casts(): array
     {
         return [
-            'date'       => 'date',
+            'date_start' => 'date',
+            'date_end' => 'date',
             'attendance_enabled' => 'boolean',
             'participation_enabled' => 'boolean',
             'attendance_closed' => 'boolean',
-            'attendance' => 'integer',
+            'multi_day' => 'boolean',
+            'active' => 'boolean',
+
         ];
     }
 
@@ -49,6 +57,16 @@ class Event extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(EventCategory::class, 'event_category_id');
+    }
+
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'parent_id');
+    }
+
+    public function children(): HasMany
+    {
+        return $this->hasMany(self::class, 'parent_id');
     }
 
     public function attendee_types(): BelongsToMany
@@ -91,11 +109,30 @@ class Event extends Model
         return EventsAccess::canDeleteEvent($this, $user);
     }
 
+    /**
+     * La toma de asistencia ya inició si existe al menos un registro en event_attendee_type
+     * (en el propio evento o en alguno de sus días hijos).
+     */
+    public function hasStartedAttendance(): bool
+    {
+        if ($this->attendee_types()->exists()) {
+            return true;
+        }
+
+        if ($this->parent_id !== null) {
+            return false;
+        }
+
+        return $this->children()
+            ->whereHas('attendee_types')
+            ->exists();
+    }
+
     public function isWithinSchedule(?CarbonInterface $now = null): bool
     {
         $now = $this->resolvedNow($now);
 
-        if (! $this->date?->isSameDay($now)) {
+        if ($this->date_start === null || $this->date_end === null) {
             return false;
         }
 
@@ -135,7 +172,7 @@ class Event extends Model
     private function captureState(bool $enabled, string $subject, ?CarbonInterface $now = null): array
     {
         $now = $this->resolvedNow($now);
-        $date_label = $this->date?->format('d/m/Y') ?? '—';
+        $date_label = $this->dateRangeLabel();
         $start_label = $this->timeLabel($this->start_time);
         $end_label = $this->timeLabel($this->end_time);
 
@@ -146,24 +183,24 @@ class Event extends Model
             ];
         }
 
-        if ($this->date === null) {
+        if ($this->date_start === null || $this->date_end === null) {
             return [
                 'available' => false,
                 'message' => "No podemos abrir la toma de {$subject} porque el evento no tiene fecha definida.",
             ];
         }
 
-        if ($now->lt($this->date->copy()->startOfDay())) {
+        if ($now->lt($this->date_start->copy()->startOfDay())) {
             return [
                 'available' => false,
-                'message' => "La toma de {$subject} estará disponible el día del evento ({$date_label}), entre {$start_label} y {$end_label}.",
+                'message' => "La toma de {$subject} estará disponible durante el evento ({$date_label}), entre {$start_label} y {$end_label}.",
             ];
         }
 
-        if ($now->gt($this->date->copy()->endOfDay())) {
+        if ($now->gt($this->date_end->copy()->endOfDay())) {
             return [
                 'available' => false,
-                'message' => "La toma de {$subject} solo estuvo disponible el día del evento ({$date_label}).",
+                'message' => "La toma de {$subject} solo estuvo disponible durante el evento ({$date_label}).",
             ];
         }
 
@@ -202,9 +239,46 @@ class Event extends Model
         return $this->startTimeLabel().' – '.$this->endTimeLabel();
     }
 
+    public function dateRangeLabel(): string
+    {
+        if ($this->date_start === null) {
+            return '—';
+        }
+
+        $start_label = $this->date_start->format('d/m/Y');
+
+        if ($this->date_end === null || $this->date_start->isSameDay($this->date_end)) {
+            return $start_label;
+        }
+
+        return $start_label.' – '.$this->date_end->format('d/m/Y');
+    }
+
+    public function isMultiDayChild(): bool
+    {
+        return $this->parent_id !== null;
+    }
+
+    public function multiDayContextLabel(): ?string
+    {
+        if (! $this->isMultiDayChild()) {
+            return null;
+        }
+
+        $parent = $this->relationLoaded('parent')
+            ? $this->parent
+            : $this->parent()->first();
+
+        if (! $parent) {
+            return 'Este registro pertenece a un evento de varios días.';
+        }
+
+        return 'Día '.$this->dateRangeLabel().' del evento multi-día «'.$parent->name.'» ('.$parent->dateRangeLabel().').';
+    }
+
     private function scheduleStartAt(CarbonInterface $now): Carbon
     {
-        return $this->date
+        return $this->date_start
             ->copy()
             ->setTimezone($now->getTimezone())
             ->setTimeFromTimeString($this->normalizedTime($this->start_time));
@@ -212,7 +286,7 @@ class Event extends Model
 
     private function scheduleEndAt(CarbonInterface $now): Carbon
     {
-        return $this->date
+        return $this->date_end
             ->copy()
             ->setTimezone($now->getTimezone())
             ->setTimeFromTimeString($this->normalizedTime($this->end_time));

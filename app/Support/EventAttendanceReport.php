@@ -20,6 +20,7 @@ class EventAttendanceReport
 
         $event_ids = Event::query()
             ->forAuthUser($user)
+            ->where('multi_day', false)
             ->pluck('id');
 
         if ($event_ids->isEmpty()) {

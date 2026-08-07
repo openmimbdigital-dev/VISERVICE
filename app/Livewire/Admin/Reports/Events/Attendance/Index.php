@@ -36,11 +36,11 @@ class Index extends Component
     {
         $categories = EventCategory::query()
             ->visibleToUser()
-            ->withCount(['events' => fn ($query) => $query->forAuthUser()])
+            ->withCount(['events' => fn ($query) => $query->forAuthUser()->where('multi_day', false)])
             ->orderBy('name')
             ->get(['id', 'name', 'description', 'type', 'general']);
 
-        $events_query = Event::query()->forAuthUser();
+        $events_query = Event::query()->forAuthUser()->where('multi_day', false);
         $chart = EventAttendanceReport::generalChartByAttendeeType();
 
         return view('livewire.admin.reports.events.attendance.index', [

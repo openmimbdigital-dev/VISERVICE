@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title') — VISERVICE</title>
+    <title>@yield('title') — SouulBi</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -31,7 +31,7 @@
 
         {{-- Logo --}}
         <div class="flex justify-center mb-8">
-            <img src="{{ asset('images/logo-initial.png') }}" alt="VISERVICE" class="h-14 w-auto drop-shadow-xl float">
+            <img src="{{ asset('images/logo-initial.jpeg') }}" alt="SouulBi" class="h-14 w-auto drop-shadow-xl float">
         </div>
 
         {{-- Código de error (decorativo, grande y semitransparente) --}}
@@ -81,7 +81,7 @@
             </button>
         </div>
 
-        <p class="mt-12 text-xs text-slate-600">© {{ date('Y') }} VISERVICE · Si el problema persiste contacta al administrador.</p>
+        <p class="mt-12 text-xs text-slate-600">© {{ date('Y') }} SouulBi · Si el problema persiste contacta al administrador.</p>
     </div>
 
 </body>

@@ -33,6 +33,8 @@ class QuotationForm extends Form
 
     public string $tax_percentage = '19';
 
+    public string $advance_percentage = '0';
+
     public string $notes = '';
 
     public string $observations = '';
@@ -50,6 +52,7 @@ class QuotationForm extends Form
         $this->validity_days             = (string) ($quotation->validity_days ?? 15);
         $this->execution_time            = $quotation->execution_time ?? '';
         $this->tax_percentage            = (string) $quotation->tax_percentage;
+        $this->advance_percentage        = (string) ($quotation->advance_percentage ?? 0);
         $this->notes                     = $quotation->notes ?? '';
         $this->observations              = $quotation->observations ?? '';
     }
@@ -106,6 +109,7 @@ class QuotationForm extends Form
             'validity_days'   => ['required', 'integer', 'min:1', 'max:365'],
             'execution_time'  => ['nullable', 'string', 'max:120'],
             'tax_percentage'  => ['required', 'numeric', 'min:0', 'max:100'],
+            'advance_percentage' => ['required', 'numeric', 'min:0', 'max:100'],
             'notes'           => ['nullable', 'string'],
             'observations'    => ['nullable', 'string'],
         ];
@@ -122,6 +126,10 @@ class QuotationForm extends Form
             'validity_days.required'  => 'Indica los días de vigencia.',
             'validity_days.min'       => 'La vigencia debe ser al menos 1 día.',
             'tax_percentage.required' => 'El porcentaje de IVA es obligatorio.',
+            'advance_percentage.required' => 'Indica el porcentaje de anticipo.',
+            'advance_percentage.numeric' => 'El anticipo debe ser un número.',
+            'advance_percentage.min' => 'El anticipo no puede ser negativo.',
+            'advance_percentage.max' => 'El anticipo no puede superar el 100%.',
         ];
     }
 
@@ -132,6 +140,7 @@ class QuotationForm extends Form
         $this->hours_entry  = '';
         $this->validity_days = '15';
         $this->tax_percentage = '19';
+        $this->advance_percentage = '0';
     }
 
     public function validated(): array
@@ -170,6 +179,7 @@ class QuotationForm extends Form
             'validity_days'              => (int) $this->validity_days,
             'execution_time'             => $this->execution_time ?: null,
             'tax_percentage'             => $this->tax_percentage,
+            'advance_percentage'         => $this->advance_percentage,
             'notes'                      => $this->notes ?: null,
             'observations'               => $this->observations ?: null,
         ];

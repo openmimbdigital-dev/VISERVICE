@@ -3,7 +3,9 @@
 namespace App\Livewire\Admin\Workshop\WorkOrders;
 
 use App\Actions\Workshop\DeleteWorkOrderAction;
+use App\Enums\WorkOrderStatus;
 use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
+use App\Models\Status;
 use App\Models\WorkOrder;
 use Arm092\LivewireDatatables\Column;
 use Arm092\LivewireDatatables\DateColumn;
@@ -55,28 +57,25 @@ class DatatableWorkOrders extends LivewireDatatable
             })->label('Entrega est.'),
 
             Column::callback(['work_orders.status'], function ($status) {
-                $map = [
-                    'abierta'    => ['label' => 'Abierta',    'class' => 'bg-blue-50 text-blue-700 ring-1 ring-blue-600/20'],
-                    'en_proceso' => ['label' => 'En proceso', 'class' => 'bg-yellow-50 text-yellow-700 ring-1 ring-yellow-600/20'],
-                    'finalizada' => ['label' => 'Finalizada', 'class' => 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20'],
-                    'cancelada'  => ['label' => 'Cancelada',  'class' => 'bg-red-50 text-red-700 ring-1 ring-red-600/20'],
-                ];
-                $s = $map[$status] ?? ['label' => $status, 'class' => 'bg-slate-100 text-slate-600'];
+                $enum = WorkOrderStatus::tryFrom((string) $status);
 
-                return '<span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ' . $s['class'] . '">' . $s['label'] . '</span>';
-            })->label('Estado')->filterable([
-                'abierta' => 'Abierta', 'en_proceso' => 'En proceso',
-                'finalizada' => 'Finalizada', 'cancelada' => 'Cancelada',
-            ]),
+                if (! $enum) {
+                    return e((string) $status);
+                }
+
+                return '<span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ' . $enum->badgeClass() . '">' . e($enum->label()) . '</span>';
+            })->label('Estado')->filterable(Status::optionsForModule('work_orders')),
 
             DateColumn::name('work_orders.created_at')
                 ->label('Fecha')
                 ->sortable(),
 
             Column::callback(['work_orders.id', 'work_orders.status'], function ($id, $status) {
+                $status_enum = WorkOrderStatus::tryFrom((string) $status);
+
                 return view('livewire.admin.workshop.work-orders.actions', [
-                    'id'     => $id,
-                    'status' => $status,
+                    'id'         => $id,
+                    'can_mutate' => $status_enum?->isOpen() ?? false,
                 ]);
             })->label('Acciones')->unsortable(),
         ];

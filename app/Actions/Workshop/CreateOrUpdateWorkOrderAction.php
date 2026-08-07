@@ -5,6 +5,7 @@ namespace App\Actions\Workshop;
 use App\Actions\LogEquipmentHistoricalAction;
 use App\Actions\LogUserHistoricalAction;
 use App\Enums\QuotationStatus;
+use App\Enums\WorkOrderStatus;
 use App\Models\Client;
 use App\Models\Equipment;
 use App\Models\Product;
@@ -50,6 +51,7 @@ class CreateOrUpdateWorkOrderAction
         );
 
         $quotation_id = ! empty($data['quotation_id']) ? (int) $data['quotation_id'] : null;
+        $quotation = null;
 
         if ($quotation_id) {
             $quotation = $this->assertAcceptedQuotationAvailable($business_id, $quotation_id, $work_order_id);
@@ -57,12 +59,11 @@ class CreateOrUpdateWorkOrderAction
             $equipment_id = (int) $quotation->equipment_id;
         }
 
-        return DB::transaction(function () use ($business_id, $work_order_id, $client_id, $equipment_id, $data, $items, $quotation_id) {
+        return DB::transaction(function () use ($business_id, $work_order_id, $client_id, $equipment_id, $data, $items, $quotation_id, $quotation) {
             $payload = [
                 'client_id'          => $client_id,
                 'equipment_id'       => $equipment_id,
                 'quotation_id'       => $quotation_id,
-                'km_entry'           => (int) ($data['km_entry'] ?? 0),
                 'diagnosis'          => $data['diagnosis'] ?? null,
                 'estimated_delivery' => $data['estimated_delivery'] ?? null,
                 'tax_percentage'     => $data['tax_percentage'] ?? 19,
@@ -73,7 +74,7 @@ class CreateOrUpdateWorkOrderAction
             if ($work_order_id) {
                 $work_order = WorkOrder::query()->forAuthUser()->findOrFail($work_order_id);
                 abort_unless((int) $work_order->business_id === $business_id, 403);
-                abort_unless(in_array($work_order->status, ['abierta', 'en_proceso'], true), 422);
+                abort_unless($work_order->status?->isOpen() ?? false, 422);
 
                 $work_order->update($payload);
             } else {
@@ -81,18 +82,21 @@ class CreateOrUpdateWorkOrderAction
                     ...$payload,
                     'business_id' => $business_id,
                     'reference'   => WorkOrder::generateReference($business_id),
-                    'status'      => 'abierta',
+                    'status'      => WorkOrderStatus::Created,
                     'created_by'  => $data['created_by'] ?? auth()->id(),
+                    'advance_percentage' => 0,
+                    'advance_amount' => 0,
                 ]);
             }
 
             $this->syncItems($work_order, $items);
             $work_order->recalculateTotals();
 
-            $equipment = $work_order->equipment;
-            if ($equipment && $work_order->km_entry > (int) $equipment->km_current) {
-                $equipment->update(['km_current' => $work_order->km_entry]);
-            }
+            $advance_percentage = $quotation && ! $work_order_id
+                ? (float) ($quotation->advance_percentage ?? 0)
+                : (float) ($data['advance_percentage'] ?? 0);
+
+            SyncWorkOrderAdvanceCommitmentAction::run($work_order, $advance_percentage);
 
             $work_order = $work_order->fresh([
                 'items.productType',
@@ -110,6 +114,8 @@ class CreateOrUpdateWorkOrderAction
                 'quotation_id' => $work_order->quotation_id,
                 'total'        => $work_order->total,
                 'items_count'  => $work_order->items->count(),
+                'advance_percentage' => $work_order->advance_percentage,
+                'advance_amount' => $work_order->advance_amount,
             ];
 
             LogUserHistoricalAction::run(
@@ -140,7 +146,7 @@ class CreateOrUpdateWorkOrderAction
         $quotation = Quotation::query()
             ->forAuthUser()
             ->where('business_id', $business_id)
-            ->where('status', QuotationStatus::Aceptada)
+            ->where('status', QuotationStatus::Accepted)
             ->whereKey($quotation_id)
             ->firstOrFail();
 
@@ -203,10 +209,7 @@ class CreateOrUpdateWorkOrderAction
                 $item->update($payload);
                 $kept_ids[] = (int) $item->id;
             } else {
-                $item = $work_order->items()->create([
-                    ...$payload,
-                    'status' => 'pendiente',
-                ]);
+                $item = $work_order->items()->create($payload);
                 $kept_ids[] = (int) $item->id;
             }
         }

@@ -16,7 +16,8 @@ return new class extends Migration
             $table->foreignId('equipment_id')->nullable()->constrained('equipment')->nullOnDelete();
             $table->string('reference')->comment('REM-YYYYMM-XXXX');
             $table->enum('type', ['entrega', 'devolucion', 'traslado'])->default('entrega');
-            $table->enum('status', ['borrador', 'emitida', 'entregada'])->default('borrador');
+            $table->string('status', 100)->default('created');
+            $table->foreign('status')->references('name')->on('statuses')->restrictOnDelete();
             $table->string('quotation_or_po_reference')->nullable()->comment('Cotización / Orden de compra');
             $table->date('issue_date')->nullable()->comment('Fecha de expedición');
 

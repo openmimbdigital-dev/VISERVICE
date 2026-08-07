@@ -91,12 +91,6 @@
                         </div>
 
                         <div>
-                            <label class="mb-1.5 block text-xs font-medium text-slate-700">Km al ingreso <span class="text-rose-500">*</span></label>
-                            <input type="number" wire:model="form.km_entry" min="0" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm @error('form.km_entry') border-rose-400 bg-rose-50 @enderror">
-                            @error('form.km_entry') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
-                        </div>
-
-                        <div>
                             <label class="mb-1.5 block text-xs font-medium text-slate-700">Entrega estimada</label>
                             <input type="date" wire:model="form.estimated_delivery" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm @error('form.estimated_delivery') border-rose-400 bg-rose-50 @enderror">
                             @error('form.estimated_delivery') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
@@ -106,6 +100,21 @@
                             <label class="mb-1.5 block text-xs font-medium text-slate-700">IVA (%) <span class="text-rose-500">*</span></label>
                             <input type="number" wire:model.live="form.tax_percentage" min="0" max="100" step="0.5" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm @error('form.tax_percentage') border-rose-400 bg-rose-50 @enderror">
                             @error('form.tax_percentage') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label class="mb-1.5 block text-xs font-medium text-slate-700">Anticipo (%) <span class="text-rose-500">*</span></label>
+                            <input type="number" wire:model.live="form.advance_percentage" min="0" max="100" step="0.5"
+                                @disabled(! $is_editing && $from_quotation)
+                                class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 disabled:cursor-not-allowed disabled:opacity-60 @error('form.advance_percentage') border-rose-400 bg-rose-50 @enderror">
+                            @error('form.advance_percentage') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                            <p class="mt-1 text-xs text-slate-500">
+                                Valor calculado:
+                                <span class="font-medium text-slate-700">{{ col_money($preview_advance_amount) }}</span>
+                                — solo define el monto acordado; los abonos se registran en Gestión de anticipo
+                                @if(! $is_editing && $from_quotation)
+                                <span class="text-slate-400">(heredado de la cotización)</span>
+                                @endif
+                            </p>
                         </div>
 
                         <div class="sm:col-span-2">
@@ -140,16 +149,18 @@
                             <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                                 <div>
                                     <label class="mb-1 block text-xs font-medium text-slate-700">Tipo</label>
-                                    <select wire:model="items.{{ $index }}.product_type_id" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">
+                                    <select wire:model.live="items.{{ $index }}.product_type_id" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">
                                         <option value="">—</option>
                                         @foreach($product_types as $type)<option value="{{ $type->id }}">{{ $type->name }}</option>@endforeach
                                     </select>
                                 </div>
                                 <div>
                                     <label class="mb-1 block text-xs font-medium text-slate-700">Catálogo</label>
-                                    <select wire:model.live="items.{{ $index }}.product_id" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">
+                                    <select wire:model.live="items.{{ $index }}.product_id" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm" @disabled(empty($row['product_type_id']))>
                                         <option value="">— Manual —</option>
-                                        @foreach($catalog_products as $ci)<option value="{{ $ci->id }}">{{ $ci->name }} ({{ col_money($ci->sale_price) }})</option>@endforeach
+                                        @foreach($catalog_products->where('product_type_id', (int) ($row['product_type_id'] ?? 0)) as $ci)
+                                        <option value="{{ $ci->id }}">{{ $ci->name }} ({{ col_money($ci->sale_price) }})</option>
+                                        @endforeach
                                     </select>
                                 </div>
                                 <div class="sm:col-span-2">
@@ -191,6 +202,10 @@
                         <div class="flex justify-between text-slate-600">
                             <dt>Subtotal</dt>
                             <dd class="tabular-nums font-medium text-slate-900">{{ col_money($preview_subtotal) }}</dd>
+                        </div>
+                        <div class="flex justify-between text-slate-600">
+                            <dt>Anticipo ({{ $form->advance_percentage }}%)</dt>
+                            <dd class="tabular-nums font-medium text-amber-700">{{ col_money($preview_advance_amount) }}</dd>
                         </div>
                         <div class="flex justify-between text-slate-600">
                             <dt>IVA ({{ $form->tax_percentage }}%)</dt>

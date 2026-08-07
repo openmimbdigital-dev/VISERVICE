@@ -13,18 +13,35 @@
                 <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-indigo-600/90">Taller</p>
                 <div class="mt-2 flex flex-wrap items-center gap-3">
                     <h1 class="text-2xl font-bold tracking-tight text-slate-900">{{ $quotation->reference }}</h1>
-                    <span class="inline-flex items-center rounded-full px-3 py-1 text-sm font-medium {{ $quotation->status->badgeClass() }}">{{ $quotation->status->label() }}</span>
+                    <span class="inline-flex items-center rounded-full px-3 py-1 text-sm font-medium {{ $status_badge_class }}">{{ $quotation->status_label }}</span>
                 </div>
                 <p class="mt-2 text-sm text-slate-500">
                     {{ $quotation->client?->name }} · {{ $quotation->equipment?->select_label }}
                     @if($quotation->hours_entry_formatted) · Horas: {{ $quotation->hours_entry_formatted }}@endif
                 </p>
+                @if((float) $quotation->advance_amount > 0)
+                <p class="mt-2 text-sm text-amber-700">
+                    Anticipo ({{ rtrim(rtrim(number_format((float) $quotation->advance_percentage, 2, '.', ''), '0'), '.') }}%):
+                    <span class="font-semibold">{{ col_money($quotation->advance_amount) }}</span>
+                </p>
+                @endif
             </div>
             <div class="flex w-full shrink-0 flex-wrap gap-2 sm:w-auto">
                 <a href="{{ route('admin.workshop.quotations.index') }}" wire:navigate class="btn btn-outline-secondary btn-sm flex-1 sm:flex-none justify-center">Volver</a>
-                @can('workshop.quotations.edit')
-                <a href="{{ route('admin.workshop.quotations.form.edit', $quotation->id) }}" wire:navigate class="btn btn-primary btn-sm flex-1 sm:flex-none justify-center">Editar</a>
-                @endcan
+                @if($can_edit)
+                    @if($edit_disabled)
+                        <button
+                            type="button"
+                            disabled
+                            title="{{ $edit_disabled_title }}"
+                            class="btn btn-primary btn-sm flex-1 justify-center opacity-50 sm:flex-none"
+                        >
+                            Editar
+                        </button>
+                    @else
+                        <a href="{{ route('admin.workshop.quotations.form.edit', $quotation->id) }}" wire:navigate class="btn btn-primary btn-sm flex-1 sm:flex-none justify-center">Editar</a>
+                    @endif
+                @endif
                 @if($can_create_ot)
                 <a href="{{ route('admin.workshop.work-orders.form', ['quotation' => $quotation->id]) }}" wire:navigate
                     class="btn btn-success btn-sm flex-1 sm:flex-none justify-center">
@@ -38,7 +55,12 @@
                 @endif
                 <a href="{{ route('admin.workshop.quotations.print', $quotation->id) }}" target="_blank" class="btn btn-outline-secondary btn-sm flex-1 sm:flex-none justify-center">Imprimir / PDF</a>
                 @can('workshop.quotations.delete')
+                @if($can_delete)
                 <button type="button" wire:click="deleteQuotation" class="btn btn-danger btn-sm flex-1 sm:flex-none justify-center">Eliminar</button>
+                @else
+                <button type="button" disabled title="{{ $edit_disabled_title }}; no se puede eliminar"
+                    class="btn btn-danger btn-sm flex-1 justify-center opacity-50 sm:flex-none">Eliminar</button>
+                @endif
                 @endcan
             </div>
         </div>
@@ -92,6 +114,17 @@
                     <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
                         <dt class="text-xs font-medium text-slate-500">Forma de pago</dt>
                         <dd class="text-sm text-slate-900 sm:col-span-2">{{ $quotation->paymentMethod?->name ?? '—' }}</dd>
+                    </div>
+                    <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                        <dt class="text-xs font-medium text-slate-500">Anticipo</dt>
+                        <dd class="text-sm sm:col-span-2 @if((float) $quotation->advance_amount > 0) font-medium text-amber-700 @else text-slate-900 @endif">
+                            @if((float) $quotation->advance_amount > 0)
+                                {{ rtrim(rtrim(number_format((float) $quotation->advance_percentage, 2, '.', ''), '0'), '.') }}%
+                                — {{ col_money($quotation->advance_amount) }}
+                            @else
+                                Sin anticipo
+                            @endif
+                        </dd>
                     </div>
                     <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
                         <dt class="text-xs font-medium text-slate-500">Cuenta bancaria</dt>
@@ -156,8 +189,30 @@
             <section class="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
                 <div class="border-b border-slate-100 bg-slate-50/80 px-4 py-4 sm:px-5">
                     <h3 class="font-semibold text-slate-900">Estado de la cotización</h3>
-                    <p class="mt-1 text-xs text-slate-500">Actualiza el seguimiento de la oferta.</p>
+                    <p class="mt-1 text-xs text-slate-500">
+                        @if($status_change_disabled)
+                            Esta cotización está rechazada y ya no admite cambios de estado.
+                        @else
+                            Actualiza el seguimiento de la oferta.
+                        @endif
+                    </p>
                 </div>
+                @if($status_change_disabled)
+                    <div class="space-y-3 p-4 sm:p-5">
+                        <div>
+                            <label class="mb-1.5 block text-xs font-medium text-slate-700">Estado</label>
+                            <input type="text" disabled value="{{ $quotation->status_label }}"
+                                class="w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-100 px-3.5 py-2.5 text-sm text-slate-500 opacity-70">
+                        </div>
+                        @if($quotation->reject_reason)
+                            <div>
+                                <label class="mb-1.5 block text-xs font-medium text-slate-700">Motivo del rechazo</label>
+                                <textarea disabled rows="3"
+                                    class="w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-100 px-3.5 py-2.5 text-sm text-slate-500 opacity-70">{{ $quotation->reject_reason }}</textarea>
+                            </div>
+                        @endif
+                    </div>
+                @else
                 <form wire:submit="updateStatus" class="space-y-4 p-4 sm:p-5">
                     <div>
                         <label class="mb-1.5 block text-xs font-medium text-slate-700">Estado</label>
@@ -170,7 +225,7 @@
                         @error('status') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                     </div>
 
-                    <div @class(['hidden' => $status !== \App\Enums\QuotationStatus::Rechazada->value])>
+                    <div @class(['hidden' => ! $show_reject_reason])>
                         <label class="mb-1.5 block text-xs font-medium text-slate-700">Motivo del rechazo <span class="text-rose-500">*</span></label>
                         <textarea wire:model="reject_reason" rows="3"
                             class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('reject_reason') border-rose-400 bg-rose-50 @enderror"
@@ -184,6 +239,7 @@
                         <span wire:loading wire:target="updateStatus">Guardando…</span>
                     </button>
                 </form>
+                @endif
             </section>
             @endif
 
@@ -195,6 +251,9 @@
                     <div class="flex justify-between text-xs text-slate-500"><dt>Lubricantes</dt><dd>{{ col_money($category_subtotals['lubricantes']) }}</dd></div>
                     <div class="flex justify-between text-xs text-slate-500"><dt>Otros</dt><dd>{{ col_money($category_subtotals['otros']) }}</dd></div>
                     <div class="flex justify-between border-t border-slate-100 pt-2"><dt class="text-slate-500">Subtotal</dt><dd class="font-medium">{{ col_money($quotation->subtotal) }}</dd></div>
+                    @if((float) $quotation->advance_amount > 0)
+                    <div class="flex justify-between"><dt class="text-slate-500">Anticipo ({{ $quotation->advance_percentage }}%)</dt><dd class="font-medium text-amber-700">{{ col_money($quotation->advance_amount) }}</dd></div>
+                    @endif
                     <div class="flex justify-between"><dt class="text-slate-500">IVA ({{ $quotation->tax_percentage }}%)</dt><dd class="font-medium">{{ col_money($quotation->tax_amount) }}</dd></div>
                     <div class="flex justify-between border-t border-slate-100 pt-2 text-base font-bold"><dt>Total</dt><dd class="text-indigo-700">{{ col_money($quotation->total) }}</dd></div>
                 </dl>

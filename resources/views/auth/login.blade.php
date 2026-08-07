@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Iniciar Sesión — VISERVICE</title>
+    <title>Iniciar Sesión — SouulBi</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -38,15 +38,15 @@
         {{-- Logo y nombre --}}
         <div class="relative z-10 flex flex-col items-center text-center max-w-md">
             <div class="float">
-                <img src="{{ asset('images/logo-initial.png') }}"
-                     alt="VISERVICE"
+                <img src="{{ asset('images/logo-initial.jpeg') }}"
+                     alt="SouulBi"
                      class="h-28 w-auto drop-shadow-2xl mb-6 select-none">
             </div>
             <h1 class="text-4xl xl:text-5xl font-extrabold text-white tracking-tight leading-tight">
-                VIS<span class="text-indigo-400">ERVICE</span>
+                Souul<span class="text-indigo-400">Bi</span>
             </h1>
             <p class="mt-4 text-slate-300 text-lg font-light leading-relaxed">
-                Gestión integral de talleres de servicio automotriz.
+                Gestión . Control . Impacto
             </p>
 
             <div class="mt-10 grid grid-cols-3 gap-4 w-full">
@@ -61,7 +61,7 @@
         </div>
 
         {{-- Footer izquierdo --}}
-        <p class="absolute bottom-6 text-xs text-slate-600 z-10">© {{ date('Y') }} VISERVICE · Todos los derechos reservados</p>
+        <p class="absolute bottom-6 text-xs text-slate-600 z-10">© {{ date('Y') }} SouulBi · Todos los derechos reservados</p>
     </div>
 
     {{-- Panel derecho — formulario --}}
@@ -70,8 +70,8 @@
 
             {{-- Logo mobile --}}
             <div class="flex flex-col items-center mb-8 lg:hidden">
-                <img src="{{ asset('images/logo-initial.png') }}" alt="VISERVICE" class="h-16 w-auto mb-3">
-                <h2 class="text-2xl font-bold text-slate-900">VISERVICE</h2>
+                <img src="{{ asset('images/logo-initial.jpeg') }}" alt="SouulBi" class="h-16 w-auto mb-3">
+                <h2 class="text-2xl font-bold text-slate-900">SouulBi</h2>
             </div>
 
             <div class="mb-8">
@@ -190,7 +190,7 @@
             </div>
 
             <p class="mt-4 text-center text-xs text-slate-400">
-                © {{ date('Y') }} VISERVICE · Sistema de gestión de talleres
+                © {{ date('Y') }} SouulBi · Sistema de gestión de talleres
             </p>
         </div>
     </div>

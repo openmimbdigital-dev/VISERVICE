@@ -4,6 +4,7 @@ namespace App\Livewire\Admin\Workshop\Remissions;
 
 use App\Actions\Workshop\CreateOrUpdateRemissionAction;
 use App\Actions\Workshop\DeleteRemissionAction;
+use App\Enums\WorkOrderStatus;
 use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
 use App\Livewire\Forms\Admin\Workshop\RemissionForm;
 use App\Models\City;
@@ -31,10 +32,15 @@ class Form extends Component
                 Remission::query()->forAuthUser()->whereKey($remission->id)->exists(),
                 404
             );
-            abort_unless($remission->status !== 'entregada', 403);
+            abort_unless($remission->isEditable(), 403);
 
+            $remission->load(['workOrder.statusDefinition']);
             $this->form->setRemission($remission);
             $this->reference = $remission->reference;
+
+            if ($remission->workOrder?->status instanceof WorkOrderStatus) {
+                $this->form->status = $remission->workOrder->status->value;
+            }
 
             return;
         }
@@ -42,7 +48,7 @@ class Form extends Component
         abort_unless(auth()->user()?->can('workshop.remissions.create'), 403);
 
         $this->form->issue_date = now()->format('Y-m-d');
-        $this->form->status = 'borrador';
+        $this->form->status = WorkOrderStatus::Created->value;
         $this->form->type = 'entrega';
 
         $work_order_id = request()->integer('work_order');
@@ -50,7 +56,7 @@ class Form extends Component
             $work_order = WorkOrder::query()
                 ->forAuthUser()
                 ->where('business_id', $this->form->resolvedBusinessId())
-                ->whereIn('status', ['abierta', 'en_proceso'])
+                ->whereIn('status', WorkOrderStatus::openValues())
                 ->with(['client.city', 'equipment'])
                 ->find($work_order_id);
 
@@ -70,13 +76,13 @@ class Form extends Component
         $work_order = WorkOrder::query()
             ->forAuthUser()
             ->where('business_id', $this->form->resolvedBusinessId())
-            ->whereIn('status', ['abierta', 'en_proceso'])
+            ->whereIn('status', WorkOrderStatus::openValues())
             ->with(['client.city', 'equipment'])
             ->find((int) $value);
 
         if (! $work_order) {
             $this->form->work_order_id = null;
-            $this->addError('form.work_order_id', 'La OT no está disponible o no está abierta/en proceso.');
+            $this->addError('form.work_order_id', 'La OT no está disponible o no está creada/en proceso.');
 
             return;
         }
@@ -86,7 +92,11 @@ class Form extends Component
 
     private function prefillFromWorkOrder(WorkOrder $work_order): void
     {
-        $work_order->loadMissing(['client.city', 'quotation:id,reference']);
+        $work_order->loadMissing(['client.city', 'quotation:id,reference', 'statusDefinition']);
+
+        $this->form->status = $work_order->status instanceof WorkOrderStatus
+            ? $work_order->status->value
+            : (string) $work_order->status;
 
         $client = $work_order->client;
         $this->form->delivery_address = $this->form->delivery_address ?: ($client?->address ?? '');
@@ -143,13 +153,20 @@ class Form extends Component
 
     public function render()
     {
+        $status_enum = WorkOrderStatus::tryFrom($this->form->status);
+        $status_label = $status_enum?->label() ?? ($this->form->status ?: '—');
+        $status_badge_class = $status_enum?->badgeClass()
+            ?? 'bg-slate-100 text-slate-600 ring-1 ring-slate-500/20';
+
         return view('livewire.admin.workshop.remissions.form', [
             'is_editing'           => $this->form->isEditing(),
             'eligible_work_orders' => $this->form->getEligibleWorkOrders(),
             'cities'               => City::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'state_province']),
+            'status_label'         => $status_label,
+            'status_badge_class'   => $status_badge_class,
             'can_delete'           => $this->form->isEditing()
                 && auth()->user()->can('workshop.remissions.delete')
-                && $this->form->status !== 'entregada',
+                && ! ($status_enum?->isTerminal() ?? false),
         ]);
     }
 }

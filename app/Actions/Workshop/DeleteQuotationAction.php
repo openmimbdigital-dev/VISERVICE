@@ -5,6 +5,7 @@ namespace App\Actions\Workshop;
 use App\Actions\LogEquipmentHistoricalAction;
 use App\Actions\LogUserHistoricalAction;
 use App\Models\Quotation;
+use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 class DeleteQuotationAction
@@ -19,6 +20,14 @@ class DeleteQuotationAction
             ->forAuthUser()
             ->with(['client:id,name', 'equipment', 'items'])
             ->findOrFail($quotation_id);
+
+        if (! $quotation->canBeDeleted()) {
+            throw ValidationException::withMessages([
+                'quotation' => $quotation->isAccepted()
+                    ? 'No se puede eliminar: la cotización está aceptada.'
+                    : 'No se puede eliminar: la cotización está rechazada.',
+            ]);
+        }
 
         $properties = [
             'status'       => $quotation->status?->value ?? $quotation->status,

@@ -66,16 +66,16 @@ class QuotationsSeeder extends Seeder
             ->get();
 
         $plan = [
-            ['business' => $transad, 'reference' => 'SEED-COT-TRANSAD-001', 'status' => QuotationStatus::Creada, 'reject_reason' => null],
-            ['business' => $transad, 'reference' => 'SEED-COT-TRANSAD-002', 'status' => QuotationStatus::Creada, 'reject_reason' => null],
-            ['business' => $transad, 'reference' => 'SEED-COT-TRANSAD-003', 'status' => QuotationStatus::Enviada, 'reject_reason' => null],
-            ['business' => $transad, 'reference' => 'SEED-COT-TRANSAD-004', 'status' => QuotationStatus::Aceptada, 'reject_reason' => null],
-            ['business' => $transad, 'reference' => 'SEED-COT-TRANSAD-005', 'status' => QuotationStatus::Rechazada, 'reject_reason' => 'El cliente solicitó replantear el alcance del mantenimiento.'],
-            ['business_slug' => 'carga-rapida-sas', 'reference' => 'SEED-COT-CARGA-001', 'status' => QuotationStatus::Creada, 'reject_reason' => null],
-            ['business_slug' => 'carga-rapida-sas', 'reference' => 'SEED-COT-CARGA-002', 'status' => QuotationStatus::Enviada, 'reject_reason' => null],
-            ['business_slug' => 'carga-rapida-sas', 'reference' => 'SEED-COT-CARGA-003', 'status' => QuotationStatus::Vencida, 'reject_reason' => null],
-            ['business_slug' => 'transportes-del-valle', 'reference' => 'SEED-COT-VALLE-001', 'status' => QuotationStatus::Creada, 'reject_reason' => null],
-            ['business_slug' => 'transportes-del-valle', 'reference' => 'SEED-COT-VALLE-002', 'status' => QuotationStatus::Aceptada, 'reject_reason' => null],
+            ['business' => $transad, 'reference' => 'SEED-COT-TRANSAD-001', 'status' => QuotationStatus::Created, 'reject_reason' => null],
+            ['business' => $transad, 'reference' => 'SEED-COT-TRANSAD-002', 'status' => QuotationStatus::Created, 'reject_reason' => null],
+            ['business' => $transad, 'reference' => 'SEED-COT-TRANSAD-003', 'status' => QuotationStatus::Sent, 'reject_reason' => null],
+            ['business' => $transad, 'reference' => 'SEED-COT-TRANSAD-004', 'status' => QuotationStatus::Accepted, 'reject_reason' => null],
+            ['business' => $transad, 'reference' => 'SEED-COT-TRANSAD-005', 'status' => QuotationStatus::Rejected, 'reject_reason' => 'El cliente solicitó replantear el alcance del mantenimiento.'],
+            ['business_slug' => 'carga-rapida-sas', 'reference' => 'SEED-COT-CARGA-001', 'status' => QuotationStatus::Created, 'reject_reason' => null],
+            ['business_slug' => 'carga-rapida-sas', 'reference' => 'SEED-COT-CARGA-002', 'status' => QuotationStatus::Sent, 'reject_reason' => null],
+            ['business_slug' => 'carga-rapida-sas', 'reference' => 'SEED-COT-CARGA-003', 'status' => QuotationStatus::Expired, 'reject_reason' => null],
+            ['business_slug' => 'transportes-del-valle', 'reference' => 'SEED-COT-VALLE-001', 'status' => QuotationStatus::Created, 'reject_reason' => null],
+            ['business_slug' => 'transportes-del-valle', 'reference' => 'SEED-COT-VALLE-002', 'status' => QuotationStatus::Accepted, 'reject_reason' => null],
         ];
 
         $created = 0;

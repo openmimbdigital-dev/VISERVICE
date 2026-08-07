@@ -36,6 +36,7 @@ class DatabaseSeeder extends Seeder
             ProductsSeeder::class,
             BusinessPaymentSettingsSeeder::class,
             QuotationServiceTypesSeeder::class,
+            StatusesSeeder::class,
             AssociatedDocumentOtSeeder::class,
             AttributesSeeder::class,
             ClientsSeeder::class,
@@ -46,6 +47,7 @@ class DatabaseSeeder extends Seeder
             EventCategoriesAndAttendeeTypesSeeder::class,
             EventTeamsSeeder::class,
             EventsSeeder::class,
+            ParticipantsSeeder::class,
         ]);
     }
 }

@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ $title ?? 'VISERVICE' }} — VISERVICE</title>
-    <link rel="icon" type="image/png" href="{{ asset('images/logo-initial.png') }}">
+    <title>{{ $title ?? 'SouulBi' }} — SouulBi</title>
+    <link rel="icon" type="image/jpeg" href="{{ asset('images/logo-initial.jpeg') }}">
     <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -124,13 +124,13 @@
                         {{ $businessInitials }}
                     </span>
                 @else
-                    <img src="{{ asset('images/logo-initial.png') }}"
-                         alt="VISERVICE"
+                    <img src="{{ asset('images/logo-initial.jpeg') }}"
+                         alt="SouulBi"
                          class="h-8 w-8 shrink-0 rounded-lg object-contain bg-white/5 p-0.5">
                 @endif
                 <div class="min-w-0 flex-1" x-show="showSidebarLabels()" x-transition.opacity>
                     <p class="font-semibold text-white truncate text-sm">
-                        {{ ($business && $businessName) ? $businessName : 'VISERVICE' }}
+                        {{ ($business && $businessName) ? $businessName : 'SouulBi' }}
                     </p>
                     <p class="text-[11px] text-slate-400 truncate">Panel de control</p>
                 </div>

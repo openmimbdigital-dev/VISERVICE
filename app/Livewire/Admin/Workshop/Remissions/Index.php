@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin\Workshop\Remissions;
 
+use App\Enums\WorkOrderStatus;
 use App\Models\Remission;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
@@ -22,10 +23,13 @@ class Index extends Component
 
     public function render()
     {
+        $base = Remission::query()->forAuthUser();
+
         $stats = [
-            'borrador'  => Remission::query()->forAuthUser()->where('status', 'borrador')->count(),
-            'emitida'   => Remission::query()->forAuthUser()->where('status', 'emitida')->count(),
-            'entregada' => Remission::query()->forAuthUser()->where('status', 'entregada')->count(),
+            'creada' => (clone $base)->where('status', WorkOrderStatus::Created)->count(),
+            'en_proceso' => (clone $base)->where('status', WorkOrderStatus::InProgress)->count(),
+            'finalizada' => (clone $base)->where('status', WorkOrderStatus::Completed)->count(),
+            'cancelada' => (clone $base)->where('status', WorkOrderStatus::Cancelled)->count(),
         ];
 
         return view('livewire.admin.workshop.remissions.index', compact('stats'));

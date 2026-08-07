@@ -278,6 +278,14 @@ return [
                 'workshop.remissions.delete' => 'Eliminar remisiones',
             ],
         ],
+        'workshop_advance_payments' => [
+            'name' => 'Taller — Gestión de anticipos',
+            'permissions' => [
+                'workshop.advance-payments.view' => 'Ver anticipo',
+                'workshop.advance-payments.pay' => 'Abonar anticipo',
+                'workshop.advance-payments.void' => 'Anular anticipo',
+            ],
+        ],
         'catalog' => [
             'name' => 'Catálogo — Productos y servicios',
             'permissions' => [
@@ -313,6 +321,15 @@ return [
                 'settings.units.create' => 'Crear unidades de medida',
                 'settings.units.edit' => 'Editar unidades de medida',
                 'settings.units.delete' => 'Eliminar unidades de medida',
+            ],
+        ],
+        'settings_statuses' => [
+            'name' => 'Configuración — Estados',
+            'permissions' => [
+                'settings.statuses.view' => 'Ver estados',
+                'settings.statuses.create' => 'Crear estados',
+                'settings.statuses.edit' => 'Editar estados',
+                'settings.statuses.delete' => 'Eliminar estados',
             ],
         ],
     ],
@@ -404,6 +421,10 @@ return [
         'organization_types.access.view',
         'organization_types.access.manage',
         'businesses.manage_modules',
+        'settings.statuses.view',
+        'settings.statuses.create',
+        'settings.statuses.edit',
+        'settings.statuses.delete',
     ],
 
     /*
