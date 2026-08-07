@@ -150,6 +150,18 @@ class RolesAndPermissionsSeeder extends Seeder
             ...$this->quotationPermissions(),
             ...$this->workOrderPermissions(),
             ...$this->remissionPermissions(),
+            ...$this->advancePaymentPermissions(),
+        ];
+    }
+
+    /** @return list<string> */
+    private function advancePaymentPermissions(): array
+    {
+        return [
+            'workshop.advance-payments.view',
+            'workshop.advance-payments.create',
+            'workshop.advance-payments.edit',
+            'workshop.advance-payments.delete',
         ];
     }
 
@@ -246,6 +258,7 @@ class RolesAndPermissionsSeeder extends Seeder
             ...$this->quotationPermissions(),
             ...$this->workOrderPermissions(),
             ...$this->remissionPermissions(),
+            ...$this->advancePaymentPermissions(),
             // Gestión de Negocios (solo superAdmin)
             ...$this->businessManagementPermissions(),
             // Negocios — Cargos del equipo

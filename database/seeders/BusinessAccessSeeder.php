@@ -54,6 +54,7 @@ class BusinessAccessSeeder extends Seeder
             ...$this->quotationModulePermissions(),
             ...$this->workOrderModulePermissions(),
             ...$this->remissionModulePermissions(),
+            ...$this->advancePaymentModulePermissions(),
         ]));
     }
 
@@ -76,6 +77,17 @@ class BusinessAccessSeeder extends Seeder
             'workshop.remissions.create',
             'workshop.remissions.edit',
             'workshop.remissions.delete',
+        ];
+    }
+
+    /** @return list<string> */
+    private function advancePaymentModulePermissions(): array
+    {
+        return [
+            'workshop.advance-payments.view',
+            'workshop.advance-payments.create',
+            'workshop.advance-payments.edit',
+            'workshop.advance-payments.delete',
         ];
     }
 

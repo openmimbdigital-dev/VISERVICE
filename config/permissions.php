@@ -278,6 +278,15 @@ return [
                 'workshop.remissions.delete' => 'Eliminar remisiones',
             ],
         ],
+        'workshop_advance_payments' => [
+            'name' => 'Taller — Gestión de anticipos',
+            'permissions' => [
+                'workshop.advance-payments.view' => 'Ver gestión de anticipos',
+                'workshop.advance-payments.create' => 'Crear anticipos',
+                'workshop.advance-payments.edit' => 'Editar anticipos',
+                'workshop.advance-payments.delete' => 'Eliminar anticipos',
+            ],
+        ],
         'catalog' => [
             'name' => 'Catálogo — Productos y servicios',
             'permissions' => [
