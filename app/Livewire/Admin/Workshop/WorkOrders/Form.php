@@ -214,14 +214,25 @@ class Form extends Component
             $this->validate($this->itemRules());
         }
 
-        $work_order = CreateOrUpdateWorkOrderAction::run(
-            $business_id,
-            $this->form->work_order_id,
-            (int) $this->form->client_id,
-            (int) $this->form->equipment_id,
-            $this->form->validated(),
-            $this->items
-        );
+        try {
+            $work_order = CreateOrUpdateWorkOrderAction::run(
+                $business_id,
+                $this->form->work_order_id,
+                (int) $this->form->client_id,
+                (int) $this->form->equipment_id,
+                $this->form->validated(),
+                $this->items
+            );
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            foreach ($e->errors() as $field => $messages) {
+                $this->addError(
+                    str_starts_with($field, 'form.') ? $field : 'form.'.$field,
+                    $messages[0] ?? 'Error de validación.'
+                );
+            }
+
+            return;
+        }
 
         $this->dispatch('swal', [
             'title' => $this->form->isEditing()

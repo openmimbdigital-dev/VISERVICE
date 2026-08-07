@@ -77,6 +77,7 @@ use App\Livewire\Admin\TeamPositions\Index as AdminTeamPositionsIndex;
 use App\Livewire\Admin\TeamPositions\Show as AdminTeamPositionsShow;
 use App\Livewire\Admin\User\Index as AdminUserIndex;
 use App\Livewire\Admin\Workshop\AdvancePayments\Index as WorkshopAdvancePaymentsIndex;
+use App\Livewire\Admin\Workshop\AdvancePayments\Show as WorkshopAdvancePaymentsShow;
 use App\Livewire\Admin\Workshop\Clients\Form as WorkshopClientsForm;
 use App\Livewire\Admin\Workshop\Clients\Index as WorkshopClientsIndex;
 use App\Livewire\Admin\Workshop\Equipment\Form as WorkshopEquipmentForm;
@@ -263,6 +264,7 @@ Route::middleware(['auth', 'ensure.business', 'business.module'])->group(functio
         });
         Route::middleware('permission:workshop.advance-payments.view')->group(function () {
             Route::get('/advance-payments', WorkshopAdvancePaymentsIndex::class)->name('advance-payments.index');
+            Route::get('/advance-payments/{workOrder}', WorkshopAdvancePaymentsShow::class)->name('advance-payments.show');
         });
         Route::middleware('permission:workshop.remissions.create')->group(function () {
             Route::get('/remissions/form', WorkshopRemissionsForm::class)->name('remissions.form');

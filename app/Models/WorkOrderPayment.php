@@ -90,6 +90,33 @@ class WorkOrderPayment extends Model
         return $query->whereIn($query->getModel()->getTable().'.business_id', $business_ids);
     }
 
+    public function isConfirmed(): bool
+    {
+        return $this->status === 'confirmed';
+    }
+
+    public function isPending(): bool
+    {
+        return $this->status === 'pending';
+    }
+
+    public function isVoided(): bool
+    {
+        return $this->status === 'voided';
+    }
+
+    /** Registro de anticipo definido (no es un abono cobrado). */
+    public function isCommitment(): bool
+    {
+        return $this->isPending();
+    }
+
+    /** Abono real de dinero (confirmado o anulado). */
+    public function isAbono(): bool
+    {
+        return in_array($this->status, ['confirmed', 'voided'], true);
+    }
+
     public function getStatusLabelAttribute(): string
     {
         return $this->statusDefinition?->label

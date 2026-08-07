@@ -47,9 +47,15 @@
                         <p class="text-2xl font-bold text-indigo-700">{{ col_money($workOrder->total) }}</p>
                         @if((float) $workOrder->advance_amount > 0)
                         <p class="mt-1 text-xs text-amber-700">
-                            Anticipo ({{ rtrim(rtrim(number_format((float) $workOrder->advance_percentage, 2, '.', ''), '0'), '.') }}%):
+                            Anticipo acordado ({{ rtrim(rtrim(number_format((float) $workOrder->advance_percentage, 2, '.', ''), '0'), '.') }}%):
                             <span class="font-semibold">{{ col_money($workOrder->advance_amount) }}</span>
                         </p>
+                        @can('workshop.advance-payments.view')
+                        <a href="{{ route('admin.workshop.advance-payments.show', $workOrder) }}" wire:navigate
+                            class="mt-1 inline-block text-xs font-medium text-indigo-600 hover:text-indigo-800">
+                            Gestionar abonos →
+                        </a>
+                        @endcan
                         @endif
                     </div>
                     <div class="flex flex-wrap gap-2 sm:justify-end">

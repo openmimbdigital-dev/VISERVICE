@@ -56,6 +56,11 @@ class StatusesSeeder extends Seeder
                 'type'  => ['work_order_payments'],
             ],
             [
+                'name'  => 'pending',
+                'label' => 'Definido',
+                'type'  => ['work_order_payments'],
+            ],
+            [
                 'name'  => 'voided',
                 'label' => 'Anulado',
                 'type'  => ['work_order_payments'],

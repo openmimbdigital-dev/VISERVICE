@@ -92,13 +92,11 @@ class CreateOrUpdateWorkOrderAction
             $this->syncItems($work_order, $items);
             $work_order->recalculateTotals();
 
-            if (! $work_order_id) {
-                $advance_percentage = $quotation
-                    ? (float) ($quotation->advance_percentage ?? 0)
-                    : (float) ($data['advance_percentage'] ?? 0);
+            $advance_percentage = $quotation && ! $work_order_id
+                ? (float) ($quotation->advance_percentage ?? 0)
+                : (float) ($data['advance_percentage'] ?? 0);
 
-                CreateInitialWorkOrderAdvancePaymentAction::run($work_order, $advance_percentage);
-            }
+            SyncWorkOrderAdvanceCommitmentAction::run($work_order, $advance_percentage);
 
             $work_order = $work_order->fresh([
                 'items.productType',
@@ -116,6 +114,8 @@ class CreateOrUpdateWorkOrderAction
                 'quotation_id' => $work_order->quotation_id,
                 'total'        => $work_order->total,
                 'items_count'  => $work_order->items->count(),
+                'advance_percentage' => $work_order->advance_percentage,
+                'advance_amount' => $work_order->advance_amount,
             ];
 
             LogUserHistoricalAction::run(

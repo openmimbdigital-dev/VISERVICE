@@ -85,9 +85,8 @@ class BusinessAccessSeeder extends Seeder
     {
         return [
             'workshop.advance-payments.view',
-            'workshop.advance-payments.create',
-            'workshop.advance-payments.edit',
-            'workshop.advance-payments.delete',
+            'workshop.advance-payments.pay',
+            'workshop.advance-payments.void',
         ];
     }
 

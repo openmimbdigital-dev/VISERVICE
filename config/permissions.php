@@ -281,10 +281,9 @@ return [
         'workshop_advance_payments' => [
             'name' => 'Taller — Gestión de anticipos',
             'permissions' => [
-                'workshop.advance-payments.view' => 'Ver gestión de anticipos',
-                'workshop.advance-payments.create' => 'Crear anticipos',
-                'workshop.advance-payments.edit' => 'Editar anticipos',
-                'workshop.advance-payments.delete' => 'Eliminar anticipos',
+                'workshop.advance-payments.view' => 'Ver anticipo',
+                'workshop.advance-payments.pay' => 'Abonar anticipo',
+                'workshop.advance-payments.void' => 'Anular anticipo',
             ],
         ],
         'catalog' => [

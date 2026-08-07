@@ -2,6 +2,7 @@
 
 namespace App\Actions\Workshop;
 
+use App\Actions\LogUserHistoricalAction;
 use App\Models\WorkOrder;
 use App\Models\WorkOrderItem;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -65,6 +66,27 @@ class AdjustWorkOrderItemQuantityAction
 
         SyncWorkOrderStatusFromItemsAction::run($work_order->id);
 
-        return $item->fresh();
+        $item = $item->fresh();
+        $work_order->loadMissing('client:id,name');
+
+        $action_label = $action === self::ACTION_COMPLETE ? 'completó' : 'canceló';
+        LogUserHistoricalAction::run(
+            action: $action === self::ACTION_COMPLETE ? 'item_completed' : 'item_canceled',
+            module: 'workshop.work-orders',
+            description: "Se {$action_label} cantidad del ítem «{$item->description}» en la OT {$work_order->reference}",
+            subject: $work_order,
+            subject_label: $work_order->reference,
+            properties: [
+                'item_id' => $item->id,
+                'item_description' => $item->description,
+                'quantity' => $item->quantity,
+                'quantity_complete' => $item->quantity_complete,
+                'quantity_canceled' => $item->quantity_canceled,
+                'adjust_action' => $action,
+            ],
+            business_id: (int) $work_order->business_id,
+        );
+
+        return $item;
     }
 }

@@ -136,6 +136,8 @@ class CreateOrUpdateQuotationAction
                 'equipment_id' => $quotation->equipment_id,
                 'total'        => $quotation->total,
                 'items_count'  => $quotation->items->count(),
+                'advance_percentage' => $quotation->advance_percentage,
+                'advance_amount' => $quotation->advance_amount,
             ];
 
             LogUserHistoricalAction::run(

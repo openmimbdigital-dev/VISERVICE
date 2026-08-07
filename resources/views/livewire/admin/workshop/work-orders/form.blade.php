@@ -104,16 +104,15 @@
                         <div>
                             <label class="mb-1.5 block text-xs font-medium text-slate-700">Anticipo (%) <span class="text-rose-500">*</span></label>
                             <input type="number" wire:model.live="form.advance_percentage" min="0" max="100" step="0.5"
-                                @disabled($is_editing || $from_quotation)
+                                @disabled(! $is_editing && $from_quotation)
                                 class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 disabled:cursor-not-allowed disabled:opacity-60 @error('form.advance_percentage') border-rose-400 bg-rose-50 @enderror">
                             @error('form.advance_percentage') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                             <p class="mt-1 text-xs text-slate-500">
                                 Valor calculado:
                                 <span class="font-medium text-slate-700">{{ col_money($preview_advance_amount) }}</span>
-                                @if($from_quotation)
+                                — solo define el monto acordado; los abonos se registran en Gestión de anticipo
+                                @if(! $is_editing && $from_quotation)
                                 <span class="text-slate-400">(heredado de la cotización)</span>
-                                @elseif($is_editing)
-                                <span class="text-slate-400">(solo al crear la OT)</span>
                                 @endif
                             </p>
                         </div>

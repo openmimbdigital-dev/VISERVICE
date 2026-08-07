@@ -80,6 +80,31 @@ class WorkOrder extends Model
         return $this->hasMany(WorkOrderPayment::class);
     }
 
+    public function confirmedPayments(): HasMany
+    {
+        return $this->payments()->where('status', 'confirmed');
+    }
+
+    public function advancePaidAmount(): float
+    {
+        if (array_key_exists('confirmed_paid_sum', $this->attributes)) {
+            return round((float) ($this->attributes['confirmed_paid_sum'] ?? 0), 2);
+        }
+
+        if ($this->relationLoaded('payments')) {
+            return round((float) $this->payments
+                ->where('status', 'confirmed')
+                ->sum('amount'), 2);
+        }
+
+        return round((float) $this->confirmedPayments()->sum('amount'), 2);
+    }
+
+    public function advanceRemainingAmount(): float
+    {
+        return max(0, round((float) $this->advance_amount - $this->advancePaidAmount(), 2));
+    }
+
     public function remissions(): HasMany
     {
         return $this->hasMany(Remission::class);

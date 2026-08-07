@@ -135,7 +135,10 @@
                             <label class="mb-1.5 block text-xs font-medium text-slate-700">Anticipo (%) <span class="text-rose-500">*</span></label>
                             <input type="number" wire:model.live="form.advance_percentage" min="0" max="100" step="0.5" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm @error('form.advance_percentage') border-rose-400 bg-rose-50 @enderror">
                             @error('form.advance_percentage') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
-                            <p class="mt-1 text-xs text-slate-500">Valor calculado: <span class="font-medium text-slate-700">{{ col_money($preview_advance_amount) }}</span></p>
+                            <p class="mt-1 text-xs text-slate-500">
+                                Valor calculado: <span class="font-medium text-slate-700">{{ col_money($preview_advance_amount) }}</span>
+                                — solo define el monto acordado; los abonos se gestionan en Gestión de anticipo (tras crear la OT)
+                            </p>
                         </div>
                         <div class="sm:col-span-2">
                             <label class="mb-1.5 block text-xs font-medium text-slate-700">Diagnóstico</label>

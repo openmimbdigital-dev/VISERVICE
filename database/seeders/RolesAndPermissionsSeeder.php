@@ -159,9 +159,8 @@ class RolesAndPermissionsSeeder extends Seeder
     {
         return [
             'workshop.advance-payments.view',
-            'workshop.advance-payments.create',
-            'workshop.advance-payments.edit',
-            'workshop.advance-payments.delete',
+            'workshop.advance-payments.pay',
+            'workshop.advance-payments.void',
         ];
     }
 
@@ -271,6 +270,15 @@ class RolesAndPermissionsSeeder extends Seeder
         ])->mapWithKeys(fn ($name) => [
             $name => Permission::firstOrCreate(['name' => $name, 'guard_name' => $guard]),
         ]);
+
+        Permission::query()
+            ->where('guard_name', $guard)
+            ->whereIn('name', [
+                'workshop.advance-payments.create',
+                'workshop.advance-payments.edit',
+                'workshop.advance-payments.delete',
+            ])
+            ->delete();
 
         // ── Roles ───────────────────────────────────────────────────────────
 
