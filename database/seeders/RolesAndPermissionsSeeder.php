@@ -226,6 +226,9 @@ class RolesAndPermissionsSeeder extends Seeder
             // Configuración — Tipos de equipo (solo superAdmin)
             'settings.equipment_types.view', 'settings.equipment_types.create',
             'settings.equipment_types.edit', 'settings.equipment_types.delete',
+            // Configuración — Estados (solo superAdmin)
+            'settings.statuses.view', 'settings.statuses.create',
+            'settings.statuses.edit', 'settings.statuses.delete',
             // Roles
             'roles.view', 'roles.create', 'roles.edit', 'roles.delete',
             'permissions.view', 'permissions.assign',

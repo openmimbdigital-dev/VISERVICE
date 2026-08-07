@@ -69,6 +69,8 @@ use App\Livewire\Admin\Settings\Events\EventCategories\Form as SettingsEventCate
 use App\Livewire\Admin\Settings\Events\EventCategories\Index as SettingsEventCategoriesIndex;
 use App\Livewire\Admin\Settings\Events\EventCategories\Show as SettingsEventCategoriesShow;
 use App\Livewire\Admin\Settings\Events\Index as SettingsEventsIndex;
+use App\Livewire\Admin\Settings\General\Index as SettingsGeneralIndex;
+use App\Livewire\Admin\Settings\General\Statuses\Index as SettingsStatusesIndex;
 use App\Livewire\Admin\Subscriptions\Index as AdminSubscriptionsIndex;
 use App\Livewire\Admin\Subscriptions\Plans\Index as AdminSubscriptionPlansIndex;
 use App\Livewire\Admin\TeamPositions\Index as AdminTeamPositionsIndex;
@@ -338,6 +340,12 @@ Route::middleware(['auth', 'ensure.business', 'business.module'])->group(functio
 
     // Configuración
     Route::middleware('permission:settings.view')->prefix('settings')->name('admin.settings.')->group(function () {
+        // Configuración — General (solo superAdmin)
+        Route::middleware(['role:superAdmin', 'permission:settings.statuses.view'])->group(function () {
+            Route::get('/general', SettingsGeneralIndex::class)->name('general.index');
+            Route::get('/general/statuses', SettingsStatusesIndex::class)->name('general.statuses.index');
+        });
+
         Route::get('/equipment', SettingsEquipmentIndex::class)->name('equipment.index');
         Route::middleware('permission:settings.equipment_types.view')->group(function () {
             Route::get('/equipment/types', SettingsEquipmentTypesIndex::class)->name('equipment.types');

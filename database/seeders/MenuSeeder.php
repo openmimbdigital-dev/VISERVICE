@@ -288,6 +288,15 @@ class MenuSeeder extends Seeder
                 'permission' => 'settings.view',
                 'sort_order' => 60,
                 'items' => [
+                    [
+                        'name' => 'General',
+                        'route_name' => 'admin.settings.general.index',
+                        'active_route_pattern' => 'admin.settings.general.*',
+                        'icon_svg_path' => 'M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4',
+                        'permission' => 'settings.statuses.view',
+                        'role' => 'superAdmin',
+                        'sort_order' => 5,
+                    ],
                     ['name' => 'Equipos', 'route_name' => 'admin.settings.equipment.index', 'active_route_pattern' => 'admin.settings.equipment.*', 'icon_svg_path' => 'M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z', 'sort_order' => 10],
                     ['name' => 'Productos y servicios', 'route_name' => 'admin.settings.catalog-products.index', 'active_route_pattern' => 'admin.settings.catalog-products.*', 'icon_svg_path' => 'M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4', 'sort_order' => 20],
                     ['name' => 'Eventos', 'route_name' => 'admin.settings.events.index', 'active_route_pattern' => 'admin.settings.events.*', 'icon_svg_path' => 'M8 7V3m8 4V3M5 11h14M5 5h14a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z', 'permission' => 'settings.event_categories.view', 'sort_order' => 30],

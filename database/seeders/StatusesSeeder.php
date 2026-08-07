@@ -50,6 +50,16 @@ class StatusesSeeder extends Seeder
                 'label' => 'Cancelada',
                 'type'  => ['work_orders', 'remissions'],
             ],
+            [
+                'name'  => 'confirmed',
+                'label' => 'Confirmado',
+                'type'  => ['work_order_payments'],
+            ],
+            [
+                'name'  => 'voided',
+                'label' => 'Anulado',
+                'type'  => ['work_order_payments'],
+            ],
         ];
 
         foreach ($statuses as $status) {

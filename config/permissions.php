@@ -315,6 +315,15 @@ return [
                 'settings.units.delete' => 'Eliminar unidades de medida',
             ],
         ],
+        'settings_statuses' => [
+            'name' => 'Configuración — Estados',
+            'permissions' => [
+                'settings.statuses.view' => 'Ver estados',
+                'settings.statuses.create' => 'Crear estados',
+                'settings.statuses.edit' => 'Editar estados',
+                'settings.statuses.delete' => 'Eliminar estados',
+            ],
+        ],
     ],
 
     /*
@@ -404,6 +413,10 @@ return [
         'organization_types.access.view',
         'organization_types.access.manage',
         'businesses.manage_modules',
+        'settings.statuses.view',
+        'settings.statuses.create',
+        'settings.statuses.edit',
+        'settings.statuses.delete',
     ],
 
     /*
