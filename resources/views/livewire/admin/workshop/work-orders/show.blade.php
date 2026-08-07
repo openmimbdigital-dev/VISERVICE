@@ -45,6 +45,12 @@
                     <div class="text-left sm:text-right">
                         <p class="text-xs text-slate-400">Total OT</p>
                         <p class="text-2xl font-bold text-indigo-700">{{ col_money($workOrder->total) }}</p>
+                        @if((float) $workOrder->advance_amount > 0)
+                        <p class="mt-1 text-xs text-amber-700">
+                            Anticipo ({{ rtrim(rtrim(number_format((float) $workOrder->advance_percentage, 2, '.', ''), '0'), '.') }}%):
+                            <span class="font-semibold">{{ col_money($workOrder->advance_amount) }}</span>
+                        </p>
+                        @endif
                     </div>
                     <div class="flex flex-wrap gap-2 sm:justify-end">
                         <a href="{{ route('admin.workshop.work-orders.print', $workOrder) }}" target="_blank"
@@ -190,6 +196,14 @@
                         <td class="px-4 py-2 text-right font-semibold text-slate-700">{{ col_money($workOrder->subtotal) }}</td>
                         <td colspan="{{ $can_manage ? 4 : 2 }}"></td>
                     </tr>
+                    @if((float) $workOrder->advance_amount > 0)
+                    <tr>
+                        <td colspan="4" class="hidden px-4 py-1 text-right text-xs font-semibold uppercase text-amber-700 md:table-cell">Anticipo {{ $workOrder->advance_percentage }}%</td>
+                        <td colspan="2" class="px-4 py-1 text-right text-xs font-semibold uppercase text-amber-700 md:hidden">Anticipo {{ $workOrder->advance_percentage }}%</td>
+                        <td class="px-4 py-1 text-right font-semibold text-amber-700">{{ col_money($workOrder->advance_amount) }}</td>
+                        <td colspan="{{ $can_manage ? 4 : 2 }}"></td>
+                    </tr>
+                    @endif
                     <tr>
                         <td colspan="4" class="hidden px-4 py-1 text-right text-xs font-semibold uppercase text-slate-500 md:table-cell">IVA {{ $workOrder->tax_percentage }}%</td>
                         <td colspan="2" class="px-4 py-1 text-right text-xs font-semibold uppercase text-slate-500 md:hidden">IVA {{ $workOrder->tax_percentage }}%</td>

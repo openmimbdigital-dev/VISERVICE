@@ -46,6 +46,8 @@ class Quotation extends Model
             'tax_percentage'  => 'decimal:2',
             'tax_amount'      => 'decimal:2',
             'total'           => 'decimal:2',
+            'advance_percentage' => 'decimal:2',
+            'advance_amount'  => 'decimal:2',
             'validity_days'   => 'integer',
         ];
     }
@@ -200,9 +202,19 @@ class Quotation extends Model
         return $this->status === QuotationStatus::Rejected;
     }
 
+    public function isAccepted(): bool
+    {
+        return $this->status === QuotationStatus::Accepted;
+    }
+
     public function isEditable(): bool
     {
-        return ! $this->isRejected();
+        return ! $this->isRejected() && ! $this->isAccepted();
+    }
+
+    public function canBeDeleted(): bool
+    {
+        return ! $this->isRejected() && ! $this->isAccepted();
     }
 
     public function canChangeStatus(): bool

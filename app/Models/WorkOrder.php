@@ -34,6 +34,8 @@ class WorkOrder extends Model
             'tax_percentage'     => 'decimal:2',
             'tax_amount'         => 'decimal:2',
             'total'              => 'decimal:2',
+            'advance_percentage' => 'decimal:2',
+            'advance_amount'     => 'decimal:2',
             'document_client'    => 'array',
         ];
     }
@@ -71,6 +73,11 @@ class WorkOrder extends Model
     public function items(): HasMany
     {
         return $this->hasMany(WorkOrderItem::class);
+    }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(WorkOrderPayment::class);
     }
 
     public function remissions(): HasMany

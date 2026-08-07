@@ -82,6 +82,7 @@ class CreateOrUpdateQuotationAction
                 'validity_days'              => (int) ($data['validity_days'] ?? 15),
                 'execution_time'             => $data['execution_time'] ?? null,
                 'tax_percentage'             => $data['tax_percentage'] ?? 19,
+                'advance_percentage'         => $data['advance_percentage'] ?? 0,
                 'notes'                      => $data['notes'] ?? null,
                 'observations'               => $data['observations'] ?? null,
             ];
@@ -90,9 +91,11 @@ class CreateOrUpdateQuotationAction
                 $quotation = Quotation::query()->forAuthUser()->findOrFail($quotation_id);
                 abort_unless((int) $quotation->business_id === $business_id, 403);
 
-                if ($quotation->isRejected()) {
+                if (! $quotation->isEditable()) {
                     throw ValidationException::withMessages([
-                        'form.client_id' => 'No se puede editar: la cotización está rechazada.',
+                        'form.client_id' => $quotation->isAccepted()
+                            ? 'No se puede editar: la cotización está aceptada.'
+                            : 'No se puede editar: la cotización está rechazada.',
                     ]);
                 }
 
@@ -111,6 +114,12 @@ class CreateOrUpdateQuotationAction
             $quotation->save();
             $this->syncItems($quotation, $items);
             $quotation->recalculateTotals();
+
+            $advance_percentage = (float) ($data['advance_percentage'] ?? 0);
+            $quotation->update([
+                'advance_percentage' => $advance_percentage,
+                'advance_amount'     => round((float) $quotation->subtotal * ($advance_percentage / 100), 2),
+            ]);
 
             $quotation = $quotation->fresh([
                 'items.productType',

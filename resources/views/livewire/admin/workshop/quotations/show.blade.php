@@ -19,6 +19,12 @@
                     {{ $quotation->client?->name }} · {{ $quotation->equipment?->select_label }}
                     @if($quotation->hours_entry_formatted) · Horas: {{ $quotation->hours_entry_formatted }}@endif
                 </p>
+                @if((float) $quotation->advance_amount > 0)
+                <p class="mt-2 text-sm text-amber-700">
+                    Anticipo ({{ rtrim(rtrim(number_format((float) $quotation->advance_percentage, 2, '.', ''), '0'), '.') }}%):
+                    <span class="font-semibold">{{ col_money($quotation->advance_amount) }}</span>
+                </p>
+                @endif
             </div>
             <div class="flex w-full shrink-0 flex-wrap gap-2 sm:w-auto">
                 <a href="{{ route('admin.workshop.quotations.index') }}" wire:navigate class="btn btn-outline-secondary btn-sm flex-1 sm:flex-none justify-center">Volver</a>
@@ -49,7 +55,12 @@
                 @endif
                 <a href="{{ route('admin.workshop.quotations.print', $quotation->id) }}" target="_blank" class="btn btn-outline-secondary btn-sm flex-1 sm:flex-none justify-center">Imprimir / PDF</a>
                 @can('workshop.quotations.delete')
+                @if($can_delete)
                 <button type="button" wire:click="deleteQuotation" class="btn btn-danger btn-sm flex-1 sm:flex-none justify-center">Eliminar</button>
+                @else
+                <button type="button" disabled title="{{ $edit_disabled_title }}; no se puede eliminar"
+                    class="btn btn-danger btn-sm flex-1 justify-center opacity-50 sm:flex-none">Eliminar</button>
+                @endif
                 @endcan
             </div>
         </div>
@@ -103,6 +114,17 @@
                     <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
                         <dt class="text-xs font-medium text-slate-500">Forma de pago</dt>
                         <dd class="text-sm text-slate-900 sm:col-span-2">{{ $quotation->paymentMethod?->name ?? '—' }}</dd>
+                    </div>
+                    <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                        <dt class="text-xs font-medium text-slate-500">Anticipo</dt>
+                        <dd class="text-sm sm:col-span-2 @if((float) $quotation->advance_amount > 0) font-medium text-amber-700 @else text-slate-900 @endif">
+                            @if((float) $quotation->advance_amount > 0)
+                                {{ rtrim(rtrim(number_format((float) $quotation->advance_percentage, 2, '.', ''), '0'), '.') }}%
+                                — {{ col_money($quotation->advance_amount) }}
+                            @else
+                                Sin anticipo
+                            @endif
+                        </dd>
                     </div>
                     <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
                         <dt class="text-xs font-medium text-slate-500">Cuenta bancaria</dt>
@@ -229,6 +251,9 @@
                     <div class="flex justify-between text-xs text-slate-500"><dt>Lubricantes</dt><dd>{{ col_money($category_subtotals['lubricantes']) }}</dd></div>
                     <div class="flex justify-between text-xs text-slate-500"><dt>Otros</dt><dd>{{ col_money($category_subtotals['otros']) }}</dd></div>
                     <div class="flex justify-between border-t border-slate-100 pt-2"><dt class="text-slate-500">Subtotal</dt><dd class="font-medium">{{ col_money($quotation->subtotal) }}</dd></div>
+                    @if((float) $quotation->advance_amount > 0)
+                    <div class="flex justify-between"><dt class="text-slate-500">Anticipo ({{ $quotation->advance_percentage }}%)</dt><dd class="font-medium text-amber-700">{{ col_money($quotation->advance_amount) }}</dd></div>
+                    @endif
                     <div class="flex justify-between"><dt class="text-slate-500">IVA ({{ $quotation->tax_percentage }}%)</dt><dd class="font-medium">{{ col_money($quotation->tax_amount) }}</dd></div>
                     <div class="flex justify-between border-t border-slate-100 pt-2 text-base font-bold"><dt>Total</dt><dd class="text-indigo-700">{{ col_money($quotation->total) }}</dd></div>
                 </dl>

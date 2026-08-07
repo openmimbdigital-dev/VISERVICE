@@ -305,6 +305,9 @@ class Form extends Component
         $tax_pct = (float) ($this->form->tax_percentage ?: 0);
         $tax     = round($subtotal * ($tax_pct / 100), 2);
         $total   = $subtotal + $tax;
+        $advance_pct = (float) ($this->form->advance_percentage ?: 0);
+        $advance_amount = round($subtotal * ($advance_pct / 100), 2);
+        $this->form->advance_amount = (string) $advance_amount;
 
         return view('livewire.admin.workshop.work-orders.form', [
             'is_editing'           => $this->form->isEditing(),
@@ -317,6 +320,7 @@ class Form extends Component
             'preview_subtotal'     => $subtotal,
             'preview_tax'          => $tax,
             'preview_total'        => $total,
+            'preview_advance_amount' => $advance_amount,
             'can_delete'           => $this->form->work_order_id
                 && auth()->user()->can('workshop.work-orders.delete'),
         ]);

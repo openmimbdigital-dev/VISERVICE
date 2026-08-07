@@ -132,6 +132,19 @@ class Show extends Component
     public function deleteQuotation(): void
     {
         abort_unless(auth()->user()?->can('workshop.quotations.delete'), 403);
+
+        if (! $this->quotation->canBeDeleted()) {
+            $this->dispatch('swal', [
+                'title' => 'No se puede eliminar',
+                'text' => $this->quotation->isAccepted()
+                    ? 'La cotización está aceptada y no se puede eliminar.'
+                    : 'La cotización está rechazada y no se puede eliminar.',
+                'icon' => 'warning',
+            ]);
+
+            return;
+        }
+
         $this->askDeleteConfirmation($this->quotation->id, '¿Eliminar esta cotización?');
     }
 
@@ -149,7 +162,11 @@ class Show extends Component
     public function render()
     {
         $can_edit = auth()->user()->can('workshop.quotations.edit');
-        $is_rejected = $this->quotation->isRejected();
+        $can_delete = auth()->user()->can('workshop.quotations.delete') && $this->quotation->canBeDeleted();
+        $edit_disabled = ! $this->quotation->isEditable();
+        $edit_disabled_title = $this->quotation->isAccepted()
+            ? 'La cotización está aceptada'
+            : 'La cotización está rechazada';
         $can_create_ot = auth()->user()->can('workshop.work-orders.create')
             && $this->quotation->status === QuotationStatus::Accepted
             && ! $this->quotation->workOrder;
@@ -161,10 +178,11 @@ class Show extends Component
         return view('livewire.admin.workshop.quotations.show', [
             'category_subtotals' => $this->quotation->subtotalsByPdfCategory(),
             'can_edit' => $can_edit,
-            'edit_disabled' => $is_rejected,
-            'edit_disabled_title' => 'La cotización está rechazada',
+            'can_delete' => $can_delete,
+            'edit_disabled' => $edit_disabled,
+            'edit_disabled_title' => $edit_disabled_title,
             'can_change_status' => $can_edit,
-            'status_change_disabled' => $is_rejected,
+            'status_change_disabled' => $this->quotation->isRejected(),
             'status_options' => Status::optionsForModule('quotations'),
             'show_reject_reason' => $this->status === QuotationStatus::Rejected->value,
             'status_badge_class' => $status_badge_class,

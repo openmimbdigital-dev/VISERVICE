@@ -25,6 +25,10 @@ class WorkOrderForm extends Form
 
     public string $tax_percentage = '19';
 
+    public string $advance_percentage = '0';
+
+    public string $advance_amount = '0';
+
     public string $notes = '';
 
     public string $observations = '';
@@ -38,6 +42,8 @@ class WorkOrderForm extends Form
         $this->diagnosis           = $work_order->diagnosis ?? '';
         $this->estimated_delivery  = $work_order->estimated_delivery?->format('Y-m-d') ?? '';
         $this->tax_percentage      = (string) $work_order->tax_percentage;
+        $this->advance_percentage  = (string) ($work_order->advance_percentage ?? 0);
+        $this->advance_amount      = (string) ($work_order->advance_amount ?? 0);
         $this->notes               = $work_order->notes ?? '';
         $this->observations        = $work_order->observations ?? '';
     }
@@ -49,6 +55,8 @@ class WorkOrderForm extends Form
         $this->equipment_id = $quotation->equipment_id;
         $this->diagnosis    = $quotation->diagnosis ?? '';
         $this->tax_percentage = (string) ($quotation->tax_percentage ?? 19);
+        $this->advance_percentage = (string) ($quotation->advance_percentage ?? 0);
+        $this->advance_amount = (string) ($quotation->advance_amount ?? 0);
         $this->notes          = $quotation->notes ?? '';
         $this->observations   = $quotation->observations ?? '';
     }
@@ -94,6 +102,7 @@ class WorkOrderForm extends Form
             'diagnosis'          => ['nullable', 'string'],
             'estimated_delivery' => ['nullable', 'date'],
             'tax_percentage'     => ['required', 'numeric', 'min:0', 'max:100'],
+            'advance_percentage' => ['required', 'numeric', 'min:0', 'max:100'],
             'notes'              => ['nullable', 'string'],
             'observations'       => ['nullable', 'string'],
         ];
@@ -108,6 +117,10 @@ class WorkOrderForm extends Form
             'equipment_id.exists'         => 'El equipo seleccionado no es válido.',
             'quotation_id.exists'         => 'La cotización debe existir, pertenecer al negocio y estar aceptada.',
             'tax_percentage.required'     => 'Indica el porcentaje de IVA.',
+            'advance_percentage.required' => 'Indica el porcentaje de anticipo.',
+            'advance_percentage.numeric'  => 'El anticipo debe ser un número.',
+            'advance_percentage.min'      => 'El anticipo no puede ser negativo.',
+            'advance_percentage.max'      => 'El anticipo no puede superar el 100%.',
             'estimated_delivery.date'     => 'La fecha de entrega estimada no es válida.',
         ];
     }
@@ -122,6 +135,8 @@ class WorkOrderForm extends Form
             'diagnosis'           => $data['diagnosis'] ?: null,
             'estimated_delivery'  => $data['estimated_delivery'] ?: null,
             'tax_percentage'      => $data['tax_percentage'],
+            'advance_percentage'  => (float) ($this->advance_percentage ?: 0),
+            'advance_amount'      => (float) ($this->advance_amount ?: 0),
             'notes'               => $data['notes'] ?: null,
             'observations'        => $data['observations'] ?: null,
             'created_by'          => auth()->id(),

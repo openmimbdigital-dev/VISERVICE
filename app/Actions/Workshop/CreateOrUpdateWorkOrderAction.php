@@ -51,6 +51,7 @@ class CreateOrUpdateWorkOrderAction
         );
 
         $quotation_id = ! empty($data['quotation_id']) ? (int) $data['quotation_id'] : null;
+        $quotation = null;
 
         if ($quotation_id) {
             $quotation = $this->assertAcceptedQuotationAvailable($business_id, $quotation_id, $work_order_id);
@@ -58,7 +59,7 @@ class CreateOrUpdateWorkOrderAction
             $equipment_id = (int) $quotation->equipment_id;
         }
 
-        return DB::transaction(function () use ($business_id, $work_order_id, $client_id, $equipment_id, $data, $items, $quotation_id) {
+        return DB::transaction(function () use ($business_id, $work_order_id, $client_id, $equipment_id, $data, $items, $quotation_id, $quotation) {
             $payload = [
                 'client_id'          => $client_id,
                 'equipment_id'       => $equipment_id,
@@ -83,11 +84,21 @@ class CreateOrUpdateWorkOrderAction
                     'reference'   => WorkOrder::generateReference($business_id),
                     'status'      => WorkOrderStatus::Created,
                     'created_by'  => $data['created_by'] ?? auth()->id(),
+                    'advance_percentage' => 0,
+                    'advance_amount' => 0,
                 ]);
             }
 
             $this->syncItems($work_order, $items);
             $work_order->recalculateTotals();
+
+            if (! $work_order_id) {
+                $advance_percentage = $quotation
+                    ? (float) ($quotation->advance_percentage ?? 0)
+                    : (float) ($data['advance_percentage'] ?? 0);
+
+                CreateInitialWorkOrderAdvancePaymentAction::run($work_order, $advance_percentage);
+            }
 
             $work_order = $work_order->fresh([
                 'items.productType',

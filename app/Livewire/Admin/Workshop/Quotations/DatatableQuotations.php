@@ -75,11 +75,19 @@ class DatatableQuotations extends LivewireDatatable
                 ->sortable(),
 
             Column::callback(['quotations.id', 'quotations.status', 'work_orders.id'], function ($id, $status, $work_order_id) {
+                $is_locked = in_array($status, [
+                    QuotationStatus::Accepted->value,
+                    QuotationStatus::Rejected->value,
+                ], true);
+
                 return view('livewire.admin.workshop.quotations.actions', [
                     'id'            => $id,
                     'can_create_ot' => $status === QuotationStatus::Accepted->value && empty($work_order_id),
                     'has_work_order'=> ! empty($work_order_id),
-                    'is_rejected'   => $status === QuotationStatus::Rejected->value,
+                    'is_locked'     => $is_locked,
+                    'lock_title'    => $status === QuotationStatus::Accepted->value
+                        ? 'La cotización está aceptada'
+                        : 'La cotización está rechazada',
                     'work_order_id' => $work_order_id,
                 ]);
             })->label('Acciones')->unsortable(),

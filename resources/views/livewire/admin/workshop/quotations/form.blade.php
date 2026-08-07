@@ -131,6 +131,12 @@
                             <input type="number" wire:model.live="form.tax_percentage" min="0" max="100" step="0.5" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm @error('form.tax_percentage') border-rose-400 @enderror">
                             @error('form.tax_percentage') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                         </div>
+                        <div>
+                            <label class="mb-1.5 block text-xs font-medium text-slate-700">Anticipo (%) <span class="text-rose-500">*</span></label>
+                            <input type="number" wire:model.live="form.advance_percentage" min="0" max="100" step="0.5" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm @error('form.advance_percentage') border-rose-400 bg-rose-50 @enderror">
+                            @error('form.advance_percentage') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                            <p class="mt-1 text-xs text-slate-500">Valor calculado: <span class="font-medium text-slate-700">{{ col_money($preview_advance_amount) }}</span></p>
+                        </div>
                         <div class="sm:col-span-2">
                             <label class="mb-1.5 block text-xs font-medium text-slate-700">Diagnóstico</label>
                             <textarea wire:model="form.diagnosis" rows="2" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm"></textarea>
@@ -158,23 +164,18 @@
                             <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                                 <div>
                                     <label class="mb-1 block text-xs font-medium text-slate-700">Tipo</label>
-                                    <select wire:model="items.{{ $index }}.product_type_id" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">
+                                    <select wire:model.live="items.{{ $index }}.product_type_id" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">
                                         <option value="">—</option>
                                         @foreach($product_types as $type)<option value="{{ $type->id }}">{{ $type->name }}</option>@endforeach
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="mb-1 block text-xs font-medium text-slate-700">Categoría</label>
-                                    <select wire:model="items.{{ $index }}.product_category_id" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">
-                                        <option value="">—</option>
-                                        @foreach($product_categories as $cat)<option value="{{ $cat->id }}">{{ $cat->name }}</option>@endforeach
-                                    </select>
-                                </div>
-                                <div class="sm:col-span-2">
                                     <label class="mb-1 block text-xs font-medium text-slate-700">Catálogo</label>
-                                    <select wire:model.live="items.{{ $index }}.product_id" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">
+                                    <select wire:model.live="items.{{ $index }}.product_id" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm" @disabled(empty($row['product_type_id']))>
                                         <option value="">— Manual —</option>
-                                        @foreach($catalog_products as $ci)<option value="{{ $ci->id }}">{{ $ci->name }} ({{ col_money($ci->sale_price) }})</option>@endforeach
+                                        @foreach($catalog_products->where('product_type_id', (int) ($row['product_type_id'] ?? 0)) as $ci)
+                                        <option value="{{ $ci->id }}">{{ $ci->name }} ({{ col_money($ci->sale_price) }})</option>
+                                        @endforeach
                                     </select>
                                 </div>
                                 <div class="sm:col-span-2">
@@ -217,6 +218,7 @@
                         <div class="flex justify-between text-xs text-slate-500"><dt>Lubricantes</dt><dd>{{ col_money($category_subtotals['lubricantes']) }}</dd></div>
                         <div class="flex justify-between text-xs text-slate-500"><dt>Otros</dt><dd>{{ col_money($category_subtotals['otros']) }}</dd></div>
                         <div class="flex justify-between border-t border-slate-100 pt-2"><dt class="text-slate-500">Subtotal</dt><dd class="font-medium">{{ col_money($preview_subtotal) }}</dd></div>
+                        <div class="flex justify-between"><dt class="text-slate-500">Anticipo ({{ $form->advance_percentage }}%)</dt><dd class="font-medium text-amber-700">{{ col_money($preview_advance_amount) }}</dd></div>
                         <div class="flex justify-between"><dt class="text-slate-500">IVA ({{ $form->tax_percentage }}%)</dt><dd class="font-medium">{{ col_money($preview_tax) }}</dd></div>
                         <div class="flex justify-between border-t border-slate-100 pt-2 text-base font-bold"><dt>Total</dt><dd class="text-indigo-700">{{ col_money($preview_total) }}</dd></div>
                     </dl>
