@@ -174,10 +174,69 @@
                 </p>
 
                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div>
+                    <div
+                        x-data="{
+                            display: @js($amount !== '' ? col_number((float) $amount) : ''),
+                            apply(value, caret) {
+                                const before = String(value).slice(0, caret ?? String(value).length);
+                                const sigBefore = before.replace(/[^\d,]/g, '').length;
+
+                                let cleaned = String(value).replace(/[^\d,]/g, '');
+                                const commaIndex = cleaned.indexOf(',');
+                                if (commaIndex !== -1) {
+                                    cleaned = cleaned.slice(0, commaIndex + 1) + cleaned.slice(commaIndex + 1).replace(/,/g, '');
+                                }
+
+                                let intPart = cleaned;
+                                let decPart = '';
+                                let hasComma = false;
+                                if (cleaned.includes(',')) {
+                                    hasComma = true;
+                                    const parts = cleaned.split(',');
+                                    intPart = parts[0];
+                                    decPart = (parts[1] || '').slice(0, 2);
+                                }
+
+                                intPart = intPart.replace(/^0+(?=\d)/, '');
+                                const formattedInt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+                                this.display = hasComma ? `${formattedInt},${decPart}` : formattedInt;
+
+                                const raw = intPart === '' && decPart === ''
+                                    ? ''
+                                    : (hasComma && decPart !== '' ? `${intPart || '0'}.${decPart}` : (intPart || '0'));
+                                $wire.set('amount', raw, false);
+
+                                this.$nextTick(() => {
+                                    const el = this.$refs.amountInput;
+                                    if (! el) return;
+                                    let seen = 0;
+                                    let pos = this.display.length;
+                                    for (let i = 0; i < this.display.length; i++) {
+                                        if (/[\d,]/.test(this.display[i])) {
+                                            seen++;
+                                            if (seen >= sigBefore) {
+                                                pos = i + 1;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    el.setSelectionRange(pos, pos);
+                                });
+                            }
+                        }"
+                    >
                         <label class="mb-1.5 block text-xs font-medium text-slate-700">Monto <span class="text-rose-500">*</span></label>
-                        <input type="number" wire:model="amount" min="0.01" step="0.01"
-                            class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm @error('amount') border-rose-400 bg-rose-50 @enderror">
+                        <div class="relative">
+                            <span class="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-sm font-medium text-slate-400">$</span>
+                            <input type="text"
+                                x-ref="amountInput"
+                                inputmode="decimal"
+                                autocomplete="off"
+                                :value="display"
+                                @input="apply($event.target.value, $event.target.selectionStart)"
+                                placeholder="0,00"
+                                class="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-8 pr-3.5 text-right text-sm tabular-nums transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('amount') border-rose-400 bg-rose-50 @enderror">
+                        </div>
                         @error('amount') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                     </div>
                     <div>
