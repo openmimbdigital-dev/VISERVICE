@@ -106,4 +106,9 @@ class Participant extends Model
     {
         return $query->where('status', true);
     }
+
+    public function hasDependencies(): bool
+    {
+        return $this->event_team_memberships()->exists();
+    }
 }

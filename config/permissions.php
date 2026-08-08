@@ -66,6 +66,15 @@ return [
                 'team_positions.delete' => 'Eliminar cargos del equipo',
             ],
         ],
+        'participants' => [
+            'name' => 'Negocios — Participantes',
+            'permissions' => [
+                'participants.view' => 'Ver participantes',
+                'participants.create' => 'Crear participantes',
+                'participants.edit' => 'Editar participantes',
+                'participants.delete' => 'Eliminar participantes',
+            ],
+        ],
         'business_payment_methods' => [
             'name' => 'Negocios — Métodos de pago',
             'permissions' => [

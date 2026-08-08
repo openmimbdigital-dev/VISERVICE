@@ -13,6 +13,7 @@ use App\Models\EquipmentModel;
 use App\Models\EquipmentType;
 use App\Models\Event;
 use App\Models\EventCategory;
+use App\Models\Participant;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\ProductType;
@@ -101,6 +102,11 @@ class AppServiceProvider extends ServiceProvider
 
         Route::bind('teamPosition', fn (string $value) => TeamPosition::query()
             ->visibleToUser()
+            ->whereKey($value)
+            ->firstOrFail());
+
+        Route::bind('participant', fn (string $value) => Participant::query()
+            ->forAuthUser()
             ->whereKey($value)
             ->firstOrFail());
 
