@@ -1,0 +1,46 @@
+---
+description: Convenciones para rutas y módulos públicos (sin autenticación) en VISERVICE
+alwaysApply: true
+---
+
+# Rutas públicas — VISERVICE
+
+El proyecto incluye **superficies públicas** (sin `auth`) además del panel autenticado.
+
+## Ubicación de archivos (obligatorio)
+
+| Qué | Dónde |
+|-----|--------|
+| Rutas | `routes/public.php` (cargado desde `bootstrap/app.php`, middleware `web`) |
+| Livewire | `app/Livewire/Public/...` |
+| Forms | `app/Livewire/Forms/Public/...` |
+| Actions | `app/Actions/Public/...` |
+| Vistas | `resources/views/livewire/public/...` |
+| Layout | `resources/views/layouts/public.blade.php` |
+| Soporte (tokens, helpers) | `app/Support/Public/...` |
+
+**No** mezclar componentes públicos dentro de `app/Livewire/Admin` ni rutas públicas dentro del grupo `auth` de `web.php`.
+
+## Seguridad del negocio en URL
+
+- Nunca exponer `business_id` numérico en URLs públicas.
+- Usar token opaco generado con `App\Support\Public\BusinessPublicId` (cifrado con la app key).
+- Al resolver el token: validar que el negocio exista, no esté soft-deleted y esté activo (`status`).
+- Abortar `404` si el token es inválido o el negocio no aplica.
+
+## Convenciones
+
+- Prefijo de URL: `/p/...` (público).
+- Nombres de ruta: `public.*` (ej. `public.participants.register`).
+- UI en español; identificadores de código en inglés.
+- Persistencia vía Action dedicada (`App\Actions\Public\...`); no reutilizar Actions admin que exigen `auth()->user()->can(...)` sin adaptar.
+- Formularios públicos: validación en `Livewire\Form`; sin selects de negocio (el negocio viene del token).
+- Layout público: liviano, sin sidebar del panel.
+
+## Checklist al agregar una ruta pública
+
+- [ ] Ruta en `routes/public.php`
+- [ ] Livewire/Form/Action/vista bajo las carpetas `Public`
+- [ ] Token de negocio (no ID crudo)
+- [ ] Layout `layouts.public`
+- [ ] Mensajes de éxito/error en español

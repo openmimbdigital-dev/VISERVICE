@@ -77,6 +77,7 @@ use App\Livewire\Admin\TeamPositions\Index as AdminTeamPositionsIndex;
 use App\Livewire\Admin\TeamPositions\Show as AdminTeamPositionsShow;
 use App\Livewire\Admin\Participants\Form as AdminParticipantsForm;
 use App\Livewire\Admin\Participants\Index as AdminParticipantsIndex;
+use App\Livewire\Admin\Participants\PublicRegistrationLink as AdminParticipantsPublicRegistrationLink;
 use App\Livewire\Admin\Participants\Show as AdminParticipantsShow;
 use App\Livewire\Admin\User\Index as AdminUserIndex;
 use App\Livewire\Admin\Workshop\AdvancePayments\Index as WorkshopAdvancePaymentsIndex;
@@ -188,6 +189,8 @@ Route::middleware(['auth', 'ensure.business', 'business.module'])->group(functio
         });
         Route::middleware('permission:participants.view')->group(function () {
             Route::get('/participants', AdminParticipantsIndex::class)->name('participants.index');
+            Route::get('/participants/public-registration-link', AdminParticipantsPublicRegistrationLink::class)
+                ->name('participants.public-registration-link');
             Route::get('/participants/{participant}', AdminParticipantsShow::class)
                 ->whereNumber('participant')
                 ->name('participants.show');

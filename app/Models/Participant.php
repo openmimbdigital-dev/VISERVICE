@@ -34,7 +34,6 @@ class Participant extends Model
     {
         return [
             'status' => 'boolean',
-            'document_number' => 'integer',
             'document_type' => DocumentType::class,
         ];
     }

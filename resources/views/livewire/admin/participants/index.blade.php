@@ -16,11 +16,19 @@
                 <h1 class="mt-2 text-2xl font-bold tracking-tight text-slate-900">Participantes</h1>
                 <p class="mt-2 max-w-xl text-sm text-slate-600">Directorio de participantes del negocio. Gestiona datos de contacto, documento y rol.</p>
             </div>
-            @can('participants.create')
-            <x-ui.create-button :href="route('admin.participants.form')" class="w-full justify-center sm:w-auto">
-                Nuevo participante
-            </x-ui.create-button>
-            @endcan
+            <div class="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row">
+                @can('participants.view')
+                <a href="{{ route('admin.participants.public-registration-link') }}" wire:navigate
+                    class="btn btn-outline-secondary btn-sm w-full justify-center sm:w-auto">
+                    Enlace público
+                </a>
+                @endcan
+                @can('participants.create')
+                <x-ui.create-button :href="route('admin.participants.form')" class="w-full justify-center sm:w-auto">
+                    Nuevo participante
+                </x-ui.create-button>
+                @endcan
+            </div>
         </div>
     </header>
 

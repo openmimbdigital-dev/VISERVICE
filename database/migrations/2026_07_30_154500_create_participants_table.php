@@ -20,7 +20,7 @@ return new class extends Migration
             $table->string('profile_photo')->nullable();
             $table->boolean('status')->default(true);
             $table->enum('document_type', array_column(DocumentType::cases(), 'value'))->nullable();
-            $table->integer('document_number')->nullable();
+            $table->string('document_number', 30)->nullable();
             $table->foreignId('city_id')->nullable()->constrained('cities')->nullOnDelete();
             $table->foreignId('country_id')->nullable()->constrained('countries')->nullOnDelete();
             $table->timestamps();
