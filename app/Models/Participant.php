@@ -6,6 +6,8 @@ use App\Enums\DocumentType;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Participant extends Model
@@ -26,8 +28,6 @@ class Participant extends Model
         'document_number',
         'city_id',
         'country_id',
-        'team_position_id',
-        'name_team_position',
     ];
 
     protected function casts(): array
@@ -37,27 +37,6 @@ class Participant extends Model
             'document_number' => 'integer',
             'document_type' => DocumentType::class,
         ];
-    }
-
-    protected static function booted(): void
-    {
-        static::saving(function (Participant $participant) {
-            if (! $participant->isDirty('team_position_id')) {
-                return;
-            }
-
-            if ($participant->team_position_id === null) {
-                $participant->name_team_position = null;
-
-                return;
-            }
-
-            $team_position = TeamPosition::query()
-                ->whereKey($participant->team_position_id)
-                ->first(['name']);
-
-            $participant->name_team_position = $team_position?->name;
-        });
     }
 
     public function business(): BelongsTo
@@ -80,9 +59,25 @@ class Participant extends Model
         return $this->belongsTo(Country::class, 'country_id');
     }
 
-    public function team_position(): BelongsTo
+    public function event_team_memberships(): HasMany
     {
-        return $this->belongsTo(TeamPosition::class, 'team_position_id');
+        return $this->hasMany(EventTeamMember::class);
+    }
+
+    public function event_teams(): BelongsToMany
+    {
+        return $this->belongsToMany(EventTeam::class, 'event_team_members')
+            ->withPivot(['business_id', 'event_team_role_id'])
+            ->wherePivotNull('deleted_at')
+            ->withTimestamps();
+    }
+
+    public function event_team_roles(): BelongsToMany
+    {
+        return $this->belongsToMany(EventTeamRole::class, 'event_team_members')
+            ->withPivot(['business_id', 'event_team_id'])
+            ->wherePivotNull('deleted_at')
+            ->withTimestamps();
     }
 
     public function getFullNameAttribute(): string

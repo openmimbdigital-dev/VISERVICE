@@ -45,9 +45,9 @@ class DatabaseSeeder extends Seeder
             WorkOrdersSeeder::class,
             RemissionsSeeder::class,
             EventCategoriesAndAttendeeTypesSeeder::class,
+            ParticipantsSeeder::class,
             EventTeamsSeeder::class,
             EventsSeeder::class,
-            ParticipantsSeeder::class,
         ]);
     }
 }

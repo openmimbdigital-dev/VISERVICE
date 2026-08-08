@@ -25,7 +25,7 @@ class Show extends Component
             ->with([
                 'business:id,name',
                 'roles:id,name,functions',
-                'members.user:id,first_name,last_name',
+                'members.participant:id,first_name,last_name',
                 'members.role:id,name',
             ])
             ->findOrFail($eventTeam->id);

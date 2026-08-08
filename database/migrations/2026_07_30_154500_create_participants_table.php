@@ -23,8 +23,6 @@ return new class extends Migration
             $table->integer('document_number')->nullable();
             $table->foreignId('city_id')->nullable()->constrained('cities')->nullOnDelete();
             $table->foreignId('country_id')->nullable()->constrained('countries')->nullOnDelete();
-            $table->foreignId('team_position_id')->nullable()->constrained('team_positions')->nullOnDelete();
-            $table->string('name_team_position')->nullable()->comment('Nombre denormalizado del cargo al momento de asignación');
             $table->timestamps();
             $table->softDeletes();
 

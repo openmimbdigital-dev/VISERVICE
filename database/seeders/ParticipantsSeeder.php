@@ -123,8 +123,6 @@ class ParticipantsSeeder extends Seeder
                     'status' => true,
                     'city_id' => $city?->id,
                     'country_id' => $country?->id,
-                    'team_position_id' => null,
-                    'name_team_position' => null,
                     'deleted_at' => null,
                 ]
             );

@@ -6,7 +6,7 @@ use App\Actions\LogUserHistoricalAction;
 use App\Models\EventTeam;
 use App\Models\EventTeamMember;
 use App\Models\EventTeamRole;
-use App\Models\User;
+use App\Models\Participant;
 use App\Support\ChurchEventsAccess;
 use Illuminate\Support\Facades\DB;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -21,7 +21,7 @@ class CreateOrUpdateEventTeamAction
      *     description: ?string,
      *     active: bool,
      *     role_ids: list<int>,
-     *     members: list<array{user_id: int, event_team_role_id: int}>
+     *     members: list<array{participant_id: int, event_team_role_id: int}>
      * }  $data
      */
     public function handle(int $business_id, ?int $event_team_id, array $data): EventTeam
@@ -106,24 +106,25 @@ class CreateOrUpdateEventTeamAction
 
     /**
      * @param  list<int>  $role_ids
-     * @param  list<array{user_id: int, event_team_role_id: int}>  $members
+     * @param  list<array{participant_id: int, event_team_role_id: int}>  $members
      */
     private function assertMembersAreValid(int $business_id, array $role_ids, array $members): void
     {
         foreach ($members as $member) {
             abort_unless(in_array((int) $member['event_team_role_id'], $role_ids, true), 422);
 
-            $user_belongs = User::query()
-                ->whereKey($member['user_id'])
-                ->whereHas('businesses', fn ($query) => $query->whereKey($business_id))
+            $participant_belongs = Participant::query()
+                ->whereKey($member['participant_id'])
+                ->where('business_id', $business_id)
+                ->whereNull('deleted_at')
                 ->exists();
 
-            abort_unless($user_belongs, 422);
+            abort_unless($participant_belongs, 422);
         }
     }
 
     /**
-     * @param  list<array{user_id: int, event_team_role_id: int}>  $members
+     * @param  list<array{participant_id: int, event_team_role_id: int}>  $members
      */
     private function syncMembers(EventTeam $event_team, int $business_id, array $members): void
     {
@@ -134,7 +135,7 @@ class CreateOrUpdateEventTeamAction
                 [
                     'event_team_id' => $event_team->id,
                     'event_team_role_id' => $member['event_team_role_id'],
-                    'user_id' => $member['user_id'],
+                    'participant_id' => $member['participant_id'],
                 ],
                 [
                     'business_id' => $business_id,

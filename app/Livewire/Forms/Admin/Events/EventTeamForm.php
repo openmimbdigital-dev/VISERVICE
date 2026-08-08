@@ -5,7 +5,7 @@ namespace App\Livewire\Forms\Admin\Events;
 use App\Models\Business;
 use App\Models\EventTeam;
 use App\Models\EventTeamRole;
-use App\Models\User;
+use App\Models\Participant;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Livewire\Form;
@@ -25,7 +25,7 @@ class EventTeamForm extends Form
     /** @var list<int|string> */
     public array $role_ids = [];
 
-    /** @var list<array{user_id: string|int|null, event_team_role_id: string|int|null}> */
+    /** @var list<array{participant_id: string|int|null, event_team_role_id: string|int|null}> */
     public array $members = [];
 
     public function setEventTeam(EventTeam $event_team): void
@@ -40,7 +40,7 @@ class EventTeamForm extends Form
         $this->role_ids = $event_team->roles->pluck('id')->map(fn ($id) => (int) $id)->all();
         $this->members = $event_team->members
             ->map(fn ($member) => [
-                'user_id' => $member->user_id,
+                'participant_id' => $member->participant_id,
                 'event_team_role_id' => $member->event_team_role_id,
             ])
             ->values()
@@ -69,7 +69,7 @@ class EventTeamForm extends Form
     public function addMember(): void
     {
         $this->members[] = [
-            'user_id' => null,
+            'participant_id' => null,
             'event_team_role_id' => null,
         ];
     }
@@ -106,8 +106,8 @@ class EventTeamForm extends Form
             ->get(['id', 'name', 'functions']);
     }
 
-    /** @return Collection<int, User> */
-    public function getUsers(): Collection
+    /** @return Collection<int, Participant> */
+    public function getParticipants(): Collection
     {
         $business_id = $this->resolvedBusinessId();
 
@@ -115,10 +115,10 @@ class EventTeamForm extends Form
             return collect();
         }
 
-        return User::query()
+        return Participant::query()
+            ->where('business_id', $business_id)
             ->whereNull('deleted_at')
             ->where('status', true)
-            ->whereHas('businesses', fn ($query) => $query->whereKey($business_id))
             ->orderBy('first_name')
             ->orderBy('last_name')
             ->get(['id', 'first_name', 'last_name']);
@@ -152,10 +152,13 @@ class EventTeamForm extends Form
                         ->whereNull('deleted_at')),
             ],
             'members' => ['array'],
-            'members.*.user_id' => [
+            'members.*.participant_id' => [
                 'required',
                 'integer',
-                Rule::exists('users', 'id')->whereNull('deleted_at'),
+                Rule::exists('participants', 'id')
+                    ->where(fn ($query) => $query
+                        ->where('business_id', $business_id)
+                        ->whereNull('deleted_at')),
             ],
             'members.*.event_team_role_id' => [
                 'required',
@@ -185,8 +188,8 @@ class EventTeamForm extends Form
             'name.unique' => 'Ya existe un equipo de evento con este nombre.',
             'description.max' => 'La descripción no puede superar 2000 caracteres.',
             'role_ids.*.exists' => 'Uno de los roles seleccionados no es válido.',
-            'members.*.user_id.required' => 'Selecciona un usuario para cada integrante.',
-            'members.*.user_id.exists' => 'Uno de los usuarios seleccionados no es válido.',
+            'members.*.participant_id.required' => 'Selecciona un participante para cada integrante.',
+            'members.*.participant_id.exists' => 'Uno de los participantes seleccionados no es válido.',
             'members.*.event_team_role_id.required' => 'Selecciona un rol para cada integrante.',
             'members.*.event_team_role_id.in' => 'El rol del integrante debe pertenecer al equipo.',
         ];
@@ -198,7 +201,7 @@ class EventTeamForm extends Form
      *     description: ?string,
      *     active: bool,
      *     role_ids: list<int>,
-     *     members: list<array{user_id: int, event_team_role_id: int}>
+     *     members: list<array{participant_id: int, event_team_role_id: int}>
      * }
      */
     public function validated(): array
@@ -207,10 +210,10 @@ class EventTeamForm extends Form
 
         $members = collect($data['members'] ?? [])
             ->map(fn (array $member) => [
-                'user_id' => (int) $member['user_id'],
+                'participant_id' => (int) $member['participant_id'],
                 'event_team_role_id' => (int) $member['event_team_role_id'],
             ])
-            ->unique(fn (array $member) => $member['user_id'].'-'.$member['event_team_role_id'])
+            ->unique(fn (array $member) => $member['participant_id'].'-'.$member['event_team_role_id'])
             ->values()
             ->all();
 

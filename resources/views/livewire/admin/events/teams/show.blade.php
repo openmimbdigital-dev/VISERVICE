@@ -93,14 +93,14 @@
             <table class="min-w-full divide-y divide-slate-100 text-left text-sm">
                 <thead class="bg-slate-50/80 text-xs font-medium uppercase tracking-wide text-slate-500">
                     <tr>
-                        <th class="px-3 py-3 sm:px-5">Usuario</th>
+                        <th class="px-3 py-3 sm:px-5">Participante</th>
                         <th class="px-3 py-3 sm:px-5">Rol</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     @forelse($event_team->members as $member)
                         <tr>
-                            <td class="px-3 py-4 text-slate-900 sm:px-5">{{ $member->user?->full_name ?? '—' }}</td>
+                            <td class="px-3 py-4 text-slate-900 sm:px-5">{{ $member->participant?->full_name ?? '—' }}</td>
                             <td class="px-3 py-4 text-slate-700 sm:px-5">{{ $member->role?->name ?? '—' }}</td>
                         </tr>
                     @empty

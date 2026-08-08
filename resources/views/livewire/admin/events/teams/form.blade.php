@@ -122,7 +122,7 @@
             <div class="flex flex-col gap-3 border-b border-slate-100 bg-slate-50/80 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
                 <div>
                     <h2 class="font-semibold text-slate-800">Integrantes</h2>
-                    <p class="mt-1 text-xs text-slate-500">Asigna usuarios a los roles del equipo.</p>
+                    <p class="mt-1 text-xs text-slate-500">Asigna participantes a los roles del equipo.</p>
                 </div>
                 <button type="button" wire:click="addMember" @disabled(empty($form->role_ids))
                     class="btn btn-outline-secondary btn-sm w-full justify-center disabled:opacity-50 sm:w-auto">
@@ -133,15 +133,15 @@
                 @forelse($form->members as $index => $member)
                     <div class="grid grid-cols-1 gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-12 sm:items-start" wire:key="member-{{ $index }}">
                         <div class="sm:col-span-5">
-                            <label class="mb-1.5 block text-xs font-medium text-slate-700">Usuario <span class="text-rose-500">*</span></label>
-                            <select wire:model="form.members.{{ $index }}.user_id"
-                                class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('form.members.'.$index.'.user_id') border-rose-400 bg-rose-50 @enderror">
-                                <option value="">Selecciona un usuario</option>
-                                @foreach($users as $user)
-                                    <option value="{{ $user->id }}">{{ $user->full_name }}</option>
+                            <label class="mb-1.5 block text-xs font-medium text-slate-700">Participante <span class="text-rose-500">*</span></label>
+                            <select wire:model="form.members.{{ $index }}.participant_id"
+                                class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('form.members.'.$index.'.participant_id') border-rose-400 bg-rose-50 @enderror">
+                                <option value="">Selecciona un participante</option>
+                                @foreach($participants as $participant)
+                                    <option value="{{ $participant->id }}">{{ $participant->full_name }}</option>
                                 @endforeach
                             </select>
-                            @error('form.members.'.$index.'.user_id') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                            @error('form.members.'.$index.'.participant_id') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                         </div>
                         <div class="sm:col-span-5">
                             <label class="mb-1.5 block text-xs font-medium text-slate-700">Rol <span class="text-rose-500">*</span></label>

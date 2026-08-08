@@ -199,7 +199,7 @@ class Form extends Component
             ->with([
                 'roles' => fn ($query) => $query->orderBy('name')->select('event_team_roles.id', 'event_team_roles.name', 'event_team_roles.functions'),
                 'members' => fn ($query) => $query->with([
-                    'user:id,first_name,last_name',
+                    'participant:id,first_name,last_name',
                     'role:id,name',
                 ]),
             ])

@@ -43,9 +43,9 @@ class EventTeamRole extends Model
         return $this->hasMany(EventTeamMember::class);
     }
 
-    public function users(): BelongsToMany
+    public function participants(): BelongsToMany
     {
-        return $this->belongsToMany(User::class, 'event_team_members')
+        return $this->belongsToMany(Participant::class, 'event_team_members')
             ->withPivot(['business_id', 'event_team_id'])
             ->wherePivotNull('deleted_at')
             ->withTimestamps();

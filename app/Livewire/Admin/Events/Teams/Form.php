@@ -98,7 +98,7 @@ class Form extends Component
             'is_super_admin' => $this->form->isSuperAdmin(),
             'businesses' => $this->form->isSuperAdmin() ? $this->form->getBusinesses() : collect(),
             'roles' => $this->form->getRoles(),
-            'users' => $this->form->getUsers(),
+            'participants' => $this->form->getParticipants(),
         ])->layoutData([
             'title' => $this->form->isEditing()
                 ? 'Gestión de eventos — Editar equipo'
