@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Auth;
 
+use App\Actions\Business\CreateParticipantFromUserAction;
 use App\Models\BankAccount;
 use App\Models\Business;
 use App\Models\BusinessType;
@@ -133,6 +134,9 @@ class RegisterWizard extends Component
 
             // 3. Asignar rol Comercio
             $user->assignRole('Comercio');
+
+            // 3b. Crear participante del negocio con los mismos datos del admin
+            CreateParticipantFromUserAction::run($user, (int) $business->id);
 
             // 4. Guardar comprobante de pago si es transferencia
             $proofPath = null;

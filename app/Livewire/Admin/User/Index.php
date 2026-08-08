@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin\User;
 
+use App\Actions\Business\CreateParticipantFromUserAction;
 use App\Actions\LogUserHistoricalAction;
 use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
 use App\Models\Role;
@@ -266,6 +267,14 @@ class Index extends Component
                 'El rol seleccionado no está permitido para el tipo de negocio del usuario.'
             );
             $user->assignRole($this->role);
+
+            $participant_business_id = (int) ($user->businesses->first()?->id
+                ?? auth()->user()->business_id
+                ?? 0);
+
+            if ($participant_business_id > 0) {
+                CreateParticipantFromUserAction::run($user, $participant_business_id);
+            }
 
             LogUserHistoricalAction::run(
                 action: 'created',
