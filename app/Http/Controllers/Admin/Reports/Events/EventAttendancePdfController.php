@@ -34,6 +34,7 @@ class EventAttendancePdfController extends Controller
         $chart = EventAttendanceReport::chartForEvent($event);
         $attendance_total = array_sum($chart['values']);
         $max_attendance = max($chart['values'] ?: [0]);
+        $attended_participants = EventAttendanceReport::attendedParticipantsForEvent($event);
 
         $business = $event->business;
         $is_church = $business?->organization_type?->label === 'iglesia';
@@ -53,6 +54,7 @@ class EventAttendancePdfController extends Controller
             'chart_values' => $chart['values'],
             'attendance_total' => $attendance_total,
             'max_attendance' => $max_attendance > 0 ? $max_attendance : 1,
+            'attended_participants' => $attended_participants,
             'multi_day_context' => $event->multiDayContextLabel(),
             'printed_by' => trim(($user?->first_name ?? '').' '.($user?->last_name ?? '')) ?: ($user?->username ?? '—'),
             'printed_by_roles' => $user?->getRoleNames()->implode(', ') ?: '—',

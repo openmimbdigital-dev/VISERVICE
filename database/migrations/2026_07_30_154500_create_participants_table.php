@@ -20,11 +20,16 @@ return new class extends Migration
             $table->string('profile_photo')->nullable();
             $table->boolean('status')->default(true);
             $table->enum('document_type', array_column(DocumentType::cases(), 'value'))->nullable();
-            $table->string('document_number', 30)->nullable();
+            $table->string('document_number', 30);
             $table->foreignId('city_id')->nullable()->constrained('cities')->nullOnDelete();
             $table->foreignId('country_id')->nullable()->constrained('countries')->nullOnDelete();
             $table->timestamps();
             $table->softDeletes();
+
+            $table->unique(
+                ['document_type', 'document_number'],
+                'participants_document_type_number_unique'
+            );
 
             $table->index(
                 ['business_id', 'deleted_at', 'created_at'],

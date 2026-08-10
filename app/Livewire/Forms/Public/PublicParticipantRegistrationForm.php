@@ -90,15 +90,14 @@ class PublicParticipantRegistrationForm extends Form
             'email' => ['nullable', 'email', 'max:150'],
             'phone_number' => ['nullable', 'string', 'max:30'],
             'address' => ['nullable', 'string', 'max:200'],
-            'document_type' => ['nullable', Rule::in(array_column(DocumentType::cases(), 'value'))],
+            'document_type' => ['required', Rule::in(array_column(DocumentType::cases(), 'value'))],
             'document_number' => [
-                'nullable',
+                'required',
                 'string',
                 'max:30',
                 Rule::unique('participants', 'document_number')
-                    ->where(fn ($query) => $query
-                        ->where('business_id', $this->business_id)
-                        ->whereNull('deleted_at')),
+                    ->where('document_type', $this->document_type)
+                    ->whereNull('deleted_at'),
             ],
             'participant_role_id' => [
                 'nullable',
@@ -119,9 +118,11 @@ class PublicParticipantRegistrationForm extends Form
             'first_name.required' => 'El nombre es obligatorio.',
             'last_name.required' => 'El apellido es obligatorio.',
             'email.email' => 'El correo electrónico no es válido.',
+            'document_type.required' => 'El tipo de documento es obligatorio.',
             'document_type.in' => 'El tipo de documento no es válido.',
+            'document_number.required' => 'El número de documento es obligatorio.',
             'document_number.max' => 'El número de documento no puede superar 30 caracteres.',
-            'document_number.unique' => 'Ya existe un participante con este documento.',
+            'document_number.unique' => 'Ya existe un participante con este tipo y número de documento.',
             'participant_role_id.exists' => 'El rol seleccionado no es válido.',
             'city_id.exists' => 'La ciudad seleccionada no es válida.',
             'country_id.exists' => 'El país seleccionado no es válido.',

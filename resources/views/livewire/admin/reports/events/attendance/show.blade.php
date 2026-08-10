@@ -33,7 +33,7 @@
         </div>
     </header>
 
-    <div class="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+    <div class="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div class="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm ring-1 ring-slate-900/[0.04]">
             <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Asistencia total</p>
             <p class="mt-2 text-2xl font-semibold tabular-nums text-emerald-600">{{ number_format($attendance_total, 0, ',', '.') }}</p>
@@ -41,6 +41,10 @@
         <div class="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm ring-1 ring-slate-900/[0.04]">
             <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Tipos registrados</p>
             <p class="mt-2 text-2xl font-semibold tabular-nums text-slate-900">{{ $attendance_rows->count() }}</p>
+        </div>
+        <div class="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm ring-1 ring-slate-900/[0.04]">
+            <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Participantes presentes</p>
+            <p class="mt-2 text-2xl font-semibold tabular-nums text-indigo-700">{{ number_format($attended_participants_count, 0, ',', '.') }}</p>
         </div>
         <div class="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm ring-1 ring-slate-900/[0.04]">
             <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Estado</p>
@@ -141,6 +145,59 @@
             </div>
         </section>
     </div>
+
+    <section class="mt-4 overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
+        <div class="border-b border-slate-100 bg-slate-50/80 px-5 py-4">
+            <h2 class="font-semibold text-slate-800">Participantes que asistieron</h2>
+            <p class="mt-1 text-xs text-slate-500">Registros de participación marcados como presentes en este evento.</p>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-100 text-left text-sm">
+                <thead class="bg-slate-50/80 text-xs font-medium uppercase tracking-wide text-slate-500">
+                    <tr>
+                        <th class="px-3 py-3 sm:px-5">Participante</th>
+                        <th class="hidden px-3 py-3 sm:table-cell sm:px-5">Documento</th>
+                        <th class="hidden px-3 py-3 md:table-cell sm:px-5">Correo</th>
+                        <th class="px-3 py-3 sm:px-5">Hora</th>
+                        <th class="px-3 py-3 sm:px-5">Estado</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    @forelse($attended_participants as $attendance)
+                        <tr wire:key="attended-participant-{{ $attendance->id }}">
+                            <td class="px-3 py-4 font-medium text-slate-900 sm:px-5">
+                                {{ $attendance->attendable?->full_name ?? '—' }}
+                            </td>
+                            <td class="hidden px-3 py-4 text-slate-600 sm:table-cell sm:px-5">
+                                {{ $attendance->attendable?->document_number ?: '—' }}
+                            </td>
+                            <td class="hidden px-3 py-4 text-slate-600 md:table-cell sm:px-5">
+                                {{ $attendance->attendable?->email ?: '—' }}
+                            </td>
+                            <td class="px-3 py-4 tabular-nums text-slate-700 sm:px-5">
+                                @if($attendance->attendance_hour)
+                                    {{ \Illuminate\Support\Carbon::parse($attendance->attendance_hour)->format('h:i a') }}
+                                @else
+                                    —
+                                @endif
+                            </td>
+                            <td class="px-3 py-4 sm:px-5">
+                                <span class="inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 ring-1 ring-emerald-600/20">
+                                    Asistió
+                                </span>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="5" class="px-3 py-6 text-center text-slate-500 sm:px-5">
+                                No hay participantes registrados como presentes en este evento.
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </section>
 
     <section class="mt-4 overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
         <div class="flex flex-col gap-3 border-b border-slate-100 bg-slate-50/80 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">

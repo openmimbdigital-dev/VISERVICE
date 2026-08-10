@@ -3,6 +3,8 @@
 namespace App\Support;
 
 use App\Models\Event;
+use App\Models\EventAttendance;
+use App\Models\Participant;
 use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -61,5 +63,37 @@ class EventAttendanceReport
             'values' => $rows->map(fn ($type) => (int) $type->pivot->attendance)->all(),
             'rows' => $rows,
         ];
+    }
+
+    /**
+     * Participantes marcados como presentes en event_attendances.
+     *
+     * @return Collection<int, EventAttendance>
+     */
+    public static function attendedParticipantsForEvent(Event $event): Collection
+    {
+        if ($event->date_start === null) {
+            return collect();
+        }
+
+        return EventAttendance::query()
+            ->where('event_id', $event->id)
+            ->where('attendable_type', Participant::class)
+            ->where('attendance', true)
+            ->whereDate('date_event', $event->date_start->toDateString())
+            ->with([
+                'attendable' => fn ($query) => $query->select(
+                    'id',
+                    'first_name',
+                    'last_name',
+                    'document_number',
+                    'email'
+                ),
+            ])
+            ->orderBy('attendance_hour')
+            ->get()
+            ->filter(fn (EventAttendance $row) => $row->attendable !== null)
+            ->sortBy(fn (EventAttendance $row) => mb_strtolower($row->attendable->full_name))
+            ->values();
     }
 }

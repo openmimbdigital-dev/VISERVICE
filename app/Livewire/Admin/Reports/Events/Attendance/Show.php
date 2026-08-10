@@ -54,12 +54,15 @@ class Show extends Component
     public function render()
     {
         $chart = EventAttendanceReport::chartForEvent($this->event);
+        $attended_participants = EventAttendanceReport::attendedParticipantsForEvent($this->event);
 
         return view('livewire.admin.reports.events.attendance.show', [
             'attendance_rows' => $chart['rows'],
             'attendance_chart_labels' => $chart['labels'],
             'attendance_chart_values' => $chart['values'],
             'attendance_total' => array_sum($chart['values']),
+            'attended_participants' => $attended_participants,
+            'attended_participants_count' => $attended_participants->count(),
         ])->layoutData([
             'title' => 'Reportes — '.$this->event->name,
         ]);

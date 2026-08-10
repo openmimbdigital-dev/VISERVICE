@@ -4,6 +4,7 @@ namespace App\Actions\Business;
 
 use App\Models\Participant;
 use App\Models\ParticipantRole;
+use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 class CreateOrUpdateParticipantAction
@@ -46,6 +47,23 @@ class CreateOrUpdateParticipantAction
                 ->exists();
 
             abort_unless($role_ok, 422);
+        }
+
+        if (filled($data['document_number'] ?? null) && filled($data['document_type'] ?? null)) {
+            $document_exists = Participant::query()
+                ->where('document_type', $data['document_type'])
+                ->where('document_number', $data['document_number'])
+                ->when(
+                    $participant_id,
+                    fn ($query) => $query->whereKeyNot($participant_id)
+                )
+                ->exists();
+
+            if ($document_exists) {
+                throw ValidationException::withMessages([
+                    'form.document_number' => 'Ya existe un participante con este tipo y número de documento.',
+                ]);
+            }
         }
 
         $attributes = [

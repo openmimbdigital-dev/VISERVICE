@@ -129,6 +129,16 @@ class ParticipantForm extends Form
             ? $this->business_id
             : auth()->user()?->business_id;
 
+        $document_number_rules = [
+            'required',
+            'string',
+            'max:30',
+            Rule::unique('participants', 'document_number')
+                ->where('document_type', $this->document_type)
+                ->whereNull('deleted_at')
+                ->ignore($this->participant_id),
+        ];
+
         $rules = [
             'first_name' => ['required', 'string', 'max:100'],
             'last_name' => ['required', 'string', 'max:100'],
@@ -136,17 +146,8 @@ class ParticipantForm extends Form
             'phone_number' => ['nullable', 'string', 'max:30'],
             'address' => ['nullable', 'string', 'max:200'],
             'status' => ['boolean'],
-            'document_type' => ['nullable', Rule::in(array_column(DocumentType::cases(), 'value'))],
-            'document_number' => [
-                'nullable',
-                'string',
-                'max:30',
-                Rule::unique('participants', 'document_number')
-                    ->where(fn ($query) => $query
-                        ->where('business_id', $business_id)
-                        ->whereNull('deleted_at'))
-                    ->ignore($this->participant_id),
-            ],
+            'document_type' => ['required', Rule::in(array_column(DocumentType::cases(), 'value'))],
+            'document_number' => $document_number_rules,
             'participant_role_id' => [
                 'nullable',
                 'integer',
@@ -178,9 +179,11 @@ class ParticipantForm extends Form
             'first_name.required' => 'El nombre es obligatorio.',
             'last_name.required' => 'El apellido es obligatorio.',
             'email.email' => 'El correo electrónico no es válido.',
+            'document_type.required' => 'El tipo de documento es obligatorio.',
             'document_type.in' => 'El tipo de documento no es válido.',
+            'document_number.required' => 'El número de documento es obligatorio.',
             'document_number.max' => 'El número de documento no puede superar 30 caracteres.',
-            'document_number.unique' => 'Ya existe un participante con este documento.',
+            'document_number.unique' => 'Ya existe un participante con este tipo y número de documento.',
             'participant_role_id.exists' => 'El rol seleccionado no es válido.',
             'city_id.exists' => 'La ciudad seleccionada no es válida.',
             'country_id.exists' => 'El país seleccionado no es válido.',
@@ -204,6 +207,8 @@ class ParticipantForm extends Form
      */
     public function validated(): array
     {
+        $this->document_number = trim($this->document_number);
+
         $data = $this->validate();
 
         return [

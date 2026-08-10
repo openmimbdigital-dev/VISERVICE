@@ -90,7 +90,7 @@
             </div>
 
             <div class="relative">
-                <label class="label-up">Tipo de documento</label>
+                <label class="label-up">Tipo de documento *</label>
                 <select wire:model="form.document_type" class="form-select w-full border px-3 py-2 text-sm @error('form.document_type') border-rose-400 @enderror">
                     <option value="">—</option>
                     @foreach($document_types as $value => $label)
@@ -101,7 +101,7 @@
             </div>
 
             <div class="relative">
-                <label class="label-up">Número de documento</label>
+                <label class="label-up">Número de documento *</label>
                 <input type="text" inputmode="numeric" wire:model="form.document_number" class="form-input w-full border px-3 py-2 text-sm @error('form.document_number') border-rose-400 @enderror" />
                 @error('form.document_number')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
             </div>

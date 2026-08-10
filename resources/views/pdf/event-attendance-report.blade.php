@@ -160,6 +160,7 @@
     <div class="section-title">Resumen</div>
     <p><span class="bold">Asistencia total:</span> {{ number_format($attendance_total, 0, ',', '.') }}</p>
     <p><span class="bold">Tipos registrados:</span> {{ $attendance_rows->count() }}</p>
+    <p><span class="bold">Participantes presentes:</span> {{ number_format($attended_participants->count(), 0, ',', '.') }}</p>
     @if($multi_day_context)
         <p class="muted">Gráfico y totales limitados al día reportado del evento multi-día.</p>
     @endif
@@ -216,6 +217,45 @@
                     <td class="text-right bold">{{ number_format($attendance_total, 0, ',', '.') }}</td>
                 </tr>
             @endif
+        </tbody>
+    </table>
+</div>
+
+<div class="section">
+    <div class="section-title">Participantes que asistieron</div>
+    <p class="muted" style="margin-bottom: 8px;">
+        Total presentes: {{ number_format($attended_participants->count(), 0, ',', '.') }}
+    </p>
+    <table class="items">
+        <thead>
+            <tr>
+                <th>Participante</th>
+                <th>Documento</th>
+                <th>Correo</th>
+                <th>Hora</th>
+                <th>Estado</th>
+            </tr>
+        </thead>
+        <tbody>
+            @forelse($attended_participants as $attendance)
+                <tr>
+                    <td>{{ $attendance->attendable?->full_name ?? '—' }}</td>
+                    <td>{{ $attendance->attendable?->document_number ?: '—' }}</td>
+                    <td>{{ $attendance->attendable?->email ?: '—' }}</td>
+                    <td>
+                        @if($attendance->attendance_hour)
+                            {{ \Illuminate\Support\Carbon::parse($attendance->attendance_hour)->format('h:i a') }}
+                        @else
+                            —
+                        @endif
+                    </td>
+                    <td>Asistió</td>
+                </tr>
+            @empty
+                <tr>
+                    <td colspan="5" class="muted">No hay participantes registrados como presentes en este evento.</td>
+                </tr>
+            @endforelse
         </tbody>
     </table>
 </div>
