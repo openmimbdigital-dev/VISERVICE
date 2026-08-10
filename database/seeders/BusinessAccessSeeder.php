@@ -23,6 +23,7 @@ class BusinessAccessSeeder extends Seeder
     {
         return [
             'participants.view', 'participants.create', 'participants.edit', 'participants.delete',
+            'participants.roles.view', 'participants.roles.create', 'participants.roles.edit', 'participants.roles.delete',
         ];
     }
 

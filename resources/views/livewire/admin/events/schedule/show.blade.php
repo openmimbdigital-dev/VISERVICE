@@ -124,7 +124,19 @@
                         @if($event->teams->isEmpty())
                             Sin equipos asignados.
                         @else
-                            {{ $event->teams->pluck('name')->join(', ') }}
+                            <ul class="flex flex-col gap-1.5">
+                                @foreach($event->teams as $team)
+                                    <li>
+                                        <a
+                                            href="{{ route('admin.events.teams.show', ['eventTeam' => $team, 'from_event' => $event->id]) }}"
+                                            wire:navigate
+                                            class="font-medium text-indigo-600 transition hover:text-indigo-700 hover:underline"
+                                        >
+                                            {{ $team->name }}
+                                        </a>
+                                    </li>
+                                @endforeach
+                            </ul>
                         @endif
                     </dd>
                 </div>

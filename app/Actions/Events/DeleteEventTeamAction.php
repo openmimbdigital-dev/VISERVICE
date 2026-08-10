@@ -20,6 +20,10 @@ class DeleteEventTeamAction
             ->forAuthUser()
             ->findOrFail($event_team_id);
 
+        if ($event_team->hasDependencies()) {
+            abort(422, 'No se puede eliminar: el equipo está asignado a uno o más eventos.');
+        }
+
         abort_unless($event_team->canDelete(), 403);
 
         LogUserHistoricalAction::run(

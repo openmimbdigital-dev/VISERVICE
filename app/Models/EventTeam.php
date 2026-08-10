@@ -74,11 +74,20 @@ class EventTeam extends Model
         return $query->whereIn('event_teams.business_id', $business_ids);
     }
 
+    public function hasDependencies(): bool
+    {
+        return $this->events()->exists();
+    }
+
     public function canDelete(?User $user = null): bool
     {
         $user ??= auth()->user();
 
         if (! $user?->can('events.teams.delete')) {
+            return false;
+        }
+
+        if ($this->hasDependencies()) {
             return false;
         }
 

@@ -17,6 +17,12 @@
                 <p class="mt-2 max-w-xl text-sm text-slate-600">Directorio de participantes del negocio. Gestiona datos de contacto, documento y rol.</p>
             </div>
             <div class="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row">
+                @can('participants.roles.view')
+                <a href="{{ route('admin.participants.roles.index') }}" wire:navigate
+                    class="btn btn-outline-secondary btn-sm w-full justify-center sm:w-auto">
+                    Roles
+                </a>
+                @endcan
                 @can('participants.view')
                 <a href="{{ route('admin.participants.public-registration-link') }}" wire:navigate
                     class="btn btn-outline-secondary btn-sm w-full justify-center sm:w-auto">

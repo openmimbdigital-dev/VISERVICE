@@ -78,6 +78,9 @@ use App\Livewire\Admin\TeamPositions\Show as AdminTeamPositionsShow;
 use App\Livewire\Admin\Participants\Form as AdminParticipantsForm;
 use App\Livewire\Admin\Participants\Index as AdminParticipantsIndex;
 use App\Livewire\Admin\Participants\PublicRegistrationLink as AdminParticipantsPublicRegistrationLink;
+use App\Livewire\Admin\Participants\Roles\Form as AdminParticipantRolesForm;
+use App\Livewire\Admin\Participants\Roles\Index as AdminParticipantRolesIndex;
+use App\Livewire\Admin\Participants\Roles\Show as AdminParticipantRolesShow;
 use App\Livewire\Admin\Participants\Show as AdminParticipantsShow;
 use App\Livewire\Admin\User\Index as AdminUserIndex;
 use App\Livewire\Admin\Workshop\AdvancePayments\Index as WorkshopAdvancePaymentsIndex;
@@ -186,6 +189,20 @@ Route::middleware(['auth', 'ensure.business', 'business.module'])->group(functio
         });
         Route::middleware('permission:participants.create')->group(function () {
             Route::get('/participants/form', AdminParticipantsForm::class)->name('participants.form');
+        });
+        Route::middleware('permission:participants.roles.create')->group(function () {
+            Route::get('/participants/roles/create', AdminParticipantRolesForm::class)->name('participants.roles.create');
+        });
+        Route::middleware('permission:participants.roles.edit')->group(function () {
+            Route::get('/participants/roles/{participantRole}/edit', AdminParticipantRolesForm::class)
+                ->whereNumber('participantRole')
+                ->name('participants.roles.edit');
+        });
+        Route::middleware('permission:participants.roles.view')->group(function () {
+            Route::get('/participants/roles', AdminParticipantRolesIndex::class)->name('participants.roles.index');
+            Route::get('/participants/roles/{participantRole}', AdminParticipantRolesShow::class)
+                ->whereNumber('participantRole')
+                ->name('participants.roles.show');
         });
         Route::middleware('permission:participants.view')->group(function () {
             Route::get('/participants', AdminParticipantsIndex::class)->name('participants.index');
@@ -347,7 +364,7 @@ Route::middleware(['auth', 'ensure.business', 'business.module'])->group(functio
         Route::middleware('permission:events.teams.edit')->group(function () {
             Route::get('/teams/{eventTeam}/edit', EventsTeamsForm::class)->name('teams.edit');
         });
-        Route::middleware('permission:events.teams.view')->group(function () {
+        Route::middleware('role_or_permission:events.teams.view|events.schedule.view')->group(function () {
             Route::get('/teams/{eventTeam}', EventsTeamsShow::class)->name('teams.show');
         });
     });

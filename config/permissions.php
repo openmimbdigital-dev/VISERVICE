@@ -73,6 +73,10 @@ return [
                 'participants.create' => 'Crear participantes',
                 'participants.edit' => 'Editar participantes',
                 'participants.delete' => 'Eliminar participantes',
+                'participants.roles.view' => 'Ver roles de participantes',
+                'participants.roles.create' => 'Crear roles de participantes',
+                'participants.roles.edit' => 'Editar roles de participantes',
+                'participants.roles.delete' => 'Eliminar roles de participantes',
             ],
         ],
         'business_payment_methods' => [
