@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -105,6 +107,19 @@ class User extends Authenticatable
     public function equipment_historicals(): HasMany
     {
         return $this->hasMany(EquipmentHistorical::class)->orderByDesc('created_at');
+    }
+
+    public function event_attendances(): MorphMany
+    {
+        return $this->morphMany(EventAttendance::class, 'attendable');
+    }
+
+    public function attended_events(): MorphToMany
+    {
+        return $this->morphToMany(Event::class, 'attendable', 'event_attendances')
+            ->withPivot(['date_event', 'attendance_hour', 'attendance'])
+            ->wherePivotNull('deleted_at')
+            ->withTimestamps();
     }
 
     public function primaryBusiness(): ?Business

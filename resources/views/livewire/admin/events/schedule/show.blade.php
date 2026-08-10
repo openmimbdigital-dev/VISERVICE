@@ -304,14 +304,119 @@
 
         <section class="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
             <div class="border-b border-slate-100 bg-slate-50/80 px-5 py-4">
-                <h2 class="font-semibold text-slate-800">Toma de participación</h2>
-                <p class="mt-1 text-xs text-slate-500">Disponible solo el día del evento y durante su horario.</p>
+                <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h2 class="font-semibold text-slate-800">Toma de participación</h2>
+                        <p class="mt-1 text-xs text-slate-500">Marca los participantes que asistieron al evento.</p>
+                    </div>
+                    @if($participation_capture['available'] || $participation_closed)
+                        <p class="text-xs font-medium text-slate-500">
+                            Presentes: <span class="tabular-nums text-slate-800">{{ $attended_count }}</span>
+                        </p>
+                    @endif
+                </div>
             </div>
-            <div class="px-5 py-5">
+            <div class="px-5 py-5 space-y-4">
+                @if($can_close_participation && $event->participation_enabled)
+                    @if($participation_closed)
+                        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 sm:flex-1">
+                                <p class="text-sm font-medium text-slate-800">Toma de participación cerrada</p>
+                                <p class="mt-1 text-xs text-slate-500">Los checks quedaron bloqueados. Aún puedes consultar el estado registrado.</p>
+                            </div>
+                            <button
+                                type="button"
+                                wire:click="confirmReopenParticipation"
+                                wire:loading.attr="disabled"
+                                class="btn btn-primary btn-sm w-full shrink-0 justify-center sm:w-auto"
+                            >
+                                <span wire:loading.remove wire:target="confirmReopenParticipation,reopenParticipation">Abrir toma de participación</span>
+                                <span wire:loading wire:target="confirmReopenParticipation,reopenParticipation">Abriendo...</span>
+                            </button>
+                        </div>
+                    @else
+                        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                            <p class="text-xs text-slate-500">Cuando termines el registro, cierra la toma de participación.</p>
+                            <button
+                                type="button"
+                                wire:click="confirmCloseParticipation"
+                                wire:loading.attr="disabled"
+                                class="btn btn-outline-secondary btn-sm w-full justify-center sm:w-auto"
+                            >
+                                <span wire:loading.remove wire:target="confirmCloseParticipation,closeParticipation">Cerrar toma de participación</span>
+                                <span wire:loading wire:target="confirmCloseParticipation,closeParticipation">Cerrando...</span>
+                            </button>
+                        </div>
+                    @endif
+                @elseif($participation_closed)
+                    <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                        <p class="text-sm font-medium text-slate-800">Toma de participación cerrada</p>
+                        <p class="mt-1 text-xs text-slate-500">Los checks quedaron bloqueados.</p>
+                    </div>
+                @endif
+
                 @if($participation_capture['available'])
-                    <div class="rounded-xl border border-dashed border-indigo-200 bg-indigo-50/40 px-4 py-6 text-center">
-                        <p class="text-sm font-medium text-indigo-800">Sección lista para tomar participación</p>
-                        <p class="mt-1 text-xs text-indigo-600/80">Aquí irá el registro de participación en una próxima fase.</p>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="mb-1.5 block text-xs font-medium text-slate-700">Buscar participante</label>
+                            <input
+                                type="search"
+                                wire:model.live.debounce.300ms="participant_search"
+                                placeholder="Nombre, correo o documento"
+                                class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                            >
+                        </div>
+
+                        @if($participants->isEmpty())
+                            <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-4">
+                                <p class="text-sm text-slate-600">
+                                    @if(trim($participant_search) !== '')
+                                        No hay participantes que coincidan con la búsqueda.
+                                    @else
+                                        No hay participantes activos en este negocio.
+                                    @endif
+                                </p>
+                            </div>
+                        @else
+                            <ul class="max-h-80 divide-y divide-slate-100 overflow-y-auto rounded-xl border border-slate-200">
+                                @foreach($participants as $participant)
+                                    @php
+                                        $has_record = $participant_attendance_states->has((int) $participant->id);
+                                        $is_attended = $has_record && $participant_attendance_states->get((int) $participant->id) === true;
+                                    @endphp
+                                    <li class="flex items-start gap-3 px-4 py-3" wire:key="participation-{{ $participant->id }}">
+                                        <input
+                                            type="checkbox"
+                                            class="mt-0.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500/30 disabled:cursor-not-allowed disabled:opacity-40"
+                                            @checked($is_attended)
+                                            @disabled($participation_closed)
+                                            wire:change="setParticipantAttendance({{ $participant->id }}, $event.target.checked)"
+                                        >
+                                        <div class="min-w-0 flex-1">
+                                            <div class="flex flex-wrap items-center gap-2">
+                                                <p class="text-sm font-medium text-slate-900">{{ $participant->full_name }}</p>
+                                                @if($has_record)
+                                                    @if($is_attended)
+                                                        <span class="inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 ring-1 ring-emerald-600/20">Asistió</span>
+                                                    @else
+                                                        <span class="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600 ring-1 ring-slate-500/20">No asistió</span>
+                                                    @endif
+                                                @endif
+                                            </div>
+                                            <p class="mt-0.5 truncate text-xs text-slate-500">
+                                                @if($participant->document_number)
+                                                    Doc. {{ $participant->document_number }}
+                                                @endif
+                                                @if($participant->document_number && $participant->email)
+                                                    ·
+                                                @endif
+                                                {{ $participant->email ?: '' }}
+                                            </p>
+                                        </div>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        @endif
                     </div>
                 @else
                     <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-4">

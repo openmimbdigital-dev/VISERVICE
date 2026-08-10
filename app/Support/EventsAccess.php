@@ -120,6 +120,20 @@ class EventsAccess
         abort_unless(static::canCloseAttendance($event, $user), 403);
     }
 
+    public static function canCloseParticipation(Event $event, ?User $user = null): bool
+    {
+        $user ??= auth()->user();
+
+        return ChurchEventsAccess::allowed($user)
+            && (bool) $user?->can('events.participation.close')
+            && static::belongsToUserBusiness($event, $user);
+    }
+
+    public static function authorizeCloseParticipation(Event $event, ?User $user = null): void
+    {
+        abort_unless(static::canCloseParticipation($event, $user), 403);
+    }
+
     public static function canViewAttendanceReport(?User $user = null): bool
     {
         $user ??= auth()->user();

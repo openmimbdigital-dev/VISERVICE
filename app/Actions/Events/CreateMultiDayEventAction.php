@@ -67,6 +67,7 @@ class CreateMultiDayEventAction
             'parent_id' => null,
             'attendance_enabled' => $data['attendance_enabled'],
             'participation_enabled' => $data['participation_enabled'],
+            'participation_closed' => true,
         ];
 
         $team_ids = $data['event_team_ids'] ?? [];
@@ -88,6 +89,7 @@ class CreateMultiDayEventAction
 
                 EventsAccess::authorizeEditEvent($parent, $user);
 
+                unset($parent_payload['participation_closed']);
                 $parent->update($parent_payload);
                 $this->replaceChildren($parent, $business_id, $data, $day_schedules, $team_ids);
                 $this->syncTeams($parent, $business_id, $team_ids);
@@ -252,6 +254,7 @@ class CreateMultiDayEventAction
                 'multi_day' => false,
                 'attendance_enabled' => $data['attendance_enabled'],
                 'participation_enabled' => $data['participation_enabled'],
+                'participation_closed' => true,
             ]);
 
             $this->syncTeams($child, $business_id, $team_ids);

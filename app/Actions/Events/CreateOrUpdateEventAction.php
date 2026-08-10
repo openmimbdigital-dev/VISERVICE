@@ -63,6 +63,7 @@ class CreateOrUpdateEventAction
             'parent_id' => null,
             'attendance_enabled' => $data['attendance_enabled'],
             'participation_enabled' => $data['participation_enabled'],
+            'participation_closed' => true,
         ];
 
         $team_ids = $data['event_team_ids'] ?? [];
@@ -82,6 +83,9 @@ class CreateOrUpdateEventAction
                 }
 
                 EventsAccess::authorizeEditEvent($event, $user);
+
+                // Al editar no se fuerza el estado de cierre de participación.
+                unset($payload['participation_closed']);
 
                 $event->update($payload);
                 $this->syncTeams($event, $business_id, $team_ids);

@@ -102,6 +102,14 @@ class RolesAndPermissionsSeeder extends Seeder
     }
 
     /** @return list<string> */
+    private function eventsParticipationPermissions(): array
+    {
+        return [
+            'events.participation.close',
+        ];
+    }
+
+    /** @return list<string> */
     private function eventsReportsPermissions(): array
     {
         return [
@@ -231,6 +239,7 @@ class RolesAndPermissionsSeeder extends Seeder
             // Gestión de eventos — Eventos y agenda
             ...$this->eventsManagementPermissions(),
             ...$this->eventsAttendancePermissions(),
+            ...$this->eventsParticipationPermissions(),
             ...$this->eventsReportsPermissions(),
             // Gestión de eventos — Equipos
             ...$this->eventTeamsPermissions(),
@@ -387,6 +396,7 @@ class RolesAndPermissionsSeeder extends Seeder
             ...$this->churchEventsSettingsPermissions(),
             ...$this->eventsManagementPermissions(),
             ...$this->eventsAttendancePermissions(),
+            ...$this->eventsParticipationPermissions(),
             ...$this->eventsReportsPermissions(),
             ...$this->eventTeamsPermissions(),
         ])->values());

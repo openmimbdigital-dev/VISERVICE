@@ -152,6 +152,7 @@ class BusinessAccessSeeder extends Seeder
             'events.events.edit', 'events.events.delete',
             'events.schedule.view',
             'events.attendance.start', 'events.attendance.close',
+            'events.participation.close',
             'events.reports.attendance.view',
         ];
     }
