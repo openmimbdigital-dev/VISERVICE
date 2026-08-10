@@ -6,7 +6,7 @@ use App\Models\Business;
 use App\Models\EventTeam;
 use App\Models\EventTeamMember;
 use App\Models\EventTeamRole;
-use App\Models\User;
+use App\Models\Participant;
 use Illuminate\Database\Seeder;
 
 class EventTeamsSeeder extends Seeder
@@ -124,13 +124,14 @@ class EventTeamsSeeder extends Seeder
      */
     private function assignDemoMember(Business $business, array $teams, array $roles): void
     {
-        $user = User::query()
-            ->where('username', 'pastor.feesperanza')
-            ->whereHas('businesses', fn ($query) => $query->whereKey($business->id))
+        $participant = Participant::query()
+            ->where('business_id', $business->id)
+            ->where('first_name', 'Carlos')
+            ->where('last_name', 'Martínez')
             ->first();
 
-        if (! $user) {
-            $this->command?->warn('Equipos de eventos: no se encontró el usuario pastor.feesperanza.');
+        if (! $participant) {
+            $this->command?->warn('Equipos de eventos: no se encontró el participante Carlos Martínez.');
 
             return;
         }
@@ -140,7 +141,7 @@ class EventTeamsSeeder extends Seeder
                 [
                     'event_team_id' => $team->id,
                     'event_team_role_id' => $roles['Coordinador']->id,
-                    'user_id' => $user->id,
+                    'participant_id' => $participant->id,
                 ],
                 [
                     'business_id' => $business->id,

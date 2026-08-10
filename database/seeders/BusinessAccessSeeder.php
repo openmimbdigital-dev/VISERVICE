@@ -19,6 +19,15 @@ class BusinessAccessSeeder extends Seeder
     }
 
     /** @return list<string> */
+    private function participantPermissions(): array
+    {
+        return [
+            'participants.view', 'participants.create', 'participants.edit', 'participants.delete',
+            'participants.roles.view', 'participants.roles.create', 'participants.roles.edit', 'participants.roles.delete',
+        ];
+    }
+
+    /** @return list<string> */
     private function businessPaymentSettingsPermissions(): array
     {
         return [
@@ -143,6 +152,7 @@ class BusinessAccessSeeder extends Seeder
             'events.events.edit', 'events.events.delete',
             'events.schedule.view',
             'events.attendance.start', 'events.attendance.close',
+            'events.participation.close',
             'events.reports.attendance.view',
         ];
     }
@@ -210,6 +220,7 @@ class BusinessAccessSeeder extends Seeder
                 array_values(array_unique([
                     ...$this->church_base_permissions,
                     ...$this->teamPositionPermissions(),
+                    ...$this->participantPermissions(),
                     ...$this->businessPaymentSettingsPermissions(),
                     ...$this->catalogProductsPermissions(),
                     ...$this->churchEventsSettingsPermissions(),
@@ -235,6 +246,7 @@ class BusinessAccessSeeder extends Seeder
         return array_values(array_unique([
             ...$permissions,
             ...$this->teamPositionPermissions(),
+            ...$this->participantPermissions(),
             ...$this->businessPaymentSettingsPermissions(),
             ...$this->catalogProductsPermissions(),
             ...$this->catalogProductsSettingsPermissions(),
@@ -248,6 +260,7 @@ class BusinessAccessSeeder extends Seeder
             ...$this->workshop_base_permissions,
             ...$this->workshopModulePermissions(),
             ...$this->teamPositionPermissions(),
+            ...$this->participantPermissions(),
             ...$this->businessPaymentSettingsPermissions(),
             ...$this->catalogProductsPermissions(),
             ...$this->catalogProductsSettingsPermissions(),

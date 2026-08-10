@@ -15,7 +15,7 @@ class EventTeamMember extends Model
         'business_id',
         'event_team_id',
         'event_team_role_id',
-        'user_id',
+        'participant_id',
     ];
 
     public function business(): BelongsTo
@@ -33,9 +33,9 @@ class EventTeamMember extends Model
         return $this->belongsTo(EventTeamRole::class, 'event_team_role_id');
     }
 
-    public function user(): BelongsTo
+    public function participant(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(Participant::class);
     }
 
     public function scopeForAuthUser(Builder $query, ?User $user = null): Builder

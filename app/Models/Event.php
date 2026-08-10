@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
@@ -32,6 +33,7 @@ class Event extends Model
         'attendance_enabled',
         'participation_enabled',
         'attendance_closed',
+        'participation_closed',
 
     ];
 
@@ -43,6 +45,7 @@ class Event extends Model
             'attendance_enabled' => 'boolean',
             'participation_enabled' => 'boolean',
             'attendance_closed' => 'boolean',
+            'participation_closed' => 'boolean',
             'multi_day' => 'boolean',
             'active' => 'boolean',
 
@@ -79,6 +82,27 @@ class Event extends Model
     public function teams(): BelongsToMany
     {
         return $this->belongsToMany(EventTeam::class, 'event_event_team')
+            ->withTimestamps();
+    }
+
+    public function attendances(): HasMany
+    {
+        return $this->hasMany(EventAttendance::class);
+    }
+
+    public function attending_users(): MorphToMany
+    {
+        return $this->morphedByMany(User::class, 'attendable', 'event_attendances')
+            ->withPivot(['date_event', 'attendance_hour', 'attendance'])
+            ->wherePivotNull('deleted_at')
+            ->withTimestamps();
+    }
+
+    public function attending_participants(): MorphToMany
+    {
+        return $this->morphedByMany(Participant::class, 'attendable', 'event_attendances')
+            ->withPivot(['date_event', 'attendance_hour', 'attendance'])
+            ->wherePivotNull('deleted_at')
             ->withTimestamps();
     }
 

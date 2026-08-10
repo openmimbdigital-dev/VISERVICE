@@ -13,7 +13,7 @@ return new class extends Migration
             $table->foreignId('business_id')->constrained()->cascadeOnDelete();
             $table->unsignedBigInteger('event_team_id');
             $table->unsignedBigInteger('event_team_role_id');
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('participant_id')->constrained()->cascadeOnDelete();
             $table->timestamps();
             $table->softDeletes();
 
@@ -25,7 +25,7 @@ return new class extends Migration
                 ->on('event_team_role')
                 ->cascadeOnDelete();
             $table->unique(
-                ['event_team_id', 'event_team_role_id', 'user_id'],
+                ['event_team_id', 'event_team_role_id', 'participant_id'],
                 'event_team_members_unique_idx'
             );
             $table->index(
@@ -37,8 +37,8 @@ return new class extends Migration
                 'event_team_members_team_deleted_role_idx'
             );
             $table->index(
-                ['user_id', 'deleted_at'],
-                'event_team_members_user_deleted_idx'
+                ['participant_id', 'deleted_at'],
+                'event_team_members_participant_deleted_idx'
             );
         });
     }

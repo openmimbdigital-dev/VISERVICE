@@ -66,6 +66,19 @@ return [
                 'team_positions.delete' => 'Eliminar cargos del equipo',
             ],
         ],
+        'participants' => [
+            'name' => 'Negocios — Participantes',
+            'permissions' => [
+                'participants.view' => 'Ver participantes',
+                'participants.create' => 'Crear participantes',
+                'participants.edit' => 'Editar participantes',
+                'participants.delete' => 'Eliminar participantes',
+                'participants.roles.view' => 'Ver roles de participantes',
+                'participants.roles.create' => 'Crear roles de participantes',
+                'participants.roles.edit' => 'Editar roles de participantes',
+                'participants.roles.delete' => 'Eliminar roles de participantes',
+            ],
+        ],
         'business_payment_methods' => [
             'name' => 'Negocios — Métodos de pago',
             'permissions' => [
@@ -126,6 +139,7 @@ return [
                 'events.schedule.view' => 'Ver agenda de eventos',
                 'events.attendance.start' => 'Iniciar toma de asistencia',
                 'events.attendance.close' => 'Cerrar toma de asistencia',
+                'events.participation.close' => 'Cerrar y abrir toma de participación',
                 'events.reports.attendance.view' => 'Ver reporte de asistencia de eventos',
             ],
         ],

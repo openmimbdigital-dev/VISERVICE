@@ -33,6 +33,15 @@ class RolesAndPermissionsSeeder extends Seeder
     }
 
     /** @return list<string> */
+    private function participantPermissions(): array
+    {
+        return [
+            'participants.view', 'participants.create', 'participants.edit', 'participants.delete',
+            'participants.roles.view', 'participants.roles.create', 'participants.roles.edit', 'participants.roles.delete',
+        ];
+    }
+
+    /** @return list<string> */
     private function businessPaymentSettingsPermissions(): array
     {
         return [
@@ -89,6 +98,14 @@ class RolesAndPermissionsSeeder extends Seeder
         return [
             'events.attendance.start',
             'events.attendance.close',
+        ];
+    }
+
+    /** @return list<string> */
+    private function eventsParticipationPermissions(): array
+    {
+        return [
+            'events.participation.close',
         ];
     }
 
@@ -222,6 +239,7 @@ class RolesAndPermissionsSeeder extends Seeder
             // Gestión de eventos — Eventos y agenda
             ...$this->eventsManagementPermissions(),
             ...$this->eventsAttendancePermissions(),
+            ...$this->eventsParticipationPermissions(),
             ...$this->eventsReportsPermissions(),
             // Gestión de eventos — Equipos
             ...$this->eventTeamsPermissions(),
@@ -262,6 +280,8 @@ class RolesAndPermissionsSeeder extends Seeder
             ...$this->businessManagementPermissions(),
             // Negocios — Cargos del equipo
             ...$this->teamPositionPermissions(),
+            // Negocios — Participantes
+            ...$this->participantPermissions(),
             // Negocios — Pagos y bancos
             ...$this->businessPaymentSettingsPermissions(),
             // Catálogo — Productos y servicios
@@ -317,6 +337,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'roles.view', 'permissions.view',
             ...$this->workshopPermissions(),
             ...$this->teamPositionPermissions(),
+            ...$this->participantPermissions(),
             ...$business_payment_settings,
             ...$this->catalogProductsPermissions(),
             ...$this->catalogProductsSettingsPermissions(),
@@ -371,9 +392,11 @@ class RolesAndPermissionsSeeder extends Seeder
             'roles.view', 'roles.create',
             'permissions.view', 'permissions.assign',
             ...$this->teamPositionPermissions(),
+            ...$this->participantPermissions(),
             ...$this->churchEventsSettingsPermissions(),
             ...$this->eventsManagementPermissions(),
             ...$this->eventsAttendancePermissions(),
+            ...$this->eventsParticipationPermissions(),
             ...$this->eventsReportsPermissions(),
             ...$this->eventTeamsPermissions(),
         ])->values());

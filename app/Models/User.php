@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -107,23 +109,15 @@ class User extends Authenticatable
         return $this->hasMany(EquipmentHistorical::class)->orderByDesc('created_at');
     }
 
-    public function event_team_memberships(): HasMany
+    public function event_attendances(): MorphMany
     {
-        return $this->hasMany(EventTeamMember::class);
+        return $this->morphMany(EventAttendance::class, 'attendable');
     }
 
-    public function event_teams(): BelongsToMany
+    public function attended_events(): MorphToMany
     {
-        return $this->belongsToMany(EventTeam::class, 'event_team_members')
-            ->withPivot(['business_id', 'event_team_role_id'])
-            ->wherePivotNull('deleted_at')
-            ->withTimestamps();
-    }
-
-    public function event_team_roles(): BelongsToMany
-    {
-        return $this->belongsToMany(EventTeamRole::class, 'event_team_members')
-            ->withPivot(['business_id', 'event_team_id'])
+        return $this->morphToMany(Event::class, 'attendable', 'event_attendances')
+            ->withPivot(['date_event', 'attendance_hour', 'attendance'])
             ->wherePivotNull('deleted_at')
             ->withTimestamps();
     }

@@ -96,6 +96,7 @@ class CreatePeriodicEventsAction
                     'active' => (bool) ($data['active'] ?? true),
                     'attendance_enabled' => $data['attendance_enabled'],
                     'participation_enabled' => $data['participation_enabled'],
+                    'participation_closed' => true,
                 ]);
 
                 $event->teams()->sync($team_ids);

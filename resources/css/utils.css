@@ -112,6 +112,21 @@
     color: #334155 !important;
 }
 
+.swal-success-button {
+    background-color: #4f46e5 !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 0.75rem !important;
+    box-shadow: none !important;
+    font-weight: 600 !important;
+    font-size: 0.875rem !important;
+    padding: 0.5rem 1rem !important;
+}
+
+.swal-success-button:hover {
+    background-color: #4338ca !important;
+}
+
 .custom-radio {
     width: 24px;
     height: 24px;

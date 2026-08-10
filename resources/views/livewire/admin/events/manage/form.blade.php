@@ -394,11 +394,11 @@
                             {{ $role->functions ?: 'Sin funciones definidas.' }}
                         </p>
                         <div class="mt-3 border-t border-slate-200/80 pt-3">
-                            <p class="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Usuarios asignados</p>
+                            <p class="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Participantes asignados</p>
                             @forelse($role_members as $member)
-                                <p class="text-sm text-slate-800">{{ $member->user?->full_name ?? '—' }}</p>
+                                <p class="text-sm text-slate-800">{{ $member->participant?->full_name ?? '—' }}</p>
                             @empty
-                                <p class="text-sm text-slate-400">Sin usuarios asignados a este rol.</p>
+                                <p class="text-sm text-slate-400">Sin participantes asignados a este rol.</p>
                             @endforelse
                         </div>
                     </div>

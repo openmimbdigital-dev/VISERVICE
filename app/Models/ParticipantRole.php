@@ -62,4 +62,42 @@ class ParticipantRole extends Model
     {
         return $this->participants()->exists();
     }
+
+    public function canEdit(?User $user = null): bool
+    {
+        $user ??= auth()->user();
+
+        if (! $user?->can('participants.roles.edit')) {
+            return false;
+        }
+
+        if ($this->hasDependencies()) {
+            return false;
+        }
+
+        if ($user->hasRole('superAdmin')) {
+            return true;
+        }
+
+        return $user->belongsToBusiness($this->business_id);
+    }
+
+    public function canDelete(?User $user = null): bool
+    {
+        $user ??= auth()->user();
+
+        if (! $user?->can('participants.roles.delete')) {
+            return false;
+        }
+
+        if ($this->hasDependencies()) {
+            return false;
+        }
+
+        if ($user->hasRole('superAdmin')) {
+            return true;
+        }
+
+        return $user->belongsToBusiness($this->business_id);
+    }
 }

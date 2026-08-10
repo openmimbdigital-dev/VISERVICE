@@ -10,6 +10,7 @@ use Arm092\LivewireDatatables\Column;
 use Arm092\LivewireDatatables\Livewire\LivewireDatatable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class DatatableEventTeams extends LivewireDatatable
 {
@@ -23,13 +24,19 @@ class DatatableEventTeams extends LivewireDatatable
     {
         ChurchEventsAccess::authorize();
 
-        $query = EventTeam::query()
+        $events_count = DB::table('event_event_team')
+            ->join('events', 'events.id', '=', 'event_event_team.event_id')
+            ->whereNull('events.deleted_at')
+            ->select('event_event_team.event_team_id', DB::raw('COUNT(*) as events_count'))
+            ->groupBy('event_event_team.event_team_id');
+
+        return EventTeam::query()
             ->forAuthUser()
             ->select('event_teams.*')
             ->leftJoin('businesses', 'event_teams.business_id', '=', 'businesses.id')
+            ->leftJoinSub($events_count, 'team_events', 'team_events.event_team_id', '=', 'event_teams.id')
+            ->addSelect('team_events.events_count')
             ->orderByDesc('event_teams.created_at');
-
-        return $query;
     }
 
     public function getColumns(): Model|array
@@ -58,18 +65,20 @@ class DatatableEventTeams extends LivewireDatatable
         }
 
         $columns[] = Column::callback(
-            ['event_teams.id', 'event_teams.business_id'],
-            function ($id, $business_id) {
+            ['event_teams.id', 'event_teams.business_id', 'team_events.events_count'],
+            function ($id, $business_id, $events_count) {
                 $user = auth()->user();
-                $can_edit = $user?->can('events.teams.edit')
-                    && ($user->hasRole('superAdmin') || $user->belongsToBusiness((int) $business_id));
-                $can_delete = $user?->can('events.teams.delete')
-                    && ($user->hasRole('superAdmin') || $user->belongsToBusiness((int) $business_id));
+                $belongs = $user->hasRole('superAdmin') || $user->belongsToBusiness((int) $business_id);
+                $can_edit = $user?->can('events.teams.edit') && $belongs;
+                $can_delete = $user?->can('events.teams.delete') && $belongs;
+                $delete_disabled = (int) $events_count > 0;
 
                 return view('livewire.admin.events.teams.actions', [
                     'id' => $id,
                     'can_edit' => $can_edit,
                     'can_delete' => $can_delete,
+                    'delete_disabled' => $delete_disabled,
+                    'delete_disabled_title' => 'No se puede eliminar: el equipo está asignado a uno o más eventos',
                 ]);
             }
         )->label('Acciones')->unsortable();
@@ -90,7 +99,7 @@ class DatatableEventTeams extends LivewireDatatable
             DeleteEventTeamAction::run($this->delete_id);
             $this->alertDeleteSuccess('Equipo de evento eliminado correctamente.');
         } catch (\Throwable) {
-            $this->alertDeleteError('No se pudo eliminar el equipo de evento.');
+            $this->alertDeleteError('No se pudo eliminar el equipo. Puede estar asignado a un evento.');
         }
     }
 }

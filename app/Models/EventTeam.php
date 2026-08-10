@@ -49,9 +49,9 @@ class EventTeam extends Model
         return $this->hasMany(EventTeamMember::class);
     }
 
-    public function users(): BelongsToMany
+    public function participants(): BelongsToMany
     {
-        return $this->belongsToMany(User::class, 'event_team_members')
+        return $this->belongsToMany(Participant::class, 'event_team_members')
             ->withPivot(['business_id', 'event_team_role_id'])
             ->wherePivotNull('deleted_at')
             ->withTimestamps();
@@ -74,11 +74,20 @@ class EventTeam extends Model
         return $query->whereIn('event_teams.business_id', $business_ids);
     }
 
+    public function hasDependencies(): bool
+    {
+        return $this->events()->exists();
+    }
+
     public function canDelete(?User $user = null): bool
     {
         $user ??= auth()->user();
 
         if (! $user?->can('events.teams.delete')) {
+            return false;
+        }
+
+        if ($this->hasDependencies()) {
             return false;
         }
 
