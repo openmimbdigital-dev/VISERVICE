@@ -131,6 +131,7 @@ class MenuSeeder extends Seeder
                     'admin.organization-types.*',
                     'admin.business-types.*',
                     'admin.businesses.modules',
+                    'admin.public-participants.*',
                 ],
                 'behavior' => 'collapsible',
                 'role' => 'superAdmin',
@@ -171,6 +172,15 @@ class MenuSeeder extends Seeder
                         'permission' => 'businesses.manage_modules',
                         'role' => 'superAdmin',
                         'sort_order' => 40,
+                    ],
+                    [
+                        'name' => 'Ítems públicos Participantes',
+                        'route_name' => 'admin.public-participants.access',
+                        'active_route_pattern' => 'admin.public-participants.*',
+                        'icon_svg_path' => 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z',
+                        'permission' => 'public_routes.manage',
+                        'role' => 'superAdmin',
+                        'sort_order' => 50,
                     ],
                 ],
             ],
@@ -357,6 +367,7 @@ class MenuSeeder extends Seeder
             'admin.organization-types.access',
             'admin.business-types.index',
             'admin.businesses.modules',
+            'admin.public-participants.access',
             // Rutas antiguas (pre-swap) para limpieza
             'admin.business-types.access',
         ];

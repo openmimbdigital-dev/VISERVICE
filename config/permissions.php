@@ -57,6 +57,12 @@ return [
                 'organization_types.access.manage' => 'Gestionar acceso por tipo de organización',
             ],
         ],
+        'public_routes' => [
+            'name' => 'Gestión de Negocios — Rutas públicas',
+            'permissions' => [
+                'public_routes.manage' => 'Definir ítems públicos por tipo de organización',
+            ],
+        ],
         'team_positions' => [
             'name' => 'Negocios — Cargos del equipo',
             'permissions' => [
@@ -435,6 +441,7 @@ return [
         'organization_types.access.view',
         'organization_types.access.manage',
         'businesses.manage_modules',
+        'public_routes.manage',
         'settings.statuses.view',
         'settings.statuses.create',
         'settings.statuses.edit',

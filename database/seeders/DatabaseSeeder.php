@@ -32,6 +32,7 @@ class DatabaseSeeder extends Seeder
             BanksSeeder::class,
             BankAccountsSeeder::class,
             BusinessSubscriptionsSeeder::class,
+            PublicRoutesAccessSeeder::class,
             EquipmentCatalogSeeder::class,
             ProductCatalogSeeder::class,
             ProductsSeeder::class,
