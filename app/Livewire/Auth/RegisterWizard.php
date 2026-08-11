@@ -3,6 +3,7 @@
 namespace App\Livewire\Auth;
 
 use App\Actions\Business\CreateParticipantFromUserAction;
+use App\Actions\Business\SyncBusinessAccessFromOrganizationTypeAction;
 use App\Models\BankAccount;
 use App\Models\Business;
 use App\Models\BusinessType;
@@ -118,6 +119,9 @@ class RegisterWizard extends Component
                 $logo_path = BusinessLogoStorage::store($business->id, $this->business_logo);
                 $business->update(['logo' => $logo_path]);
             }
+
+            // Acceso a roles/permisos y módulos según organization_type (plantilla de negocio existente)
+            SyncBusinessAccessFromOrganizationTypeAction::run($business);
 
             // 2. Crear el usuario
             $user = User::create([
