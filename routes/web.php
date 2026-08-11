@@ -126,6 +126,7 @@ Route::middleware(['auth', 'ensure.business', 'business.module'])->group(functio
 
     Route::get('/pending-activation', fn () => view('auth.pending-activation'))->name('pending-activation');
 
+    Route::middleware('active.subscription')->group(function () {
     Route::get('/dashboard', Dashboard::class)->name('dashboard');
 
     // Gestión de usuarios
@@ -491,5 +492,6 @@ Route::middleware(['auth', 'ensure.business', 'business.module'])->group(functio
         Route::middleware('permission:catalog.products.view')->group(function () {
             Route::get('/products/{product}', CatalogProductsShow::class)->name('products.show');
         });
+    });
     });
 });

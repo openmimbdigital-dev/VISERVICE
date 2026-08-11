@@ -84,6 +84,8 @@ class CreateOrUpdateBusinessAction
 
         $business = Business::create($attributes);
 
+        SyncBusinessAccessFromOrganizationTypeAction::run($business);
+
         $user = auth()->user();
 
         if ($user && ! $user->hasRole('superAdmin') && ! $user->belongsToBusiness($business->id)) {
