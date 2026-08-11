@@ -37,6 +37,7 @@ use App\Livewire\Admin\Finance\Index as AdminFinanceIndex;
 use App\Livewire\Admin\OrganizationTypes\Access as AdminOrganizationTypesAccess;
 use App\Livewire\Admin\OrganizationTypes\Index as AdminOrganizationTypesIndex;
 use App\Livewire\Admin\Payments\Index as AdminPaymentsIndex;
+use App\Livewire\Admin\PublicParticipants\Access as AdminPublicParticipantsAccess;
 use App\Livewire\Admin\Reports\Events\Attendance\CategoryIndex as ReportsEventsAttendanceCategoryIndex;
 use App\Livewire\Admin\Reports\Events\Attendance\Index as ReportsEventsAttendanceIndex;
 use App\Livewire\Admin\Reports\Events\Attendance\Show as ReportsEventsAttendanceShow;
@@ -180,6 +181,10 @@ Route::middleware(['auth', 'ensure.business', 'business.module'])->group(functio
             });
             Route::middleware('permission:businesses.manage_modules')->group(function () {
                 Route::get('/businesses/modules', AdminBusinessesModuleAccess::class)->name('businesses.modules');
+            });
+            Route::middleware('permission:public_routes.manage')->group(function () {
+                Route::get('/public-participants/access', AdminPublicParticipantsAccess::class)
+                    ->name('public-participants.access');
             });
         });
         Route::middleware('permission:team_positions.view')->group(function () {

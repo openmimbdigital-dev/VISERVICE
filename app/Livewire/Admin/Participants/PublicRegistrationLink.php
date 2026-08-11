@@ -16,9 +16,13 @@ class PublicRegistrationLink extends Component
 {
     public string $public_url = '';
 
+    public string $portal_url = '';
+
     public string $business_name = '';
 
     public string $qr_svg = '';
+
+    public string $portal_qr_svg = '';
 
     public function mount(): void
     {
@@ -33,6 +37,8 @@ class PublicRegistrationLink extends Component
         $this->business_name = $business->name;
         $this->public_url = route('public.participants.register', ['businessToken' => $token]);
         $this->qr_svg = (string) QrCode::size(220)->margin(1)->generate($this->public_url);
+        $this->portal_url = route('public.participants.home', ['businessToken' => $token]);
+        $this->portal_qr_svg = (string) QrCode::size(220)->margin(1)->generate($this->portal_url);
     }
 
     private function resolveBusiness(): ?Business

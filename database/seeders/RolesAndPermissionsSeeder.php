@@ -21,6 +21,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'business_types.view', 'business_types.create', 'business_types.edit', 'business_types.delete',
             'organization_types.access.view', 'organization_types.access.manage',
             'businesses.manage_modules',
+            'public_routes.manage',
         ];
     }
 
