@@ -14,6 +14,7 @@
     </style>
     @vite(['resources/css/app.css', 'resources/css/utils.css', 'resources/css/index.css', 'resources/js/app.js'])
     @livewireStyles
+    @stack('styles')
 </head>
 <body class="min-h-screen bg-slate-100 text-slate-900 antialiased">
     <div
@@ -120,7 +121,7 @@
             </aside>
 
             <main class="min-w-0 flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-                <div class="mx-auto w-full max-w-4xl">
+                <div @class(['mx-auto w-full', $content_max_width ?? 'max-w-4xl'])>
                     {{ $slot }}
                 </div>
             </main>

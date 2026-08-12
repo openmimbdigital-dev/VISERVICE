@@ -24,12 +24,12 @@ if (! function_exists('col_money')) {
 
 if (! function_exists('org_term')) {
     /**
-     * Traduce un término de UI según el tipo de organización del negocio
-     * actual del usuario (lang/es/org.php). Si no hay traducción definida,
-     * devuelve el término original.
-     * Ejemplo (negocio tipo iglesia): org_term('Negocios') → "Iglesias"
+     * Traduce un término de UI según el tipo de organización (lang/es/org.php).
+     *
+     * Sin contexto: usa el negocio del usuario autenticado.
+     * Con Business o label (ej. "iglesia"): usa ese tipo de organización.
      */
-    function org_term(?string $term): string
+    function org_term(?string $term, \App\Models\Business|string|null $context = null): string
     {
         static $overrides_cache = [];
 
@@ -37,20 +37,29 @@ if (! function_exists('org_term')) {
             return (string) $term;
         }
 
-        $user = auth()->user();
+        $label = null;
 
-        if (! $user) {
+        if ($context instanceof \App\Models\Business) {
+            $label = $context->organization_type?->label;
+        } elseif (is_string($context) && $context !== '') {
+            $label = $context;
+        } else {
+            $user = auth()->user();
+
+            if ($user) {
+                $label = $user->business?->organization_type?->label;
+            }
+        }
+
+        if (! $label) {
             return $term;
         }
 
-        $cache_key = (string) ($user->business_id ?? 0);
-
-        if (! array_key_exists($cache_key, $overrides_cache)) {
-            $label = $user->business?->organization_type?->label;
-            $overrides = $label ? trans("org.{$label}", [], 'es') : null;
-            $overrides_cache[$cache_key] = is_array($overrides) ? $overrides : [];
+        if (! array_key_exists($label, $overrides_cache)) {
+            $overrides = trans("org.{$label}", [], 'es');
+            $overrides_cache[$label] = is_array($overrides) ? $overrides : [];
         }
 
-        return $overrides_cache[$cache_key][$term] ?? $term;
+        return $overrides_cache[$label][$term] ?? $term;
     }
 }

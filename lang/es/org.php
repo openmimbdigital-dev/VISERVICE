@@ -15,8 +15,15 @@
 return [
 
     'iglesia' => [
-        'Negocios'     => 'Iglesias',
-        'Ver negocios' => 'Ver Iglesia',
+        'Negocios'          => 'Iglesias',
+        'Ver negocios'      => 'Ver Iglesia',
+        'Negocio'           => 'Iglesia',
+        'Datos del negocio' => 'Datos de la iglesia',
+    ],
+
+    'centro_educativo' => [
+        'Negocio'           => 'Centro educativo',
+        'Datos del negocio' => 'Datos del centro educativo',
     ],
 
 ];
