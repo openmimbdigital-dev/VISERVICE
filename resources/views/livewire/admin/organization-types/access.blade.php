@@ -68,9 +68,22 @@
     @if($organization_type_id)
     {{-- Negocios --}}
     <section class="mb-6 overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
-        <div class="border-b border-slate-100 bg-slate-50/80 px-4 py-4 sm:px-5">
-            <h2 class="font-semibold text-slate-800">Negocios</h2>
-            <p class="mt-1 text-xs text-slate-500">Marca uno o más negocios. Al seleccionar uno verás sus roles y permisos actuales.</p>
+        <div class="flex flex-col gap-3 border-b border-slate-100 bg-slate-50/80 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+            <div>
+                <h2 class="font-semibold text-slate-800">Negocios</h2>
+                <p class="mt-1 text-xs text-slate-500">Marca uno o más negocios. Al seleccionar uno verás sus roles y permisos actuales.</p>
+            </div>
+            @if($businesses_for_type->isNotEmpty())
+                @php
+                    $listed_ids = $businesses_for_type->pluck('id')->map(fn ($id) => (string) $id);
+                    $all_listed_selected = $listed_ids->isNotEmpty()
+                        && $listed_ids->every(fn ($id) => in_array($id, array_map('strval', $selected_business_ids), true));
+                @endphp
+                <button type="button" wire:click="toggleAllListedBusinesses"
+                    class="btn btn-outline-secondary btn-sm w-full justify-center sm:w-auto">
+                    {{ $all_listed_selected ? 'Desmarcar todos' : 'Marcar todos' }}
+                </button>
+            @endif
         </div>
         <div class="p-4 sm:p-5">
             @if($businesses_for_type->isEmpty())
