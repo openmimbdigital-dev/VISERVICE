@@ -136,8 +136,8 @@ class RegisterWizard extends Component
 
             $user->attachBusiness($business->id, is_primary: true);
 
-            // 3. Asignar rol Comercio
-            $user->assignRole('Comercio');
+            // 3. Asignar rol Administrador (dueño del negocio en el registro)
+            $user->assignRole('Administrador');
 
             // 3b. Crear participante del negocio con los mismos datos del admin
             CreateParticipantFromUserAction::run($user, (int) $business->id);

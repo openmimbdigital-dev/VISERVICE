@@ -1,13 +1,109 @@
 <div>
     <header class="mb-8 border-l-4 border-indigo-600 pl-4 sm:pl-5">
-        <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-indigo-600/90">Participantes</p>
-        <h1 class="mt-2 text-2xl font-bold tracking-tight text-slate-900">Bienvenido</h1>
-        <p class="mt-2 max-w-xl text-sm text-slate-600">
-            Portal público de <strong>{{ $business_name }}</strong>. Usa el menú para abrir los módulos disponibles.
-        </p>
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div class="min-w-0 flex-1">
+                <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-indigo-600/90">Participantes</p>
+                <h1 class="mt-2 text-2xl font-bold tracking-tight text-slate-900">Bienvenido, {{ $participant->full_name }}</h1>
+                <p class="mt-2 max-w-xl text-sm text-slate-600">
+                    Portal público de <strong>{{ $business_name }}</strong>. Usa el menú para abrir los módulos disponibles.
+                </p>
+            </div>
+            <button type="button"
+                wire:click="logout"
+                class="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50 sm:w-auto">
+                Cerrar sesión
+            </button>
+        </div>
     </header>
 
+    <div class="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <section class="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
+            <div class="border-b border-slate-100 bg-slate-50/80 px-5 py-4">
+                <h2 class="font-semibold text-slate-800">{{ org_term('Datos del negocio', $business) }}</h2>
+            </div>
+            <dl class="divide-y divide-slate-100 px-5 py-2">
+                <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt class="text-xs font-medium text-slate-500">Nombre</dt>
+                    <dd class="text-sm text-slate-900 sm:col-span-2">{{ $business->name ?: '—' }}</dd>
+                </div>
+                @if($business->nit)
+                <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt class="text-xs font-medium text-slate-500">NIT</dt>
+                    <dd class="text-sm text-slate-900 sm:col-span-2">{{ $business->nit }}</dd>
+                </div>
+                @endif
+                @if($business->address)
+                <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt class="text-xs font-medium text-slate-500">Dirección</dt>
+                    <dd class="text-sm text-slate-900 sm:col-span-2">{{ $business->address }}</dd>
+                </div>
+                @endif
+                @if($business->phone_number)
+                <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt class="text-xs font-medium text-slate-500">Teléfono</dt>
+                    <dd class="text-sm text-slate-900 sm:col-span-2">{{ $business->phone_number }}</dd>
+                </div>
+                @endif
+                @if($business->email)
+                <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt class="text-xs font-medium text-slate-500">Correo</dt>
+                    <dd class="text-sm text-slate-900 sm:col-span-2">{{ $business->email }}</dd>
+                </div>
+                @endif
+                @if($business->city || $business->country)
+                <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt class="text-xs font-medium text-slate-500">Ubicación</dt>
+                    <dd class="text-sm text-slate-900 sm:col-span-2">
+                        {{ collect([$business->city?->name, $business->country?->name])->filter()->join(', ') ?: '—' }}
+                    </dd>
+                </div>
+                @endif
+            </dl>
+        </section>
+
+        <section class="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
+            <div class="border-b border-slate-100 bg-slate-50/80 px-5 py-4">
+                <h2 class="font-semibold text-slate-800">Tus datos</h2>
+            </div>
+            <dl class="divide-y divide-slate-100 px-5 py-2">
+                <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt class="text-xs font-medium text-slate-500">Nombre</dt>
+                    <dd class="text-sm text-slate-900 sm:col-span-2">{{ $participant->first_name ?: '—' }}</dd>
+                </div>
+                <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt class="text-xs font-medium text-slate-500">Apellido</dt>
+                    <dd class="text-sm text-slate-900 sm:col-span-2">{{ $participant->last_name ?: '—' }}</dd>
+                </div>
+                <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt class="text-xs font-medium text-slate-500">Documento</dt>
+                    <dd class="text-sm text-slate-900 sm:col-span-2">
+                        {{ $participant->document_type?->label() ?? '—' }}{{ $participant->document_number ? ': '.$participant->document_number : '' }}
+                    </dd>
+                </div>
+                @if($participant->participant_role)
+                <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt class="text-xs font-medium text-slate-500">Rol</dt>
+                    <dd class="text-sm text-slate-900 sm:col-span-2">{{ $participant->participant_role->name }}</dd>
+                </div>
+                @endif
+                @if($participant->email)
+                <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt class="text-xs font-medium text-slate-500">Correo</dt>
+                    <dd class="text-sm text-slate-900 sm:col-span-2">{{ $participant->email }}</dd>
+                </div>
+                @endif
+                @if($participant->phone_number)
+                <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt class="text-xs font-medium text-slate-500">Teléfono</dt>
+                    <dd class="text-sm text-slate-900 sm:col-span-2">{{ $participant->phone_number }}</dd>
+                </div>
+                @endif
+            </dl>
+        </section>
+    </div>
+
     <section class="overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-6 shadow-sm ring-1 ring-slate-900/[0.035] sm:p-8">
+        <h2 class="mb-4 font-semibold text-slate-800">Módulos disponibles</h2>
         @if($portal_items === [])
             <p class="text-sm text-slate-500">Por ahora no hay módulos habilitados para este negocio.</p>
         @else

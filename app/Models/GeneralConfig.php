@@ -11,6 +11,10 @@ class GeneralConfig extends Model
 {
     public const KEY_ASSOCIATE_DOCUMENT_OT = 'asociate_document_ot';
 
+    public const KEY_PUBLIC_PARTICIPANTS_PORTAL_PIN = 'participants_portal_pin';
+
+    public const LABEL_PUBLIC_PARTICIPANTS_PORTAL_PIN = 'portal_access_pin';
+
     protected $fillable = [
         'business_id',
         'configurable_type',
@@ -55,6 +59,13 @@ class GeneralConfig extends Model
     public function scopeAssociatedDocumentsOt($query)
     {
         return $query->where('key', self::KEY_ASSOCIATE_DOCUMENT_OT);
+    }
+
+    public function scopeParticipantsPortalPin($query)
+    {
+        return $query
+            ->where('key', self::KEY_PUBLIC_PARTICIPANTS_PORTAL_PIN)
+            ->where('label', self::LABEL_PUBLIC_PARTICIPANTS_PORTAL_PIN);
     }
 
     public static function makeLabelFromValue(string $value): string
