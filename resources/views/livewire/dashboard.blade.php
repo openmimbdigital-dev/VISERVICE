@@ -21,87 +21,43 @@
         </div>
     </div>
 
-    {{-- Módulos --}}
-    @php
-        $modules = [
-            [
-                'title'   => 'Taller',
-                'desc'    => 'Clientes, vehículos, cotizaciones y órdenes de trabajo.',
-                'bg'      => 'bg-emerald-50 border-emerald-100',
-                'icon_bg' => 'bg-emerald-100',
-                'icon_c'  => 'text-emerald-600',
-                'links'   => [
-                    ['label' => 'Clientes',      'route' => 'admin.workshop.clients.index', 'permission' => 'workshop.clients.view'],
-                    ['label' => 'Equipos',     'route' => 'admin.workshop.equipment.index', 'permission' => 'workshop.equipment.view'],
-                    ['label' => 'Cotizaciones',  'route' => 'admin.workshop.quotations.index'],
-                    ['label' => 'Órdenes (OT)',  'route' => 'admin.workshop.work-orders.index'],
-                ],
-                'icon' => 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z',
-            ],
-            [
-                'title'   => 'Usuarios',
-                'desc'    => 'Cuentas de usuario y asignación de roles.',
-                'bg'      => 'bg-indigo-50 border-indigo-100',
-                'icon_bg' => 'bg-indigo-100',
-                'icon_c'  => 'text-indigo-600',
-                'links'   => [
-                    ['label' => 'Ver usuarios', 'route' => 'admin.users.index', 'permission' => 'users.view'],
-                    ['label' => 'Roles',        'route' => 'admin.roles.index', 'permission' => 'roles.view'],
-                ],
-                'icon' => 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z',
-            ],
-        ];
-    @endphp
-
-    @role('superAdmin')
-    @php
-        $modules[] = [
-            'title'   => 'Suscripciones',
-            'desc'    => 'Planes y facturación por comercio.',
-            'bg'      => 'bg-violet-50 border-violet-100',
-            'icon_bg' => 'bg-violet-100',
-            'icon_c'  => 'text-violet-600',
-            'links'   => [
-                ['label' => 'Suscripciones', 'route' => 'admin.subscriptions.index'],
-                ['label' => 'Planes',        'route' => 'admin.subscriptions.plans.index'],
-            ],
-            'icon' => 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z',
-        ];
-    @endphp
-    @endrole
-
+    {{-- Módulos asignados al negocio --}}
     <div>
-        <h2 class="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-4">Módulos del sistema</h2>
-        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <h2 class="mb-4 text-xs font-semibold uppercase tracking-widest text-slate-500">Módulos del sistema</h2>
+        @if($modules === [])
+            <p class="rounded-2xl border border-dashed border-slate-300 bg-white px-5 py-8 text-center text-sm text-slate-500">
+                No hay módulos asignados a este negocio.
+            </p>
+        @else
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             @foreach($modules as $mod)
-            <div class="rounded-2xl border {{ $mod['bg'] }} p-5 flex flex-col gap-4 shadow-sm hover:shadow-md transition-shadow">
+            <div class="flex flex-col gap-4 rounded-2xl border {{ $mod['bg'] }} p-5 shadow-sm transition-shadow hover:shadow-md">
                 <div class="flex items-center gap-3">
                     <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl {{ $mod['icon_bg'] }}">
                         <svg class="h-5 w-5 {{ $mod['icon_c'] }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $mod['icon'] }}"/>
                         </svg>
                     </div>
-                    <div>
-                        <h3 class="font-semibold text-slate-900 text-sm">{{ $mod['title'] }}</h3>
-                        <p class="text-xs text-slate-500 leading-snug mt-0.5">{{ $mod['desc'] }}</p>
+                    <div class="min-w-0">
+                        <h3 class="text-sm font-semibold text-slate-900">{{ $mod['title'] }}</h3>
+                        <p class="mt-0.5 text-xs leading-snug text-slate-500">{{ $mod['desc'] }}</p>
                     </div>
                 </div>
                 <div class="flex flex-col gap-1.5">
                     @foreach($mod['links'] as $link)
-                    @if(empty($link['permission']) || auth()->user()->can($link['permission']))
-                    <a href="{{ route($link['route']) }}" wire:navigate
-                        class="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-slate-700 bg-white border border-slate-200/80 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900 transition-all group">
-                        <svg class="h-3.5 w-3.5 text-slate-400 group-hover:text-slate-600 transition shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <a href="{{ $link['url'] }}" wire:navigate
+                        class="group flex items-center gap-2 rounded-lg border border-slate-200/80 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition-all hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900">
+                        <svg class="h-3.5 w-3.5 shrink-0 text-slate-400 transition group-hover:text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                         </svg>
                         {{ $link['label'] }}
                     </a>
-                    @endif
                     @endforeach
                 </div>
             </div>
             @endforeach
         </div>
+        @endif
     </div>
 
     {{-- Estado del sistema --}}
