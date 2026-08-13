@@ -16,6 +16,8 @@ class Gate extends Component
 
     public string $business_name = '';
 
+    public ?Business $business = null;
+
     public string $pin = '';
 
     public string $document_type = '';
@@ -36,13 +38,7 @@ class Gate extends Component
 
         $this->pin_not_configured = ! ParticipantsPortalSession::pinConfigured($business);
 
-        if ($this->pin_not_configured) {
-            $this->business_token = $businessToken;
-            $this->business_name = $business->name;
-
-            return;
-        }
-
+        $this->business = $business;
         $this->business_token = $businessToken;
         $this->business_name = $business->name;
     }
@@ -88,6 +84,7 @@ class Gate extends Component
         ])->layoutData([
             'title' => 'Acceso al portal — '.$this->business_name,
             'business_name' => $this->business_name,
+            'portal_business' => $this->business,
         ]);
     }
 

@@ -65,6 +65,7 @@ class Home extends Component
             ->layout('layouts.public-portal', [
                 'title' => 'Participantes',
                 'business_name' => $this->business_name,
+                'portal_business' => $this->business,
                 'home_url' => route('public.participants.home', ['businessToken' => $this->business_token]),
                 'portal_items' => $this->portal_items,
                 'active_nav' => 'home',

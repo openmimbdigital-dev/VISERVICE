@@ -5,6 +5,7 @@ namespace App\Livewire\Public\Participants;
 use App\Actions\Public\RegisterPublicParticipantAction;
 use App\Enums\DocumentType;
 use App\Livewire\Forms\Public\PublicParticipantRegistrationForm;
+use App\Models\Business;
 use App\Support\Public\BusinessPublicId;
 use App\Support\SuccessAlert;
 use Livewire\Attributes\Layout;
@@ -19,6 +20,8 @@ class Register extends Component
 
     public string $business_name = '';
 
+    public ?Business $business = null;
+
     public bool $submitted = false;
 
     public function mount(string $businessToken): void
@@ -29,6 +32,7 @@ class Register extends Component
 
         $this->business_token = $businessToken;
         $this->business_name = $business->name;
+        $this->business = $business;
         $this->form->setBusinessId((int) $business->id);
     }
 
@@ -60,6 +64,7 @@ class Register extends Component
         ])->layoutData([
             'title' => 'Registro de participante — '.$this->business_name,
             'business_name' => $this->business_name,
+            'portal_business' => $this->business,
         ]);
     }
 }
