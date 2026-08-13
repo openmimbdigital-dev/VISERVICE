@@ -49,6 +49,30 @@ class Access extends Component
         $this->syncAssignmentFieldsFromSelection();
     }
 
+    public function toggleAllListedBusinesses(): void
+    {
+        abort_unless(
+            auth()->user()?->hasRole('superAdmin') && auth()->user()?->can('organization_types.access.view'),
+            403
+        );
+
+        if (! $this->organization_type_id) {
+            return;
+        }
+
+        $listed_ids = $this->listedBusinessIds();
+
+        if ($listed_ids === []) {
+            return;
+        }
+
+        $selected = array_map('strval', $this->selected_business_ids);
+        $all_selected = collect($listed_ids)->every(fn (string $id) => in_array($id, $selected, true));
+
+        $this->selected_business_ids = $all_selected ? [] : $listed_ids;
+        $this->syncAssignmentFieldsFromSelection();
+    }
+
     private function syncAssignmentFieldsFromSelection(): void
     {
         $ids = array_values(array_filter(array_map('intval', $this->selected_business_ids)));
@@ -86,6 +110,22 @@ class Access extends Component
             ->all();
 
         $this->selected_permissions = $perm_names->values()->all();
+    }
+
+    /** @return list<string> */
+    private function listedBusinessIds(): array
+    {
+        if (! $this->organization_type_id) {
+            return [];
+        }
+
+        return Business::query()
+            ->where('organization_type_id', $this->organization_type_id)
+            ->orderBy('name')
+            ->pluck('id')
+            ->map(fn ($id) => (string) $id)
+            ->values()
+            ->all();
     }
 
     private function clearAssignmentFields(): void
