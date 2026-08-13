@@ -28,9 +28,15 @@
             <div class="absolute -left-40 -top-40 h-96 w-96 rounded-full bg-indigo-600/20 blur-3xl"></div>
             <div class="absolute -bottom-32 -right-20 h-80 w-80 rounded-full bg-indigo-700/25 blur-3xl"></div>
 
-            <div class="relative z-10 mb-12 flex items-center gap-3">
-                <img src="{{ asset('images/logo-initial.jpeg') }}" alt="SouulBi" class="h-10 w-auto select-none drop-shadow-xl">
-                <span class="text-2xl font-extrabold tracking-tight text-white">Souul<span class="text-indigo-400">Bi</span></span>
+            <div class="relative z-10 mb-12 flex min-w-0 items-center gap-3">
+                <x-ui.business-mark :business="$portal_business ?? null" size="md" class="select-none drop-shadow-xl" />
+                <span class="truncate text-2xl font-extrabold tracking-tight text-white">
+                    @isset($portal_business)
+                        {{ $portal_business->name }}
+                    @else
+                        Souul<span class="text-indigo-400">Bi</span>
+                    @endisset
+                </span>
             </div>
 
             <div class="relative z-10 flex-1">
@@ -53,12 +59,17 @@
         <main class="flex flex-1 items-start justify-center overflow-y-auto bg-slate-100 p-4 sm:p-8 lg:items-center lg:p-10">
             <div class="w-full max-w-2xl">
                 {{-- Cabecera móvil --}}
-                <div class="mb-6 flex items-center gap-2 lg:hidden">
-                    <img src="{{ asset('images/logo-initial.jpeg') }}" alt="SouulBi" class="h-8 w-auto">
-                    <span class="text-base font-bold text-slate-800">SouulBi</span>
-                    @isset($business_name)
-                        <span class="text-slate-300">·</span>
-                        <span class="truncate text-sm text-slate-500">{{ $business_name }}</span>
+                <div class="mb-6 flex min-w-0 items-center gap-2 lg:hidden">
+                    @isset($portal_business)
+                        <x-ui.business-logo :business="$portal_business" size="sm" class="rounded-lg" />
+                        <span class="truncate text-base font-bold text-slate-800">{{ $portal_business->name }}</span>
+                    @else
+                        <img src="{{ asset('images/logo-initial.jpeg') }}" alt="SouulBi" class="h-8 w-auto">
+                        <span class="text-base font-bold text-slate-800">SouulBi</span>
+                        @isset($business_name)
+                            <span class="text-slate-300">·</span>
+                            <span class="truncate text-sm text-slate-500">{{ $business_name }}</span>
+                        @endisset
                     @endisset
                 </div>
 

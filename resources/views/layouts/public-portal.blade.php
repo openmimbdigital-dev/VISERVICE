@@ -30,12 +30,10 @@
         {{-- Header móvil --}}
         <header class="sticky top-0 z-40 flex items-center justify-between gap-3 border-b border-slate-800 bg-slate-900 px-4 py-3 text-slate-100 lg:hidden">
             <div class="flex min-w-0 items-center gap-3">
-                <img src="{{ asset('images/logo-initial.jpeg') }}" alt="SouulBi" class="h-8 w-auto shrink-0">
+                <x-ui.business-mark :business="$portal_business ?? null" size="sm" />
                 <div class="min-w-0">
-                    <p class="text-sm font-bold tracking-tight text-white">Souul<span class="text-indigo-400">Bi</span></p>
-                    @isset($business_name)
-                        <p class="truncate text-xs text-slate-400">{{ $business_name }}</p>
-                    @endisset
+                    <p class="truncate text-sm font-bold tracking-tight text-white">{{ $business_name ?? 'SouulBi' }}</p>
+                    <p class="truncate text-xs text-slate-400">Portal de participantes</p>
                 </div>
             </div>
             <button type="button"
@@ -67,12 +65,12 @@
 
                 <div class="flex items-center justify-between gap-3 px-5 py-5">
                     <div class="flex min-w-0 items-center gap-3">
-                        <img src="{{ asset('images/logo-initial.jpeg') }}" alt="SouulBi" class="hidden h-9 w-auto lg:block">
+                        <span class="hidden lg:contents">
+                            <x-ui.business-mark :business="$portal_business ?? null" size="sm" />
+                        </span>
                         <div class="min-w-0">
-                            <p class="text-sm font-bold tracking-tight text-white">Souul<span class="text-indigo-400">Bi</span></p>
-                            @isset($business_name)
-                                <p class="truncate text-xs text-slate-400">{{ $business_name }}</p>
-                            @endisset
+                            <p class="truncate text-sm font-bold tracking-tight text-white">{{ $business_name ?? 'SouulBi' }}</p>
+                            <p class="truncate text-xs text-slate-400">Portal de participantes</p>
                         </div>
                     </div>
                     <button type="button"
