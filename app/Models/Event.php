@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Support\EventsAccess;
+use App\Support\Public\PortalEventsFeedCache;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -50,6 +51,19 @@ class Event extends Model
             'active' => 'boolean',
 
         ];
+    }
+
+    protected static function booted(): void
+    {
+        $flush = function (Event $event): void {
+            if ($event->business_id) {
+                PortalEventsFeedCache::flush((int) $event->business_id);
+            }
+        };
+
+        static::saved($flush);
+        static::deleted($flush);
+        static::restored($flush);
     }
 
     public function business(): BelongsTo

@@ -19,7 +19,7 @@ function navigateTo(url) {
 
 /**
  * @param {HTMLElement} element
- * @param {{ eventsUrl: string }} options
+ * @param {{ eventsUrl: string, freshOnLoad?: boolean }} options
  */
 export function initEventsScheduleCalendar(element, options) {
     if (!element || element.dataset.calendarReady === '1') {
@@ -29,6 +29,7 @@ export function initEventsScheduleCalendar(element, options) {
     element.dataset.calendarReady = '1';
 
     const isMobile = () => window.matchMedia('(max-width: 640px)').matches;
+    let requestFresh = options.freshOnLoad === true;
 
     const calendar = new Calendar(element, {
         plugins: [dayGridPlugin, interactionPlugin, listPlugin],
@@ -53,6 +54,12 @@ export function initEventsScheduleCalendar(element, options) {
         events: {
             url: options.eventsUrl,
             method: 'GET',
+            extraParams() {
+                const params = requestFresh ? { fresh: '1' } : {};
+                requestFresh = false;
+
+                return params;
+            },
             failure() {
                 console.error('No se pudieron cargar los eventos de la agenda.');
             },
@@ -102,6 +109,11 @@ export function initEventsScheduleCalendar(element, options) {
     calendar.render();
     element._eventsScheduleCalendar = calendar;
 
+    element._refetchEventsScheduleCalendar = (fresh = false) => {
+        requestFresh = Boolean(fresh);
+        calendar.refetchEvents();
+    };
+
     const media = window.matchMedia('(max-width: 640px)');
     const onViewportChange = (event) => {
         const current = calendar.view.type;
@@ -118,6 +130,7 @@ export function initEventsScheduleCalendar(element, options) {
         calendar.destroy();
         delete element.dataset.calendarReady;
         delete element._eventsScheduleCalendar;
+        delete element._refetchEventsScheduleCalendar;
     };
 
     return calendar;
