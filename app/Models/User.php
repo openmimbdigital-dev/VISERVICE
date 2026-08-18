@@ -99,6 +99,11 @@ class User extends Authenticatable
             ->withTimestamps();
     }
 
+    public function participants(): HasMany
+    {
+        return $this->hasMany(Participant::class);
+    }
+
     public function user_historicals(): HasMany
     {
         return $this->hasMany(UserHistorical::class)->orderByDesc('created_at');

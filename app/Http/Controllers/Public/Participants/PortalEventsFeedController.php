@@ -13,7 +13,7 @@ class PortalEventsFeedController extends Controller
 {
     public function __invoke(Request $request, string $businessToken): JsonResponse
     {
-        $business = ParticipantsPortalAuthorization::requireAuthenticatedBusiness(
+        $business = ParticipantsPortalAuthorization::requireBusiness(
             $businessToken,
             ParticipantsPortalAuthorization::EVENTS_ITEM
         );
@@ -34,7 +34,9 @@ class PortalEventsFeedController extends Controller
             $request->boolean('fresh'),
         );
 
-        return response()->json($payload);
+        return response()
+            ->json($payload)
+            ->header('Cache-Control', 'private, no-store, max-age=0');
     }
 
     /** @return list<array<string, mixed>> */

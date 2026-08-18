@@ -3,7 +3,6 @@
 use App\Http\Controllers\Public\Participants\PortalEventsFeedController;
 use App\Livewire\Public\Participants\Portal\EventShow as PublicParticipantsPortalEventShow;
 use App\Livewire\Public\Participants\Portal\Events as PublicParticipantsPortalEvents;
-use App\Livewire\Public\Participants\Portal\Gate as PublicParticipantsPortalGate;
 use App\Livewire\Public\Participants\Portal\Home as PublicParticipantsPortalHome;
 use App\Livewire\Public\Participants\Register as PublicParticipantsRegister;
 use Illuminate\Support\Facades\Route;
@@ -22,7 +21,9 @@ Route::prefix('p')->name('public.')->group(function () {
         ->where('businessToken', '[A-Za-z0-9\-_]+')
         ->name('participants.register');
 
-    Route::get('/participants/{businessToken}/access', PublicParticipantsPortalGate::class)
+    Route::get('/participants/{businessToken}/access', function (string $businessToken) {
+        return redirect()->route('public.participants.home', ['businessToken' => $businessToken]);
+    })
         ->where('businessToken', '[A-Za-z0-9\-_]+')
         ->name('participants.access');
 
