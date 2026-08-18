@@ -6,7 +6,6 @@ use App\Models\Business;
 use App\Models\Event;
 use App\Support\Public\BusinessPublicId;
 use App\Support\Public\ParticipantsPortalAuthorization;
-use App\Support\Public\ParticipantsPortalSession;
 use App\Support\Public\PublicRouteAccess;
 use Livewire\Component;
 
@@ -28,12 +27,6 @@ class EventShow extends Component
         $business = BusinessPublicId::resolveBusiness($businessToken);
 
         abort_unless($business !== null, 404);
-
-        if (! ParticipantsPortalSession::isAuthenticated($business)) {
-            $this->redirectRoute('public.participants.access', ['businessToken' => $businessToken], navigate: true);
-
-            return;
-        }
 
         abort_unless(
             PublicRouteAccess::businessAllowsItem($business, ParticipantsPortalAuthorization::EVENTS_ITEM),

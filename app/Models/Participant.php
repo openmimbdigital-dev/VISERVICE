@@ -18,6 +18,7 @@ class Participant extends Model
 
     protected $fillable = [
         'business_id',
+        'user_id',
         'participant_role_id',
         'first_name',
         'last_name',
@@ -43,6 +44,11 @@ class Participant extends Model
     public function business(): BelongsTo
     {
         return $this->belongsTo(Business::class);
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 
     public function participant_role(): BelongsTo

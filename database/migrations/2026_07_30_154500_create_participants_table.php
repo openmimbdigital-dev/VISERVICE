@@ -12,6 +12,7 @@ return new class extends Migration
         Schema::create('participants', function (Blueprint $table) {
             $table->id();
             $table->foreignId('business_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->string('first_name')->nullable();
             $table->string('last_name')->nullable();
             $table->string('email')->nullable();
@@ -46,6 +47,10 @@ return new class extends Migration
             $table->index(
                 ['business_id', 'document_number', 'deleted_at'],
                 'participants_business_document_deleted_idx'
+            );
+            $table->index(
+                ['business_id', 'deleted_at', 'user_id'],
+                'participants_business_deleted_user_idx'
             );
         });
     }

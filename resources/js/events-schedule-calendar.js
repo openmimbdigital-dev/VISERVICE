@@ -29,7 +29,8 @@ export function initEventsScheduleCalendar(element, options) {
     element.dataset.calendarReady = '1';
 
     const isMobile = () => window.matchMedia('(max-width: 640px)').matches;
-    let requestFresh = options.freshOnLoad === true;
+    let nextFreshToken = options.freshOnLoad === true ? Date.now() : 0;
+    let activeFreshToken = 0;
 
     const calendar = new Calendar(element, {
         plugins: [dayGridPlugin, interactionPlugin, listPlugin],
@@ -55,14 +56,33 @@ export function initEventsScheduleCalendar(element, options) {
             url: options.eventsUrl,
             method: 'GET',
             extraParams() {
-                const params = requestFresh ? { fresh: '1' } : {};
-                requestFresh = false;
+                if (nextFreshToken) {
+                    activeFreshToken = nextFreshToken;
+                    nextFreshToken = 0;
+                }
 
-                return params;
+                if (! activeFreshToken) {
+                    return {};
+                }
+
+                return {
+                    fresh: '1',
+                    t: String(activeFreshToken),
+                };
             },
             failure() {
                 console.error('No se pudieron cargar los eventos de la agenda.');
             },
+        },
+        loading(isLoading) {
+            if (! isLoading) {
+                activeFreshToken = 0;
+            }
+
+            element.dispatchEvent(new CustomEvent('events-schedule-loading', {
+                detail: { loading: isLoading },
+                bubbles: true,
+            }));
         },
         eventTimeFormat: {
             hour: '2-digit',
@@ -110,7 +130,10 @@ export function initEventsScheduleCalendar(element, options) {
     element._eventsScheduleCalendar = calendar;
 
     element._refetchEventsScheduleCalendar = (fresh = false) => {
-        requestFresh = Boolean(fresh);
+        if (fresh) {
+            nextFreshToken = Date.now();
+        }
+
         calendar.refetchEvents();
     };
 
