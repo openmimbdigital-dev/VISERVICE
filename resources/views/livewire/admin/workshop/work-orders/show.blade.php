@@ -27,7 +27,9 @@
                     </div>
                     <div class="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm text-slate-600">
                         <span class="font-medium text-slate-800">{{ $workOrder->client?->name }}</span>
-                        <span>{{ $workOrder->equipment?->plate }} — {{ $workOrder->equipment?->brand_name }} {{ $workOrder->equipment?->model_name }}</span>
+                        @if($workOrder->equipments->isNotEmpty())
+                        <span>{{ $workOrder->equipments->map(fn ($e) => $e->select_label)->join(', ') }}</span>
+                        @endif
                         @if($workOrder->estimated_delivery)
                         <span>Entrega est.: {{ $workOrder->estimated_delivery->format('d/m/Y') }}</span>
                         @endif
@@ -118,6 +120,7 @@
             <table class="min-w-full divide-y divide-slate-100">
                 <thead class="bg-slate-50/40">
                     <tr>
+                        <th class="px-3 py-2 text-left text-xs font-semibold uppercase text-slate-500 sm:px-4">Equipo</th>
                         <th class="px-3 py-2 text-left text-xs font-semibold uppercase text-slate-500 sm:px-4">Tipo</th>
                         <th class="px-3 py-2 text-left text-xs font-semibold uppercase text-slate-500 sm:px-4">Descripción</th>
                         <th class="hidden px-3 py-2 text-right text-xs font-semibold uppercase text-slate-500 sm:table-cell sm:px-4">Cant.</th>
@@ -141,6 +144,7 @@
                         $can_cancel = $item_canceled < $item_qty;
                     @endphp
                     <tr wire:key="woi-{{ $item->id }}">
+                        <td class="px-3 py-3 text-xs text-slate-600 sm:px-4">{{ $item->equipment?->select_label ?? '—' }}</td>
                         <td class="px-3 py-3 sm:px-4">
                             <span class="rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700">
                                 {{ $item->productType?->name ?? '—' }}
@@ -190,35 +194,35 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="{{ $can_manage ? 9 : 7 }}" class="px-4 py-8 text-center text-sm text-slate-400">Sin ítems. Usa «Agregar ítem».</td>
+                        <td colspan="{{ $can_manage ? 10 : 8 }}" class="px-4 py-8 text-center text-sm text-slate-400">Sin ítems. Usa «Agregar ítem».</td>
                     </tr>
                     @endforelse
                 </tbody>
                 @if($workOrder->items->isNotEmpty())
                 <tfoot class="border-t border-slate-200 bg-slate-50/60">
                     <tr>
-                        <td colspan="4" class="hidden px-4 py-2 text-right text-xs font-semibold uppercase text-slate-500 md:table-cell">Subtotal</td>
-                        <td colspan="2" class="px-4 py-2 text-right text-xs font-semibold uppercase text-slate-500 md:hidden">Subtotal</td>
+                        <td colspan="5" class="hidden px-4 py-2 text-right text-xs font-semibold uppercase text-slate-500 md:table-cell">Subtotal</td>
+                        <td colspan="3" class="px-4 py-2 text-right text-xs font-semibold uppercase text-slate-500 md:hidden">Subtotal</td>
                         <td class="px-4 py-2 text-right font-semibold text-slate-700">{{ col_money($workOrder->subtotal) }}</td>
                         <td colspan="{{ $can_manage ? 4 : 2 }}"></td>
                     </tr>
                     @if((float) $workOrder->advance_amount > 0)
                     <tr>
-                        <td colspan="4" class="hidden px-4 py-1 text-right text-xs font-semibold uppercase text-amber-700 md:table-cell">Anticipo {{ $workOrder->advance_percentage }}%</td>
-                        <td colspan="2" class="px-4 py-1 text-right text-xs font-semibold uppercase text-amber-700 md:hidden">Anticipo {{ $workOrder->advance_percentage }}%</td>
+                        <td colspan="5" class="hidden px-4 py-1 text-right text-xs font-semibold uppercase text-amber-700 md:table-cell">Anticipo {{ $workOrder->advance_percentage }}%</td>
+                        <td colspan="3" class="px-4 py-1 text-right text-xs font-semibold uppercase text-amber-700 md:hidden">Anticipo {{ $workOrder->advance_percentage }}%</td>
                         <td class="px-4 py-1 text-right font-semibold text-amber-700">{{ col_money($workOrder->advance_amount) }}</td>
                         <td colspan="{{ $can_manage ? 4 : 2 }}"></td>
                     </tr>
                     @endif
                     <tr>
-                        <td colspan="4" class="hidden px-4 py-1 text-right text-xs font-semibold uppercase text-slate-500 md:table-cell">IVA {{ $workOrder->tax_percentage }}%</td>
-                        <td colspan="2" class="px-4 py-1 text-right text-xs font-semibold uppercase text-slate-500 md:hidden">IVA {{ $workOrder->tax_percentage }}%</td>
+                        <td colspan="5" class="hidden px-4 py-1 text-right text-xs font-semibold uppercase text-slate-500 md:table-cell">IVA {{ $workOrder->tax_percentage }}%</td>
+                        <td colspan="3" class="px-4 py-1 text-right text-xs font-semibold uppercase text-slate-500 md:hidden">IVA {{ $workOrder->tax_percentage }}%</td>
                         <td class="px-4 py-1 text-right font-semibold text-slate-700">{{ col_money($workOrder->tax_amount) }}</td>
                         <td colspan="{{ $can_manage ? 4 : 2 }}"></td>
                     </tr>
                     <tr>
-                        <td colspan="4" class="hidden px-4 py-2 text-right text-sm font-bold uppercase text-slate-900 md:table-cell">Total</td>
-                        <td colspan="2" class="px-4 py-2 text-right text-sm font-bold uppercase text-slate-900 md:hidden">Total</td>
+                        <td colspan="5" class="hidden px-4 py-2 text-right text-sm font-bold uppercase text-slate-900 md:table-cell">Total</td>
+                        <td colspan="3" class="px-4 py-2 text-right text-sm font-bold uppercase text-slate-900 md:hidden">Total</td>
                         <td class="px-4 py-2 text-right text-base font-bold text-indigo-700">{{ col_money($workOrder->total) }}</td>
                         <td colspan="{{ $can_manage ? 4 : 2 }}"></td>
                     </tr>
@@ -345,6 +349,16 @@
 
         <div class="flex-1 space-y-4 overflow-y-auto px-4 py-5 sm:px-6">
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div class="sm:col-span-2">
+                    <label class="mb-1.5 block text-xs font-medium text-slate-700">Equipo <span class="text-rose-500">*</span></label>
+                    <select wire:model="item_equipment_id" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm @error('item_equipment_id') border-rose-400 bg-rose-50 @enderror">
+                        <option value="">Asignar a equipo</option>
+                        @foreach($workOrder->equipments as $equipment)
+                            <option value="{{ $equipment->id }}">{{ $equipment->select_label }}</option>
+                        @endforeach
+                    </select>
+                    @error('item_equipment_id') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                </div>
                 <div>
                     <label class="mb-1.5 block text-xs font-medium text-slate-700">Tipo de producto</label>
                     <select wire:model.live="product_type_id" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm">

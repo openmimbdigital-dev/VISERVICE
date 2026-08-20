@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\QuotationStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
@@ -22,7 +23,7 @@ class Quotation extends Model
     ];
 
     protected $fillable = [
-        'business_id', 'client_id', 'equipment_id', 'quotation_service_type_id',
+        'business_id', 'client_id', 'quotation_service_type_id',
         'business_payment_method_id', 'business_bank_account_id',
         'reference', 'status', 'diagnosis', 'hours_entry',
         'validity_days', 'valid_until', 'execution_time',
@@ -62,9 +63,10 @@ class Quotation extends Model
         return $this->belongsTo(Client::class);
     }
 
-    public function equipment(): BelongsTo
+    public function equipments(): BelongsToMany
     {
-        return $this->belongsTo(Equipment::class);
+        return $this->belongsToMany(Equipment::class, 'equipment_quotation')
+            ->withTimestamps();
     }
 
     public function quotationServiceType(): BelongsTo

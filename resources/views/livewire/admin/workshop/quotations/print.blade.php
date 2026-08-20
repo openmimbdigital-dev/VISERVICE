@@ -42,8 +42,12 @@
             <p>{{ $quotation->client?->phone }}</p>
         </div>
         <div>
-            <p class="font-semibold uppercase text-slate-500">Equipo</p>
-            <p>{{ $quotation->equipment?->select_label }}</p>
+            <p class="font-semibold uppercase text-slate-500">Equipos</p>
+            @forelse($quotation->equipments as $equipment)
+                <p>{{ $equipment->select_label }}</p>
+            @empty
+                <p>—</p>
+            @endforelse
             @if($quotation->hours_entry_formatted)
             <p>Horas al ingreso: {{ $quotation->hours_entry_formatted }}</p>
             @endif
@@ -64,6 +68,7 @@
     <table class="mt-4 w-full border-collapse text-xs">
         <thead>
             <tr class="border-b border-slate-300 bg-slate-50">
+                <th class="px-2 py-1 text-left">Equipo</th>
                 <th class="px-2 py-1 text-left">Tipo</th>
                 <th class="px-2 py-1 text-left">Categoría</th>
                 <th class="px-2 py-1 text-left">Descripción</th>
@@ -76,6 +81,7 @@
         <tbody>
             @foreach($quotation->items as $item)
             <tr class="border-b border-slate-100">
+                <td class="px-2 py-1">{{ $item->equipment?->select_label ?? '—' }}</td>
                 <td class="px-2 py-1">{{ $item->productType?->name ?? '—' }}</td>
                 <td class="px-2 py-1">{{ $item->productCategory?->name ?? '—' }}</td>
                 <td class="px-2 py-1">{{ $item->description }}</td>

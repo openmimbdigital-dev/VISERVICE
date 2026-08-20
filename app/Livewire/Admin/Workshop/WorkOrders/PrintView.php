@@ -26,11 +26,12 @@ class PrintView extends Component
         $this->workOrder = $workOrder->load([
             'business',
             'client',
-            'equipment',
+            'equipments',
             'quotation',
             'createdBy',
             'items.productType',
             'items.catalogProduct',
+            'items.equipment',
         ]);
     }
 

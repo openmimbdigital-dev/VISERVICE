@@ -26,7 +26,6 @@ return new class extends Migration
             $table->id();
             $table->foreignId('business_id')->constrained()->onDelete('cascade');
             $table->foreignId('client_id')->constrained('clients')->onDelete('cascade');
-            $table->foreignId('equipment_id')->constrained('equipment')->onDelete('cascade');
             $table->foreignId('quotation_service_type_id')->nullable()->constrained('quotation_service_types')->nullOnDelete();
             $table->unsignedBigInteger('business_payment_method_id')->nullable();
             $table->unsignedBigInteger('business_bank_account_id')->nullable();
@@ -64,7 +63,6 @@ return new class extends Migration
             $table->index(['business_id', 'deleted_at', 'status'], 'quotations_business_deleted_status_idx');
             $table->index(['business_id', 'deleted_at', 'reference'], 'quotations_business_deleted_reference_idx');
             $table->index(['client_id', 'deleted_at', 'status'], 'quotations_client_deleted_status_idx');
-            $table->index(['equipment_id', 'deleted_at'], 'quotations_equipment_deleted_idx');
         });
     }
 

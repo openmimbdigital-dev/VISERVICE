@@ -77,7 +77,7 @@ class UpdateWorkOrderStatusAction
         $work_order->update($payload);
         $this->syncItemsQuantitiesFromStatus($work_order->id, $status);
         SyncWorkOrderRemissionsStatusAction::run($work_order, $status);
-        $work_order = $work_order->fresh(['client:id,name', 'equipment', 'items', 'statusDefinition', 'remissions']);
+        $work_order = $work_order->fresh(['client:id,name', 'equipments', 'items', 'statusDefinition', 'remissions']);
 
         $description = "Cambió el estado de la OT {$work_order->reference} a {$status_record->label}";
         $properties = [
@@ -86,6 +86,7 @@ class UpdateWorkOrderStatusAction
                 : $previous_status,
             'to' => $status->value,
             'comment' => $comment !== '' ? $comment : null,
+            'equipment_ids' => $work_order->equipments->pluck('id')->all(),
         ];
 
         LogUserHistoricalAction::run(
@@ -98,14 +99,17 @@ class UpdateWorkOrderStatusAction
             business_id: (int) $work_order->business_id,
         );
 
-        LogEquipmentHistoricalAction::run(
-            action: 'status_changed',
-            module: 'workshop.work-orders',
-            description: $description,
-            subject: $work_order,
-            properties: $properties,
-            business_id: (int) $work_order->business_id,
-        );
+        foreach ($work_order->equipments as $equipment) {
+            LogEquipmentHistoricalAction::run(
+                action: 'status_changed',
+                module: 'workshop.work-orders',
+                description: $description,
+                equipment: $equipment,
+                subject: $work_order,
+                properties: $properties,
+                business_id: (int) $work_order->business_id,
+            );
+        }
 
         return $work_order;
     }

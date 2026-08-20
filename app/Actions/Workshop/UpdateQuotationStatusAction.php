@@ -51,7 +51,7 @@ class UpdateQuotationStatusAction
         }
 
         $quotation->update($payload);
-        $quotation = $quotation->fresh(['client:id,name', 'equipment', 'items', 'statusDefinition']);
+        $quotation = $quotation->fresh(['client:id,name', 'equipments', 'items', 'statusDefinition']);
 
         $label = $status_record->label;
         $description = "Cambió el estado de la cotización {$quotation->reference} a {$label}";
@@ -61,6 +61,7 @@ class UpdateQuotationStatusAction
                 : $previous_status,
             'to'            => $status->value,
             'reject_reason' => $status === QuotationStatus::Rejected ? $reject_reason : null,
+            'equipment_ids' => $quotation->equipments->pluck('id')->all(),
         ];
 
         LogUserHistoricalAction::run(
@@ -73,14 +74,17 @@ class UpdateQuotationStatusAction
             business_id: (int) $quotation->business_id,
         );
 
-        LogEquipmentHistoricalAction::run(
-            action: 'status_changed',
-            module: 'workshop.quotations',
-            description: $description,
-            subject: $quotation,
-            properties: $properties,
-            business_id: (int) $quotation->business_id,
-        );
+        foreach ($quotation->equipments as $equipment) {
+            LogEquipmentHistoricalAction::run(
+                action: 'status_changed',
+                module: 'workshop.quotations',
+                description: $description,
+                equipment: $equipment,
+                subject: $quotation,
+                properties: $properties,
+                business_id: (int) $quotation->business_id,
+            );
+        }
 
         return $quotation;
     }

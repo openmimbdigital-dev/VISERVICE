@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\WorkOrderStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
@@ -15,7 +16,7 @@ class WorkOrder extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'business_id', 'client_id', 'equipment_id', 'quotation_id',
+        'business_id', 'client_id', 'quotation_id',
         'reference', 'status', 'status_comments',
         'diagnosis', 'work_description', 'observations', 'notes',
         'estimated_delivery', 'subtotal', 'tax_percentage',
@@ -50,9 +51,10 @@ class WorkOrder extends Model
         return $this->belongsTo(Client::class);
     }
 
-    public function equipment(): BelongsTo
+    public function equipments(): BelongsToMany
     {
-        return $this->belongsTo(Equipment::class);
+        return $this->belongsToMany(Equipment::class, 'equipment_work_order')
+            ->withTimestamps();
     }
 
     public function quotation(): BelongsTo

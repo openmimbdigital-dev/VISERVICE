@@ -44,6 +44,8 @@ class Show extends Component
 
     public ?int $product_id = null;
 
+    public ?int $item_equipment_id = null;
+
     public string $item_description = '';
 
     public string $item_quantity = '1';
@@ -63,7 +65,7 @@ class Show extends Component
             404
         );
 
-        $this->workOrder = $workOrder;
+        $this->workOrder = $workOrder->load('equipments:id');
         $this->status = $workOrder->status instanceof WorkOrderStatus
             ? $workOrder->status->value
             : (string) $workOrder->status;
@@ -146,6 +148,9 @@ class Show extends Component
         $this->assertWorkOrderEditable();
 
         $this->resetItemForm();
+        $this->workOrder->loadMissing('equipments:id');
+        $equipment_ids = $this->workOrder->equipments->pluck('id')->map(fn ($id) => (int) $id)->values()->all();
+        $this->item_equipment_id = count($equipment_ids) === 1 ? $equipment_ids[0] : null;
         $this->showItemModal = true;
     }
 
@@ -159,6 +164,7 @@ class Show extends Component
             ->findOrFail($id);
 
         $this->editing_item_id = $item->id;
+        $this->item_equipment_id = $item->equipment_id;
         $this->product_type_id = $item->product_type_id;
         $this->product_id = $item->product_id;
         $this->item_description = $item->description;
@@ -199,13 +205,20 @@ class Show extends Component
         abort_unless(auth()->user()?->can('workshop.work-orders.edit'), 403);
         $this->assertWorkOrderEditable();
 
+        $this->workOrder->loadMissing('equipments:id');
+        $allowed_equipment_ids = $this->workOrder->equipments->pluck('id')->map(fn ($id) => (int) $id)->all();
+
         $this->validate([
+            'item_equipment_id' => ['required', 'integer', Rule::in($allowed_equipment_ids)],
             'item_description' => 'required|string|max:255',
             'product_type_id'  => 'nullable|integer|exists:product_types,id',
             'product_id'       => 'nullable|integer|exists:products,id',
             'item_quantity'    => 'required|numeric|min:0.01',
             'item_unit_price'  => 'required|numeric|min:0',
             'item_discount'    => 'nullable|numeric|min:0|max:100',
+        ], [
+            'item_equipment_id.required' => 'Selecciona el equipo del ítem.',
+            'item_equipment_id.in' => 'El equipo seleccionado no pertenece a esta OT.',
         ]);
 
         $qty = (float) $this->item_quantity;
@@ -214,6 +227,7 @@ class Show extends Component
         $subtotal = round(($qty * $price) * (1 - $discount / 100), 2);
 
         $data = [
+            'equipment_id'        => (int) $this->item_equipment_id,
             'product_id'          => $this->product_id ?: null,
             'product_type_id'     => $this->product_type_id ?: null,
             'description'         => $this->item_description,
@@ -225,6 +239,7 @@ class Show extends Component
         ];
 
         $is_editing_item = (bool) $this->editing_item_id;
+        $saved_item = null;
 
         if ($this->editing_item_id) {
             $item = WorkOrderItem::query()
@@ -239,8 +254,9 @@ class Show extends Component
             $data['quantity_canceled'] = $canceled;
 
             $item->update($data);
+            $saved_item = $item;
         } else {
-            $this->workOrder->items()->create($data);
+            $saved_item = $this->workOrder->items()->create($data);
         }
 
         $this->workOrder->recalculateTotals();
@@ -250,6 +266,7 @@ class Show extends Component
         $properties = [
             'item_description' => $data['description'],
             'item_action'      => $is_editing_item ? 'updated' : 'created',
+            'equipment_id'     => $data['equipment_id'],
         ];
 
         LogUserHistoricalAction::run(
@@ -262,10 +279,12 @@ class Show extends Component
             business_id: (int) $this->workOrder->business_id,
         );
 
+        $saved_item->loadMissing('equipment');
         LogEquipmentHistoricalAction::run(
             action: 'updated',
             module: 'workshop.work-orders',
             description: $description,
+            equipment: $saved_item->equipment,
             subject: $this->workOrder,
             properties: $properties,
             business_id: (int) $this->workOrder->business_id,
@@ -281,10 +300,12 @@ class Show extends Component
 
         $item = WorkOrderItem::query()
             ->where('work_order_id', $this->workOrder->id)
+            ->with('equipment')
             ->whereKey($id)
             ->firstOrFail();
 
         $description = $item->description;
+        $equipment = $item->equipment;
         $item->delete();
 
         $this->workOrder->recalculateTotals();
@@ -294,6 +315,7 @@ class Show extends Component
         $properties = [
             'item_description' => $description,
             'item_action'      => 'deleted',
+            'equipment_id'     => $equipment?->id,
         ];
 
         LogUserHistoricalAction::run(
@@ -310,6 +332,7 @@ class Show extends Component
             action: 'updated',
             module: 'workshop.work-orders',
             description: $log_description,
+            equipment: $equipment,
             subject: $this->workOrder,
             properties: $properties,
             business_id: (int) $this->workOrder->business_id,
@@ -344,11 +367,14 @@ class Show extends Component
             ? "Completó cantidad de un ítem en la OT {$this->workOrder->reference}"
             : "Canceló cantidad de un ítem en la OT {$this->workOrder->reference}";
 
+        $item->loadMissing('equipment');
+
         $properties = [
             'item_description'  => $item->description,
             'item_action'       => $action,
             'quantity_complete' => (float) $item->quantity_complete,
             'quantity_canceled' => (float) $item->quantity_canceled,
+            'equipment_id'      => $item->equipment_id,
         ];
 
         LogUserHistoricalAction::run(
@@ -365,6 +391,7 @@ class Show extends Component
             action: 'updated',
             module: 'workshop.work-orders',
             description: $log_description,
+            equipment: $item->equipment,
             subject: $this->workOrder,
             properties: $properties,
             business_id: (int) $this->workOrder->business_id,
@@ -472,6 +499,7 @@ class Show extends Component
     private function resetItemForm(): void
     {
         $this->editing_item_id = null;
+        $this->item_equipment_id = null;
         $this->product_type_id = null;
         $this->product_id = null;
         $this->item_description = '';
@@ -498,8 +526,9 @@ class Show extends Component
         $this->workOrder->load([
             'items.productType',
             'items.catalogProduct',
+            'items.equipment',
             'client',
-            'equipment',
+            'equipments',
             'quotation',
         ]);
 

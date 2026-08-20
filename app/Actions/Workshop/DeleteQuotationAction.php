@@ -18,7 +18,7 @@ class DeleteQuotationAction
 
         $quotation = Quotation::query()
             ->forAuthUser()
-            ->with(['client:id,name', 'equipment', 'items'])
+            ->with(['client:id,name', 'equipments', 'items'])
             ->findOrFail($quotation_id);
 
         if (! $quotation->canBeDeleted()) {
@@ -30,10 +30,10 @@ class DeleteQuotationAction
         }
 
         $properties = [
-            'status'       => $quotation->status?->value ?? $quotation->status,
-            'client_id'    => $quotation->client_id,
-            'equipment_id' => $quotation->equipment_id,
-            'total'        => $quotation->total,
+            'status'        => $quotation->status?->value ?? $quotation->status,
+            'client_id'     => $quotation->client_id,
+            'equipment_ids' => $quotation->equipments->pluck('id')->all(),
+            'total'         => $quotation->total,
         ];
 
         LogUserHistoricalAction::run(
@@ -46,14 +46,17 @@ class DeleteQuotationAction
             business_id: (int) $quotation->business_id,
         );
 
-        LogEquipmentHistoricalAction::run(
-            action: 'deleted',
-            module: 'workshop.quotations',
-            description: "Eliminó la cotización {$quotation->reference}",
-            subject: $quotation,
-            properties: $properties,
-            business_id: (int) $quotation->business_id,
-        );
+        foreach ($quotation->equipments as $equipment) {
+            LogEquipmentHistoricalAction::run(
+                action: 'deleted',
+                module: 'workshop.quotations',
+                description: "Eliminó la cotización {$quotation->reference}",
+                equipment: $equipment,
+                subject: $quotation,
+                properties: $properties,
+                business_id: (int) $quotation->business_id,
+            );
+        }
 
         $quotation->delete();
     }

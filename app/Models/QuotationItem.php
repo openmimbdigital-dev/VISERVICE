@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class QuotationItem extends Model
 {
     protected $fillable = [
-        'quotation_id', 'product_id', 'product_type_id', 'product_category_id',
+        'quotation_id', 'equipment_id', 'product_id', 'product_type_id', 'product_category_id',
         'description', 'quantity', 'unit_price', 'discount_percentage', 'subtotal',
     ];
 
@@ -25,6 +25,11 @@ class QuotationItem extends Model
     public function quotation(): BelongsTo
     {
         return $this->belongsTo(Quotation::class);
+    }
+
+    public function equipment(): BelongsTo
+    {
+        return $this->belongsTo(Equipment::class);
     }
 
     public function catalogProduct(): BelongsTo

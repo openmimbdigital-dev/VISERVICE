@@ -21,6 +21,7 @@ class CreateOrUpdateWorkOrderAction
     use AsAction;
 
     /**
+     * @param  list<int>  $equipment_ids
      * @param  array<string, mixed>  $data
      * @param  array<int, array<string, mixed>>  $items
      */
@@ -28,7 +29,7 @@ class CreateOrUpdateWorkOrderAction
         int $business_id,
         ?int $work_order_id,
         int $client_id,
-        int $equipment_id,
+        array $equipment_ids,
         array $data,
         array $items = []
     ): WorkOrder {
@@ -41,14 +42,10 @@ class CreateOrUpdateWorkOrderAction
         abort_unless((int) $user->business_id === $business_id || $user->hasRole('superAdmin'), 403);
 
         abort_unless(Client::query()->forAuthUser()->whereKey($client_id)->exists(), 422);
-        abort_unless(
-            Equipment::query()
-                ->forAuthUser()
-                ->where('client_id', $client_id)
-                ->whereKey($equipment_id)
-                ->exists(),
-            422
-        );
+
+        $equipment_ids = $this->normalizeEquipmentIds($equipment_ids);
+        abort_unless($equipment_ids !== [], 422, 'Selecciona al menos un equipo.');
+        $this->assertEquipmentsBelongToClient($client_id, $equipment_ids);
 
         $quotation_id = ! empty($data['quotation_id']) ? (int) $data['quotation_id'] : null;
         $quotation = null;
@@ -56,13 +53,14 @@ class CreateOrUpdateWorkOrderAction
         if ($quotation_id) {
             $quotation = $this->assertAcceptedQuotationAvailable($business_id, $quotation_id, $work_order_id);
             $client_id = (int) $quotation->client_id;
-            $equipment_id = (int) $quotation->equipment_id;
+            $quotation->loadMissing('equipments:id');
+            $equipment_ids = $quotation->equipments->pluck('id')->map(fn ($id) => (int) $id)->values()->all();
+            abort_unless($equipment_ids !== [], 422, 'La cotización no tiene equipos asociados.');
         }
 
-        return DB::transaction(function () use ($business_id, $work_order_id, $client_id, $equipment_id, $data, $items, $quotation_id, $quotation) {
+        return DB::transaction(function () use ($business_id, $work_order_id, $client_id, $equipment_ids, $data, $items, $quotation_id, $quotation) {
             $payload = [
                 'client_id'          => $client_id,
-                'equipment_id'       => $equipment_id,
                 'quotation_id'       => $quotation_id,
                 'diagnosis'          => $data['diagnosis'] ?? null,
                 'estimated_delivery' => $data['estimated_delivery'] ?? null,
@@ -89,7 +87,8 @@ class CreateOrUpdateWorkOrderAction
                 ]);
             }
 
-            $this->syncItems($work_order, $items);
+            $work_order->equipments()->sync($equipment_ids);
+            $this->syncItems($work_order, $items, $equipment_ids);
             $work_order->recalculateTotals();
 
             $advance_percentage = $quotation && ! $work_order_id
@@ -101,19 +100,20 @@ class CreateOrUpdateWorkOrderAction
             $work_order = $work_order->fresh([
                 'items.productType',
                 'items.catalogProduct',
+                'items.equipment',
                 'client:id,name',
-                'equipment',
+                'equipments',
             ]);
 
             $action = $work_order_id ? 'updated' : 'created';
             $description = ($work_order_id ? 'Actualizó' : 'Creó') . " la orden de trabajo {$work_order->reference}";
             $properties = [
-                'status'       => $work_order->status,
-                'client_id'    => $work_order->client_id,
-                'equipment_id' => $work_order->equipment_id,
-                'quotation_id' => $work_order->quotation_id,
-                'total'        => $work_order->total,
-                'items_count'  => $work_order->items->count(),
+                'status'         => $work_order->status,
+                'client_id'      => $work_order->client_id,
+                'equipment_ids'  => $work_order->equipments->pluck('id')->all(),
+                'quotation_id'   => $work_order->quotation_id,
+                'total'          => $work_order->total,
+                'items_count'    => $work_order->items->count(),
                 'advance_percentage' => $work_order->advance_percentage,
                 'advance_amount' => $work_order->advance_amount,
             ];
@@ -128,17 +128,43 @@ class CreateOrUpdateWorkOrderAction
                 business_id: $business_id,
             );
 
-            LogEquipmentHistoricalAction::run(
-                action: $action,
-                module: 'workshop.work-orders',
-                description: $description,
-                subject: $work_order,
-                properties: $properties,
-                business_id: $business_id,
-            );
+            foreach ($work_order->equipments as $equipment) {
+                LogEquipmentHistoricalAction::run(
+                    action: $action,
+                    module: 'workshop.work-orders',
+                    description: $description,
+                    equipment: $equipment,
+                    subject: $work_order,
+                    properties: $properties,
+                    business_id: $business_id,
+                );
+            }
 
             return $work_order;
         });
+    }
+
+    /** @param  list<int|string>  $equipment_ids
+     *  @return list<int>
+     */
+    private function normalizeEquipmentIds(array $equipment_ids): array
+    {
+        return array_values(array_unique(array_filter(
+            array_map(fn ($id) => (int) $id, $equipment_ids),
+            fn (int $id) => $id > 0
+        )));
+    }
+
+    /** @param  list<int>  $equipment_ids */
+    private function assertEquipmentsBelongToClient(int $client_id, array $equipment_ids): void
+    {
+        $count = Equipment::query()
+            ->forAuthUser()
+            ->where('client_id', $client_id)
+            ->whereIn('id', $equipment_ids)
+            ->count();
+
+        abort_unless($count === count($equipment_ids), 422, 'Uno o más equipos no pertenecen al cliente.');
     }
 
     private function assertAcceptedQuotationAvailable(int $business_id, int $quotation_id, ?int $work_order_id): Quotation
@@ -160,10 +186,15 @@ class CreateOrUpdateWorkOrderAction
         return $quotation;
     }
 
-    /** @param  array<int, array<string, mixed>>  $items */
-    private function syncItems(WorkOrder $work_order, array $items): void
+    /**
+     * @param  array<int, array<string, mixed>>  $items
+     * @param  list<int>  $equipment_ids
+     */
+    private function syncItems(WorkOrder $work_order, array $items, array $equipment_ids): void
     {
         $kept_ids = [];
+        $allowed = array_flip($equipment_ids);
+        $default_equipment_id = $equipment_ids[0] ?? null;
 
         foreach ($items as $row) {
             $description = trim((string) ($row['description'] ?? ''));
@@ -186,12 +217,23 @@ class CreateOrUpdateWorkOrderAction
                 );
             }
 
+            $equipment_id = ! empty($row['equipment_id'])
+                ? (int) $row['equipment_id']
+                : $default_equipment_id;
+
+            abort_unless(
+                $equipment_id !== null && isset($allowed[$equipment_id]),
+                422,
+                'Cada ítem debe asociarse a un equipo de la OT.'
+            );
+
             $qty      = (float) ($row['quantity'] ?? 1);
             $price    = (float) ($row['unit_price'] ?? 0);
             $discount = (float) ($row['discount_percentage'] ?? 0);
             $subtotal = round($qty * $price * (1 - $discount / 100), 2);
 
             $payload = [
+                'equipment_id'        => $equipment_id,
                 'product_id'          => $row['product_id'] ?: null,
                 'product_type_id'     => $row['product_type_id'] ?: null,
                 'description'         => $description,

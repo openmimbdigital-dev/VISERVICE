@@ -4,7 +4,7 @@ namespace App\Livewire\Admin\Workshop\WorkOrders;
 
 use App\Actions\Workshop\CreateOrUpdateWorkOrderAction;
 use App\Actions\Workshop\DeleteWorkOrderAction;
-use App\Enums\WorkOrderStatus;
+use App\Enums\QuotationStatus;
 use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
 use App\Livewire\Forms\Admin\Workshop\WorkOrderForm;
 use App\Models\Client;
@@ -13,6 +13,7 @@ use App\Models\Product;
 use App\Models\ProductType;
 use App\Models\Quotation;
 use App\Models\WorkOrder;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -45,13 +46,14 @@ class Form extends Component
 
             abort_unless($workOrder->status?->isOpen() ?? false, 403);
 
-            $workOrder->load(['items.productType', 'items.catalogProduct']);
+            $workOrder->load(['items.productType', 'items.catalogProduct', 'equipments:id']);
             $this->form->setWorkOrder($workOrder);
             $this->reference = $workOrder->reference;
             $this->quotation_locked = (bool) $workOrder->quotation_id;
             $this->items = $workOrder->items->map(fn ($item) => [
                 'uid'                 => 'woi-'.$item->id,
                 'id'                  => $item->id,
+                'equipment_id'        => $item->equipment_id,
                 'product_type_id'     => $item->product_type_id,
                 'product_id'          => $item->product_id,
                 'description'         => $item->description,
@@ -80,7 +82,25 @@ class Form extends Component
             return;
         }
 
-        $this->form->equipment_id = null;
+        $this->form->equipment_ids = [];
+        $this->clearItemEquipmentAssignments();
+    }
+
+    public function updatedFormEquipmentIds(): void
+    {
+        if ($this->form->quotation_id) {
+            return;
+        }
+
+        $allowed = $this->form->resolvedEquipmentIds();
+        $allowed_flip = array_flip($allowed);
+
+        foreach ($this->items as $index => $row) {
+            $equipment_id = (int) ($row['equipment_id'] ?? 0);
+            if ($equipment_id > 0 && ! isset($allowed_flip[$equipment_id])) {
+                $this->items[$index]['equipment_id'] = null;
+            }
+        }
     }
 
     public function updatedFormQuotationId(mixed $value): void
@@ -97,7 +117,7 @@ class Form extends Component
         $quotation = Quotation::query()
             ->forAuthUser()
             ->where('business_id', $this->form->resolvedBusinessId())
-            ->where('status', \App\Enums\QuotationStatus::Accepted)
+            ->where('status', QuotationStatus::Accepted)
             ->where(function ($query) {
                 $query->whereDoesntHave('workOrder');
 
@@ -105,7 +125,7 @@ class Form extends Component
                     $query->orWhereHas('workOrder', fn ($q) => $q->whereKey($this->form->work_order_id));
                 }
             })
-            ->with('items')
+            ->with(['items', 'equipments:id'])
             ->find($quotation_id);
 
         if (! $quotation) {
@@ -120,6 +140,7 @@ class Form extends Component
         $this->items = $quotation->items->map(fn ($item) => [
             'uid'                 => 'qi-'.$item->id.'-'.uniqid(),
             'id'                  => null,
+            'equipment_id'        => $item->equipment_id,
             'product_type_id'     => $item->product_type_id,
             'product_id'          => $item->product_id,
             'description'         => $item->description,
@@ -173,9 +194,12 @@ class Form extends Component
 
     public function addItem(): void
     {
+        $equipment_ids = $this->form->resolvedEquipmentIds();
+
         $this->items[] = [
             'uid'                 => uniqid('wo-item-', true),
             'id'                  => null,
+            'equipment_id'        => count($equipment_ids) === 1 ? $equipment_ids[0] : null,
             'product_type_id'     => null,
             'product_id'          => null,
             'description'         => '',
@@ -219,7 +243,7 @@ class Form extends Component
                 $business_id,
                 $this->form->work_order_id,
                 (int) $this->form->client_id,
-                (int) $this->form->equipment_id,
+                $this->form->resolvedEquipmentIds(),
                 $this->form->validated(),
                 $this->items
             );
@@ -266,8 +290,11 @@ class Form extends Component
     /** @return array<string, mixed> */
     protected function itemRules(): array
     {
+        $equipment_ids = $this->form->resolvedEquipmentIds();
+
         return [
             'items'                       => ['array'],
+            'items.*.equipment_id'        => ['required', 'integer', Rule::in($equipment_ids)],
             'items.*.description'         => ['required', 'string', 'max:200'],
             'items.*.quantity'            => ['required', 'numeric', 'min:0.01'],
             'items.*.unit_price'          => ['required', 'numeric', 'min:0'],
@@ -281,10 +308,18 @@ class Form extends Component
     protected function validationAttributes(): array
     {
         return [
-            'items.*.description' => 'descripción del ítem',
-            'items.*.quantity'    => 'cantidad',
-            'items.*.unit_price'  => 'precio unitario',
+            'items.*.equipment_id' => 'equipo del ítem',
+            'items.*.description'  => 'descripción del ítem',
+            'items.*.quantity'     => 'cantidad',
+            'items.*.unit_price'   => 'precio unitario',
         ];
+    }
+
+    protected function clearItemEquipmentAssignments(): void
+    {
+        foreach ($this->items as $index => $row) {
+            $this->items[$index]['equipment_id'] = null;
+        }
     }
 
     public function render()
@@ -297,14 +332,28 @@ class Form extends Component
         $product_types = ProductType::query()->visibleToUser()->where('active', true)->orderBy('name')->get();
         $catalog_products = Product::query()->forAuthUser()->where('business_id', $business_id)->active()->orderBy('name')->get();
 
+        $equipment_query = Equipment::query()->forAuthUser()
+            ->where('client_id', $this->form->client_id)
+            ->orderBy('name')
+            ->orderBy('plate');
+
+        if ($this->form->resolvedEquipmentIds() !== []) {
+            $equipment_query->where(function ($q) {
+                $q->where('status', true)
+                    ->orWhereIn('id', $this->form->resolvedEquipmentIds());
+            });
+        } else {
+            $equipment_query->where('status', true);
+        }
+
         $equipment_for_client = $this->form->client_id
-            ? Equipment::query()->forAuthUser()
-                ->where('client_id', $this->form->client_id)
-                ->where('status', true)
-                ->orderBy('name')
-                ->orderBy('plate')
-                ->get(['id', 'name', 'brand_name', 'plate'])
+            ? $equipment_query->get(['id', 'name', 'brand_name', 'plate'])
             : collect();
+
+        $selected_equipment_ids = $this->form->resolvedEquipmentIds();
+        $selected_equipments = $equipment_for_client
+            ->whereIn('id', $selected_equipment_ids)
+            ->values();
 
         $subtotal = 0.0;
         foreach ($this->items as $row) {
@@ -328,6 +377,7 @@ class Form extends Component
             'product_types'        => $product_types,
             'catalog_products'     => $catalog_products,
             'equipment_for_client' => $equipment_for_client,
+            'selected_equipments'  => $selected_equipments,
             'preview_subtotal'     => $subtotal,
             'preview_tax'          => $tax,
             'preview_total'        => $total,

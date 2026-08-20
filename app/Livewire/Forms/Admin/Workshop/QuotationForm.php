@@ -15,7 +15,8 @@ class QuotationForm extends Form
 
     public ?int $client_id = null;
 
-    public ?int $equipment_id = null;
+    /** @var list<int|string> */
+    public array $equipment_ids = [];
 
     public ?int $quotation_service_type_id = null;
 
@@ -41,9 +42,11 @@ class QuotationForm extends Form
 
     public function setQuotation(Quotation $quotation): void
     {
+        $quotation->loadMissing('equipments:id');
+
         $this->quotation_id              = $quotation->id;
         $this->client_id                 = $quotation->client_id;
-        $this->equipment_id              = $quotation->equipment_id;
+        $this->equipment_ids             = $quotation->equipments->pluck('id')->map(fn ($id) => (int) $id)->values()->all();
         $this->quotation_service_type_id = $quotation->quotation_service_type_id;
         $this->business_payment_method_id = $quotation->business_payment_method_id;
         $this->business_bank_account_id   = $quotation->business_bank_account_id;
@@ -67,6 +70,15 @@ class QuotationForm extends Form
         return (int) auth()->user()->business_id;
     }
 
+    /** @return list<int> */
+    public function resolvedEquipmentIds(): array
+    {
+        return array_values(array_unique(array_filter(
+            array_map(fn ($id) => (int) $id, $this->equipment_ids),
+            fn (int $id) => $id > 0
+        )));
+    }
+
     public function rules(): array
     {
         $business_id = $this->resolvedBusinessId();
@@ -79,8 +91,8 @@ class QuotationForm extends Form
                     ->where('business_id', $business_id)
                     ->whereNull('deleted_at')),
             ],
-            'equipment_id' => [
-                'required',
+            'equipment_ids' => ['required', 'array', 'min:1'],
+            'equipment_ids.*' => [
                 'integer',
                 Rule::exists('equipment', 'id')->where(fn ($q) => $q
                     ->where('business_id', $business_id)
@@ -120,8 +132,9 @@ class QuotationForm extends Form
         return [
             'client_id.required'      => 'Selecciona un cliente.',
             'client_id.exists'        => 'El cliente seleccionado no es válido.',
-            'equipment_id.required'   => 'Selecciona un equipo.',
-            'equipment_id.exists'     => 'El equipo seleccionado no es válido.',
+            'equipment_ids.required'  => 'Selecciona al menos un equipo.',
+            'equipment_ids.min'       => 'Selecciona al menos un equipo.',
+            'equipment_ids.*.exists'  => 'Uno o más equipos no son válidos para el cliente.',
             'hours_entry.date_format' => 'Las horas al ingreso deben tener formato HH:MM.',
             'validity_days.required'  => 'Indica los días de vigencia.',
             'validity_days.min'       => 'La vigencia debe ser al menos 1 día.',
@@ -137,6 +150,7 @@ class QuotationForm extends Form
     {
         parent::reset(...$properties);
         $this->quotation_id = null;
+        $this->equipment_ids = [];
         $this->hours_entry  = '';
         $this->validity_days = '15';
         $this->tax_percentage = '19';
@@ -165,10 +179,14 @@ class QuotationForm extends Form
             422
         );
 
-        abort_unless(
-            Equipment::query()->forAuthUser()->whereKey($this->equipment_id)->exists(),
-            422
-        );
+        $equipment_ids = $this->resolvedEquipmentIds();
+        $count = Equipment::query()
+            ->forAuthUser()
+            ->where('client_id', $this->client_id)
+            ->whereIn('id', $equipment_ids)
+            ->count();
+
+        abort_unless($count === count($equipment_ids), 422);
 
         $data = [
             'quotation_service_type_id'  => $this->quotation_service_type_id,

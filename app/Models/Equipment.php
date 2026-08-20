@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -58,14 +59,16 @@ class Equipment extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    public function quotations(): HasMany
+    public function quotations(): BelongsToMany
     {
-        return $this->hasMany(Quotation::class);
+        return $this->belongsToMany(Quotation::class, 'equipment_quotation')
+            ->withTimestamps();
     }
 
-    public function workOrders(): HasMany
+    public function workOrders(): BelongsToMany
     {
-        return $this->hasMany(WorkOrder::class);
+        return $this->belongsToMany(WorkOrder::class, 'equipment_work_order')
+            ->withTimestamps();
     }
 
     public function remissions(): HasMany

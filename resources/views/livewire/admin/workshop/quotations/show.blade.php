@@ -16,7 +16,10 @@
                     <span class="inline-flex items-center rounded-full px-3 py-1 text-sm font-medium {{ $status_badge_class }}">{{ $quotation->status_label }}</span>
                 </div>
                 <p class="mt-2 text-sm text-slate-500">
-                    {{ $quotation->client?->name }} · {{ $quotation->equipment?->select_label }}
+                    {{ $quotation->client?->name }}
+                    @if($quotation->equipments->isNotEmpty())
+                        · {{ $quotation->equipments->map(fn ($e) => $e->select_label)->join(', ') }}
+                    @endif
                     @if($quotation->hours_entry_formatted) · Horas: {{ $quotation->hours_entry_formatted }}@endif
                 </p>
                 @if((float) $quotation->advance_amount > 0)
@@ -78,9 +81,13 @@
                         <dd class="text-sm text-slate-900 sm:col-span-2">{{ $quotation->client?->name ?? '—' }}</dd>
                     </div>
                     <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
-                        <dt class="text-xs font-medium text-slate-500">Equipo</dt>
+                        <dt class="text-xs font-medium text-slate-500">Equipos</dt>
                         <dd class="text-sm text-slate-900 sm:col-span-2">
-                            {{ $quotation->equipment?->select_label ?? '—' }}
+                            @forelse($quotation->equipments as $equipment)
+                                <span class="mb-1 mr-1 inline-block">{{ $equipment->select_label }}@if(! $loop->last), @endif</span>
+                            @empty
+                                —
+                            @endforelse
                         </dd>
                     </div>
                     @if($quotation->hours_entry_formatted)
@@ -157,6 +164,7 @@
                     <table class="min-w-full divide-y divide-slate-100">
                         <thead class="bg-slate-50/40">
                             <tr>
+                                <th class="px-3 py-2 text-left text-xs font-semibold uppercase text-slate-500 sm:px-4">Equipo</th>
                                 <th class="px-3 py-2 text-left text-xs font-semibold uppercase text-slate-500 sm:px-4">Tipo</th>
                                 <th class="hidden px-3 py-2 text-left text-xs font-semibold uppercase text-slate-500 md:table-cell sm:px-4">Categoría</th>
                                 <th class="px-3 py-2 text-left text-xs font-semibold uppercase text-slate-500 sm:px-4">Descripción</th>
@@ -168,6 +176,7 @@
                         <tbody class="divide-y divide-slate-100">
                             @forelse($quotation->items as $item)
                             <tr>
+                                <td class="px-3 py-3 text-xs text-slate-600 sm:px-4">{{ $item->equipment?->select_label ?? '—' }}</td>
                                 <td class="px-3 py-3 text-xs text-slate-600 sm:px-4">{{ $item->productType?->name ?? '—' }}</td>
                                 <td class="hidden px-3 py-3 text-xs text-slate-600 md:table-cell sm:px-4">{{ $item->productCategory?->name ?? '—' }}</td>
                                 <td class="px-3 py-3 text-sm text-slate-900 sm:px-4">{{ $item->description }}</td>
@@ -176,7 +185,7 @@
                                 <td class="px-3 py-3 text-right font-semibold text-slate-900 sm:px-4">{{ col_money($item->subtotal) }}</td>
                             </tr>
                             @empty
-                            <tr><td colspan="6" class="px-4 py-8 text-center text-sm text-slate-400">Sin ítems registrados.</td></tr>
+                            <tr><td colspan="7" class="px-4 py-8 text-center text-sm text-slate-400">Sin ítems registrados.</td></tr>
                             @endforelse
                         </tbody>
                     </table>

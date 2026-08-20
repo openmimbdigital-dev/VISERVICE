@@ -43,8 +43,8 @@ class LogEquipmentHistoricalAction
         }
 
         if (! $equipment && ($subject instanceof Quotation || $subject instanceof WorkOrder)) {
-            $subject->loadMissing('equipment');
-            $equipment = $subject->equipment;
+            $subject->loadMissing('equipments');
+            $equipment = $subject->equipments->first();
         }
 
         if (! $equipment?->getKey()) {

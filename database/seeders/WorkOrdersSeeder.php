@@ -38,16 +38,16 @@ class WorkOrdersSeeder extends Seeder
             ->get();
 
         $plan = [
-            ['business' => $transad, 'reference' => 'SEED-OT-TRANSAD-001', 'status' => 'created', 'from_quotation' => 'SEED-COT-TRANSAD-004'],
-            ['business' => $transad, 'reference' => 'SEED-OT-TRANSAD-002', 'status' => 'created', 'from_quotation' => null],
-            ['business' => $transad, 'reference' => 'SEED-OT-TRANSAD-003', 'status' => 'in_progress', 'from_quotation' => null],
-            ['business' => $transad, 'reference' => 'SEED-OT-TRANSAD-004', 'status' => 'in_progress', 'from_quotation' => null],
-            ['business' => $transad, 'reference' => 'SEED-OT-TRANSAD-005', 'status' => 'completed', 'from_quotation' => null],
-            ['business' => $transad, 'reference' => 'SEED-OT-TRANSAD-006', 'status' => 'cancelled', 'from_quotation' => null],
-            ['business_slug' => 'carga-rapida-sas', 'reference' => 'SEED-OT-CARGA-001', 'status' => 'created', 'from_quotation' => null],
-            ['business_slug' => 'carga-rapida-sas', 'reference' => 'SEED-OT-CARGA-002', 'status' => 'in_progress', 'from_quotation' => null],
-            ['business_slug' => 'transportes-del-valle', 'reference' => 'SEED-OT-VALLE-001', 'status' => 'created', 'from_quotation' => 'SEED-COT-VALLE-002'],
-            ['business_slug' => 'transportes-del-valle', 'reference' => 'SEED-OT-VALLE-002', 'status' => 'completed', 'from_quotation' => null],
+            ['business' => $transad, 'reference' => 'SEED-OT-TRANSAD-001', 'status' => 'created', 'from_quotation' => 'SEED-COT-TRANSAD-004', 'equipment_count' => 1],
+            ['business' => $transad, 'reference' => 'SEED-OT-TRANSAD-002', 'status' => 'created', 'from_quotation' => null, 'equipment_count' => 2],
+            ['business' => $transad, 'reference' => 'SEED-OT-TRANSAD-003', 'status' => 'in_progress', 'from_quotation' => null, 'equipment_count' => 1],
+            ['business' => $transad, 'reference' => 'SEED-OT-TRANSAD-004', 'status' => 'in_progress', 'from_quotation' => null, 'equipment_count' => 2],
+            ['business' => $transad, 'reference' => 'SEED-OT-TRANSAD-005', 'status' => 'completed', 'from_quotation' => null, 'equipment_count' => 1],
+            ['business' => $transad, 'reference' => 'SEED-OT-TRANSAD-006', 'status' => 'cancelled', 'from_quotation' => null, 'equipment_count' => 1],
+            ['business_slug' => 'carga-rapida-sas', 'reference' => 'SEED-OT-CARGA-001', 'status' => 'created', 'from_quotation' => null, 'equipment_count' => 2],
+            ['business_slug' => 'carga-rapida-sas', 'reference' => 'SEED-OT-CARGA-002', 'status' => 'in_progress', 'from_quotation' => null, 'equipment_count' => 1],
+            ['business_slug' => 'transportes-del-valle', 'reference' => 'SEED-OT-VALLE-001', 'status' => 'created', 'from_quotation' => 'SEED-COT-VALLE-002', 'equipment_count' => 1],
+            ['business_slug' => 'transportes-del-valle', 'reference' => 'SEED-OT-VALLE-002', 'status' => 'completed', 'from_quotation' => null, 'equipment_count' => 2],
         ];
 
         $created = 0;
@@ -64,12 +64,12 @@ class WorkOrdersSeeder extends Seeder
 
             $quotation = $this->resolveQuotation($business, $entry['from_quotation'] ?? null, $entry['reference']);
 
-            $pair = $quotation
-                ? ['client' => $quotation->client, 'equipment' => $quotation->equipment]
-                : $this->resolveClientEquipmentPair($business, $sequence);
+            $bundle = $quotation
+                ? $this->bundleFromQuotation($quotation)
+                : $this->resolveClientEquipments($business, $sequence, (int) ($entry['equipment_count'] ?? 1));
 
-            if (! $pair || ! $pair['client'] || ! $pair['equipment']) {
-                $this->command?->warn("Órdenes de trabajo: sin cliente/equipo para {$business->slug}, se omite {$entry['reference']}.");
+            if ($bundle === null) {
+                $this->command?->warn("Órdenes de trabajo: sin cliente/equipos para {$business->slug}, se omite {$entry['reference']}.");
 
                 continue;
             }
@@ -83,8 +83,7 @@ class WorkOrdersSeeder extends Seeder
                     'reference'   => $entry['reference'],
                 ],
                 [
-                    'client_id'          => $pair['client']->id,
-                    'equipment_id'       => $pair['equipment']->id,
+                    'client_id'          => $bundle['client']->id,
                     'quotation_id'       => $quotation?->id,
                     'status'             => $entry['status'],
                     'diagnosis'          => $quotation?->diagnosis ?? 'Diagnóstico inicial demo generado por seeder.',
@@ -93,7 +92,7 @@ class WorkOrdersSeeder extends Seeder
                     'notes'              => 'Generada por WorkOrdersSeeder.',
                     'estimated_delivery' => now()->addDays(2 + ($sequence % 5))->toDateString(),
                     'tax_percentage'     => $quotation?->tax_percentage ?? 19,
-                    'document_client'    => $this->buildDocumentClient($business, $sequence, $pair['client']),
+                    'document_client'    => $this->buildDocumentClient($business, $sequence, $bundle['client']),
                     'created_by'         => $created_by,
                     'finalized_at'       => $is_finalized ? now()->subDays($sequence) : null,
                     'deleted_at'         => null,
@@ -103,6 +102,9 @@ class WorkOrdersSeeder extends Seeder
             if ($work_order->trashed()) {
                 $work_order->restore();
             }
+
+            $equipment_ids = $bundle['equipments']->pluck('id')->map(fn ($id) => (int) $id)->all();
+            $work_order->equipments()->sync($equipment_ids);
 
             $products = Product::query()
                 ->where('business_id', $business->id)
@@ -114,7 +116,7 @@ class WorkOrdersSeeder extends Seeder
                 $products = $catalog_products;
             }
 
-            $this->syncItems($work_order, $products, $quotation, $sequence);
+            $this->syncItems($work_order, $bundle['equipments'], $products, $quotation, $sequence);
             $work_order->recalculateTotals();
 
             $created++;
@@ -129,11 +131,11 @@ class WorkOrdersSeeder extends Seeder
             return null;
         }
 
-        $quotation = Quotation::query()
+            $quotation = Quotation::query()
             ->where('business_id', $business->id)
             ->where('reference', $reference)
             ->where('status', QuotationStatus::Accepted)
-            ->with(['client', 'equipment', 'items'])
+            ->with(['client', 'equipments', 'items'])
             ->first();
 
         if (! $quotation) {
@@ -156,9 +158,37 @@ class WorkOrdersSeeder extends Seeder
         return $quotation;
     }
 
-    /** @return array{client: Client, equipment: Equipment}|null */
-    private function resolveClientEquipmentPair(Business $business, int $sequence): ?array
+    /**
+     * @return array{client: Client, equipments: Collection<int, Equipment>}|null
+     */
+    private function bundleFromQuotation(Quotation $quotation): ?array
     {
+        if (! $quotation->client) {
+            return null;
+        }
+
+        $equipments = $quotation->equipments;
+
+        if ($equipments->isEmpty()) {
+            return null;
+        }
+
+        return [
+            'client' => $quotation->client,
+            'equipments' => $equipments->values(),
+        ];
+    }
+
+    /**
+     * Resuelve cliente + 1..N equipos del mismo cliente.
+     * Reutiliza equipos entre OTs (un equipo puede aparecer en varias OT del año).
+     *
+     * @return array{client: Client, equipments: Collection<int, Equipment>}|null
+     */
+    private function resolveClientEquipments(Business $business, int $sequence, int $equipment_count): ?array
+    {
+        $equipment_count = max(1, $equipment_count);
+
         $clients = Client::query()
             ->where('business_id', $business->id)
             ->where('status', true)
@@ -171,30 +201,40 @@ class WorkOrdersSeeder extends Seeder
 
         $client = $clients[$sequence % $clients->count()];
 
-        $equipment = Equipment::query()
+        $client_equipments = Equipment::query()
             ->where('business_id', $business->id)
             ->where('client_id', $client->id)
             ->where('status', true)
             ->orderBy('id')
-            ->skip($sequence % 3)
-            ->first();
+            ->get();
 
-        if (! $equipment) {
-            $equipment = Equipment::query()
+        if ($client_equipments->isEmpty()) {
+            $client_equipments = Equipment::query()
                 ->where('business_id', $business->id)
                 ->where('status', true)
                 ->orderBy('id')
-                ->skip($sequence % 5)
-                ->first();
+                ->get();
+
+            if ($client_equipments->isEmpty()) {
+                return null;
+            }
+
+            $client = $client_equipments->first()->client
+                ?? Client::query()->whereKey($client_equipments->first()->client_id)->first()
+                ?? $client;
         }
 
-        if (! $equipment) {
-            return null;
+        // Rotación: el offset cambia por secuencia para reusar equipos en distintas OT.
+        $offset = $sequence % max($client_equipments->count(), 1);
+        $picked = collect();
+
+        for ($i = 0; $i < min($equipment_count, $client_equipments->count()); $i++) {
+            $picked->push($client_equipments[($offset + $i) % $client_equipments->count()]);
         }
 
         return [
-            'client'    => $client,
-            'equipment' => $equipment,
+            'client' => $client,
+            'equipments' => $picked->unique('id')->values(),
         ];
     }
 
@@ -227,15 +267,32 @@ class WorkOrdersSeeder extends Seeder
         return [$config->label => $value];
     }
 
-    /** @param  Collection<int, Product>  $catalog_products */
-    private function syncItems(WorkOrder $work_order, Collection $catalog_products, ?Quotation $quotation, int $sequence): void
-    {
+    /**
+     * @param  Collection<int, Equipment>  $equipments
+     * @param  Collection<int, Product>  $catalog_products
+     */
+    private function syncItems(
+        WorkOrder $work_order,
+        Collection $equipments,
+        Collection $catalog_products,
+        ?Quotation $quotation,
+        int $sequence
+    ): void {
         $work_order->items()->delete();
 
+        $equipment_ids = $equipments->pluck('id')->values();
+
+        if ($equipment_ids->isEmpty()) {
+            return;
+        }
+
         if ($quotation && $quotation->items->isNotEmpty()) {
-            foreach ($quotation->items as $item) {
+            foreach ($quotation->items as $index => $item) {
+                $equipment_id = (int) ($item->equipment_id ?: $equipment_ids[$index % $equipment_ids->count()]);
+
                 WorkOrderItem::query()->create([
                     'work_order_id'       => $work_order->id,
+                    'equipment_id'        => $equipment_id,
                     'product_id'          => $item->product_id,
                     'product_type_id'     => $item->product_type_id,
                     'description'         => $item->description,
@@ -253,14 +310,16 @@ class WorkOrdersSeeder extends Seeder
             ? $this->catalogProductRows($catalog_products, $sequence)
             : $this->genericProductRows($sequence);
 
-        foreach ($rows as $row) {
+        foreach ($rows as $index => $row) {
             $qty      = (float) $row['quantity'];
             $price    = (float) $row['unit_price'];
             $discount = (float) $row['discount_percentage'];
             $subtotal = round($qty * $price * (1 - $discount / 100), 2);
+            $equipment_id = (int) $equipment_ids[$index % $equipment_ids->count()];
 
             WorkOrderItem::query()->create([
                 'work_order_id'       => $work_order->id,
+                'equipment_id'        => $equipment_id,
                 'product_id'          => $row['product_id'] ?? null,
                 'product_type_id'     => $row['product_type_id'] ?? null,
                 'description'         => $row['description'],
@@ -272,8 +331,9 @@ class WorkOrdersSeeder extends Seeder
         }
     }
 
-    /** @param  Collection<int, Product>  $catalog_products */
-    /** @return list<array<string, mixed>> */
+    /** @param  Collection<int, Product>  $catalog_products
+     *  @return list<array<string, mixed>>
+     */
     private function catalogProductRows(Collection $catalog_products, int $sequence): array
     {
         $picked = $catalog_products->values()->slice($sequence % max($catalog_products->count() - 2, 1), 3);

@@ -17,9 +17,9 @@ class WorkshopPdfController extends Controller
         abort_unless(auth()->user()?->can('workshop.quotations.view'), 403);
 
         $quotation->load([
-            'business', 'client', 'equipment', 'quotationServiceType',
+            'business', 'client', 'equipments', 'quotationServiceType',
             'paymentMethod', 'bankAccount', 'createdBy',
-            'items.productType', 'items.productCategory', 'items.catalogProduct',
+            'items.productType', 'items.productCategory', 'items.catalogProduct', 'items.equipment',
         ]);
 
         return Pdf::loadView('pdf.quotation', [
@@ -74,11 +74,12 @@ class WorkshopPdfController extends Controller
         $workOrder->load([
             'business',
             'client',
-            'equipment',
+            'equipments',
             'quotation',
             'createdBy',
             'items.productType',
             'items.catalogProduct',
+            'items.equipment',
         ]);
 
         return Pdf::loadView('pdf.work-order', array_merge([
