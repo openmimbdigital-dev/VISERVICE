@@ -85,9 +85,25 @@ class Subscription extends Model
         return in_array($this->status, ['trial', 'active']);
     }
 
+    /**
+     * Vigencia real: valida estado Y fecha (prioriza trial_ends_at durante el trial).
+     */
+    public function isCurrentlyValid(): bool
+    {
+        if (! in_array($this->status, ['trial', 'active'], true)) {
+            return false;
+        }
+
+        if ($this->status === 'trial' && $this->trial_ends_at) {
+            return ! $this->trial_ends_at->copy()->endOfDay()->isPast();
+        }
+
+        return $this->ends_at !== null && ! $this->ends_at->copy()->endOfDay()->isPast();
+    }
+
     public function isExpired(): bool
     {
-        return $this->status === 'expired' || $this->ends_at->isPast();
+        return ! $this->isCurrentlyValid();
     }
 
     public function daysUntilExpiry(): int

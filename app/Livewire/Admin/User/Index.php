@@ -58,6 +58,18 @@ class Index extends Component
         return auth()->user()->hasRole('superAdmin');
     }
 
+    private function canCreateMoreUsers(): bool
+    {
+        $business = auth()->user()->business;
+
+        return $business === null || $business->canAddMoreUsers();
+    }
+
+    private function userLimit(): ?int
+    {
+        return auth()->user()->business?->activeUserLimit();
+    }
+
     private function baseQuery()
     {
         $query = User::with(['roles', 'businesses']);
@@ -108,6 +120,15 @@ class Index extends Component
     public function openCreate(): void
     {
         abort_unless(auth()->user()->can('users.create'), 403);
+
+        if (! $this->isSuperAdmin() && ! $this->canCreateMoreUsers()) {
+            $this->dispatch('swal', [
+                'title' => 'Límite de usuarios alcanzado',
+                'text'  => "Tu plan permite hasta {$this->userLimit()} usuarios. Actualiza tu plan para agregar más.",
+                'icon'  => 'warning',
+            ]);
+            return;
+        }
 
         $this->reset(['first_name','last_name','email','username','password','password_confirmation','phone_number','role']);
         $this->status          = true;
@@ -241,6 +262,16 @@ class Index extends Component
 
             $this->dispatch('swal', ['title' => 'Usuario actualizado correctamente.', 'icon' => 'success']);
         } else {
+            if (! $this->isSuperAdmin() && ! $this->canCreateMoreUsers()) {
+                $this->dispatch('swal', [
+                    'title' => 'Límite de usuarios alcanzado',
+                    'text'  => "Tu plan permite hasta {$this->userLimit()} usuarios. Actualiza tu plan para agregar más.",
+                    'icon'  => 'warning',
+                ]);
+                $this->showModal = false;
+                return;
+            }
+
             $user = User::create([
                 'first_name'   => $this->first_name,
                 'last_name'    => $this->last_name,
@@ -453,6 +484,10 @@ class Index extends Component
                     ->get())
             : BusinessAccess::assignableRolesForUser(auth()->user());
 
-        return view('livewire.admin.user.index', compact('users', 'stats', 'roles', 'primaryUserIds'));
+        $userLimit = $this->isSuperAdmin() ? null : $this->userLimit();
+        $userCount = $this->isSuperAdmin() ? null : auth()->user()->business?->users()->count();
+        $canCreateUser = $this->isSuperAdmin() || $this->canCreateMoreUsers();
+
+        return view('livewire.admin.user.index', compact('users', 'stats', 'roles', 'primaryUserIds', 'userLimit', 'userCount', 'canCreateUser'));
     }
 }

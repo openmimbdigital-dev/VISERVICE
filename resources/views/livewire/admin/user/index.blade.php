@@ -13,14 +13,19 @@
             </p>
         </div>
         @can('users.create')
-        <x-ui.create-button wire:click="openCreate" class="w-full justify-center sm:w-auto">
-            Nuevo usuario
-        </x-ui.create-button>
+        <div class="flex w-full flex-col items-end gap-1.5 sm:w-auto">
+            <x-ui.create-button wire:click="openCreate" class="w-full justify-center sm:w-auto">
+                Nuevo usuario
+            </x-ui.create-button>
+            @if($userLimit !== null && ! $canCreateUser)
+                <p class="text-xs font-medium text-amber-600">Límite de {{ $userLimit }} usuarios alcanzado.</p>
+            @endif
+        </div>
         @endcan
     </div>
 
     {{-- Stats --}}
-    <div class="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4 {{ $userLimit !== null ? 'lg:grid-cols-4' : '' }}">
         <div class="bg-white rounded-2xl border border-slate-200 p-5 flex items-center gap-4">
             <div class="w-11 h-11 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0">
                 <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
@@ -48,6 +53,21 @@
                 <p class="text-xs text-slate-500">Nuevos este mes</p>
             </div>
         </div>
+        @if($userLimit !== null)
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 flex items-center gap-4">
+            <div @class([
+                'w-11 h-11 rounded-xl flex items-center justify-center shrink-0',
+                'bg-red-100' => ! $canCreateUser,
+                'bg-violet-100' => $canCreateUser,
+            ])>
+                <svg @class(['w-5 h-5', 'text-red-600' => ! $canCreateUser, 'text-violet-600' => $canCreateUser]) fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            </div>
+            <div>
+                <p class="text-2xl font-bold text-slate-900">{{ $userCount }} / {{ $userLimit }}</p>
+                <p class="text-xs text-slate-500">Usuarios de tu plan</p>
+            </div>
+        </div>
+        @endif
     </div>
 
     {{-- Filtros --}}

@@ -138,9 +138,28 @@ class Business extends Model
         return $this->hasOne(Subscription::class)->latest();
     }
 
+    public function currentSubscription(): ?Subscription
+    {
+        $subscription = $this->activeSubscription;
+
+        return ($subscription && $subscription->isCurrentlyValid()) ? $subscription : null;
+    }
+
     public function hasActiveSubscription(): bool
     {
-        return $this->activeSubscription()->exists();
+        return $this->currentSubscription() !== null;
+    }
+
+    public function activeUserLimit(): ?int
+    {
+        return $this->currentSubscription()?->plan?->max_users;
+    }
+
+    public function canAddMoreUsers(): bool
+    {
+        $limit = $this->activeUserLimit();
+
+        return $limit === null || $this->users()->count() < $limit;
     }
 
     public function brands(): HasMany
