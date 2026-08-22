@@ -4,8 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $title ?? 'SouulBi' }} — SouulBi</title>
-    <link rel="icon" type="image/jpeg" href="{{ asset('images/logo-initial.jpeg') }}">
-    <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
+    <link rel="icon" type="image/svg+xml" href="{{ asset('images/brand/icon.svg') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -124,9 +123,7 @@
                         {{ $businessInitials }}
                     </span>
                 @else
-                    <img src="{{ asset('images/logo-initial.jpeg') }}"
-                         alt="SouulBi"
-                         class="h-8 w-8 shrink-0 rounded-lg object-contain bg-white/5 p-0.5">
+                    <x-brand.mark variant="on-dark" class="h-8 w-8 shrink-0 rounded-lg bg-white/5 p-0.5" />
                 @endif
                 <div class="min-w-0 flex-1" x-show="showSidebarLabels()" x-transition.opacity>
                     <p class="font-semibold text-white truncate text-sm">

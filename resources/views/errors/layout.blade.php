@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title') — SouulBi</title>
+    <link rel="icon" type="image/svg+xml" href="{{ asset('images/brand/icon.svg') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -31,7 +32,7 @@
 
         {{-- Logo --}}
         <div class="flex justify-center mb-8">
-            <img src="{{ asset('images/logo-initial.jpeg') }}" alt="SouulBi" class="h-14 w-auto drop-shadow-xl float">
+            <x-brand.mark variant="on-dark" class="h-14 w-auto drop-shadow-xl float" />
         </div>
 
         {{-- Código de error (decorativo, grande y semitransparente) --}}

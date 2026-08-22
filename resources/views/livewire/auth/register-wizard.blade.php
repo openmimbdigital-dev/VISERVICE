@@ -8,7 +8,7 @@
 
         {{-- Logo --}}
         <div class="relative z-10 flex items-center gap-3 mb-12">
-            <img src="{{ asset('images/logo-initial.jpeg') }}" alt="SouulBi" class="h-10 w-auto drop-shadow-xl select-none">
+            <x-brand.mark variant="on-dark" class="h-10 w-auto drop-shadow-xl select-none" />
             <span class="text-2xl font-extrabold text-white tracking-tight">Souul<span class="text-indigo-400">Bi</span></span>
         </div>
 
@@ -56,7 +56,7 @@
 
             {{-- Breadcrumb mobile --}}
             <div class="flex items-center gap-2 mb-6 lg:hidden">
-                <img src="{{ asset('images/logo-initial.jpeg') }}" alt="SouulBi" class="h-8 w-auto">
+                <x-brand.mark variant="on-light" class="h-8 w-auto" />
                 <span class="text-base font-bold text-slate-800">SouulBi</span>
                 <span class="text-slate-300 mx-1">·</span>
                 <span class="text-sm text-slate-500">Paso {{ $step }} de {{ $totalSteps }}</span>

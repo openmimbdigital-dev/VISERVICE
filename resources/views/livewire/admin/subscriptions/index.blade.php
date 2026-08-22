@@ -154,7 +154,6 @@
                 {{ $subscriptions->links() }}
             </div>
         </div>
-    </div>
 
     {{-- Modal crear/editar suscripción --}}
     @if($showModal)
@@ -298,6 +297,7 @@
             </div>
         </div>
     @endif
+    </div>
 
     @push('scripts')
     <script>

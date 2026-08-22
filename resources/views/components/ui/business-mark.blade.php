@@ -16,7 +16,5 @@
         {{ $business->logo_initials }}
     </span>
 @else
-    <img src="{{ asset('images/logo-initial.jpeg') }}"
-         alt="SouulBi"
-         {{ $attributes->merge(['class' => "{$box} shrink-0 rounded-lg object-contain bg-white/5 p-0.5"]) }}>
+    <x-brand.mark variant="on-dark" {{ $attributes->merge(['class' => "{$box} shrink-0 rounded-lg bg-white/5 p-0.5"]) }} />
 @endif
