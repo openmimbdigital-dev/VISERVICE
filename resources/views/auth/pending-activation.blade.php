@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Activación pendiente — SouulBi</title>
+    <link rel="icon" type="image/svg+xml" href="{{ asset('images/brand/icon.svg') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -36,7 +37,7 @@
 
         {{-- Logo --}}
         <div class="flex items-center justify-center gap-2 mb-6">
-            <img src="{{ asset('images/logo-initial.jpeg') }}" alt="SouulBi" class="h-8 w-auto">
+            <x-brand.mark variant="on-dark" class="h-8 w-auto" />
             <span class="text-xl font-extrabold text-white">Souul<span class="text-indigo-400">Bi</span></span>
         </div>
 

@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Iniciar Sesión — SouulBi</title>
+    <link rel="icon" type="image/svg+xml" href="{{ asset('images/brand/icon.svg') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -38,9 +39,7 @@
         {{-- Logo y nombre --}}
         <div class="relative z-10 flex flex-col items-center text-center max-w-md">
             <div class="float">
-                <img src="{{ asset('images/logo-initial.jpeg') }}"
-                     alt="SouulBi"
-                     class="h-28 w-auto drop-shadow-2xl mb-6 select-none">
+                <x-brand.mark variant="on-dark" class="h-28 w-auto drop-shadow-2xl mb-6 select-none" />
             </div>
             <h1 class="text-4xl xl:text-5xl font-extrabold text-white tracking-tight leading-tight">
                 Souul<span class="text-indigo-400">Bi</span>
@@ -70,7 +69,7 @@
 
             {{-- Logo mobile --}}
             <div class="flex flex-col items-center mb-8 lg:hidden">
-                <img src="{{ asset('images/logo-initial.jpeg') }}" alt="SouulBi" class="h-16 w-auto mb-3">
+                <x-brand.mark variant="on-light" class="h-16 w-auto mb-3" />
                 <h2 class="text-2xl font-bold text-slate-900">SouulBi</h2>
             </div>
 
