@@ -166,6 +166,8 @@
                             <div class="flex flex-wrap items-center justify-center gap-1">
                                 <button type="button"
                                     wire:click="completeItemQuantity({{ $item->id }})"
+                                    wire:loading.attr="disabled"
+                                    wire:target="completeItemQuantity({{ $item->id }})"
                                     @disabled(! $can_complete)
                                     class="inline-flex items-center justify-center rounded-lg bg-emerald-50 p-1.5 text-emerald-700 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-40"
                                     title="Completar +1">
@@ -173,6 +175,8 @@
                                 </button>
                                 <button type="button"
                                     wire:click="cancelItemQuantity({{ $item->id }})"
+                                    wire:loading.attr="disabled"
+                                    wire:target="cancelItemQuantity({{ $item->id }})"
                                     @disabled(! $can_cancel)
                                     class="inline-flex items-center justify-center rounded-lg bg-rose-50 p-1.5 text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-40"
                                     title="Cancelar +1">

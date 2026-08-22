@@ -352,11 +352,39 @@ class Show extends Component
     private function adjustItemQuantity(int $id, string $action): void
     {
         abort_unless(auth()->user()?->can('workshop.work-orders.edit'), 403);
-        $this->assertWorkOrderEditable();
+
+        $this->workOrder->refresh();
+
+        if (! $this->workOrder->isEditable()) {
+            $this->dispatch('swal', [
+                'title' => 'OT bloqueada',
+                'text'  => 'La OT está finalizada o cancelada y no admite cambios.',
+                'icon'  => 'warning',
+            ]);
+
+            return;
+        }
 
         $previous_status = $this->status;
 
-        $item = AdjustWorkOrderItemQuantityAction::run($this->workOrder->id, $id, $action);
+        try {
+            $item = AdjustWorkOrderItemQuantityAction::run($this->workOrder->id, $id, $action);
+        } catch (ValidationException $exception) {
+            $message = collect($exception->errors())->flatten()->first()
+                ?? 'No se pudo actualizar la cantidad del ítem.';
+
+            $this->dispatch('swal', [
+                'title' => $message,
+                'icon'  => 'warning',
+            ]);
+
+            $this->workOrder->refresh();
+            $this->status = $this->workOrder->status instanceof WorkOrderStatus
+                ? $this->workOrder->status->value
+                : (string) $this->workOrder->status;
+
+            return;
+        }
 
         $this->workOrder->refresh();
         $this->status = $this->workOrder->status instanceof WorkOrderStatus
