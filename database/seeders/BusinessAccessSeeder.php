@@ -37,6 +37,14 @@ class BusinessAccessSeeder extends Seeder
     }
 
     /** @return list<string> */
+    private function customTaxPermissions(): array
+    {
+        return [
+            'custom_taxes.view', 'custom_taxes.create', 'custom_taxes.edit', 'custom_taxes.delete',
+        ];
+    }
+
+    /** @return list<string> */
     private function quotationModulePermissions(): array
     {
         return [
@@ -222,6 +230,7 @@ class BusinessAccessSeeder extends Seeder
                     ...$this->teamPositionPermissions(),
                     ...$this->participantPermissions(),
                     ...$this->businessPaymentSettingsPermissions(),
+                    ...$this->customTaxPermissions(),
                     ...$this->catalogProductsPermissions(),
                     ...$this->churchEventsSettingsPermissions(),
                 ]))
@@ -248,6 +257,7 @@ class BusinessAccessSeeder extends Seeder
             ...$this->teamPositionPermissions(),
             ...$this->participantPermissions(),
             ...$this->businessPaymentSettingsPermissions(),
+            ...$this->customTaxPermissions(),
             ...$this->catalogProductsPermissions(),
             ...$this->catalogProductsSettingsPermissions(),
         ]));
@@ -262,6 +272,7 @@ class BusinessAccessSeeder extends Seeder
             ...$this->teamPositionPermissions(),
             ...$this->participantPermissions(),
             ...$this->businessPaymentSettingsPermissions(),
+            ...$this->customTaxPermissions(),
             ...$this->catalogProductsPermissions(),
             ...$this->catalogProductsSettingsPermissions(),
         ]));

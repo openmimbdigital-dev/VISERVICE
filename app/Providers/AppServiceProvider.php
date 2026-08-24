@@ -8,6 +8,7 @@ use App\Models\Business;
 use App\Models\BusinessBankAccount;
 use App\Models\BusinessPaymentMethod;
 use App\Models\Client;
+use App\Models\CustomTax;
 use App\Models\Equipment;
 use App\Models\EquipmentModel;
 use App\Models\EquipmentType;
@@ -142,6 +143,11 @@ class AppServiceProvider extends ServiceProvider
             ->firstOrFail());
 
         Route::bind('bankAccount', fn (string $value) => BusinessBankAccount::query()
+            ->forAuthUser()
+            ->whereKey($value)
+            ->firstOrFail());
+
+        Route::bind('customTax', fn (string $value) => CustomTax::query()
             ->forAuthUser()
             ->whereKey($value)
             ->firstOrFail());

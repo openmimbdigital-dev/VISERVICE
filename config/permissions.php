@@ -103,6 +103,15 @@ return [
                 'business_bank_accounts.delete' => 'Eliminar cuentas bancarias del negocio',
             ],
         ],
+        'custom_taxes' => [
+            'name' => 'Negocios — Impuestos personalizados',
+            'permissions' => [
+                'custom_taxes.view' => 'Ver impuestos personalizados',
+                'custom_taxes.create' => 'Crear impuestos personalizados',
+                'custom_taxes.edit' => 'Editar impuestos personalizados',
+                'custom_taxes.delete' => 'Eliminar impuestos personalizados',
+            ],
+        ],
         'reports' => [
             'name' => 'Gestión de Reportes',
             'permissions' => [

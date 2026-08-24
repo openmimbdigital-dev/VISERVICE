@@ -126,6 +126,11 @@ class Business extends Model
         return $this->hasMany(BusinessBankAccount::class);
     }
 
+    public function customTaxes(): HasMany
+    {
+        return $this->hasMany(CustomTax::class);
+    }
+
     public function activeSubscription(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(Subscription::class)

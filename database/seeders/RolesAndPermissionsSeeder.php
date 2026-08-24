@@ -52,6 +52,14 @@ class RolesAndPermissionsSeeder extends Seeder
     }
 
     /** @return list<string> */
+    private function customTaxPermissions(): array
+    {
+        return [
+            'custom_taxes.view', 'custom_taxes.create', 'custom_taxes.edit', 'custom_taxes.delete',
+        ];
+    }
+
+    /** @return list<string> */
     private function catalogProductsPermissions(): array
     {
         return [
@@ -283,8 +291,9 @@ class RolesAndPermissionsSeeder extends Seeder
             ...$this->teamPositionPermissions(),
             // Negocios — Participantes
             ...$this->participantPermissions(),
-            // Negocios — Pagos y bancos
+            // Negocios — Pagos, bancos e impuestos
             ...$this->businessPaymentSettingsPermissions(),
+            ...$this->customTaxPermissions(),
             // Catálogo — Productos y servicios
             ...$this->catalogProductsPermissions(),
             ...$this->catalogProductsSettingsPermissions(),
@@ -319,8 +328,9 @@ class RolesAndPermissionsSeeder extends Seeder
         // Miembro: sin permisos (solo identificación de rol)
         $miembro->syncPermissions([]);
 
-        // Administrador y Comercio: métodos de pago y datos bancarios del negocio
+        // Administrador y Comercio: métodos de pago, datos bancarios e impuestos del negocio
         $business_payment_settings = $this->businessPaymentSettingsPermissions();
+        $custom_taxes = $this->customTaxPermissions();
 
         // Administrador: todo menos suscripciones (las gestiona solo el superAdmin).
         // OT CRUD: workshop.work-orders.* vía workOrderPermissions().
@@ -340,6 +350,7 @@ class RolesAndPermissionsSeeder extends Seeder
             ...$this->teamPositionPermissions(),
             ...$this->participantPermissions(),
             ...$business_payment_settings,
+            ...$custom_taxes,
             ...$this->catalogProductsPermissions(),
             ...$this->catalogProductsSettingsPermissions(),
             ...$this->churchEventsSettingsPermissions(),
@@ -367,6 +378,7 @@ class RolesAndPermissionsSeeder extends Seeder
             ...$this->teamPositionPermissions(),
             ...$this->participantPermissions(),
             ...$business_payment_settings,
+            ...$custom_taxes,
             ...$this->catalogProductsPermissions(),
             ...$this->catalogProductsSettingsPermissions(),
             ...$this->churchEventsSettingsPermissions(),
