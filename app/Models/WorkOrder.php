@@ -21,7 +21,7 @@ class WorkOrder extends Model
         'diagnosis', 'work_description', 'observations', 'notes',
         'estimated_delivery', 'subtotal', 'tax_percentage',
         'tax_amount', 'total', 'advance_percentage', 'advance_amount',
-        'document_client', 'created_by', 'finalized_at',
+        'created_by', 'finalized_at',
     ];
 
     protected function casts(): array
@@ -37,7 +37,6 @@ class WorkOrder extends Model
             'total'              => 'decimal:2',
             'advance_percentage' => 'decimal:2',
             'advance_amount'     => 'decimal:2',
-            'document_client'    => 'array',
         ];
     }
 
@@ -110,6 +109,11 @@ class WorkOrder extends Model
     public function remissions(): HasMany
     {
         return $this->hasMany(Remission::class);
+    }
+
+    public function associatedDocuments(): HasMany
+    {
+        return $this->hasMany(WorkOrderAssociatedDocument::class)->orderBy('name');
     }
 
     public function invoices(): HasMany

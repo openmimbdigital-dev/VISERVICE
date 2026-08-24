@@ -53,16 +53,16 @@
         </div>
     </header>
 
-    @if(! empty($document_client))
+    @if($remission->workOrder?->associatedDocuments?->isNotEmpty())
     <section class="mb-6 overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
         <div class="border-b border-slate-100 bg-slate-50/80 px-4 py-3 sm:px-5">
-            <h2 class="font-semibold text-slate-900">Documento del cliente (OT)</h2>
+            <h2 class="font-semibold text-slate-900">Documentos asociados (OT)</h2>
         </div>
         <dl class="divide-y divide-slate-100 px-4 py-2 sm:px-5">
-            @foreach($document_client as $label => $value)
+            @foreach($remission->workOrder->associatedDocuments as $document)
             <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
-                <dt class="text-xs font-medium text-slate-500">{{ $document_labels[$label] ?? $label }}</dt>
-                <dd class="text-sm text-slate-900 sm:col-span-2">{{ $value }}</dd>
+                <dt class="text-xs font-medium text-slate-500">{{ $document->name }}</dt>
+                <dd class="text-sm text-slate-900 sm:col-span-2">{{ $document->value }}</dd>
             </div>
             @endforeach
         </dl>

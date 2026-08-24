@@ -68,11 +68,11 @@
             @if($remission->delivery_phone)<p>Tel: {{ $remission->delivery_phone }}</p>@endif
             @if($remission->delivery_observations)<p class="mt-1">{{ $remission->delivery_observations }}</p>@endif
         </div>
-        @if(! empty($document_client))
+        @if($remission->workOrder?->associatedDocuments?->isNotEmpty())
         <div>
-            <p class="font-semibold uppercase text-slate-500">Documento del cliente</p>
-            @foreach($document_client as $label => $value)
-            <p><span class="text-slate-500">{{ $document_labels[$label] ?? $label }}:</span> {{ $value }}</p>
+            <p class="font-semibold uppercase text-slate-500">Documentos asociados</p>
+            @foreach($remission->workOrder->associatedDocuments as $document)
+            <p><span class="text-slate-500">{{ $document->name }}:</span> {{ $document->value }}</p>
             @endforeach
         </div>
         @endif

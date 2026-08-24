@@ -11,6 +11,7 @@ use App\Models\Product;
 use App\Models\Quotation;
 use App\Models\User;
 use App\Models\WorkOrder;
+use App\Models\WorkOrderAssociatedDocument;
 use App\Models\WorkOrderItem;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Collection;
@@ -92,7 +93,6 @@ class WorkOrdersSeeder extends Seeder
                     'notes'              => 'Generada por WorkOrdersSeeder.',
                     'estimated_delivery' => now()->addDays(2 + ($sequence % 5))->toDateString(),
                     'tax_percentage'     => $quotation?->tax_percentage ?? 19,
-                    'document_client'    => $this->buildDocumentClient($business, $sequence, $bundle['client']),
                     'created_by'         => $created_by,
                     'finalized_at'       => $is_finalized ? now()->subDays($sequence) : null,
                     'deleted_at'         => null,
@@ -117,6 +117,7 @@ class WorkOrdersSeeder extends Seeder
             }
 
             $this->syncItems($work_order, $bundle['equipments'], $products, $quotation, $sequence);
+            $this->syncAssociatedDocuments($work_order, $business, $sequence, $bundle['client']);
             $work_order->recalculateTotals();
 
             $created++;
@@ -238,20 +239,15 @@ class WorkOrdersSeeder extends Seeder
         ];
     }
 
-    /** @return array<string, string>|null */
-    private function buildDocumentClient(Business $business, int $sequence, Client $client): ?array
+    private function syncAssociatedDocuments(WorkOrder $work_order, Business $business, int $sequence, Client $client): void
     {
+        $work_order->associatedDocuments()->delete();
+
         $configs = GeneralConfig::query()
             ->where('business_id', $business->id)
             ->associatedDocumentsOt()
             ->orderBy('id')
-            ->get(['label', 'value']);
-
-        if ($configs->isEmpty()) {
-            $label = GeneralConfig::makeLabelFromValue('Cédula del cliente');
-
-            return [$label => $client->document_number ?: ('DOC-' . str_pad((string) $sequence, 6, '0', STR_PAD_LEFT))];
-        }
+            ->get(['value']);
 
         $samples = [
             'Cédula del cliente'         => $client->document_number ?: '1020304050',
@@ -261,10 +257,20 @@ class WorkOrdersSeeder extends Seeder
             'Póliza de seguro'           => 'POL-' . str_pad((string) (5000 + $sequence), 5, '0', STR_PAD_LEFT),
         ];
 
-        $config = $configs[$sequence % $configs->count()];
-        $value = $samples[$config->value] ?? ('DEMO-' . $sequence);
+        $rows = $configs->isEmpty()
+            ? collect([['name' => 'Cédula del cliente', 'value' => $client->document_number ?: ('DOC-' . str_pad((string) $sequence, 6, '0', STR_PAD_LEFT))]])
+            : $configs->take(2)->map(fn ($config) => [
+                'name'  => $config->value,
+                'value' => $samples[$config->value] ?? ('DEMO-' . $sequence),
+            ]);
 
-        return [$config->label => $value];
+        foreach ($rows as $row) {
+            WorkOrderAssociatedDocument::query()->create([
+                'work_order_id' => $work_order->id,
+                'name'          => $row['name'],
+                'value'         => $row['value'],
+            ]);
+        }
     }
 
     /**

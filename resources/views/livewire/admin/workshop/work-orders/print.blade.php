@@ -56,11 +56,11 @@
         </div>
     </section>
 
-    @if(! empty($document_client))
+    @if($workOrder->associatedDocuments->isNotEmpty())
     <section class="mt-3 rounded border border-slate-200 p-2 text-xs">
-        <p class="font-semibold">Documento del cliente</p>
-        @foreach($document_client as $label => $value)
-        <p><span class="text-slate-500">{{ $document_labels[$label] ?? $label }}:</span> {{ $value }}</p>
+        <p class="font-semibold">Documentos asociados</p>
+        @foreach($workOrder->associatedDocuments as $document)
+        <p><span class="text-slate-500">{{ $document->name }}:</span> {{ $document->value }}</p>
         @endforeach
     </section>
     @endif

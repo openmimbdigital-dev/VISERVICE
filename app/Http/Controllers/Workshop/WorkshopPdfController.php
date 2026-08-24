@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Workshop;
 
 use App\Http\Controllers\Controller;
-use App\Models\GeneralConfig;
 use App\Models\Quotation;
 use App\Models\Remission;
 use App\Models\WorkOrder;
@@ -47,16 +46,14 @@ class WorkshopPdfController extends Controller
             'workOrder.items.productType',
             'workOrder.items.equipment',
             'workOrder.items.catalogProduct',
+            'workOrder.associatedDocuments',
             'createdBy',
         ]);
 
-        return Pdf::loadView('pdf.remission', array_merge([
+        return Pdf::loadView('pdf.remission', [
             'remission' => $remission,
             'title'     => 'Remisión ' . $remission->reference,
-        ], $this->documentClientData(
-            $remission->business_id,
-            $remission->workOrder?->document_client ?? []
-        )))
+        ])
             ->setPaper('letter')
             ->download($remission->reference . '.pdf');
     }
@@ -79,36 +76,14 @@ class WorkshopPdfController extends Controller
             'items.productType',
             'items.catalogProduct',
             'items.equipment',
+            'associatedDocuments',
         ]);
 
-        return Pdf::loadView('pdf.work-order', array_merge([
+        return Pdf::loadView('pdf.work-order', [
             'workOrder' => $workOrder,
             'title'     => 'OT ' . $workOrder->reference,
-        ], $this->documentClientData(
-            $workOrder->business_id,
-            $workOrder->document_client ?? []
-        )))
+        ])
             ->setPaper('letter')
             ->download($workOrder->reference . '.pdf');
-    }
-
-    private function documentClientData(int $business_id, array $document_client): array
-    {
-        $document_labels = [];
-
-        if ($document_client !== []) {
-            $document_labels = GeneralConfig::query()
-                ->forAuthUser()
-                ->associatedDocumentsOt()
-                ->where('business_id', $business_id)
-                ->whereIn('label', array_keys($document_client))
-                ->pluck('value', 'label')
-                ->all();
-        }
-
-        return [
-            'document_client' => $document_client,
-            'document_labels' => $document_labels,
-        ];
     }
 }

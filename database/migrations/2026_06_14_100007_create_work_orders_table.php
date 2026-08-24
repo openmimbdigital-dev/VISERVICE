@@ -28,7 +28,6 @@ return new class extends Migration
             $table->decimal('total', 12, 2)->default(0);
             $table->decimal('advance_percentage', 5, 2)->default(0);
             $table->decimal('advance_amount', 12, 2)->default(0);
-            $table->json('document_client')->nullable()->comment('Documentos asociados: {label: valor}');
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamp('finalized_at')->nullable();
             $table->timestamps();

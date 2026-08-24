@@ -57,10 +57,10 @@
             @if($remission->delivery_observations)<p>{{ $remission->delivery_observations }}</p>@endif
         </td>
         <td>
-            @if(! empty($document_client))
-            <div class="section-title">Documento del cliente</div>
-            @foreach($document_client as $label => $value)
-            <p><span class="muted">{{ $document_labels[$label] ?? $label }}:</span> {{ $value }}</p>
+            @if($remission->workOrder?->associatedDocuments?->isNotEmpty())
+            <div class="section-title">Documentos asociados</div>
+            @foreach($remission->workOrder->associatedDocuments as $document)
+            <p><span class="muted">{{ $document->name }}:</span> {{ $document->value }}</p>
             @endforeach
             @endif
         </td>

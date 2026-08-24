@@ -2,7 +2,6 @@
 
 namespace App\Livewire\Admin\Workshop\WorkOrders;
 
-use App\Models\GeneralConfig;
 use App\Models\WorkOrder;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -32,36 +31,16 @@ class PrintView extends Component
             'items.productType',
             'items.catalogProduct',
             'items.equipment',
+            'associatedDocuments',
         ]);
     }
 
     public function render()
     {
-        return view('livewire.admin.workshop.work-orders.print', $this->documentClientData())
+        return view('livewire.admin.workshop.work-orders.print')
             ->layoutData([
                 'pdfUrl'  => route('admin.workshop.work-orders.pdf', $this->workOrder),
                 'backUrl' => route('admin.workshop.work-orders.show', $this->workOrder),
             ]);
-    }
-
-    private function documentClientData(): array
-    {
-        $document_client = $this->workOrder->document_client ?? [];
-        $document_labels = [];
-
-        if ($document_client !== []) {
-            $document_labels = GeneralConfig::query()
-                ->forAuthUser()
-                ->associatedDocumentsOt()
-                ->where('business_id', $this->workOrder->business_id)
-                ->whereIn('label', array_keys($document_client))
-                ->pluck('value', 'label')
-                ->all();
-        }
-
-        return [
-            'document_client' => $document_client,
-            'document_labels' => $document_labels,
-        ];
     }
 }

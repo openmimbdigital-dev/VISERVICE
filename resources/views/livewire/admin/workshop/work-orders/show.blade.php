@@ -77,12 +77,19 @@
                         </a>
                         @endif
                         @if($can_edit)
+                        @if($edit_disabled)
+                        <button type="button" disabled title="{{ $edit_disabled_title }}"
+                            class="btn btn-outline-secondary btn-sm flex-1 justify-center opacity-50 sm:flex-none">
+                            Documento asociado
+                        </button>
+                        @else
                         <button type="button"
                             wire:click="openDocumentModal"
-                            title="Registrar documento asociado"
+                            title="Asociar documento"
                             class="btn btn-outline-secondary btn-sm flex-1 justify-center sm:flex-none">
                             Documento asociado
                         </button>
+                        @endif
                         @if($edit_disabled)
                         <button type="button" disabled title="{{ $edit_disabled_title }}"
                             class="btn btn-outline-secondary btn-sm flex-1 justify-center opacity-50 sm:flex-none">
@@ -102,23 +109,42 @@
 
     <div class="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div class="lg:col-span-2 space-y-6">
-    @if(! empty($workOrder->document_client))
     <section class="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
-        <div class="border-b border-slate-100 bg-slate-50/80 px-4 py-3 sm:px-5">
-            <h2 class="font-semibold text-slate-900">Documentos del cliente</h2>
+        <div class="flex flex-col gap-2 border-b border-slate-100 bg-slate-50/80 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+            <h2 class="font-semibold text-slate-900">Documentos asociados</h2>
+            @if($can_edit)
+                @if($edit_disabled)
+                <span title="{{ $edit_disabled_title }}" class="cursor-not-allowed text-xs font-medium text-slate-300 opacity-50" aria-disabled="true">Agregar</span>
+                @else
+                <button type="button" wire:click="openDocumentModal" class="btn btn-outline-secondary btn-sm w-full justify-center sm:w-auto">Agregar</button>
+                @endif
+            @endif
         </div>
         <dl class="divide-y divide-slate-100 px-4 py-2 sm:px-5">
-            @foreach($workOrder->document_client as $label => $value)
-            <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
-                <dt class="text-xs font-medium text-slate-500">
-                    {{ $associated_documents->firstWhere('label', $label)?->value ?? $label }}
-                </dt>
-                <dd class="text-sm text-slate-900 sm:col-span-2">{{ $value }}</dd>
+            @forelse($workOrder->associatedDocuments as $document)
+            <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4" wire:key="wo-doc-{{ $document->id }}">
+                <dt class="text-xs font-medium text-slate-500">{{ $document->name }}</dt>
+                <dd class="flex items-start justify-between gap-3 text-sm text-slate-900 sm:col-span-2">
+                    <span>{{ $document->value }}</span>
+                    @if($can_edit)
+                        @if($edit_disabled)
+                        <span title="{{ $edit_disabled_title }}" class="cursor-not-allowed rounded p-1 text-slate-300 opacity-50" aria-disabled="true">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536M4 20h4.586a1 1 0 00.707-.293l9.414-9.414a2 2 0 00-2.828-2.828L6.465 16.88A1 1 0 006.172 17.586V20z"/></svg>
+                        </span>
+                        @else
+                        <button type="button" wire:click="openEditAssociatedDocument({{ $document->id }})" title="Editar documento" class="rounded p-1 text-slate-400 transition hover:bg-slate-100 hover:text-indigo-600">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536M4 20h4.586a1 1 0 00.707-.293l9.414-9.414a2 2 0 00-2.828-2.828L6.465 16.88A1 1 0 006.172 17.586V20z"/></svg>
+                        </button>
+                        @endif
+                    @endif
+                </dd>
             </div>
-            @endforeach
+            @empty
+            <p class="py-4 text-sm text-slate-400">Sin documentos asociados.</p>
+            @endforelse
         </dl>
     </section>
-    @endif
+
 
     <section class="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
         <div class="flex flex-col gap-2 border-b border-slate-100 bg-slate-50/80 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
@@ -430,7 +456,9 @@
         </x-slot:backdrop>
 
         <div class="flex shrink-0 items-center justify-between border-b border-slate-100 px-4 py-4 sm:px-6">
-            <h3 class="text-base font-semibold text-slate-900">Documento asociado</h3>
+            <h3 class="text-base font-semibold text-slate-900">
+                {{ $editing_associated_document_id ? 'Editar documento asociado' : 'Asociar documento' }}
+            </h3>
             <button type="button" wire:click="closeDocumentModal" class="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600">
                 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
@@ -438,34 +466,15 @@
 
         <form wire:submit="saveDocumentClient" class="flex min-h-0 flex-1 flex-col">
             <div class="flex-1 space-y-4 overflow-y-auto px-4 py-5 sm:px-6">
-                @if(! empty($workOrder->document_client))
-                <div class="rounded-xl border border-slate-200 bg-slate-50/80 p-3">
-                    <p class="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">Registrados en esta OT</p>
-                    <ul class="space-y-1.5">
-                        @foreach($workOrder->document_client as $label => $saved_value)
-                        <li>
-                            <button type="button" wire:click="loadDocumentClient({{ json_encode($label) }})"
-                                class="flex w-full items-start justify-between gap-3 rounded-lg px-2.5 py-2 text-left text-sm transition {{ $selected_document_label === $label ? 'bg-indigo-50 ring-1 ring-indigo-200' : 'hover:bg-white' }}">
-                                <span class="font-medium text-slate-800">
-                                    {{ $associated_documents->firstWhere('label', $label)?->value ?? $label }}
-                                </span>
-                                <span class="shrink-0 font-mono text-xs text-slate-600">{{ $saved_value }}</span>
-                            </button>
-                        </li>
-                        @endforeach
-                    </ul>
-                </div>
-                @endif
-
                 <div>
                     <label class="mb-1.5 block text-xs font-medium text-slate-700">Documento <span class="text-rose-500">*</span></label>
                     <select wire:model="selected_document_label"
                         class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('selected_document_label') border-rose-400 bg-rose-50 @enderror">
                         <option value="">Seleccionar…</option>
-                        @forelse($associated_documents as $doc)
+                        @forelse($available_associated_documents as $doc)
                         <option value="{{ $doc->label }}">{{ $doc->value }}</option>
                         @empty
-                        <option value="" disabled>No hay documentos configurados</option>
+                        <option value="" disabled>No hay documentos disponibles</option>
                         @endforelse
                     </select>
                     @error('selected_document_label') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror

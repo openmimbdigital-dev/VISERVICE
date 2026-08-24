@@ -2,7 +2,6 @@
 
 namespace App\Livewire\Admin\Workshop\Remissions;
 
-use App\Models\GeneralConfig;
 use App\Models\Remission;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -30,37 +29,17 @@ class PrintView extends Component
             'workOrder.items.productType',
             'workOrder.items.equipment',
             'workOrder.items.catalogProduct',
+            'workOrder.associatedDocuments',
             'createdBy',
         ]);
     }
 
     public function render()
     {
-        return view('livewire.admin.workshop.remissions.print', $this->documentClientData())
+        return view('livewire.admin.workshop.remissions.print')
             ->layoutData([
                 'pdfUrl'  => route('admin.workshop.remissions.pdf', $this->remission),
                 'backUrl' => route('admin.workshop.remissions.show', $this->remission),
             ]);
-    }
-
-    private function documentClientData(): array
-    {
-        $document_client = $this->remission->workOrder?->document_client ?? [];
-        $document_labels = [];
-
-        if ($document_client !== []) {
-            $document_labels = GeneralConfig::query()
-                ->forAuthUser()
-                ->associatedDocumentsOt()
-                ->where('business_id', $this->remission->business_id)
-                ->whereIn('label', array_keys($document_client))
-                ->pluck('value', 'label')
-                ->all();
-        }
-
-        return [
-            'document_client' => $document_client,
-            'document_labels' => $document_labels,
-        ];
     }
 }

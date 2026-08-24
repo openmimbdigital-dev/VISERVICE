@@ -49,11 +49,11 @@
     </tr>
 </table>
 
-@if(! empty($document_client))
+@if($workOrder->associatedDocuments->isNotEmpty())
 <div class="box">
-    <p class="bold">Documento del cliente</p>
-    @foreach($document_client as $label => $value)
-    <p><span class="muted">{{ $document_labels[$label] ?? $label }}:</span> {{ $value }}</p>
+    <p class="bold">Documentos asociados</p>
+    @foreach($workOrder->associatedDocuments as $document)
+    <p><span class="muted">{{ $document->name }}:</span> {{ $document->value }}</p>
     @endforeach
 </div>
 @endif

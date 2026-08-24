@@ -5,7 +5,7 @@ namespace App\Livewire\Admin\Workshop\WorkOrders;
 use App\Actions\LogEquipmentHistoricalAction;
 use App\Actions\LogUserHistoricalAction;
 use App\Actions\Workshop\AdjustWorkOrderItemQuantityAction;
-use App\Actions\Workshop\SaveWorkOrderDocumentClientAction;
+use App\Actions\Workshop\CreateOrUpdateWorkOrderAssociatedDocumentAction;
 use App\Actions\Workshop\UpdateWorkOrderStatusAction;
 use App\Enums\WorkOrderStatus;
 use App\Models\GeneralConfig;
@@ -36,7 +36,11 @@ class Show extends Component
 
     public ?string $selected_document_label = null;
 
+    public ?string $editing_document_name = null;
+
     public string $document_input_value = '';
+
+    public ?int $editing_associated_document_id = null;
 
     public ?int $editing_item_id = null;
 
@@ -444,22 +448,34 @@ class Show extends Component
     public function openDocumentModal(): void
     {
         abort_unless(auth()->user()?->can('workshop.work-orders.edit'), 403);
+        $this->assertWorkOrderEditable();
 
-        $this->workOrder->refresh();
+        $this->editing_associated_document_id = null;
+        $this->editing_document_name = null;
+        $this->selected_document_label = null;
+        $this->document_input_value = '';
+        $this->showDocumentModal = true;
+        $this->resetValidation();
+    }
 
-        $documents = $this->workOrder->document_client ?? [];
+    public function openEditAssociatedDocument(int $id): void
+    {
+        abort_unless(auth()->user()?->can('workshop.work-orders.edit'), 403);
+        $this->assertWorkOrderEditable();
 
-        if ($documents !== []) {
-            $label = (string) array_key_first($documents);
-            $this->selected_document_label = $label;
-            $this->document_input_value = is_string($documents[$label] ?? null)
-                ? (string) $documents[$label]
-                : '';
-        } else {
-            $this->selected_document_label = null;
-            $this->document_input_value = '';
-        }
+        $document = $this->workOrder->associatedDocuments()->findOrFail($id);
 
+        $catalog_label = GeneralConfig::query()
+            ->forAuthUser()
+            ->associatedDocumentsOt()
+            ->where('business_id', $this->workOrder->business_id)
+            ->where('value', $document->name)
+            ->value('label');
+
+        $this->editing_associated_document_id = $document->id;
+        $this->editing_document_name = $document->name;
+        $this->selected_document_label = $catalog_label ? (string) $catalog_label : null;
+        $this->document_input_value = (string) $document->value;
         $this->showDocumentModal = true;
         $this->resetValidation();
     }
@@ -467,22 +483,17 @@ class Show extends Component
     public function closeDocumentModal(): void
     {
         $this->showDocumentModal = false;
+        $this->editing_associated_document_id = null;
+        $this->editing_document_name = null;
         $this->selected_document_label = null;
         $this->document_input_value = '';
-        $this->resetValidation();
-    }
-
-    public function loadDocumentClient(string $label): void
-    {
-        $this->selected_document_label = $label;
-        $existing = $this->workOrder->document_client[$label] ?? '';
-        $this->document_input_value = is_string($existing) ? $existing : '';
         $this->resetValidation();
     }
 
     public function saveDocumentClient(): void
     {
         abort_unless(auth()->user()?->can('workshop.work-orders.edit'), 403);
+        $this->assertWorkOrderEditable();
 
         $this->validate([
             'selected_document_label' => 'required|string|max:100',
@@ -492,12 +503,16 @@ class Show extends Component
             'document_input_value.required'    => 'El valor del documento es obligatorio.',
         ]);
 
+        $is_editing = (bool) $this->editing_associated_document_id;
+
         try {
-            $this->workOrder = SaveWorkOrderDocumentClientAction::run(
+            CreateOrUpdateWorkOrderAssociatedDocumentAction::run(
                 $this->workOrder->id,
+                $this->editing_associated_document_id,
                 $this->selected_document_label,
                 $this->document_input_value,
             );
+            $this->workOrder->refresh();
         } catch (ValidationException $exception) {
             $message = collect($exception->errors())->flatten()->first()
                 ?? 'No se pudo guardar el documento.';
@@ -513,7 +528,7 @@ class Show extends Component
         $this->closeDocumentModal();
 
         $this->dispatch('swal', [
-            'title' => 'Documento actualizado',
+            'title' => $is_editing ? 'Documento actualizado' : 'Documento asociado',
             'icon'  => 'success',
         ]);
     }
@@ -559,6 +574,7 @@ class Show extends Component
             'equipments',
             'quotation',
             'remissions',
+            'associatedDocuments',
         ]);
 
         $product_types = ProductType::query()
@@ -581,6 +597,19 @@ class Show extends Component
             ->where('business_id', $this->workOrder->business_id)
             ->orderBy('value')
             ->get(['id', 'label', 'value']);
+
+        $used_document_names = $this->workOrder->associatedDocuments->pluck('name')->all();
+        $available_associated_documents = $associated_documents
+            ->reject(function ($doc) use ($used_document_names) {
+                if ($this->editing_associated_document_id
+                    && $this->editing_document_name === $doc->value
+                ) {
+                    return false;
+                }
+
+                return in_array($doc->value, $used_document_names, true);
+            })
+            ->values();
 
         $can_edit = auth()->user()->can('workshop.work-orders.edit');
         $is_locked = ! $this->workOrder->isEditable();
@@ -614,6 +643,7 @@ class Show extends Component
             'product_types' => $product_types,
             'catalog_products' => $catalog_products,
             'associated_documents' => $associated_documents,
+            'available_associated_documents' => $available_associated_documents,
             'can_edit' => $can_edit,
             'can_edit_items' => $can_edit && ! $is_locked,
             'can_manage' => $can_edit && ! $is_locked,
