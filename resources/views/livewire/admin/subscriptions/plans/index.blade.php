@@ -106,7 +106,6 @@
         </div>
 
         {{ $plans->links() }}
-    </div>
 
     {{-- Modal crear/editar plan --}}
     @if($showModal)
@@ -210,6 +209,7 @@
             </div>
         </div>
     @endif
+    </div>
 
     @push('scripts')
     <script>
