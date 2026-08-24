@@ -44,26 +44,40 @@
             <div class="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 sm:p-6">
                 <div class="sm:col-span-2">
                     <label class="mb-1.5 block text-xs font-medium text-slate-700">Orden de trabajo <span class="text-rose-500">*</span></label>
+                    @if($work_order_locked)
+                    <input type="hidden" wire:model="form.work_order_id">
+                    @endif
                     <select wire:model.live="form.work_order_id"
-                        class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm @error('form.work_order_id') border-rose-400 bg-rose-50 @enderror">
+                        @disabled($work_order_locked)
+                        class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-70 @error('form.work_order_id') border-rose-400 bg-rose-50 @enderror">
                         <option value="">Seleccionar OT</option>
                         @foreach($eligible_work_orders as $work_order)
                         <option value="{{ $work_order->id }}">
-                            {{ $work_order->reference }} — {{ $work_order->client?->name }} / {{ $work_order->equipment?->plate }} ({{ $work_order->status_label }})
+                            {{ $work_order->reference }} — {{ $work_order->client?->name }}
+                            @if($work_order->equipments->isNotEmpty())
+                                / {{ $work_order->equipments->pluck('plate')->filter()->join(', ') }}
+                            @endif
+                            ({{ $work_order->status_label }})
                         </option>
                         @endforeach
                     </select>
+                    @if($work_order_locked)
+                    <p class="mt-1 text-xs text-slate-500">OT fijada desde la orden de trabajo.</p>
+                    @endif
                     @error('form.work_order_id') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                 </div>
 
                 <div>
-                    <label class="mb-1.5 block text-xs font-medium text-slate-700">Tipo <span class="text-rose-500">*</span></label>
-                    <select wire:model="form.type" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm @error('form.type') border-rose-400 bg-rose-50 @enderror">
-                        <option value="entrega">Entrega</option>
-                        <option value="devolucion">Devolución</option>
-                        <option value="traslado">Traslado</option>
-                    </select>
-                    @error('form.type') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                    <label class="mb-1.5 block text-xs font-medium text-slate-700">Tipo</label>
+                    <div class="flex min-h-[42px] items-center rounded-xl border border-slate-200 bg-slate-100 px-3.5 py-2.5">
+                        <span class="text-sm text-slate-700">
+                            @switch($form->type)
+                                @case('devolucion') Devolución @break
+                                @case('traslado') Traslado @break
+                                @default Entrega
+                            @endswitch
+                        </span>
+                    </div>
                 </div>
 
                 <div>
@@ -80,7 +94,13 @@
 
                 <div>
                     <label class="mb-1.5 block text-xs font-medium text-slate-700">Cotización / Orden de compra</label>
-                    <input type="text" wire:model="form.quotation_or_po_reference" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm">
+                    <div class="flex min-h-[42px] items-center rounded-xl border border-slate-200 bg-slate-100 px-3.5 py-2.5">
+                        @if($form->quotation_or_po_reference)
+                            <span class="text-sm text-slate-700">{{ $form->quotation_or_po_reference }}</span>
+                        @else
+                            <span class="text-sm text-slate-400">Sin cotización asociada a la OT</span>
+                        @endif
+                    </div>
                 </div>
 
                 <div>
@@ -169,6 +189,12 @@
                 </div>
             </div>
         </section>
+
+        @include('livewire.admin.workshop.remissions.partials.work-order-items', [
+            'items' => $work_order_items,
+            'variant' => 'card',
+            'empty_message' => 'Selecciona una OT para ver sus ítems.',
+        ])
 
         <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <a href="{{ route('admin.workshop.remissions.index') }}" wire:navigate class="btn btn-outline-secondary w-full justify-center sm:w-auto">Cancelar</a>

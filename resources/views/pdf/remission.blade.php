@@ -35,8 +35,12 @@
             @if($remission->client?->phone)<p>{{ $remission->client->phone }}</p>@endif
         </td>
         <td>
-            <div class="section-title">Equipo / OT</div>
-            <p>{{ $remission->equipment?->select_label ?? '—' }}</p>
+            <div class="section-title">Equipos / OT</div>
+            @forelse($remission->equipments as $equipment)
+                <p>{{ $equipment->select_label ?? $equipment->plate }}</p>
+            @empty
+                <p>—</p>
+            @endforelse
             @if($remission->workOrder)<p>OT: {{ $remission->workOrder->reference }}</p>@endif
         </td>
     </tr>
@@ -67,33 +71,46 @@
     <thead>
         <tr>
             <th>#</th>
+            <th>Equipo</th>
             <th>Descripción</th>
             <th>Tipo</th>
-            <th>Categoría</th>
-            <th>Ref./Marca</th>
             <th class="text-right">Cant.</th>
-            <th>Unidad</th>
+            <th class="text-right">Completados</th>
+            <th class="text-right">Cancelados</th>
         </tr>
     </thead>
     <tbody>
-        @foreach($remission->items as $index => $item)
+        @forelse(($remission->workOrder?->items ?? collect()) as $index => $item)
         <tr>
             <td>{{ $index + 1 }}</td>
+            <td>{{ $item->equipment?->select_label ?? $item->equipment?->plate ?? '—' }}</td>
             <td>
                 {{ $item->description }}
-                @if($item->observations)<br><span class="muted">{{ $item->observations }}</span>@endif
+                @if($item->technician_notes)<br><span class="muted">{{ $item->technician_notes }}</span>@endif
             </td>
             <td>{{ $item->productType?->name ?? '—' }}</td>
-            <td>{{ $item->productCategory?->name ?? '—' }}</td>
-            <td>{{ $item->reference_brand ?? '—' }}</td>
-            <td class="text-right bold">{{ $item->quantity }}</td>
-            <td>{{ $item->unit_name ?? $item->unit?->name ?? '—' }}</td>
+            <td class="text-right bold">{{ $item->quantity + 0 }}</td>
+            <td class="text-right">{{ $item->quantity_complete + 0 }}</td>
+            <td class="text-right">{{ $item->quantity_canceled + 0 }}</td>
         </tr>
-        @endforeach
+        @empty
+        <tr>
+            <td colspan="7" class="muted">Sin ítems en la OT asociada.</td>
+        </tr>
+        @endforelse
     </tbody>
 </table>
 
-<p class="text-right bold" style="margin-top:8px;">Total ítems: {{ $remission->total_items }}</p>
+@php
+    $wo_items = $remission->workOrder?->items ?? collect();
+@endphp
+@if($wo_items->isNotEmpty())
+<p class="text-right bold" style="margin-top:8px;">
+    Total cant.: {{ $wo_items->sum(fn ($i) => (float) $i->quantity) + 0 }}
+    · Completados: {{ $wo_items->sum(fn ($i) => (float) $i->quantity_complete) + 0 }}
+    · Cancelados: {{ $wo_items->sum(fn ($i) => (float) $i->quantity_canceled) + 0 }}
+</p>
+@endif
 
 @if($remission->observations)
 <div class="box">

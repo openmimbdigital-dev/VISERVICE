@@ -65,6 +65,17 @@
                             class="btn btn-outline-secondary btn-sm flex-1 justify-center sm:flex-none">
                             Imprimir / PDF
                         </a>
+                        @if($can_create_remission)
+                        <a href="{{ route('admin.workshop.remissions.form', ['work_order' => $workOrder->id]) }}" wire:navigate
+                            class="btn btn-success btn-sm flex-1 justify-center sm:flex-none">
+                            Crear remisión
+                        </a>
+                        @elseif($linked_remission)
+                        <a href="{{ route('admin.workshop.remissions.show', $linked_remission) }}" wire:navigate
+                            class="btn btn-outline-secondary btn-sm flex-1 justify-center sm:flex-none">
+                            Ver remisión {{ $linked_remission->reference }}
+                        </a>
+                        @endif
                         @if($can_edit)
                         <button type="button"
                             wire:click="openDocumentModal"

@@ -369,6 +369,20 @@ class Form extends Component
         $advance_amount = round($subtotal * ($advance_pct / 100), 2);
         $this->form->advance_amount = (string) $advance_amount;
 
+        $linked_remission = null;
+        $can_create_remission = false;
+        if ($this->form->work_order_id) {
+            $work_order = WorkOrder::query()
+                ->forAuthUser()
+                ->with('remissions')
+                ->find($this->form->work_order_id);
+
+            $linked_remission = $work_order?->remissions->first();
+            $can_create_remission = auth()->user()->can('workshop.remissions.create')
+                && ($work_order?->status?->isOpen() ?? false)
+                && ! $linked_remission;
+        }
+
         return view('livewire.admin.workshop.work-orders.form', [
             'is_editing'           => $this->form->isEditing(),
             'from_quotation'       => $from_quotation,
@@ -384,6 +398,8 @@ class Form extends Component
             'preview_advance_amount' => $advance_amount,
             'can_delete'           => $this->form->work_order_id
                 && auth()->user()->can('workshop.work-orders.delete'),
+            'can_create_remission' => $can_create_remission,
+            'linked_remission'     => $linked_remission,
         ]);
     }
 }

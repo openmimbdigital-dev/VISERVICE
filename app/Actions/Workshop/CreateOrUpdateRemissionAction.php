@@ -35,7 +35,6 @@ class CreateOrUpdateRemissionAction
             $payload = [
                 'work_order_id'             => $work_order->id,
                 'client_id'                 => $work_order->client_id,
-                'equipment_id'              => $work_order->equipment_id,
                 'type'                      => $data['type'],
                 'status'                    => $status->value,
                 'quotation_or_po_reference' => $data['quotation_or_po_reference'] ?? null,
@@ -87,9 +86,13 @@ class CreateOrUpdateRemissionAction
                 $this->syncItemsFromWorkOrder($remission, $work_order);
             }
 
+            $work_order->loadMissing('equipments:id');
+            $equipment_ids = $work_order->equipments->pluck('id')->map(fn ($id) => (int) $id)->values()->all();
+            $remission->equipments()->sync($equipment_ids);
+
             $remission->recalculateTotalItems();
 
-            $remission = $remission->fresh(['items', 'client:id,name', 'equipment', 'workOrder']);
+            $remission = $remission->fresh(['items', 'client:id,name', 'equipments', 'workOrder']);
 
             $action = $remission_id ? 'updated' : 'created';
             $description = ($remission_id ? 'Actualizó' : 'Creó') . " la remisión {$remission->reference}";
@@ -101,10 +104,11 @@ class CreateOrUpdateRemissionAction
                 subject: $remission,
                 subject_label: $remission->reference,
                 properties: [
-                    'status'        => $remission->status?->value,
-                    'type'          => $remission->type,
-                    'work_order_id' => $remission->work_order_id,
-                    'total_items'   => $remission->total_items,
+                    'status'         => $remission->status?->value,
+                    'type'           => $remission->type,
+                    'work_order_id'  => $remission->work_order_id,
+                    'equipment_ids'  => $remission->equipments->pluck('id')->all(),
+                    'total_items'    => $remission->total_items,
                 ],
                 business_id: $business_id,
             );

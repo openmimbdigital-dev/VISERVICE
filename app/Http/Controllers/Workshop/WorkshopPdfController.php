@@ -43,12 +43,11 @@ class WorkshopPdfController extends Controller
         $remission->load([
             'business',
             'client',
-            'equipment',
-            'workOrder',
+            'equipments',
+            'workOrder.items.productType',
+            'workOrder.items.equipment',
+            'workOrder.items.catalogProduct',
             'createdBy',
-            'items.productType',
-            'items.productCategory',
-            'items.unit',
         ]);
 
         return Pdf::loadView('pdf.remission', array_merge([

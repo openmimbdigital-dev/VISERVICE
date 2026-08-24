@@ -71,9 +71,10 @@ class Equipment extends Model
             ->withTimestamps();
     }
 
-    public function remissions(): HasMany
+    public function remissions(): BelongsToMany
     {
-        return $this->hasMany(Remission::class);
+        return $this->belongsToMany(Remission::class, 'equipment_remission')
+            ->withTimestamps();
     }
 
     public function equipment_historicals(): HasMany

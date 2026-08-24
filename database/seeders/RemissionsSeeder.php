@@ -94,7 +94,6 @@ class RemissionsSeeder extends Seeder
                 [
                     'work_order_id'             => $work_order->id,
                     'client_id'                 => $work_order->client_id,
-                    'equipment_id'              => $work_order->equipment_id,
                     'type'                      => $entry['type'],
                     'status'                    => $status->value,
                     'quotation_or_po_reference' => $work_order->quotation?->reference,
@@ -124,6 +123,10 @@ class RemissionsSeeder extends Seeder
             }
 
             $this->syncItems($remission, $work_order);
+            $work_order->loadMissing('equipments:id');
+            $remission->equipments()->sync(
+                $work_order->equipments->pluck('id')->map(fn ($id) => (int) $id)->all()
+            );
             $remission->recalculateTotalItems();
 
             $created++;

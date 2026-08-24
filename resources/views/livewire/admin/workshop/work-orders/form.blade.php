@@ -26,6 +26,17 @@
             <div class="flex w-full shrink-0 flex-wrap gap-2 sm:w-auto">
                 <a href="{{ route('admin.workshop.work-orders.show', $form->work_order_id) }}" wire:navigate class="btn btn-outline-secondary btn-sm flex-1 sm:flex-none justify-center">Ver detalle</a>
                 <a href="{{ route('admin.workshop.work-orders.print', $form->work_order_id) }}" target="_blank" class="btn btn-outline-secondary btn-sm flex-1 sm:flex-none justify-center">Imprimir / PDF</a>
+                @if($can_create_remission)
+                <a href="{{ route('admin.workshop.remissions.form', ['work_order' => $form->work_order_id]) }}" wire:navigate
+                    class="btn btn-success btn-sm flex-1 sm:flex-none justify-center">
+                    Crear remisión
+                </a>
+                @elseif($linked_remission)
+                <a href="{{ route('admin.workshop.remissions.show', $linked_remission) }}" wire:navigate
+                    class="btn btn-outline-secondary btn-sm flex-1 sm:flex-none justify-center">
+                    Ver remisión
+                </a>
+                @endif
                 @can('workshop.work-orders.delete')
                 @if($can_delete)
                 <button type="button" wire:click="deleteWorkOrder" class="btn btn-danger btn-sm flex-1 sm:flex-none justify-center">Eliminar</button>

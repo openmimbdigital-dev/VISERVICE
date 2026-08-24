@@ -558,6 +558,7 @@ class Show extends Component
             'client',
             'equipments',
             'quotation',
+            'remissions',
         ]);
 
         $product_types = ProductType::query()
@@ -583,6 +584,10 @@ class Show extends Component
 
         $can_edit = auth()->user()->can('workshop.work-orders.edit');
         $is_locked = ! $this->workOrder->isEditable();
+        $linked_remission = $this->workOrder->remissions->first();
+        $can_create_remission = auth()->user()->can('workshop.remissions.create')
+            && ($this->workOrder->status?->isOpen() ?? false)
+            && ! $linked_remission;
 
         $status_badge_class = $this->workOrder->status instanceof WorkOrderStatus
             ? $this->workOrder->status->badgeClass()
@@ -623,6 +628,8 @@ class Show extends Component
                 ? 'Motivo de la cancelación…'
                 : 'Opcional: nota del cambio de estado…',
             'status_comments_history' => $status_comments_history,
+            'can_create_remission' => $can_create_remission,
+            'linked_remission' => $linked_remission,
         ]);
     }
 }

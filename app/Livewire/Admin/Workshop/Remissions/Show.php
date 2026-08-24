@@ -29,12 +29,11 @@ class Show extends Component
         );
 
         $this->remission = $remission->load([
-            'items.productType',
-            'items.productCategory',
-            'items.unit',
             'client',
-            'equipment',
-            'workOrder',
+            'equipments',
+            'workOrder.items.productType',
+            'workOrder.items.equipment',
+            'workOrder.items.catalogProduct',
             'statusDefinition',
         ]);
     }
@@ -60,12 +59,11 @@ class Show extends Component
     public function render()
     {
         $this->remission->load([
-            'items.productType',
-            'items.productCategory',
-            'items.unit',
             'client',
-            'equipment',
-            'workOrder',
+            'equipments',
+            'workOrder.items.productType',
+            'workOrder.items.equipment',
+            'workOrder.items.catalogProduct',
             'statusDefinition',
         ]);
 

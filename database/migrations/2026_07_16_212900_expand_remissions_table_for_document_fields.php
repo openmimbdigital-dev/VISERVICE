@@ -18,10 +18,6 @@ return new class extends Migration
                 $table->foreignId('client_id')->nullable()->constrained('clients')->nullOnDelete();
             }
 
-            if (! Schema::hasColumn('remissions', 'equipment_id')) {
-                $table->foreignId('equipment_id')->nullable()->constrained('equipment')->nullOnDelete();
-            }
-
             if (! Schema::hasColumn('remissions', 'type')) {
                 $table->enum('type', ['entrega', 'devolucion', 'traslado'])->default('entrega');
             }
@@ -85,13 +81,12 @@ return new class extends Migration
 
         DatabaseSchema::addIndexIfMissing('remissions', 'remissions_business_deleted_type_idx', ['business_id', 'deleted_at', 'type']);
         DatabaseSchema::addIndexIfMissing('remissions', 'remissions_client_deleted_idx', ['client_id', 'deleted_at']);
-        DatabaseSchema::addIndexIfMissing('remissions', 'remissions_equipment_deleted_idx', ['equipment_id', 'deleted_at']);
     }
 
     public function down(): void
     {
         Schema::table('remissions', function (Blueprint $table) {
-            foreach (['remissions_business_deleted_type_idx', 'remissions_client_deleted_idx', 'remissions_equipment_deleted_idx'] as $index) {
+            foreach (['remissions_business_deleted_type_idx', 'remissions_client_deleted_idx'] as $index) {
                 if (DatabaseSchema::hasIndex('remissions', $index)) {
                     $table->dropIndex($index);
                 }
@@ -102,7 +97,7 @@ return new class extends Migration
             $drop = [];
 
             foreach ([
-                'client_id', 'equipment_id', 'type', 'quotation_or_po_reference', 'issue_date',
+                'client_id', 'type', 'quotation_or_po_reference', 'issue_date',
                 'delivery_address', 'delivery_city', 'delivery_contact', 'delivery_phone', 'delivery_observations',
                 'observations', 'delivered_by_name', 'delivered_by_position', 'delivered_by_document',
                 'delivered_by_signature', 'received_by_name', 'received_by_position', 'received_by_document',

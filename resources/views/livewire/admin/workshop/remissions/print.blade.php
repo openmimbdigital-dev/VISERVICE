@@ -47,8 +47,12 @@
             @endif
         </div>
         <div>
-            <p class="font-semibold uppercase text-slate-500">Equipo / OT</p>
-            <p>{{ $remission->equipment?->select_label ?? '—' }}</p>
+            <p class="font-semibold uppercase text-slate-500">Equipos / OT</p>
+            @forelse($remission->equipments as $equipment)
+                <p>{{ $equipment->select_label ?? $equipment->plate }}</p>
+            @empty
+                <p>—</p>
+            @endforelse
             @if($remission->workOrder)
             <p>OT: {{ $remission->workOrder->reference }}</p>
             @endif
@@ -74,44 +78,10 @@
         @endif
     </section>
 
-    <table class="mt-4 w-full border-collapse text-xs">
-        <thead>
-            <tr class="border-b border-slate-300 bg-slate-50">
-                <th class="px-2 py-1 text-left">#</th>
-                <th class="px-2 py-1 text-left">Descripción</th>
-                <th class="px-2 py-1 text-left">Tipo</th>
-                <th class="px-2 py-1 text-left">Categoría</th>
-                <th class="px-2 py-1 text-left">Ref./Marca</th>
-                <th class="px-2 py-1 text-right">Cant.</th>
-                <th class="px-2 py-1 text-left">Unidad</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach($remission->items as $index => $item)
-            <tr class="border-b border-slate-100">
-                <td class="px-2 py-1">{{ $index + 1 }}</td>
-                <td class="px-2 py-1">
-                    {{ $item->description }}
-                    @if($item->observations)
-                    <span class="block text-slate-500">{{ $item->observations }}</span>
-                    @endif
-                </td>
-                <td class="px-2 py-1">{{ $item->productType?->name ?? '—' }}</td>
-                <td class="px-2 py-1">{{ $item->productCategory?->name ?? '—' }}</td>
-                <td class="px-2 py-1">{{ $item->reference_brand ?? '—' }}</td>
-                <td class="px-2 py-1 text-right font-medium">{{ $item->quantity }}</td>
-                <td class="px-2 py-1">{{ $item->unit_name ?? $item->unit?->name ?? '—' }}</td>
-            </tr>
-            @endforeach
-        </tbody>
-        <tfoot>
-            <tr class="border-t border-slate-300">
-                <td colspan="5" class="px-2 py-2 text-right font-semibold">Total ítems</td>
-                <td class="px-2 py-2 text-right font-bold">{{ $remission->total_items }}</td>
-                <td></td>
-            </tr>
-        </tfoot>
-    </table>
+    @include('livewire.admin.workshop.remissions.partials.work-order-items', [
+        'items' => $remission->workOrder?->items ?? collect(),
+        'variant' => 'compact',
+    ])
 
     @if($remission->observations)
     <section class="mt-4 rounded border border-slate-200 p-2 text-xs">
