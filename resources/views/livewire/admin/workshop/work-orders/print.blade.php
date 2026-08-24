@@ -47,16 +47,20 @@
             @endif
         </div>
         <div>
-            <p class="font-semibold uppercase text-slate-500">Equipo</p>
-            <p>{{ $workOrder->equipment?->select_label ?? '—' }}</p>
+            <p class="font-semibold uppercase text-slate-500">Equipos</p>
+            @forelse($workOrder->equipments as $equipment)
+                <p>{{ $equipment->select_label }}</p>
+            @empty
+                <p>—</p>
+            @endforelse
         </div>
     </section>
 
-    @if(! empty($document_client))
+    @if($workOrder->associatedDocuments->isNotEmpty())
     <section class="mt-3 rounded border border-slate-200 p-2 text-xs">
-        <p class="font-semibold">Documento del cliente</p>
-        @foreach($document_client as $label => $value)
-        <p><span class="text-slate-500">{{ $document_labels[$label] ?? $label }}:</span> {{ $value }}</p>
+        <p class="font-semibold">Documentos asociados</p>
+        @foreach($workOrder->associatedDocuments as $document)
+        <p><span class="text-slate-500">{{ $document->name }}:</span> {{ $document->value }}</p>
         @endforeach
     </section>
     @endif
@@ -79,6 +83,7 @@
         <thead>
             <tr class="border-b border-slate-300 bg-slate-50">
                 <th class="px-2 py-1 text-left">#</th>
+                <th class="px-2 py-1 text-left">Equipo</th>
                 <th class="px-2 py-1 text-left">Descripción</th>
                 <th class="px-2 py-1 text-left">Tipo</th>
                 <th class="px-2 py-1 text-right">Cant.</th>
@@ -91,6 +96,7 @@
             @foreach($workOrder->items as $index => $item)
             <tr class="border-b border-slate-100">
                 <td class="px-2 py-1">{{ $index + 1 }}</td>
+                <td class="px-2 py-1">{{ $item->equipment?->select_label ?? '—' }}</td>
                 <td class="px-2 py-1">
                     {{ $item->description }}
                     @if($item->technician_notes)

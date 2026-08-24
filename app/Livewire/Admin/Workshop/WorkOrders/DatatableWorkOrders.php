@@ -26,7 +26,6 @@ class DatatableWorkOrders extends LivewireDatatable
         return WorkOrder::query()
             ->forAuthUser()
             ->leftJoin('clients', 'work_orders.client_id', '=', 'clients.id')
-            ->leftJoin('equipment', 'work_orders.equipment_id', '=', 'equipment.id')
             ->select('work_orders.*')
             ->orderByDesc('work_orders.created_at');
     }
@@ -43,10 +42,6 @@ class DatatableWorkOrders extends LivewireDatatable
                 ->label('Cliente')
                 ->searchable()
                 ->sortable(),
-
-            Column::raw('equipment.plate AS equipment_plate')
-                ->label('Placa')
-                ->searchable(),
 
             Column::callback(['work_orders.total'], function ($total) {
                 return '<span class="tabular-nums font-semibold">' . col_money($total) . '</span>';

@@ -24,6 +24,9 @@ class Form extends Component
 
     public ?string $reference = null;
 
+    /** Bloquea el select de OT cuando se abre el form desde una OT. */
+    public bool $work_order_locked = false;
+
     public function mount(?Remission $remission = null): void
     {
         if ($remission) {
@@ -37,6 +40,7 @@ class Form extends Component
             $remission->load(['workOrder.statusDefinition']);
             $this->form->setRemission($remission);
             $this->reference = $remission->reference;
+            $this->work_order_locked = true;
 
             if ($remission->workOrder?->status instanceof WorkOrderStatus) {
                 $this->form->status = $remission->workOrder->status->value;
@@ -57,11 +61,13 @@ class Form extends Component
                 ->forAuthUser()
                 ->where('business_id', $this->form->resolvedBusinessId())
                 ->whereIn('status', WorkOrderStatus::openValues())
-                ->with(['client.city', 'equipment'])
+                ->whereDoesntHave('remissions')
+                ->with(['client.city', 'equipments'])
                 ->find($work_order_id);
 
             if ($work_order) {
                 $this->form->work_order_id = $work_order->id;
+                $this->work_order_locked = true;
                 $this->prefillFromWorkOrder($work_order);
             }
         }
@@ -77,7 +83,7 @@ class Form extends Component
             ->forAuthUser()
             ->where('business_id', $this->form->resolvedBusinessId())
             ->whereIn('status', WorkOrderStatus::openValues())
-            ->with(['client.city', 'equipment'])
+            ->with(['client.city', 'equipments'])
             ->find((int) $value);
 
         if (! $work_order) {
@@ -158,12 +164,23 @@ class Form extends Component
         $status_badge_class = $status_enum?->badgeClass()
             ?? 'bg-slate-100 text-slate-600 ring-1 ring-slate-500/20';
 
+        $work_order_items = collect();
+        if ($this->form->work_order_id) {
+            $work_order_items = WorkOrder::query()
+                ->forAuthUser()
+                ->whereKey($this->form->work_order_id)
+                ->with(['items.productType', 'items.equipment', 'items.catalogProduct'])
+                ->first()
+                ?->items ?? collect();
+        }
+
         return view('livewire.admin.workshop.remissions.form', [
             'is_editing'           => $this->form->isEditing(),
             'eligible_work_orders' => $this->form->getEligibleWorkOrders(),
             'cities'               => City::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'state_province']),
             'status_label'         => $status_label,
             'status_badge_class'   => $status_badge_class,
+            'work_order_items'     => $work_order_items,
             'can_delete'           => $this->form->isEditing()
                 && auth()->user()->can('workshop.remissions.delete')
                 && ! ($status_enum?->isTerminal() ?? false),

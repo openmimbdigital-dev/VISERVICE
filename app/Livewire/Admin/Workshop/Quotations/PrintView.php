@@ -18,9 +18,9 @@ class PrintView extends Component
         abort_unless(auth()->user()?->can('workshop.quotations.view'), 403);
 
         $this->quotation = $quotation->load([
-            'business', 'client', 'equipment', 'quotationServiceType',
+            'business', 'client', 'equipments', 'quotationServiceType',
             'paymentMethod', 'bankAccount', 'createdBy',
-            'items.productType', 'items.productCategory', 'items.catalogProduct',
+            'items.productType', 'items.productCategory', 'items.catalogProduct', 'items.equipment',
         ]);
     }
 

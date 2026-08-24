@@ -5,7 +5,7 @@ namespace App\Livewire\Admin\Workshop\WorkOrders;
 use App\Actions\LogEquipmentHistoricalAction;
 use App\Actions\LogUserHistoricalAction;
 use App\Actions\Workshop\AdjustWorkOrderItemQuantityAction;
-use App\Actions\Workshop\SaveWorkOrderDocumentClientAction;
+use App\Actions\Workshop\CreateOrUpdateWorkOrderAssociatedDocumentAction;
 use App\Actions\Workshop\UpdateWorkOrderStatusAction;
 use App\Enums\WorkOrderStatus;
 use App\Models\GeneralConfig;
@@ -36,13 +36,19 @@ class Show extends Component
 
     public ?string $selected_document_label = null;
 
+    public ?string $editing_document_name = null;
+
     public string $document_input_value = '';
+
+    public ?int $editing_associated_document_id = null;
 
     public ?int $editing_item_id = null;
 
     public ?int $product_type_id = null;
 
     public ?int $product_id = null;
+
+    public ?int $item_equipment_id = null;
 
     public string $item_description = '';
 
@@ -63,7 +69,7 @@ class Show extends Component
             404
         );
 
-        $this->workOrder = $workOrder;
+        $this->workOrder = $workOrder->load('equipments:id');
         $this->status = $workOrder->status instanceof WorkOrderStatus
             ? $workOrder->status->value
             : (string) $workOrder->status;
@@ -146,6 +152,9 @@ class Show extends Component
         $this->assertWorkOrderEditable();
 
         $this->resetItemForm();
+        $this->workOrder->loadMissing('equipments:id');
+        $equipment_ids = $this->workOrder->equipments->pluck('id')->map(fn ($id) => (int) $id)->values()->all();
+        $this->item_equipment_id = count($equipment_ids) === 1 ? $equipment_ids[0] : null;
         $this->showItemModal = true;
     }
 
@@ -159,6 +168,7 @@ class Show extends Component
             ->findOrFail($id);
 
         $this->editing_item_id = $item->id;
+        $this->item_equipment_id = $item->equipment_id;
         $this->product_type_id = $item->product_type_id;
         $this->product_id = $item->product_id;
         $this->item_description = $item->description;
@@ -199,13 +209,20 @@ class Show extends Component
         abort_unless(auth()->user()?->can('workshop.work-orders.edit'), 403);
         $this->assertWorkOrderEditable();
 
+        $this->workOrder->loadMissing('equipments:id');
+        $allowed_equipment_ids = $this->workOrder->equipments->pluck('id')->map(fn ($id) => (int) $id)->all();
+
         $this->validate([
+            'item_equipment_id' => ['required', 'integer', Rule::in($allowed_equipment_ids)],
             'item_description' => 'required|string|max:255',
             'product_type_id'  => 'nullable|integer|exists:product_types,id',
             'product_id'       => 'nullable|integer|exists:products,id',
             'item_quantity'    => 'required|numeric|min:0.01',
             'item_unit_price'  => 'required|numeric|min:0',
             'item_discount'    => 'nullable|numeric|min:0|max:100',
+        ], [
+            'item_equipment_id.required' => 'Selecciona el equipo del ítem.',
+            'item_equipment_id.in' => 'El equipo seleccionado no pertenece a esta OT.',
         ]);
 
         $qty = (float) $this->item_quantity;
@@ -214,6 +231,7 @@ class Show extends Component
         $subtotal = round(($qty * $price) * (1 - $discount / 100), 2);
 
         $data = [
+            'equipment_id'        => (int) $this->item_equipment_id,
             'product_id'          => $this->product_id ?: null,
             'product_type_id'     => $this->product_type_id ?: null,
             'description'         => $this->item_description,
@@ -225,6 +243,7 @@ class Show extends Component
         ];
 
         $is_editing_item = (bool) $this->editing_item_id;
+        $saved_item = null;
 
         if ($this->editing_item_id) {
             $item = WorkOrderItem::query()
@@ -239,8 +258,9 @@ class Show extends Component
             $data['quantity_canceled'] = $canceled;
 
             $item->update($data);
+            $saved_item = $item;
         } else {
-            $this->workOrder->items()->create($data);
+            $saved_item = $this->workOrder->items()->create($data);
         }
 
         $this->workOrder->recalculateTotals();
@@ -250,6 +270,7 @@ class Show extends Component
         $properties = [
             'item_description' => $data['description'],
             'item_action'      => $is_editing_item ? 'updated' : 'created',
+            'equipment_id'     => $data['equipment_id'],
         ];
 
         LogUserHistoricalAction::run(
@@ -262,10 +283,12 @@ class Show extends Component
             business_id: (int) $this->workOrder->business_id,
         );
 
+        $saved_item->loadMissing('equipment');
         LogEquipmentHistoricalAction::run(
             action: 'updated',
             module: 'workshop.work-orders',
             description: $description,
+            equipment: $saved_item->equipment,
             subject: $this->workOrder,
             properties: $properties,
             business_id: (int) $this->workOrder->business_id,
@@ -281,10 +304,12 @@ class Show extends Component
 
         $item = WorkOrderItem::query()
             ->where('work_order_id', $this->workOrder->id)
+            ->with('equipment')
             ->whereKey($id)
             ->firstOrFail();
 
         $description = $item->description;
+        $equipment = $item->equipment;
         $item->delete();
 
         $this->workOrder->recalculateTotals();
@@ -294,6 +319,7 @@ class Show extends Component
         $properties = [
             'item_description' => $description,
             'item_action'      => 'deleted',
+            'equipment_id'     => $equipment?->id,
         ];
 
         LogUserHistoricalAction::run(
@@ -310,6 +336,7 @@ class Show extends Component
             action: 'updated',
             module: 'workshop.work-orders',
             description: $log_description,
+            equipment: $equipment,
             subject: $this->workOrder,
             properties: $properties,
             business_id: (int) $this->workOrder->business_id,
@@ -329,11 +356,39 @@ class Show extends Component
     private function adjustItemQuantity(int $id, string $action): void
     {
         abort_unless(auth()->user()?->can('workshop.work-orders.edit'), 403);
-        $this->assertWorkOrderEditable();
+
+        $this->workOrder->refresh();
+
+        if (! $this->workOrder->isEditable()) {
+            $this->dispatch('swal', [
+                'title' => 'OT bloqueada',
+                'text'  => 'La OT está finalizada o cancelada y no admite cambios.',
+                'icon'  => 'warning',
+            ]);
+
+            return;
+        }
 
         $previous_status = $this->status;
 
-        $item = AdjustWorkOrderItemQuantityAction::run($this->workOrder->id, $id, $action);
+        try {
+            $item = AdjustWorkOrderItemQuantityAction::run($this->workOrder->id, $id, $action);
+        } catch (ValidationException $exception) {
+            $message = collect($exception->errors())->flatten()->first()
+                ?? 'No se pudo actualizar la cantidad del ítem.';
+
+            $this->dispatch('swal', [
+                'title' => $message,
+                'icon'  => 'warning',
+            ]);
+
+            $this->workOrder->refresh();
+            $this->status = $this->workOrder->status instanceof WorkOrderStatus
+                ? $this->workOrder->status->value
+                : (string) $this->workOrder->status;
+
+            return;
+        }
 
         $this->workOrder->refresh();
         $this->status = $this->workOrder->status instanceof WorkOrderStatus
@@ -344,11 +399,14 @@ class Show extends Component
             ? "Completó cantidad de un ítem en la OT {$this->workOrder->reference}"
             : "Canceló cantidad de un ítem en la OT {$this->workOrder->reference}";
 
+        $item->loadMissing('equipment');
+
         $properties = [
             'item_description'  => $item->description,
             'item_action'       => $action,
             'quantity_complete' => (float) $item->quantity_complete,
             'quantity_canceled' => (float) $item->quantity_canceled,
+            'equipment_id'      => $item->equipment_id,
         ];
 
         LogUserHistoricalAction::run(
@@ -365,6 +423,7 @@ class Show extends Component
             action: 'updated',
             module: 'workshop.work-orders',
             description: $log_description,
+            equipment: $item->equipment,
             subject: $this->workOrder,
             properties: $properties,
             business_id: (int) $this->workOrder->business_id,
@@ -389,22 +448,34 @@ class Show extends Component
     public function openDocumentModal(): void
     {
         abort_unless(auth()->user()?->can('workshop.work-orders.edit'), 403);
+        $this->assertWorkOrderEditable();
 
-        $this->workOrder->refresh();
+        $this->editing_associated_document_id = null;
+        $this->editing_document_name = null;
+        $this->selected_document_label = null;
+        $this->document_input_value = '';
+        $this->showDocumentModal = true;
+        $this->resetValidation();
+    }
 
-        $documents = $this->workOrder->document_client ?? [];
+    public function openEditAssociatedDocument(int $id): void
+    {
+        abort_unless(auth()->user()?->can('workshop.work-orders.edit'), 403);
+        $this->assertWorkOrderEditable();
 
-        if ($documents !== []) {
-            $label = (string) array_key_first($documents);
-            $this->selected_document_label = $label;
-            $this->document_input_value = is_string($documents[$label] ?? null)
-                ? (string) $documents[$label]
-                : '';
-        } else {
-            $this->selected_document_label = null;
-            $this->document_input_value = '';
-        }
+        $document = $this->workOrder->associatedDocuments()->findOrFail($id);
 
+        $catalog_label = GeneralConfig::query()
+            ->forAuthUser()
+            ->associatedDocumentsOt()
+            ->where('business_id', $this->workOrder->business_id)
+            ->where('value', $document->name)
+            ->value('label');
+
+        $this->editing_associated_document_id = $document->id;
+        $this->editing_document_name = $document->name;
+        $this->selected_document_label = $catalog_label ? (string) $catalog_label : null;
+        $this->document_input_value = (string) $document->value;
         $this->showDocumentModal = true;
         $this->resetValidation();
     }
@@ -412,22 +483,17 @@ class Show extends Component
     public function closeDocumentModal(): void
     {
         $this->showDocumentModal = false;
+        $this->editing_associated_document_id = null;
+        $this->editing_document_name = null;
         $this->selected_document_label = null;
         $this->document_input_value = '';
-        $this->resetValidation();
-    }
-
-    public function loadDocumentClient(string $label): void
-    {
-        $this->selected_document_label = $label;
-        $existing = $this->workOrder->document_client[$label] ?? '';
-        $this->document_input_value = is_string($existing) ? $existing : '';
         $this->resetValidation();
     }
 
     public function saveDocumentClient(): void
     {
         abort_unless(auth()->user()?->can('workshop.work-orders.edit'), 403);
+        $this->assertWorkOrderEditable();
 
         $this->validate([
             'selected_document_label' => 'required|string|max:100',
@@ -437,12 +503,16 @@ class Show extends Component
             'document_input_value.required'    => 'El valor del documento es obligatorio.',
         ]);
 
+        $is_editing = (bool) $this->editing_associated_document_id;
+
         try {
-            $this->workOrder = SaveWorkOrderDocumentClientAction::run(
+            CreateOrUpdateWorkOrderAssociatedDocumentAction::run(
                 $this->workOrder->id,
+                $this->editing_associated_document_id,
                 $this->selected_document_label,
                 $this->document_input_value,
             );
+            $this->workOrder->refresh();
         } catch (ValidationException $exception) {
             $message = collect($exception->errors())->flatten()->first()
                 ?? 'No se pudo guardar el documento.';
@@ -458,7 +528,7 @@ class Show extends Component
         $this->closeDocumentModal();
 
         $this->dispatch('swal', [
-            'title' => 'Documento actualizado',
+            'title' => $is_editing ? 'Documento actualizado' : 'Documento asociado',
             'icon'  => 'success',
         ]);
     }
@@ -472,6 +542,7 @@ class Show extends Component
     private function resetItemForm(): void
     {
         $this->editing_item_id = null;
+        $this->item_equipment_id = null;
         $this->product_type_id = null;
         $this->product_id = null;
         $this->item_description = '';
@@ -498,9 +569,12 @@ class Show extends Component
         $this->workOrder->load([
             'items.productType',
             'items.catalogProduct',
+            'items.equipment',
             'client',
-            'equipment',
+            'equipments',
             'quotation',
+            'remissions',
+            'associatedDocuments',
         ]);
 
         $product_types = ProductType::query()
@@ -524,8 +598,25 @@ class Show extends Component
             ->orderBy('value')
             ->get(['id', 'label', 'value']);
 
+        $used_document_names = $this->workOrder->associatedDocuments->pluck('name')->all();
+        $available_associated_documents = $associated_documents
+            ->reject(function ($doc) use ($used_document_names) {
+                if ($this->editing_associated_document_id
+                    && $this->editing_document_name === $doc->value
+                ) {
+                    return false;
+                }
+
+                return in_array($doc->value, $used_document_names, true);
+            })
+            ->values();
+
         $can_edit = auth()->user()->can('workshop.work-orders.edit');
         $is_locked = ! $this->workOrder->isEditable();
+        $linked_remission = $this->workOrder->remissions->first();
+        $can_create_remission = auth()->user()->can('workshop.remissions.create')
+            && ($this->workOrder->status?->isOpen() ?? false)
+            && ! $linked_remission;
 
         $status_badge_class = $this->workOrder->status instanceof WorkOrderStatus
             ? $this->workOrder->status->badgeClass()
@@ -552,6 +643,7 @@ class Show extends Component
             'product_types' => $product_types,
             'catalog_products' => $catalog_products,
             'associated_documents' => $associated_documents,
+            'available_associated_documents' => $available_associated_documents,
             'can_edit' => $can_edit,
             'can_edit_items' => $can_edit && ! $is_locked,
             'can_manage' => $can_edit && ! $is_locked,
@@ -566,6 +658,8 @@ class Show extends Component
                 ? 'Motivo de la cancelación…'
                 : 'Opcional: nota del cambio de estado…',
             'status_comments_history' => $status_comments_history,
+            'can_create_remission' => $can_create_remission,
+            'linked_remission' => $linked_remission,
         ]);
     }
 }

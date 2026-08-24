@@ -17,6 +17,7 @@ use App\Models\ProductType;
 use App\Models\Quotation;
 use App\Models\QuotationServiceType;
 use App\Models\Status;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -50,7 +51,7 @@ class Form extends Component
                 404
             );
 
-            $quotation->load(['items.productType', 'items.productCategory', 'workOrder']);
+            $quotation->load(['items.productType', 'items.productCategory', 'equipments:id', 'workOrder']);
 
             if (! $quotation->isEditable()) {
                 $this->redirectRoute('admin.workshop.quotations.show', $quotation, navigate: true);
@@ -67,6 +68,7 @@ class Form extends Component
             $this->linked_work_order_reference = $quotation->workOrder?->reference;
             $this->items = $quotation->items->map(fn ($item) => [
                 'id'                  => $item->id,
+                'equipment_id'        => $item->equipment_id,
                 'product_type_id'     => $item->product_type_id,
                 'product_category_id' => $item->product_category_id,
                 'product_id'          => $item->product_id,
@@ -84,7 +86,21 @@ class Form extends Component
 
     public function updatedFormClientId(): void
     {
-        $this->form->equipment_id = null;
+        $this->form->equipment_ids = [];
+        $this->clearItemEquipmentAssignments();
+    }
+
+    public function updatedFormEquipmentIds(): void
+    {
+        $allowed = $this->form->resolvedEquipmentIds();
+        $allowed_flip = array_flip($allowed);
+
+        foreach ($this->items as $index => $row) {
+            $equipment_id = (int) ($row['equipment_id'] ?? 0);
+            if ($equipment_id > 0 && ! isset($allowed_flip[$equipment_id])) {
+                $this->items[$index]['equipment_id'] = null;
+            }
+        }
     }
 
     public function updatedItems(mixed $value, string $key): void
@@ -132,8 +148,11 @@ class Form extends Component
 
     public function addItem(): void
     {
+        $equipment_ids = $this->form->resolvedEquipmentIds();
+
         $this->items[] = [
             'id'                  => null,
+            'equipment_id'        => count($equipment_ids) === 1 ? $equipment_ids[0] : null,
             'product_type_id'     => null,
             'product_category_id' => null,
             'product_id'          => null,
@@ -177,7 +196,7 @@ class Form extends Component
             $business_id,
             $this->form->quotation_id,
             $this->form->client_id,
-            $this->form->equipment_id,
+            $this->form->resolvedEquipmentIds(),
             $this->form->validated(),
             $this->items
         );
@@ -214,8 +233,11 @@ class Form extends Component
     /** @return array<string, mixed> */
     protected function itemRules(): array
     {
+        $equipment_ids = $this->form->resolvedEquipmentIds();
+
         return [
             'items'                       => ['array'],
+            'items.*.equipment_id'        => ['required', 'integer', Rule::in($equipment_ids)],
             'items.*.description'         => ['required', 'string', 'max:200'],
             'items.*.quantity'            => ['required', 'numeric', 'min:0.01'],
             'items.*.unit_price'          => ['required', 'numeric', 'min:0'],
@@ -230,10 +252,18 @@ class Form extends Component
     protected function validationAttributes(): array
     {
         return [
-            'items.*.description' => 'descripción del ítem',
-            'items.*.quantity'    => 'cantidad',
-            'items.*.unit_price'  => 'precio unitario',
+            'items.*.equipment_id' => 'equipo del ítem',
+            'items.*.description'  => 'descripción del ítem',
+            'items.*.quantity'     => 'cantidad',
+            'items.*.unit_price'   => 'precio unitario',
         ];
+    }
+
+    protected function clearItemEquipmentAssignments(): void
+    {
+        foreach ($this->items as $index => $row) {
+            $this->items[$index]['equipment_id'] = null;
+        }
     }
 
     /** @return array<string, float> */
@@ -284,14 +314,28 @@ class Form extends Component
         $product_types = ProductType::query()->visibleToUser()->where('active', true)->orderBy('name')->get();
         $catalog_products = Product::query()->forAuthUser()->where('business_id', $business_id)->active()->orderBy('name')->get();
 
+        $equipment_query = Equipment::query()->forAuthUser()
+            ->where('client_id', $this->form->client_id)
+            ->orderBy('name')
+            ->orderBy('plate');
+
+        if ($this->form->resolvedEquipmentIds() !== []) {
+            $equipment_query->where(function ($q) {
+                $q->where('status', true)
+                    ->orWhereIn('id', $this->form->resolvedEquipmentIds());
+            });
+        } else {
+            $equipment_query->where('status', true);
+        }
+
         $equipment_for_client = $this->form->client_id
-            ? Equipment::query()->forAuthUser()
-                ->where('client_id', $this->form->client_id)
-                ->where('status', true)
-                ->orderBy('name')
-                ->orderBy('plate')
-                ->get(['id', 'name', 'brand_name', 'plate'])
+            ? $equipment_query->get(['id', 'name', 'brand_name', 'plate'])
             : collect();
+
+        $selected_equipment_ids = $this->form->resolvedEquipmentIds();
+        $selected_equipments = $equipment_for_client
+            ->whereIn('id', $selected_equipment_ids)
+            ->values();
 
         $category_subtotals = $this->previewSubtotals();
         $subtotal = array_sum($category_subtotals);
@@ -337,6 +381,7 @@ class Form extends Component
             'product_types'        => $product_types,
             'catalog_products'     => $catalog_products,
             'equipment_for_client' => $equipment_for_client,
+            'selected_equipments'  => $selected_equipments,
             'category_subtotals'   => $category_subtotals,
             'preview_subtotal'     => $subtotal,
             'preview_tax'          => $tax,

@@ -12,7 +12,6 @@ return new class extends Migration
             $table->id();
             $table->foreignId('business_id')->constrained()->onDelete('cascade');
             $table->foreignId('client_id')->constrained('clients')->onDelete('cascade');
-            $table->foreignId('equipment_id')->constrained('equipment')->onDelete('cascade');
             $table->foreignId('quotation_id')->nullable()->constrained('quotations')->nullOnDelete();
             $table->string('reference')->comment('OT-YYYYMM-XXXX');
             $table->string('status', 100)->default('created');
@@ -29,7 +28,6 @@ return new class extends Migration
             $table->decimal('total', 12, 2)->default(0);
             $table->decimal('advance_percentage', 5, 2)->default(0);
             $table->decimal('advance_amount', 12, 2)->default(0);
-            $table->json('document_client')->nullable()->comment('Documentos asociados: {label: valor}');
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamp('finalized_at')->nullable();
             $table->timestamps();
@@ -42,7 +40,6 @@ return new class extends Migration
             $table->index(['business_id', 'deleted_at', 'status'], 'work_orders_business_deleted_status_idx');
             $table->index(['business_id', 'deleted_at', 'reference'], 'work_orders_business_deleted_reference_idx');
             $table->index(['client_id', 'deleted_at', 'status'], 'work_orders_client_deleted_status_idx');
-            $table->index(['equipment_id', 'deleted_at', 'status'], 'work_orders_equipment_deleted_status_idx');
             $table->index(['quotation_id', 'deleted_at'], 'work_orders_quotation_deleted_idx');
         });
     }

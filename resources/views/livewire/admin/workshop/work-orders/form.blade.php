@@ -26,6 +26,17 @@
             <div class="flex w-full shrink-0 flex-wrap gap-2 sm:w-auto">
                 <a href="{{ route('admin.workshop.work-orders.show', $form->work_order_id) }}" wire:navigate class="btn btn-outline-secondary btn-sm flex-1 sm:flex-none justify-center">Ver detalle</a>
                 <a href="{{ route('admin.workshop.work-orders.print', $form->work_order_id) }}" target="_blank" class="btn btn-outline-secondary btn-sm flex-1 sm:flex-none justify-center">Imprimir / PDF</a>
+                @if($can_create_remission)
+                <a href="{{ route('admin.workshop.remissions.form', ['work_order' => $form->work_order_id]) }}" wire:navigate
+                    class="btn btn-success btn-sm flex-1 sm:flex-none justify-center">
+                    Crear remisión
+                </a>
+                @elseif($linked_remission)
+                <a href="{{ route('admin.workshop.remissions.show', $linked_remission) }}" wire:navigate
+                    class="btn btn-outline-secondary btn-sm flex-1 sm:flex-none justify-center">
+                    Ver remisión
+                </a>
+                @endif
                 @can('workshop.work-orders.delete')
                 @if($can_delete)
                 <button type="button" wire:click="deleteWorkOrder" class="btn btn-danger btn-sm flex-1 sm:flex-none justify-center">Eliminar</button>
@@ -56,7 +67,10 @@
                                 <option value="">Sin cotización (OT directa)</option>
                                 @foreach($accepted_quotations as $quotation)
                                 <option value="{{ $quotation->id }}">
-                                    {{ $quotation->reference }} — {{ $quotation->client?->name }} / {{ $quotation->equipment?->plate }}
+                                    {{ $quotation->reference }} — {{ $quotation->client?->name }}
+                                    @if($quotation->equipments->isNotEmpty())
+                                        / {{ $quotation->equipments->pluck('plate')->filter()->join(', ') }}
+                                    @endif
                                 </option>
                                 @endforeach
                             </select>
@@ -80,14 +94,34 @@
                         </div>
 
                         <div class="sm:col-span-2">
-                            <label class="mb-1.5 block text-xs font-medium text-slate-700">Equipo <span class="text-rose-500">*</span></label>
-                            <select wire:model="form.equipment_id" @disabled($from_quotation || ! $form->client_id) class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm disabled:opacity-60 @error('form.equipment_id') border-rose-400 bg-rose-50 @enderror">
-                                <option value="">{{ $form->client_id ? 'Seleccionar equipo' : 'Primero selecciona un cliente' }}</option>
-                                @foreach($equipment_for_client as $equipment)
-                                <option value="{{ $equipment->id }}">{{ $equipment->select_label ?? ($equipment->plate . ' — ' . $equipment->name) }}</option>
-                                @endforeach
-                            </select>
-                            @error('form.equipment_id') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                            <label class="mb-1.5 block text-xs font-medium text-slate-700">Equipos <span class="text-rose-500">*</span></label>
+                            @if(! $form->client_id)
+                                <p class="rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-400">Primero selecciona un cliente</p>
+                            @elseif($equipment_for_client->isEmpty())
+                                <p class="rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-400">Este cliente no tiene equipos activos</p>
+                            @else
+                                <div class="max-h-48 space-y-2 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-3 @error('form.equipment_ids') border-rose-400 bg-rose-50 @enderror @error('form.equipment_ids.*') border-rose-400 bg-rose-50 @enderror {{ $from_quotation ? 'opacity-60' : '' }}">
+                                    @foreach($equipment_for_client as $equipment)
+                                        <label class="flex cursor-pointer items-start gap-3 rounded-lg px-2 py-1.5 transition hover:bg-white {{ $from_quotation ? 'cursor-not-allowed' : '' }}">
+                                            <input type="checkbox"
+                                                wire:model.live="form.equipment_ids"
+                                                value="{{ $equipment->id }}"
+                                                @disabled($from_quotation)
+                                                class="mt-0.5 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 disabled:cursor-not-allowed">
+                                            <span class="text-sm text-slate-800">{{ $equipment->select_label }}</span>
+                                        </label>
+                                    @endforeach
+                                </div>
+                            @endif
+                            @error('form.equipment_ids') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                            @error('form.equipment_ids.*') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                            <p class="mt-1 text-xs text-slate-500">
+                                @if($from_quotation)
+                                    Los equipos se heredan de la cotización.
+                                @else
+                                    Puedes seleccionar varios equipos. Luego asigna cada ítem a uno de ellos.
+                                @endif
+                            </p>
                         </div>
 
                         <div>
@@ -147,6 +181,18 @@
                                 <button type="button" wire:click="removeItem({{ $index }})" class="text-xs font-medium text-rose-600 hover:text-rose-700">Quitar</button>
                             </div>
                             <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                <div class="sm:col-span-2">
+                                    <label class="mb-1 block text-xs font-medium text-slate-700">Equipo <span class="text-rose-500">*</span></label>
+                                    <select wire:model="items.{{ $index }}.equipment_id"
+                                        @disabled($selected_equipments->isEmpty())
+                                        class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm disabled:opacity-60 @error('items.'.$index.'.equipment_id') border-rose-400 @enderror">
+                                        <option value="">{{ $selected_equipments->isEmpty() ? 'Selecciona equipos arriba' : 'Asignar a equipo' }}</option>
+                                        @foreach($selected_equipments as $equipment)
+                                            <option value="{{ $equipment->id }}">{{ $equipment->select_label }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('items.'.$index.'.equipment_id') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                                </div>
                                 <div>
                                     <label class="mb-1 block text-xs font-medium text-slate-700">Tipo</label>
                                     <select wire:model.live="items.{{ $index }}.product_type_id" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">

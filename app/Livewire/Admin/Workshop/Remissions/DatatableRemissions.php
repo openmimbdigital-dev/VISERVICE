@@ -27,7 +27,6 @@ class DatatableRemissions extends LivewireDatatable
             ->forAuthUser()
             ->leftJoin('clients', 'remissions.client_id', '=', 'clients.id')
             ->leftJoin('work_orders', 'remissions.work_order_id', '=', 'work_orders.id')
-            ->leftJoin('equipment', 'remissions.equipment_id', '=', 'equipment.id')
             ->select('remissions.*')
             ->orderByDesc('remissions.created_at');
     }
@@ -48,10 +47,6 @@ class DatatableRemissions extends LivewireDatatable
                 ->label('Cliente')
                 ->searchable()
                 ->sortable(),
-
-            Column::raw('equipment.plate AS equipment_plate')
-                ->label('Placa')
-                ->searchable(),
 
             Column::callback(['remissions.type'], function ($type) {
                 $map = [
@@ -76,10 +71,6 @@ class DatatableRemissions extends LivewireDatatable
 
                 return '<span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ' . $enum->badgeClass() . '">' . e($enum->label()) . '</span>';
             })->label('Estado')->filterable(Status::optionsForModule('remissions')),
-
-            Column::name('remissions.total_items')
-                ->label('Ítems')
-                ->sortable(),
 
             DateColumn::name('remissions.created_at')
                 ->label('Fecha')

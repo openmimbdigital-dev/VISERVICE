@@ -36,8 +36,12 @@
             <p>{{ $quotation->client?->phone }}</p>
         </td>
         <td>
-            <div class="section-title">Equipo</div>
-            <p>{{ $quotation->equipment?->select_label }}</p>
+            <div class="section-title">Equipos</div>
+            @forelse($quotation->equipments as $equipment)
+                <p>{{ $equipment->select_label }}</p>
+            @empty
+                <p>—</p>
+            @endforelse
             @if($quotation->hours_entry_formatted)<p>Horas al ingreso: {{ $quotation->hours_entry_formatted }}</p>@endif
             @if($quotation->quotationServiceType)<p>Tipo servicio: {{ $quotation->quotationServiceType->name }}</p>@endif
         </td>
@@ -54,6 +58,7 @@
 <table class="items">
     <thead>
         <tr>
+            <th>Equipo</th>
             <th>Tipo</th>
             <th>Categoría</th>
             <th>Descripción</th>
@@ -66,6 +71,7 @@
     <tbody>
         @foreach($quotation->items as $item)
         <tr>
+            <td>{{ $item->equipment?->select_label ?? '—' }}</td>
             <td>{{ $item->productType?->name ?? '—' }}</td>
             <td>{{ $item->productCategory?->name ?? '—' }}</td>
             <td>{{ $item->description }}</td>

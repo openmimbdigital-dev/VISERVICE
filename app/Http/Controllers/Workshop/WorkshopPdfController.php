@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Workshop;
 
 use App\Http\Controllers\Controller;
-use App\Models\GeneralConfig;
 use App\Models\Quotation;
 use App\Models\Remission;
 use App\Models\WorkOrder;
@@ -17,9 +16,9 @@ class WorkshopPdfController extends Controller
         abort_unless(auth()->user()?->can('workshop.quotations.view'), 403);
 
         $quotation->load([
-            'business', 'client', 'equipment', 'quotationServiceType',
+            'business', 'client', 'equipments', 'quotationServiceType',
             'paymentMethod', 'bankAccount', 'createdBy',
-            'items.productType', 'items.productCategory', 'items.catalogProduct',
+            'items.productType', 'items.productCategory', 'items.catalogProduct', 'items.equipment',
         ]);
 
         return Pdf::loadView('pdf.quotation', [
@@ -43,21 +42,18 @@ class WorkshopPdfController extends Controller
         $remission->load([
             'business',
             'client',
-            'equipment',
-            'workOrder',
+            'equipments',
+            'workOrder.items.productType',
+            'workOrder.items.equipment',
+            'workOrder.items.catalogProduct',
+            'workOrder.associatedDocuments',
             'createdBy',
-            'items.productType',
-            'items.productCategory',
-            'items.unit',
         ]);
 
-        return Pdf::loadView('pdf.remission', array_merge([
+        return Pdf::loadView('pdf.remission', [
             'remission' => $remission,
             'title'     => 'Remisión ' . $remission->reference,
-        ], $this->documentClientData(
-            $remission->business_id,
-            $remission->workOrder?->document_client ?? []
-        )))
+        ])
             ->setPaper('letter')
             ->download($remission->reference . '.pdf');
     }
@@ -74,41 +70,20 @@ class WorkshopPdfController extends Controller
         $workOrder->load([
             'business',
             'client',
-            'equipment',
+            'equipments',
             'quotation',
             'createdBy',
             'items.productType',
             'items.catalogProduct',
+            'items.equipment',
+            'associatedDocuments',
         ]);
 
-        return Pdf::loadView('pdf.work-order', array_merge([
+        return Pdf::loadView('pdf.work-order', [
             'workOrder' => $workOrder,
             'title'     => 'OT ' . $workOrder->reference,
-        ], $this->documentClientData(
-            $workOrder->business_id,
-            $workOrder->document_client ?? []
-        )))
+        ])
             ->setPaper('letter')
             ->download($workOrder->reference . '.pdf');
-    }
-
-    private function documentClientData(int $business_id, array $document_client): array
-    {
-        $document_labels = [];
-
-        if ($document_client !== []) {
-            $document_labels = GeneralConfig::query()
-                ->forAuthUser()
-                ->associatedDocumentsOt()
-                ->where('business_id', $business_id)
-                ->whereIn('label', array_keys($document_client))
-                ->pluck('value', 'label')
-                ->all();
-        }
-
-        return [
-            'document_client' => $document_client,
-            'document_labels' => $document_labels,
-        ];
     }
 }

@@ -11,6 +11,7 @@ return new class extends Migration
         Schema::create('work_order_items', function (Blueprint $table) {
             $table->id();
             $table->foreignId('work_order_id')->constrained()->onDelete('cascade');
+            $table->foreignId('equipment_id')->nullable()->constrained('equipment')->nullOnDelete();
             $table->unsignedBigInteger('product_id')->nullable();
             $table->unsignedBigInteger('product_type_id')->nullable();
             $table->string('description');
@@ -24,6 +25,8 @@ return new class extends Migration
             $table->timestamps();
 
             $table->index(['work_order_id', 'product_type_id'], 'work_order_items_wo_type_idx');
+            $table->index(['work_order_id', 'equipment_id'], 'work_order_items_wo_equipment_idx');
+            $table->index(['equipment_id'], 'work_order_items_equipment_idx');
         });
     }
 

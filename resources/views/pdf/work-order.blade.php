@@ -39,17 +39,21 @@
             @if($workOrder->client?->phone)<p>{{ $workOrder->client->phone }}</p>@endif
         </td>
         <td>
-            <div class="section-title">Equipo</div>
-            <p>{{ $workOrder->equipment?->select_label ?? '—' }}</p>
+            <div class="section-title">Equipos</div>
+            @forelse($workOrder->equipments as $equipment)
+                <p>{{ $equipment->select_label }}</p>
+            @empty
+                <p>—</p>
+            @endforelse
         </td>
     </tr>
 </table>
 
-@if(! empty($document_client))
+@if($workOrder->associatedDocuments->isNotEmpty())
 <div class="box">
-    <p class="bold">Documento del cliente</p>
-    @foreach($document_client as $label => $value)
-    <p><span class="muted">{{ $document_labels[$label] ?? $label }}:</span> {{ $value }}</p>
+    <p class="bold">Documentos asociados</p>
+    @foreach($workOrder->associatedDocuments as $document)
+    <p><span class="muted">{{ $document->name }}:</span> {{ $document->value }}</p>
     @endforeach
 </div>
 @endif
@@ -72,6 +76,7 @@
     <thead>
         <tr>
             <th>#</th>
+            <th>Equipo</th>
             <th>Descripción</th>
             <th>Tipo</th>
             <th class="text-right">Cant.</th>
@@ -84,6 +89,7 @@
         @foreach($workOrder->items as $index => $item)
         <tr>
             <td>{{ $index + 1 }}</td>
+            <td>{{ $item->equipment?->select_label ?? '—' }}</td>
             <td>
                 {{ $item->description }}
                 @if($item->technician_notes)<br><span class="muted">{{ $item->technician_notes }}</span>@endif

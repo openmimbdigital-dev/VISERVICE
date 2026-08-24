@@ -24,6 +24,7 @@ class CreateOrUpdateQuotationAction
     use AsAction;
 
     /**
+     * @param  list<int>  $equipment_ids
      * @param  array<string, mixed>  $data
      * @param  array<int, array<string, mixed>>  $items
      */
@@ -31,7 +32,7 @@ class CreateOrUpdateQuotationAction
         int $business_id,
         ?int $quotation_id,
         int $client_id,
-        int $equipment_id,
+        array $equipment_ids,
         array $data,
         array $items = []
     ): Quotation {
@@ -44,7 +45,10 @@ class CreateOrUpdateQuotationAction
         abort_unless((int) $user->business_id === $business_id || $user->hasRole('superAdmin'), 403);
 
         abort_unless(Client::query()->forAuthUser()->whereKey($client_id)->exists(), 422);
-        abort_unless(Equipment::query()->forAuthUser()->whereKey($equipment_id)->exists(), 422);
+
+        $equipment_ids = $this->normalizeEquipmentIds($equipment_ids);
+        abort_unless($equipment_ids !== [], 422, 'Selecciona al menos un equipo.');
+        $this->assertEquipmentsBelongToClient($client_id, $equipment_ids);
 
         if (! empty($data['quotation_service_type_id'])) {
             abort_unless(
@@ -70,10 +74,9 @@ class CreateOrUpdateQuotationAction
             );
         }
 
-        return DB::transaction(function () use ($business_id, $quotation_id, $client_id, $equipment_id, $data, $items) {
+        return DB::transaction(function () use ($business_id, $quotation_id, $client_id, $equipment_ids, $data, $items) {
             $payload = [
                 'client_id'                  => $client_id,
-                'equipment_id'               => $equipment_id,
                 'quotation_service_type_id'  => $data['quotation_service_type_id'] ?? null,
                 'business_payment_method_id' => $data['business_payment_method_id'] ?? null,
                 'business_bank_account_id'   => $data['business_bank_account_id'] ?? null,
@@ -110,9 +113,10 @@ class CreateOrUpdateQuotationAction
                 ]);
             }
 
+            $quotation->equipments()->sync($equipment_ids);
             $quotation->syncValidUntil();
             $quotation->save();
-            $this->syncItems($quotation, $items);
+            $this->syncItems($quotation, $items, $equipment_ids);
             $quotation->recalculateTotals();
 
             $advance_percentage = (float) ($data['advance_percentage'] ?? 0);
@@ -124,18 +128,19 @@ class CreateOrUpdateQuotationAction
             $quotation = $quotation->fresh([
                 'items.productType',
                 'items.productCategory',
+                'items.equipment',
                 'client:id,name',
-                'equipment',
+                'equipments',
             ]);
 
             $action = $quotation_id ? 'updated' : 'created';
             $description = ($quotation_id ? 'Actualizó' : 'Creó') . " la cotización {$quotation->reference}";
             $properties = [
-                'status'       => $quotation->status?->value ?? $quotation->status,
-                'client_id'    => $quotation->client_id,
-                'equipment_id' => $quotation->equipment_id,
-                'total'        => $quotation->total,
-                'items_count'  => $quotation->items->count(),
+                'status'         => $quotation->status?->value ?? $quotation->status,
+                'client_id'      => $quotation->client_id,
+                'equipment_ids'  => $quotation->equipments->pluck('id')->all(),
+                'total'          => $quotation->total,
+                'items_count'    => $quotation->items->count(),
                 'advance_percentage' => $quotation->advance_percentage,
                 'advance_amount' => $quotation->advance_amount,
             ];
@@ -150,23 +155,54 @@ class CreateOrUpdateQuotationAction
                 business_id: $business_id,
             );
 
-            LogEquipmentHistoricalAction::run(
-                action: $action,
-                module: 'workshop.quotations',
-                description: $description,
-                subject: $quotation,
-                properties: $properties,
-                business_id: $business_id,
-            );
+            foreach ($quotation->equipments as $equipment) {
+                LogEquipmentHistoricalAction::run(
+                    action: $action,
+                    module: 'workshop.quotations',
+                    description: $description,
+                    equipment: $equipment,
+                    subject: $quotation,
+                    properties: $properties,
+                    business_id: $business_id,
+                );
+            }
 
             return $quotation;
         });
     }
 
-    /** @param  array<int, array<string, mixed>>  $items */
-    private function syncItems(Quotation $quotation, array $items): void
+    /** @param  list<int|string>  $equipment_ids
+     *  @return list<int>
+     */
+    private function normalizeEquipmentIds(array $equipment_ids): array
+    {
+        return array_values(array_unique(array_filter(
+            array_map(fn ($id) => (int) $id, $equipment_ids),
+            fn (int $id) => $id > 0
+        )));
+    }
+
+    /** @param  list<int>  $equipment_ids */
+    private function assertEquipmentsBelongToClient(int $client_id, array $equipment_ids): void
+    {
+        $count = Equipment::query()
+            ->forAuthUser()
+            ->where('client_id', $client_id)
+            ->whereIn('id', $equipment_ids)
+            ->count();
+
+        abort_unless($count === count($equipment_ids), 422, 'Uno o más equipos no pertenecen al cliente.');
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $items
+     * @param  list<int>  $equipment_ids
+     */
+    private function syncItems(Quotation $quotation, array $items, array $equipment_ids): void
     {
         $kept_ids = [];
+        $allowed = array_flip($equipment_ids);
+        $default_equipment_id = $equipment_ids[0] ?? null;
 
         foreach ($items as $row) {
             $description = trim((string) ($row['description'] ?? ''));
@@ -192,12 +228,23 @@ class CreateOrUpdateQuotationAction
                 );
             }
 
+            $equipment_id = ! empty($row['equipment_id'])
+                ? (int) $row['equipment_id']
+                : $default_equipment_id;
+
+            abort_unless(
+                $equipment_id !== null && isset($allowed[$equipment_id]),
+                422,
+                'Cada ítem debe asociarse a un equipo de la cotización.'
+            );
+
             $qty      = (float) ($row['quantity'] ?? 1);
             $price    = (float) ($row['unit_price'] ?? 0);
             $discount = (float) ($row['discount_percentage'] ?? 0);
             $subtotal = round($qty * $price * (1 - $discount / 100), 2);
 
             $payload = [
+                'equipment_id'        => $equipment_id,
                 'product_id'          => $row['product_id'] ?: null,
                 'product_type_id'     => $row['product_type_id'] ?: null,
                 'product_category_id' => $row['product_category_id'] ?: null,

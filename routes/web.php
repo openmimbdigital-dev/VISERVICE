@@ -9,6 +9,8 @@ use App\Livewire\Admin\BankAccounts\Index as AdminBankAccountsIndex;
 use App\Livewire\Admin\Banks\Index as AdminBanksIndex;
 use App\Livewire\Admin\Businesses\BankAccounts\Index as AdminBusinessBankAccountsIndex;
 use App\Livewire\Admin\Businesses\BankAccounts\Show as AdminBusinessBankAccountsShow;
+use App\Livewire\Admin\Businesses\CustomTaxes\Index as AdminCustomTaxesIndex;
+use App\Livewire\Admin\Businesses\CustomTaxes\Show as AdminCustomTaxesShow;
 use App\Livewire\Admin\Businesses\Form as AdminBusinessesForm;
 use App\Livewire\Admin\Businesses\Index as AdminBusinessesIndex;
 use App\Livewire\Admin\Businesses\ModuleAccess as AdminBusinessesModuleAccess;
@@ -234,6 +236,12 @@ Route::middleware(['auth', 'ensure.business', 'business.module'])->group(functio
             Route::get('/business-bank-accounts/{bankAccount}', AdminBusinessBankAccountsShow::class)
                 ->whereNumber('bankAccount')
                 ->name('business-bank-accounts.show');
+        });
+        Route::middleware('permission:custom_taxes.view')->group(function () {
+            Route::get('/custom-taxes', AdminCustomTaxesIndex::class)->name('custom-taxes.index');
+            Route::get('/custom-taxes/{customTax}', AdminCustomTaxesShow::class)
+                ->whereNumber('customTax')
+                ->name('custom-taxes.show');
         });
     });
 

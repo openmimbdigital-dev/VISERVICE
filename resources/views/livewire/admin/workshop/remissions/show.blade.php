@@ -23,7 +23,13 @@
                 </div>
                 <div class="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm text-slate-600">
                     <span class="font-medium text-slate-800">{{ $remission->client?->name }}</span>
-                    <span>{{ $remission->equipment?->plate }}</span>
+                    <span>
+                        @forelse($remission->equipments as $equipment)
+                            {{ $equipment->plate }}@if(! $loop->last), @endif
+                        @empty
+                            —
+                        @endforelse
+                    </span>
                     @if($remission->workOrder)
                     <a href="{{ route('admin.workshop.work-orders.show', $remission->work_order_id) }}" wire:navigate class="text-indigo-600 hover:underline">
                         OT {{ $remission->workOrder->reference }}
@@ -47,16 +53,16 @@
         </div>
     </header>
 
-    @if(! empty($document_client))
+    @if($remission->workOrder?->associatedDocuments?->isNotEmpty())
     <section class="mb-6 overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
         <div class="border-b border-slate-100 bg-slate-50/80 px-4 py-3 sm:px-5">
-            <h2 class="font-semibold text-slate-900">Documento del cliente (OT)</h2>
+            <h2 class="font-semibold text-slate-900">Documentos asociados (OT)</h2>
         </div>
         <dl class="divide-y divide-slate-100 px-4 py-2 sm:px-5">
-            @foreach($document_client as $label => $value)
+            @foreach($remission->workOrder->associatedDocuments as $document)
             <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
-                <dt class="text-xs font-medium text-slate-500">{{ $document_labels[$label] ?? $label }}</dt>
-                <dd class="text-sm text-slate-900 sm:col-span-2">{{ $value }}</dd>
+                <dt class="text-xs font-medium text-slate-500">{{ $document->name }}</dt>
+                <dd class="text-sm text-slate-900 sm:col-span-2">{{ $document->value }}</dd>
             </div>
             @endforeach
         </dl>
@@ -115,47 +121,9 @@
     </section>
     @endif
 
-    <section class="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
-        <div class="flex items-center justify-between border-b border-slate-100 bg-slate-50/80 px-4 py-3 sm:px-5">
-            <h2 class="font-semibold text-slate-900">Ítems</h2>
-            <span class="text-sm text-slate-500">Total: {{ $remission->total_items }}</span>
-        </div>
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-slate-100">
-                <thead class="bg-slate-50/40">
-                    <tr>
-                        <th class="px-3 py-2 text-left text-xs font-semibold uppercase text-slate-500 sm:px-4">#</th>
-                        <th class="px-3 py-2 text-left text-xs font-semibold uppercase text-slate-500 sm:px-4">Descripción</th>
-                        <th class="hidden px-3 py-2 text-left text-xs font-semibold uppercase text-slate-500 md:table-cell sm:px-4">Tipo</th>
-                        <th class="hidden px-3 py-2 text-left text-xs font-semibold uppercase text-slate-500 lg:table-cell sm:px-4">Categoría</th>
-                        <th class="hidden px-3 py-2 text-left text-xs font-semibold uppercase text-slate-500 sm:table-cell sm:px-4">Ref./Marca</th>
-                        <th class="px-3 py-2 text-right text-xs font-semibold uppercase text-slate-500 sm:px-4">Cant.</th>
-                        <th class="hidden px-3 py-2 text-left text-xs font-semibold uppercase text-slate-500 md:table-cell sm:px-4">Unidad</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100">
-                    @forelse($remission->items as $index => $item)
-                    <tr>
-                        <td class="px-3 py-3 text-sm text-slate-500 sm:px-4">{{ $index + 1 }}</td>
-                        <td class="px-3 py-3 text-sm text-slate-900 sm:px-4">
-                            <p>{{ $item->description }}</p>
-                            @if($item->observations)
-                            <p class="mt-0.5 text-xs text-slate-400">{{ $item->observations }}</p>
-                            @endif
-                        </td>
-                        <td class="hidden px-3 py-3 text-sm text-slate-600 md:table-cell sm:px-4">{{ $item->productType?->name ?? '—' }}</td>
-                        <td class="hidden px-3 py-3 text-sm text-slate-600 lg:table-cell sm:px-4">{{ $item->productCategory?->name ?? '—' }}</td>
-                        <td class="hidden px-3 py-3 text-sm text-slate-600 sm:table-cell sm:px-4">{{ $item->reference_brand ?? '—' }}</td>
-                        <td class="px-3 py-3 text-right text-sm font-semibold text-slate-900 sm:px-4">{{ $item->quantity }}</td>
-                        <td class="hidden px-3 py-3 text-sm text-slate-600 md:table-cell sm:px-4">{{ $item->unit_name ?? $item->unit?->name ?? '—' }}</td>
-                    </tr>
-                    @empty
-                    <tr>
-                        <td colspan="7" class="px-4 py-8 text-center text-sm text-slate-400">Sin ítems.</td>
-                    </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-    </section>
+    @include('livewire.admin.workshop.remissions.partials.work-order-items', [
+        'items' => $remission->workOrder?->items ?? collect(),
+        'variant' => 'card',
+        'empty_message' => 'Sin ítems en la OT asociada.',
+    ])
 </div>

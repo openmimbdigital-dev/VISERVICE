@@ -5,6 +5,7 @@ namespace App\Actions\Workshop;
 use App\Actions\LogUserHistoricalAction;
 use App\Models\WorkOrder;
 use App\Models\WorkOrderItem;
+use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 class AdjustWorkOrderItemQuantityAction
@@ -26,7 +27,11 @@ class AdjustWorkOrderItemQuantityAction
             abort_unless((int) $work_order->business_id === (int) $user->business_id, 403);
         }
 
-        abort_unless($work_order->isEditable(), 403, 'La OT está finalizada o cancelada y no admite cambios.');
+        if (! $work_order->isEditable()) {
+            throw ValidationException::withMessages([
+                'item' => 'La OT está finalizada o cancelada y no admite cambios.',
+            ]);
+        }
 
         $item = WorkOrderItem::query()
             ->where('work_order_id', $work_order->id)

@@ -13,7 +13,6 @@ return new class extends Migration
             $table->foreignId('business_id')->constrained()->cascadeOnDelete();
             $table->foreignId('work_order_id')->constrained()->cascadeOnDelete();
             $table->foreignId('client_id')->nullable()->constrained('clients')->nullOnDelete();
-            $table->foreignId('equipment_id')->nullable()->constrained('equipment')->nullOnDelete();
             $table->string('reference')->comment('REM-YYYYMM-XXXX');
             $table->enum('type', ['entrega', 'devolucion', 'traslado'])->default('entrega');
             $table->string('status', 100)->default('created');
@@ -57,7 +56,6 @@ return new class extends Migration
             $table->index(['business_id', 'deleted_at', 'type'], 'remissions_business_deleted_type_idx');
             $table->index(['work_order_id', 'deleted_at', 'status'], 'remissions_work_order_deleted_status_idx');
             $table->index(['client_id', 'deleted_at'], 'remissions_client_deleted_idx');
-            $table->index(['equipment_id', 'deleted_at'], 'remissions_equipment_deleted_idx');
         });
     }
 

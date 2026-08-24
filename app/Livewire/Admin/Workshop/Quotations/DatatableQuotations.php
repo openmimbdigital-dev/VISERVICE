@@ -29,7 +29,6 @@ class DatatableQuotations extends LivewireDatatable
         return Quotation::query()
             ->forAuthUser()
             ->leftJoin('clients', 'quotations.client_id', '=', 'clients.id')
-            ->leftJoin('equipment', 'quotations.equipment_id', '=', 'equipment.id')
             ->leftJoin('work_orders', function ($join) {
                 $join->on('work_orders.quotation_id', '=', 'quotations.id')
                     ->whereNull('work_orders.deleted_at');
@@ -51,10 +50,6 @@ class DatatableQuotations extends LivewireDatatable
                 ->label('Cliente')
                 ->searchable()
                 ->sortable(),
-
-            Column::raw('equipment.plate AS equipment_plate')
-                ->label('Placa')
-                ->searchable(),
 
             Column::callback(['quotations.total'], function ($total) {
                 return '<span class="tabular-nums font-semibold">' . col_money($total) . '</span>';

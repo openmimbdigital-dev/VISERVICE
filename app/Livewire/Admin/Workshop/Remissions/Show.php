@@ -5,7 +5,6 @@ namespace App\Livewire\Admin\Workshop\Remissions;
 use App\Actions\Workshop\DeleteRemissionAction;
 use App\Enums\WorkOrderStatus;
 use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
-use App\Models\GeneralConfig;
 use App\Models\Remission;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -29,12 +28,12 @@ class Show extends Component
         );
 
         $this->remission = $remission->load([
-            'items.productType',
-            'items.productCategory',
-            'items.unit',
             'client',
-            'equipment',
-            'workOrder',
+            'equipments',
+            'workOrder.items.productType',
+            'workOrder.items.equipment',
+            'workOrder.items.catalogProduct',
+            'workOrder.associatedDocuments',
             'statusDefinition',
         ]);
     }
@@ -60,35 +59,20 @@ class Show extends Component
     public function render()
     {
         $this->remission->load([
-            'items.productType',
-            'items.productCategory',
-            'items.unit',
             'client',
-            'equipment',
-            'workOrder',
+            'equipments',
+            'workOrder.items.productType',
+            'workOrder.items.equipment',
+            'workOrder.items.catalogProduct',
+            'workOrder.associatedDocuments',
             'statusDefinition',
         ]);
-
-        $document_client = $this->remission->workOrder?->document_client ?? [];
-        $document_labels = [];
-
-        if ($document_client !== []) {
-            $document_labels = GeneralConfig::query()
-                ->forAuthUser()
-                ->associatedDocumentsOt()
-                ->where('business_id', $this->remission->business_id)
-                ->whereIn('label', array_keys($document_client))
-                ->pluck('value', 'label')
-                ->all();
-        }
 
         $status_badge_class = $this->remission->status instanceof WorkOrderStatus
             ? $this->remission->status->badgeClass()
             : 'bg-slate-100 text-slate-600 ring-1 ring-slate-500/20';
 
         return view('livewire.admin.workshop.remissions.show', [
-            'document_client' => $document_client,
-            'document_labels' => $document_labels,
             'status_badge_class' => $status_badge_class,
             'can_edit'        => auth()->user()->can('workshop.remissions.edit')
                 && $this->remission->isEditable(),

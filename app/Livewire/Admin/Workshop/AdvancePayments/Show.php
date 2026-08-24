@@ -165,7 +165,7 @@ class Show extends Component
     {
         $this->workOrder->load([
             'client:id,name',
-            'equipment',
+            'equipments',
             'payments' => fn ($q) => $q
                 ->with(['paymentMethod', 'createdBy'])
                 ->orderByRaw("CASE WHEN status = 'pending' THEN 0 ELSE 1 END")

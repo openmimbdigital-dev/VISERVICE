@@ -17,7 +17,7 @@ class DeleteWorkOrderAction
 
         $work_order = WorkOrder::query()
             ->forAuthUser()
-            ->with(['client:id,name', 'equipment', 'items'])
+            ->with(['client:id,name', 'equipments', 'items'])
             ->findOrFail($work_order_id);
 
         if ($work_order->invoices()->exists()
@@ -32,11 +32,11 @@ class DeleteWorkOrderAction
         }
 
         $properties = [
-            'status'       => $work_order->status?->value,
-            'client_id'    => $work_order->client_id,
-            'equipment_id' => $work_order->equipment_id,
-            'quotation_id' => $work_order->quotation_id,
-            'total'        => $work_order->total,
+            'status'        => $work_order->status?->value,
+            'client_id'     => $work_order->client_id,
+            'equipment_ids' => $work_order->equipments->pluck('id')->all(),
+            'quotation_id'  => $work_order->quotation_id,
+            'total'         => $work_order->total,
         ];
 
         LogUserHistoricalAction::run(
@@ -49,14 +49,17 @@ class DeleteWorkOrderAction
             business_id: (int) $work_order->business_id,
         );
 
-        LogEquipmentHistoricalAction::run(
-            action: 'deleted',
-            module: 'workshop.work-orders',
-            description: "Eliminó la orden de trabajo {$work_order->reference}",
-            subject: $work_order,
-            properties: $properties,
-            business_id: (int) $work_order->business_id,
-        );
+        foreach ($work_order->equipments as $equipment) {
+            LogEquipmentHistoricalAction::run(
+                action: 'deleted',
+                module: 'workshop.work-orders',
+                description: "Eliminó la orden de trabajo {$work_order->reference}",
+                equipment: $equipment,
+                subject: $work_order,
+                properties: $properties,
+                business_id: (int) $work_order->business_id,
+            );
+        }
 
         $work_order->items()->delete();
         $work_order->delete();

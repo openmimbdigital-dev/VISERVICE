@@ -182,7 +182,7 @@ class RemissionForm extends Form
                     $query->orWhereHas('remissions', fn ($q) => $q->whereKey($this->remission_id));
                 }
             })
-            ->with(['client:id,name', 'equipment:id,plate'])
+            ->with(['client:id,name', 'equipments:id,plate,name,brand_name'])
             ->orderByDesc('created_at')
             ->get();
     }

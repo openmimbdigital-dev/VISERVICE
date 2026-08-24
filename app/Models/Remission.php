@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\WorkOrderStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -16,7 +17,6 @@ class Remission extends Model
         'business_id',
         'work_order_id',
         'client_id',
-        'equipment_id',
         'reference',
         'type',
         'status',
@@ -70,9 +70,10 @@ class Remission extends Model
         return $this->belongsTo(Client::class);
     }
 
-    public function equipment(): BelongsTo
+    public function equipments(): BelongsToMany
     {
-        return $this->belongsTo(Equipment::class);
+        return $this->belongsToMany(Equipment::class, 'equipment_remission')
+            ->withTimestamps();
     }
 
     public function createdBy(): BelongsTo

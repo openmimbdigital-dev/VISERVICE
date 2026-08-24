@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\WorkOrderStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
@@ -15,12 +16,12 @@ class WorkOrder extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'business_id', 'client_id', 'equipment_id', 'quotation_id',
+        'business_id', 'client_id', 'quotation_id',
         'reference', 'status', 'status_comments',
         'diagnosis', 'work_description', 'observations', 'notes',
         'estimated_delivery', 'subtotal', 'tax_percentage',
         'tax_amount', 'total', 'advance_percentage', 'advance_amount',
-        'document_client', 'created_by', 'finalized_at',
+        'created_by', 'finalized_at',
     ];
 
     protected function casts(): array
@@ -36,7 +37,6 @@ class WorkOrder extends Model
             'total'              => 'decimal:2',
             'advance_percentage' => 'decimal:2',
             'advance_amount'     => 'decimal:2',
-            'document_client'    => 'array',
         ];
     }
 
@@ -50,9 +50,10 @@ class WorkOrder extends Model
         return $this->belongsTo(Client::class);
     }
 
-    public function equipment(): BelongsTo
+    public function equipments(): BelongsToMany
     {
-        return $this->belongsTo(Equipment::class);
+        return $this->belongsToMany(Equipment::class, 'equipment_work_order')
+            ->withTimestamps();
     }
 
     public function quotation(): BelongsTo
@@ -108,6 +109,11 @@ class WorkOrder extends Model
     public function remissions(): HasMany
     {
         return $this->hasMany(Remission::class);
+    }
+
+    public function associatedDocuments(): HasMany
+    {
+        return $this->hasMany(WorkOrderAssociatedDocument::class)->orderBy('name');
     }
 
     public function invoices(): HasMany
