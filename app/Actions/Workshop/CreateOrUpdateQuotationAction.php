@@ -8,6 +8,7 @@ use App\Enums\QuotationStatus;
 use App\Models\BusinessBankAccount;
 use App\Models\BusinessPaymentMethod;
 use App\Models\Client;
+use App\Models\CustomTax;
 use App\Models\Equipment;
 use App\Models\Product;
 use App\Models\ProductCategory;
@@ -74,17 +75,27 @@ class CreateOrUpdateQuotationAction
             );
         }
 
-        return DB::transaction(function () use ($business_id, $quotation_id, $client_id, $equipment_ids, $data, $items) {
+        $custom_tax = CustomTax::query()
+            ->forAuthUser()
+            ->where('business_id', $business_id)
+            ->whereKey($data['custom_tax_id'] ?? null)
+            ->first();
+
+        abort_unless($custom_tax !== null, 422, 'El impuesto seleccionado no es válido.');
+
+        return DB::transaction(function () use ($business_id, $quotation_id, $client_id, $equipment_ids, $data, $items, $custom_tax) {
             $payload = [
                 'client_id'                  => $client_id,
                 'quotation_service_type_id'  => $data['quotation_service_type_id'] ?? null,
                 'business_payment_method_id' => $data['business_payment_method_id'] ?? null,
                 'business_bank_account_id'   => $data['business_bank_account_id'] ?? null,
+                'custom_tax_id'              => $custom_tax->id,
+                'custom_tax_name'            => $data['custom_tax_name'] ?? $custom_tax->name,
                 'diagnosis'                  => $data['diagnosis'] ?? null,
                 'hours_entry'                => $data['hours_entry'] ?? null,
                 'validity_days'              => (int) ($data['validity_days'] ?? 15),
                 'execution_time'             => $data['execution_time'] ?? null,
-                'tax_percentage'             => $data['tax_percentage'] ?? 19,
+                'tax_percentage'             => $data['tax_percentage'] ?? $custom_tax->percentage,
                 'advance_percentage'         => $data['advance_percentage'] ?? 0,
                 'notes'                      => $data['notes'] ?? null,
                 'observations'               => $data['observations'] ?? null,

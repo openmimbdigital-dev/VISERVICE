@@ -3,6 +3,7 @@
 namespace App\Livewire\Forms\Admin\Workshop;
 
 use App\Models\Client;
+use App\Models\CustomTax;
 use App\Models\Equipment;
 use App\Models\Quotation;
 use App\Models\QuotationServiceType;
@@ -24,6 +25,8 @@ class QuotationForm extends Form
 
     public ?int $business_bank_account_id = null;
 
+    public ?int $custom_tax_id = null;
+
     public string $hours_entry = '';
 
     public string $diagnosis = '';
@@ -32,7 +35,7 @@ class QuotationForm extends Form
 
     public string $execution_time = '';
 
-    public string $tax_percentage = '19';
+    public string $tax_percentage = '0';
 
     public string $advance_percentage = '0';
 
@@ -50,6 +53,7 @@ class QuotationForm extends Form
         $this->quotation_service_type_id = $quotation->quotation_service_type_id;
         $this->business_payment_method_id = $quotation->business_payment_method_id;
         $this->business_bank_account_id   = $quotation->business_bank_account_id;
+        $this->custom_tax_id              = $quotation->custom_tax_id;
         $this->hours_entry               = $quotation->hours_entry_formatted ?? '';
         $this->diagnosis                 = $quotation->diagnosis ?? '';
         $this->validity_days             = (string) ($quotation->validity_days ?? 15);
@@ -116,6 +120,13 @@ class QuotationForm extends Form
                     ->where('business_id', $business_id)
                     ->whereNull('deleted_at')),
             ],
+            'custom_tax_id' => [
+                'required',
+                'integer',
+                Rule::exists('custom_taxes', 'id')->where(fn ($q) => $q
+                    ->where('business_id', $business_id)
+                    ->whereNull('deleted_at')),
+            ],
             'hours_entry'     => ['nullable', 'date_format:H:i'],
             'diagnosis'       => ['nullable', 'string'],
             'validity_days'   => ['required', 'integer', 'min:1', 'max:365'],
@@ -138,7 +149,9 @@ class QuotationForm extends Form
             'hours_entry.date_format' => 'Las horas al ingreso deben tener formato HH:MM.',
             'validity_days.required'  => 'Indica los días de vigencia.',
             'validity_days.min'       => 'La vigencia debe ser al menos 1 día.',
-            'tax_percentage.required' => 'El porcentaje de IVA es obligatorio.',
+            'custom_tax_id.required'  => 'Selecciona un impuesto.',
+            'custom_tax_id.exists'    => 'El impuesto seleccionado no es válido.',
+            'tax_percentage.required' => 'El porcentaje del impuesto es obligatorio.',
             'advance_percentage.required' => 'Indica el porcentaje de anticipo.',
             'advance_percentage.numeric' => 'El anticipo debe ser un número.',
             'advance_percentage.min' => 'El anticipo no puede ser negativo.',
@@ -151,15 +164,16 @@ class QuotationForm extends Form
         parent::reset(...$properties);
         $this->quotation_id = null;
         $this->equipment_ids = [];
+        $this->custom_tax_id = null;
         $this->hours_entry  = '';
         $this->validity_days = '15';
-        $this->tax_percentage = '19';
+        $this->tax_percentage = '0';
         $this->advance_percentage = '0';
     }
 
     public function validated(): array
     {
-        foreach (['quotation_service_type_id', 'business_payment_method_id', 'business_bank_account_id'] as $field) {
+        foreach (['quotation_service_type_id', 'business_payment_method_id', 'business_bank_account_id', 'custom_tax_id'] as $field) {
             if ($this->{$field} === '' || $this->{$field} === 0) {
                 $this->{$field} = null;
             }
@@ -173,6 +187,14 @@ class QuotationForm extends Form
                 422
             );
         }
+
+        $custom_tax = CustomTax::query()
+            ->forAuthUser()
+            ->where('business_id', $this->resolvedBusinessId())
+            ->whereKey($this->custom_tax_id)
+            ->first();
+
+        abort_unless($custom_tax !== null, 422);
 
         abort_unless(
             Client::query()->forAuthUser()->whereKey($this->client_id)->exists(),
@@ -192,6 +214,8 @@ class QuotationForm extends Form
             'quotation_service_type_id'  => $this->quotation_service_type_id,
             'business_payment_method_id' => $this->business_payment_method_id,
             'business_bank_account_id'   => $this->business_bank_account_id,
+            'custom_tax_id'              => $custom_tax->id,
+            'custom_tax_name'            => $custom_tax->name,
             'hours_entry'                => $this->hours_entry !== '' ? $this->hours_entry : null,
             'diagnosis'                  => $this->diagnosis ?: null,
             'validity_days'              => (int) $this->validity_days,

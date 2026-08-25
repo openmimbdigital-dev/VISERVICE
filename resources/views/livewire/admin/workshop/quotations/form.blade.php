@@ -140,8 +140,20 @@
                             <input type="text" wire:model="form.execution_time" placeholder="Ej. 2 días hábiles" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm">
                         </div>
                         <div>
-                            <label class="mb-1.5 block text-xs font-medium text-slate-700">IVA (%) <span class="text-rose-500">*</span></label>
-                            <input type="number" wire:model.live="form.tax_percentage" min="0" max="100" step="0.5" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm @error('form.tax_percentage') border-rose-400 @enderror">
+                            <label class="mb-1.5 block text-xs font-medium text-slate-700">Impuesto <span class="text-rose-500">*</span></label>
+                            <select wire:model.live="form.custom_tax_id" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm @error('form.custom_tax_id') border-rose-400 @enderror">
+                                <option value="">— Seleccionar —</option>
+                                @foreach($custom_taxes as $tax)
+                                    <option value="{{ $tax->id }}">{{ $tax->name }} ({{ rtrim(rtrim(number_format((float) $tax->percentage, 2, '.', ''), '0'), '.') }}%)</option>
+                                @endforeach
+                            </select>
+                            @error('form.custom_tax_id') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label class="mb-1.5 block text-xs font-medium text-slate-700">
+                                {{ $selected_custom_tax?->name ?? 'Porcentaje' }} (%) <span class="text-rose-500">*</span>
+                            </label>
+                            <input type="number" wire:model.live="form.tax_percentage" min="0" max="100" step="0.01" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm @error('form.tax_percentage') border-rose-400 @enderror">
                             @error('form.tax_percentage') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                         </div>
                         <div>
@@ -247,7 +259,7 @@
                         <div class="flex justify-between text-xs text-slate-500"><dt>Otros</dt><dd>{{ col_money($category_subtotals['otros']) }}</dd></div>
                         <div class="flex justify-between border-t border-slate-100 pt-2"><dt class="text-slate-500">Subtotal</dt><dd class="font-medium">{{ col_money($preview_subtotal) }}</dd></div>
                         <div class="flex justify-between"><dt class="text-slate-500">Anticipo ({{ $form->advance_percentage }}%)</dt><dd class="font-medium text-amber-700">{{ col_money($preview_advance_amount) }}</dd></div>
-                        <div class="flex justify-between"><dt class="text-slate-500">IVA ({{ $form->tax_percentage }}%)</dt><dd class="font-medium">{{ col_money($preview_tax) }}</dd></div>
+                        <div class="flex justify-between"><dt class="text-slate-500">{{ $selected_custom_tax?->name ?? 'Impuesto' }} ({{ $form->tax_percentage }}%)</dt><dd class="font-medium">{{ col_money($preview_tax) }}</dd></div>
                         <div class="flex justify-between border-t border-slate-100 pt-2 text-base font-bold"><dt>Total</dt><dd class="text-indigo-700">{{ col_money($preview_total) }}</dd></div>
                     </dl>
                 </section>

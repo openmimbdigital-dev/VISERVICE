@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\BelongsToBusinessTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class CustomTax extends Model
@@ -31,6 +32,11 @@ class CustomTax extends Model
     public function business(): BelongsTo
     {
         return $this->belongsTo(Business::class);
+    }
+
+    public function quotations(): HasMany
+    {
+        return $this->hasMany(Quotation::class);
     }
 
     public function canDelete(?User $user = null): bool
