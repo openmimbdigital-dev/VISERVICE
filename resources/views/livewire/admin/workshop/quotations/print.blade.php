@@ -102,7 +102,7 @@
         <p>Subtotal Otros materiales</p><p class="text-right font-medium">{{ col_money($subtotals['otros']) }}</p>
         <p class="border-t border-slate-200 pt-1">Subtotal</p>
         <p class="border-t border-slate-200 pt-1 text-right font-medium">{{ col_money($quotation->subtotal) }}</p>
-        <p>IVA ({{ $quotation->tax_percentage }}%)</p>
+        <p>{{ $quotation->custom_tax_name ?? 'Impuesto' }} ({{ $quotation->tax_percentage }}%)</p>
         <p class="text-right font-medium">{{ col_money($quotation->tax_amount) }}</p>
         <p class="text-base font-bold">TOTAL</p>
         <p class="text-right text-base font-bold text-indigo-700">{{ col_money($quotation->total) }}</p>

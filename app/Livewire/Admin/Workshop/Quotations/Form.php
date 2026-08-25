@@ -10,6 +10,7 @@ use App\Livewire\Forms\Admin\Workshop\QuotationForm;
 use App\Models\BusinessBankAccount;
 use App\Models\BusinessPaymentMethod;
 use App\Models\Client;
+use App\Models\CustomTax;
 use App\Models\Equipment;
 use App\Models\Product;
 use App\Models\ProductCategory;
@@ -88,6 +89,25 @@ class Form extends Component
     {
         $this->form->equipment_ids = [];
         $this->clearItemEquipmentAssignments();
+    }
+
+    public function updatedFormCustomTaxId(mixed $value): void
+    {
+        if (! $value) {
+            $this->form->tax_percentage = '0';
+
+            return;
+        }
+
+        $custom_tax = CustomTax::query()
+            ->forAuthUser()
+            ->where('business_id', $this->form->resolvedBusinessId())
+            ->whereKey($value)
+            ->first();
+
+        if ($custom_tax) {
+            $this->form->tax_percentage = (string) $custom_tax->percentage;
+        }
     }
 
     public function updatedFormEquipmentIds(): void
@@ -311,6 +331,18 @@ class Form extends Component
         $service_types = QuotationServiceType::query()->visibleToUser()->where('active', true)->orderBy('name')->get();
         $payment_methods = BusinessPaymentMethod::query()->visibleToUser()->where('active', true)->orderBy('sort_order')->get();
         $bank_accounts = BusinessBankAccount::query()->forAuthUser()->where('business_id', $business_id)->where('active', true)->get();
+        $custom_taxes = CustomTax::query()
+            ->forAuthUser()
+            ->where('business_id', $business_id)
+            ->where(function ($q) {
+                $q->where('active', true);
+                if ($this->form->custom_tax_id) {
+                    $q->orWhere('custom_taxes.id', $this->form->custom_tax_id);
+                }
+            })
+            ->orderBy('name')
+            ->get();
+        $selected_custom_tax = $custom_taxes->firstWhere('id', $this->form->custom_tax_id);
         $product_types = ProductType::query()->visibleToUser()->where('active', true)->orderBy('name')->get();
         $catalog_products = Product::query()->forAuthUser()->where('business_id', $business_id)->active()->orderBy('name')->get();
 
@@ -378,6 +410,8 @@ class Form extends Component
             'service_types'        => $service_types,
             'payment_methods'      => $payment_methods,
             'bank_accounts'        => $bank_accounts,
+            'custom_taxes'         => $custom_taxes,
+            'selected_custom_tax'  => $selected_custom_tax,
             'product_types'        => $product_types,
             'catalog_products'     => $catalog_products,
             'equipment_for_client' => $equipment_for_client,

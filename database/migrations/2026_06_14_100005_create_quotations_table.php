@@ -38,6 +38,8 @@ return new class extends Migration
             $table->date('valid_until')->nullable()->comment('Fecha de vencimiento de la cotización');
             $table->string('execution_time', 120)->nullable()->comment('Tiempo estimado de ejecución');
             $table->decimal('subtotal', 12, 2)->default(0);
+            $table->unsignedBigInteger('custom_tax_id')->nullable();
+            $table->string('custom_tax_name')->nullable()->comment('Nombre del impuesto al momento de la cotización');
             $table->decimal('tax_percentage', 5, 2)->default(0);
             $table->decimal('tax_amount', 12, 2)->default(0);
             $table->decimal('total', 12, 2)->default(0);

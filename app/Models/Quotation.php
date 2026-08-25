@@ -27,7 +27,7 @@ class Quotation extends Model
         'business_payment_method_id', 'business_bank_account_id',
         'reference', 'status', 'diagnosis', 'hours_entry',
         'validity_days', 'valid_until', 'execution_time',
-        'subtotal', 'tax_percentage', 'tax_amount', 'total',
+        'subtotal', 'custom_tax_id', 'custom_tax_name', 'tax_percentage', 'tax_amount', 'total',
         'advance_percentage', 'advance_amount',
         'notes', 'observations', 'reject_reason',
         'approved_by_name', 'approved_by_position', 'approved_signature',
@@ -82,6 +82,11 @@ class Quotation extends Model
     public function bankAccount(): BelongsTo
     {
         return $this->belongsTo(BusinessBankAccount::class, 'business_bank_account_id');
+    }
+
+    public function customTax(): BelongsTo
+    {
+        return $this->belongsTo(CustomTax::class);
     }
 
     public function createdBy(): BelongsTo

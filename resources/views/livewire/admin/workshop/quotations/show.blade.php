@@ -263,7 +263,7 @@
                     @if((float) $quotation->advance_amount > 0)
                     <div class="flex justify-between"><dt class="text-slate-500">Anticipo ({{ $quotation->advance_percentage }}%)</dt><dd class="font-medium text-amber-700">{{ col_money($quotation->advance_amount) }}</dd></div>
                     @endif
-                    <div class="flex justify-between"><dt class="text-slate-500">IVA ({{ $quotation->tax_percentage }}%)</dt><dd class="font-medium">{{ col_money($quotation->tax_amount) }}</dd></div>
+                    <div class="flex justify-between"><dt class="text-slate-500">{{ $quotation->custom_tax_name ?? 'Impuesto' }} ({{ $quotation->tax_percentage }}%)</dt><dd class="font-medium">{{ col_money($quotation->tax_amount) }}</dd></div>
                     <div class="flex justify-between border-t border-slate-100 pt-2 text-base font-bold"><dt>Total</dt><dd class="text-indigo-700">{{ col_money($quotation->total) }}</dd></div>
                 </dl>
             </section>
