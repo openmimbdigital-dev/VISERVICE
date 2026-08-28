@@ -3,10 +3,10 @@
 namespace Database\Seeders;
 
 use App\Enums\QuotationStatus;
+use App\Models\AssociatedDocumentType;
 use App\Models\Business;
 use App\Models\Client;
 use App\Models\Equipment;
-use App\Models\GeneralConfig;
 use App\Models\Product;
 use App\Models\Quotation;
 use App\Models\User;
@@ -243,11 +243,11 @@ class WorkOrdersSeeder extends Seeder
     {
         $work_order->associatedDocuments()->delete();
 
-        $configs = GeneralConfig::query()
+        $types = AssociatedDocumentType::query()
             ->where('business_id', $business->id)
-            ->associatedDocumentsOt()
+            ->where('active', true)
             ->orderBy('id')
-            ->get(['value']);
+            ->get(['id', 'name', 'document_send']);
 
         $samples = [
             'Cédula del cliente'         => $client->document_number ?: '1020304050',
@@ -257,18 +257,23 @@ class WorkOrdersSeeder extends Seeder
             'Póliza de seguro'           => 'POL-' . str_pad((string) (5000 + $sequence), 5, '0', STR_PAD_LEFT),
         ];
 
-        $rows = $configs->isEmpty()
-            ? collect([['name' => 'Cédula del cliente', 'value' => $client->document_number ?: ('DOC-' . str_pad((string) $sequence, 6, '0', STR_PAD_LEFT))]])
-            : $configs->take(2)->map(fn ($config) => [
-                'name'  => $config->value,
-                'value' => $samples[$config->value] ?? ('DEMO-' . $sequence),
-            ]);
+        if ($types->isEmpty()) {
+            $this->command?->warn("Órdenes de trabajo: sin tipos de documento asociado para {$business->slug}, se omiten documentos de la OT {$work_order->reference}.");
+
+            return;
+        }
+
+        $rows = $types->take(2)->map(fn ($type) => [
+            'associated_document_type_id' => $type->id,
+            'name'                        => $type->name,
+            'value'                       => $samples[$type->name] ?? ('DEMO-' . $sequence),
+            'document_send'               => $type->document_send,
+        ]);
 
         foreach ($rows as $row) {
             WorkOrderAssociatedDocument::query()->create([
                 'work_order_id' => $work_order->id,
-                'name'          => $row['name'],
-                'value'         => $row['value'],
+                ...$row,
             ]);
         }
     }

@@ -39,7 +39,7 @@ class DatabaseSeeder extends Seeder
             BusinessPaymentSettingsSeeder::class,
             QuotationServiceTypesSeeder::class,
             StatusesSeeder::class,
-            AssociatedDocumentOtSeeder::class,
+            AssociatedDocumentTypesSeeder::class,
             AttributesSeeder::class,
             ClientsSeeder::class,
             EquipmentSeeder::class,

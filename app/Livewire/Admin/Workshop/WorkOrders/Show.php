@@ -8,7 +8,7 @@ use App\Actions\Workshop\AdjustWorkOrderItemQuantityAction;
 use App\Actions\Workshop\CreateOrUpdateWorkOrderAssociatedDocumentAction;
 use App\Actions\Workshop\UpdateWorkOrderStatusAction;
 use App\Enums\WorkOrderStatus;
-use App\Models\GeneralConfig;
+use App\Models\AssociatedDocumentType;
 use App\Models\Product;
 use App\Models\ProductType;
 use App\Models\Status;
@@ -34,11 +34,13 @@ class Show extends Component
 
     public bool $showDocumentModal = false;
 
-    public ?string $selected_document_label = null;
+    public ?int $selected_document_type_id = null;
 
     public ?string $editing_document_name = null;
 
     public string $document_input_value = '';
+
+    public bool $document_send_value = false;
 
     public ?int $editing_associated_document_id = null;
 
@@ -452,8 +454,9 @@ class Show extends Component
 
         $this->editing_associated_document_id = null;
         $this->editing_document_name = null;
-        $this->selected_document_label = null;
+        $this->selected_document_type_id = null;
         $this->document_input_value = '';
+        $this->document_send_value = false;
         $this->showDocumentModal = true;
         $this->resetValidation();
     }
@@ -465,19 +468,29 @@ class Show extends Component
 
         $document = $this->workOrder->associatedDocuments()->findOrFail($id);
 
-        $catalog_label = GeneralConfig::query()
-            ->forAuthUser()
-            ->associatedDocumentsOt()
-            ->where('business_id', $this->workOrder->business_id)
-            ->where('value', $document->name)
-            ->value('label');
-
         $this->editing_associated_document_id = $document->id;
         $this->editing_document_name = $document->name;
-        $this->selected_document_label = $catalog_label ? (string) $catalog_label : null;
+        $this->selected_document_type_id = $document->associated_document_type_id;
         $this->document_input_value = (string) $document->value;
+        $this->document_send_value = (bool) $document->document_send;
         $this->showDocumentModal = true;
         $this->resetValidation();
+    }
+
+    public function updatedSelectedDocumentTypeId(mixed $value): void
+    {
+        if (! $value) {
+            $this->document_send_value = false;
+
+            return;
+        }
+
+        $document_type = AssociatedDocumentType::query()
+            ->forAuthUser()
+            ->where('business_id', $this->workOrder->business_id)
+            ->find($value);
+
+        $this->document_send_value = (bool) $document_type?->document_send;
     }
 
     public function closeDocumentModal(): void
@@ -485,8 +498,9 @@ class Show extends Component
         $this->showDocumentModal = false;
         $this->editing_associated_document_id = null;
         $this->editing_document_name = null;
-        $this->selected_document_label = null;
+        $this->selected_document_type_id = null;
         $this->document_input_value = '';
+        $this->document_send_value = false;
         $this->resetValidation();
     }
 
@@ -496,11 +510,11 @@ class Show extends Component
         $this->assertWorkOrderEditable();
 
         $this->validate([
-            'selected_document_label' => 'required|string|max:100',
-            'document_input_value'    => 'required|string|max:255',
+            'selected_document_type_id' => 'required|integer',
+            'document_input_value'      => 'required|string|max:255',
         ], [
-            'selected_document_label.required' => 'Selecciona un documento asociado.',
-            'document_input_value.required'    => 'El valor del documento es obligatorio.',
+            'selected_document_type_id.required' => 'Selecciona un documento asociado.',
+            'document_input_value.required'      => 'El valor del documento es obligatorio.',
         ]);
 
         $is_editing = (bool) $this->editing_associated_document_id;
@@ -509,8 +523,9 @@ class Show extends Component
             CreateOrUpdateWorkOrderAssociatedDocumentAction::run(
                 $this->workOrder->id,
                 $this->editing_associated_document_id,
-                $this->selected_document_label,
+                $this->selected_document_type_id,
                 $this->document_input_value,
+                $this->document_send_value,
             );
             $this->workOrder->refresh();
         } catch (ValidationException $exception) {
@@ -591,23 +606,28 @@ class Show extends Component
             ->orderBy('name')
             ->get();
 
-        $associated_documents = GeneralConfig::query()
+        $associated_document_types = AssociatedDocumentType::query()
             ->forAuthUser()
-            ->associatedDocumentsOt()
             ->where('business_id', $this->workOrder->business_id)
-            ->orderBy('value')
-            ->get(['id', 'label', 'value']);
+            ->where(function ($q) {
+                $q->where('active', true);
+                if ($this->selected_document_type_id) {
+                    $q->orWhere('id', $this->selected_document_type_id);
+                }
+            })
+            ->orderBy('name')
+            ->get(['id', 'name']);
 
-        $used_document_names = $this->workOrder->associatedDocuments->pluck('name')->all();
-        $available_associated_documents = $associated_documents
-            ->reject(function ($doc) use ($used_document_names) {
+        $used_document_type_ids = $this->workOrder->associatedDocuments->pluck('associated_document_type_id')->filter()->all();
+        $available_associated_documents = $associated_document_types
+            ->reject(function ($type) use ($used_document_type_ids) {
                 if ($this->editing_associated_document_id
-                    && $this->editing_document_name === $doc->value
+                    && (int) $this->selected_document_type_id === (int) $type->id
                 ) {
                     return false;
                 }
 
-                return in_array($doc->value, $used_document_names, true);
+                return in_array($type->id, $used_document_type_ids, true);
             })
             ->values();
 
@@ -642,7 +662,6 @@ class Show extends Component
         return view('livewire.admin.workshop.work-orders.show', [
             'product_types' => $product_types,
             'catalog_products' => $catalog_products,
-            'associated_documents' => $associated_documents,
             'available_associated_documents' => $available_associated_documents,
             'can_edit' => $can_edit,
             'can_edit_items' => $can_edit && ! $is_locked,

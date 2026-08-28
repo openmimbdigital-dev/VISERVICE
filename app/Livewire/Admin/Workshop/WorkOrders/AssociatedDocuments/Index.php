@@ -2,10 +2,10 @@
 
 namespace App\Livewire\Admin\Workshop\WorkOrders\AssociatedDocuments;
 
-use App\Actions\Workshop\CreateOrUpdateAssociatedDocumentOtAction;
-use App\Livewire\Forms\Admin\Workshop\AssociatedDocumentOtForm;
+use App\Actions\Workshop\CreateOrUpdateAssociatedDocumentTypeAction;
+use App\Livewire\Forms\Admin\Workshop\AssociatedDocumentTypeForm;
+use App\Models\AssociatedDocumentType;
 use App\Models\Business;
-use App\Models\GeneralConfig;
 use App\Support\CurrentBusiness;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
@@ -16,7 +16,7 @@ use Livewire\Component;
 #[Title('Documentos asociados OT')]
 class Index extends Component
 {
-    public AssociatedDocumentOtForm $form;
+    public AssociatedDocumentTypeForm $form;
 
     public bool $showModal = false;
 
@@ -45,22 +45,21 @@ class Index extends Component
         $this->resetValidation();
     }
 
-    #[On('open-associated-document-ot-edit')]
+    #[On('open-associated-document-type-edit')]
     public function openEdit(int $id): void
     {
         abort_unless(auth()->user()?->can('workshop.work-orders.associated-documents.edit'), 403);
 
-        $config = GeneralConfig::query()
+        $type = AssociatedDocumentType::query()
             ->forAuthUser()
-            ->associatedDocumentsOt()
             ->findOrFail($id);
 
-        $this->form->setConfig($config);
+        $this->form->setDocumentType($type);
         $this->showModal = true;
         $this->resetValidation();
     }
 
-    #[On('associated-document-ot-deleted')]
+    #[On('associated-document-type-deleted')]
     public function onRecordDeleted(): void {}
 
     public function closeModal(): void
@@ -83,8 +82,8 @@ class Index extends Component
 
         $was_editing = $this->form->isEditing();
 
-        CreateOrUpdateAssociatedDocumentOtAction::run(
-            $this->form->config_id,
+        CreateOrUpdateAssociatedDocumentTypeAction::run(
+            $this->form->document_type_id,
             $this->form->validated()
         );
 
@@ -95,12 +94,12 @@ class Index extends Component
             'icon'  => 'success',
         ]);
 
-        $this->dispatch('associated-document-ot-saved');
+        $this->dispatch('associated-document-type-saved');
     }
 
     public function render()
     {
-        $query = GeneralConfig::query()->forAuthUser()->associatedDocumentsOt();
+        $query = AssociatedDocumentType::query()->forAuthUser();
 
         return view('livewire.admin.workshop.work-orders.associated-documents.index', [
             'is_super_admin' => $this->form->isSuperAdmin(),
@@ -108,7 +107,8 @@ class Index extends Component
                 ? Business::query()->orderBy('name')->get(['id', 'name'])
                 : collect(),
             'stats' => [
-                'total' => (clone $query)->count(),
+                'total'  => (clone $query)->count(),
+                'active' => (clone $query)->where('active', true)->count(),
             ],
         ]);
     }

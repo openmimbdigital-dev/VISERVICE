@@ -31,6 +31,10 @@
             <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Total</p>
             <p class="mt-1 text-2xl font-semibold tabular-nums text-slate-900">{{ $stats['total'] }}</p>
         </div>
+        <div class="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm ring-1 ring-slate-900/[0.035]">
+            <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Activos</p>
+            <p class="mt-1 text-2xl font-semibold tabular-nums text-emerald-700">{{ $stats['active'] }}</p>
+        </div>
     </div>
 
     <section class="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
@@ -75,10 +79,28 @@
 
                 <div>
                     <label class="mb-1.5 block text-xs font-medium text-slate-700">Nombre Documento asociado <span class="text-rose-500">*</span></label>
-                    <input wire:model="form.value" type="text" placeholder="Ej. Remisión de entrega"
-                        class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('form.value') border-rose-400 bg-rose-50 @enderror">
-                    @error('form.value') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
-                    <p class="mt-1.5 text-xs text-slate-500">Se guardará con key <code class="rounded bg-slate-100 px-1">asociate_document_ot</code>.</p>
+                    <input wire:model="form.name" type="text" placeholder="Ej. Remisión de entrega"
+                        class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('form.name') border-rose-400 bg-rose-50 @enderror">
+                    @error('form.name') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <button type="button" wire:click="$toggle('form.active')"
+                        class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 {{ $form->active ? 'bg-indigo-600' : 'bg-slate-300' }}">
+                        <span class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 {{ $form->active ? 'translate-x-6' : 'translate-x-1' }}"></span>
+                    </button>
+                    <span class="text-sm {{ $form->active ? 'font-medium text-emerald-700' : 'text-slate-500' }}">{{ $form->active ? 'Activo' : 'Inactivo' }}</span>
+                </div>
+
+                <div>
+                    <div class="flex items-center gap-3">
+                        <button type="button" wire:click="$toggle('form.document_send')"
+                            class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 {{ $form->document_send ? 'bg-indigo-600' : 'bg-slate-300' }}">
+                            <span class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 {{ $form->document_send ? 'translate-x-6' : 'translate-x-1' }}"></span>
+                        </button>
+                        <span class="text-sm {{ $form->document_send ? 'font-medium text-indigo-700' : 'text-slate-500' }}">Requiere envío de documento</span>
+                    </div>
+                    <p class="mt-1.5 text-xs text-slate-500">Actívalo si este documento debe adjuntarse/enviarse como archivo al registrarlo en la OT.</p>
                 </div>
             </div>
 
