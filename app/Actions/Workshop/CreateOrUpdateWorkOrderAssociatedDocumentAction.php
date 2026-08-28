@@ -4,7 +4,7 @@ namespace App\Actions\Workshop;
 
 use App\Actions\LogEquipmentHistoricalAction;
 use App\Actions\LogUserHistoricalAction;
-use App\Models\GeneralConfig;
+use App\Models\AssociatedDocumentType;
 use App\Models\WorkOrder;
 use App\Models\WorkOrderAssociatedDocument;
 use Illuminate\Validation\ValidationException;
@@ -17,8 +17,9 @@ class CreateOrUpdateWorkOrderAssociatedDocumentAction
     public function handle(
         int $work_order_id,
         ?int $document_id,
-        ?string $catalog_label,
+        int $document_type_id,
         string $document_value,
+        bool $document_send = false,
     ): WorkOrderAssociatedDocument {
         abort_unless(auth()->user()?->can('workshop.work-orders.edit'), 403);
 
@@ -32,16 +33,14 @@ class CreateOrUpdateWorkOrderAssociatedDocumentAction
 
         $value = trim($document_value);
 
-        $config = GeneralConfig::query()
+        $document_type = AssociatedDocumentType::query()
             ->forAuthUser()
-            ->associatedDocumentsOt()
             ->where('business_id', $work_order->business_id)
-            ->where('label', $catalog_label)
-            ->firstOrFail();
+            ->findOrFail($document_type_id);
 
         $duplicate_query = WorkOrderAssociatedDocument::query()
             ->where('work_order_id', $work_order->id)
-            ->where('name', $config->value);
+            ->where('associated_document_type_id', $document_type->id);
 
         if ($document_id) {
             $duplicate_query->whereKeyNot($document_id);
@@ -49,19 +48,23 @@ class CreateOrUpdateWorkOrderAssociatedDocumentAction
 
         if ($duplicate_query->exists()) {
             throw ValidationException::withMessages([
-                'selected_document_label' => 'Este documento ya está asociado a la OT.',
+                'selected_document_type_id' => 'Este documento ya está asociado a la OT.',
             ]);
         }
+
+        $attributes = [
+            'associated_document_type_id' => $document_type->id,
+            'name'                        => $document_type->name,
+            'value'                       => $value,
+            'document_send'               => $document_send,
+        ];
 
         if ($document_id) {
             $document = WorkOrderAssociatedDocument::query()
                 ->where('work_order_id', $work_order->id)
                 ->findOrFail($document_id);
 
-            $document->update([
-                'name'  => $config->value,
-                'value' => $value,
-            ]);
+            $document->update($attributes);
             $document = $document->fresh();
 
             $this->logChange($work_order, $document, 'Actualizó');
@@ -71,8 +74,7 @@ class CreateOrUpdateWorkOrderAssociatedDocumentAction
 
         $document = WorkOrderAssociatedDocument::query()->create([
             'work_order_id' => $work_order->id,
-            'name'          => $config->value,
-            'value'         => $value,
+            ...$attributes,
         ]);
 
         $this->logChange($work_order, $document, 'Registró');

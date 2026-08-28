@@ -2,9 +2,9 @@
 
 namespace App\Livewire\Admin\Workshop\WorkOrders\AssociatedDocuments;
 
-use App\Actions\Workshop\DeleteAssociatedDocumentOtAction;
+use App\Actions\Workshop\DeleteAssociatedDocumentTypeAction;
 use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
-use App\Models\GeneralConfig;
+use App\Models\AssociatedDocumentType;
 use Arm092\LivewireDatatables\Column;
 use Arm092\LivewireDatatables\Livewire\LivewireDatatable;
 use Illuminate\Database\Eloquent\Builder;
@@ -19,19 +19,18 @@ class DatatableAssociatedDocuments extends LivewireDatatable
 
     public ?int $perPage = 25;
 
-    #[On('associated-document-ot-saved')]
+    #[On('associated-document-type-saved')]
     public function onSaved(): void {}
 
     public function builder(): Builder
     {
-        $query = GeneralConfig::query()
+        $query = AssociatedDocumentType::query()
             ->forAuthUser()
-            ->associatedDocumentsOt()
-            ->select('general_configs.*')
-            ->orderByDesc('general_configs.created_at');
+            ->select('associated_document_types.*')
+            ->orderByDesc('associated_document_types.created_at');
 
         if (auth()->user()->hasRole('superAdmin')) {
-            $query->leftJoin('businesses', 'general_configs.business_id', '=', 'businesses.id');
+            $query->leftJoin('businesses', 'associated_document_types.business_id', '=', 'businesses.id');
         }
 
         return $query;
@@ -40,17 +39,28 @@ class DatatableAssociatedDocuments extends LivewireDatatable
     public function getColumns(): Model|array
     {
         $columns = [
-            Column::name('general_configs.value')->label('Documento')->searchable()->sortable(),
-            Column::name('general_configs.label')->label('Label')->searchable()->sortable(),
-            Column::name('general_configs.key')->label('Key')->sortable(),
+            Column::name('associated_document_types.name')->label('Documento')->searchable()->sortable(),
+            Column::name('associated_document_types.key')->label('Key')->searchable()->sortable(),
         ];
 
         if (auth()->user()->hasRole('superAdmin')) {
             $columns[] = Column::raw('businesses.name AS business_name')->label('Negocio')->searchable();
         }
 
+        $columns[] = Column::callback(['associated_document_types.active'], function ($active) {
+            return $active
+                ? '<span class="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-emerald-600/20">Activo</span>'
+                : '<span class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600 ring-1 ring-slate-500/20">Inactivo</span>';
+        })->label('Estado');
+
+        $columns[] = Column::callback(['associated_document_types.document_send'], function ($document_send) {
+            return $document_send
+                ? '<span class="inline-flex items-center rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-indigo-600/20">Sí</span>'
+                : '<span class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600 ring-1 ring-slate-500/20">No</span>';
+        })->label('Envío doc.');
+
         $columns[] = Column::callback(
-            ['general_configs.id'],
+            ['associated_document_types.id'],
             function ($id) {
                 return view('livewire.admin.workshop.work-orders.associated-documents.actions', [
                     'id' => $id,
@@ -63,7 +73,7 @@ class DatatableAssociatedDocuments extends LivewireDatatable
 
     public function openEditEvent(int $id): void
     {
-        $this->dispatch('open-associated-document-ot-edit', id: $id);
+        $this->dispatch('open-associated-document-type-edit', id: $id);
     }
 
     public function deleteRecord(int $id): void
@@ -75,9 +85,9 @@ class DatatableAssociatedDocuments extends LivewireDatatable
     protected function onDeleteConfirmed(): void
     {
         try {
-            DeleteAssociatedDocumentOtAction::run($this->delete_id);
+            DeleteAssociatedDocumentTypeAction::run($this->delete_id);
             $this->alertDeleteSuccess('Documento eliminado correctamente.');
-            $this->dispatch('associated-document-ot-deleted');
+            $this->dispatch('associated-document-type-deleted');
         } catch (\Throwable $e) {
             $this->alertDeleteError($e->getMessage() ?: 'No se pudo eliminar el documento.');
         }

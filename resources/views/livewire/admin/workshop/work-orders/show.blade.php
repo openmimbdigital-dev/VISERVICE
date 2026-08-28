@@ -468,16 +468,16 @@
             <div class="flex-1 space-y-4 overflow-y-auto px-4 py-5 sm:px-6">
                 <div>
                     <label class="mb-1.5 block text-xs font-medium text-slate-700">Documento <span class="text-rose-500">*</span></label>
-                    <select wire:model="selected_document_label"
-                        class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('selected_document_label') border-rose-400 bg-rose-50 @enderror">
+                    <select wire:model.live="selected_document_type_id"
+                        class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('selected_document_type_id') border-rose-400 bg-rose-50 @enderror">
                         <option value="">Seleccionar…</option>
                         @forelse($available_associated_documents as $doc)
-                        <option value="{{ $doc->label }}">{{ $doc->value }}</option>
+                        <option value="{{ $doc->id }}">{{ $doc->name }}</option>
                         @empty
                         <option value="" disabled>No hay documentos disponibles</option>
                         @endforelse
                     </select>
-                    @error('selected_document_label') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                    @error('selected_document_type_id') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                 </div>
 
                 <div>
@@ -485,6 +485,19 @@
                     <input type="text" wire:model="document_input_value" placeholder="Ej. número o referencia del documento"
                         class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('document_input_value') border-rose-400 bg-rose-50 @enderror">
                     @error('document_input_value') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                </div>
+
+                <div>
+                    <div class="flex items-center gap-3">
+                        <button type="button" wire:click="$toggle('document_send_value')"
+                            class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 {{ $document_send_value ? 'bg-indigo-600' : 'bg-slate-300' }}">
+                            <span class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 {{ $document_send_value ? 'translate-x-6' : 'translate-x-1' }}"></span>
+                        </button>
+                        <span class="text-sm {{ $document_send_value ? 'font-medium text-indigo-700' : 'text-slate-500' }}">Requiere envío de documento</span>
+                    </div>
+                    @if($document_send_value)
+                    <p class="mt-1.5 text-xs text-slate-500">Este número de documento se usará para la facturación y será enviado a la DIAN.</p>
+                    @endif
                 </div>
             </div>
 

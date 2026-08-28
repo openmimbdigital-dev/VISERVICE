@@ -127,14 +127,35 @@ Un usuario de negocio **no** puede ver, crear, editar ni eliminar registros de o
 
 ---
 
-## Métodos con un solo propósito
+## SRP al crear métodos y unidades de código
 
-- Cada método público/protegido debe hacer **una sola cosa** (autorizar, cargar datos, validar, persistir, renderizar).
-- **No** sobrecargar métodos con lógica de validación + persistencia + side effects en el mismo bloque.
-- Componente Livewire: `mount()` solo autoriza y carga estado; `save()` delega a Form + Action; la eliminación va en `Delete*Action` o `onDeleteConfirmed()` mínimo.
-- Actions: un Action por operación (`CreateOrUpdate*`, `Delete*`, `Sync*`); no mezclar create/update de entidades distintas.
+**SRP:** cada unidad de código (método, clase, Action, Form) debe encargarse de una **única responsabilidad coherente** y tener una **sola razón de cambio**. No significa que deba hacer una sola operación, sino que **todas sus operaciones deben pertenecer a la misma responsabilidad**.
+
+- Al crear o refactorizar métodos: agrupa solo lo que cambia por el mismo motivo; separa lo que cambia por motivos distintos.
+- **No** mezclar responsabilidades distintas en el mismo método (p. ej. validación de negocio + persistencia + side effects no relacionados).
+- Componente Livewire: `mount()` autoriza y carga estado; `save()` orquesta Form + Action; la eliminación va en `Delete*Action` o `onDeleteConfirmed()` mínimo.
+- Actions: un Action por responsabilidad de persistencia (`CreateOrUpdate*`, `Delete*`, `Sync*`); no mezclar create/update de entidades distintas.
 - Form: `rules()`, `messages()`, `validated()` y helpers de consulta (`get*()`) separados; sin queries de escritura.
 - Formularios complejos: vista dedicada (`Form.php` + `form.blade.php`), no modal sobrecargado.
+
+```php
+// ❌ Dos razones de cambio: UI/autorización + escritura en BD
+public function save(): void
+{
+    abort_unless(auth()->user()->can('...'), 403);
+    $this->validate();
+    Client::create($this->only([...]));
+    $this->dispatch('swal', [...]);
+}
+
+// ✅ Una responsabilidad por capa: el componente orquesta; Form valida; Action persiste
+public function save(): void
+{
+    abort_unless(auth()->user()->can('...'), 403);
+    CreateOrUpdateClientAction::run($this->form->resolvedBusinessId(), $this->form->client_id, $this->form->validated());
+    $this->redirectRoute('...', navigate: true);
+}
+```
 
 ---
 
