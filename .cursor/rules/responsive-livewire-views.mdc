@@ -1,0 +1,261 @@
+---
+description: Guía UI responsive obligatoria para index, form, show y modales Livewire (VISERVICE)
+globs: resources/views/livewire/**/*.blade.php,resources/views/components/ui/**/*.blade.php
+alwaysApply: true
+---
+
+# Guía UI responsive — VISERVICE
+
+**Obligatorio** al maquetar cualquier **index**, **form**, **show** o **modal** en Livewire.
+
+Referencias de implementación:
+- Index: `brands/index`, `clients/index`, `user/index`
+- Modal centrado: `user/index`, `brands/index`, `roles/index`
+- Modal sheet: `equipment/index`, `quotations/index`
+- Show: `brands/show`
+- Componentes: `resources/views/components/ui/`
+
+---
+
+## Contenedor de página
+
+```blade
+<div class="relative mx-auto w-full max-w-[90rem] p-4 sm:p-6">
+    {{-- línea decorativa opcional --}}
+    <div class="pointer-events-none absolute -top-4 left-1/2 h-px w-[min(100%,48rem)] -translate-x-1/2 bg-gradient-to-r from-transparent via-indigo-300/40 to-transparent" aria-hidden="true"></div>
+```
+
+---
+
+## Componentes reutilizables
+
+### Botón crear — `<x-ui.create-button>`
+
+Usar en headers de index. No duplicar markup del botón indigo.
+
+```blade
+{{-- Livewire (abre modal) --}}
+<x-ui.create-button wire:click="openCreate" class="w-full justify-center sm:w-auto">
+    Nuevo registro
+</x-ui.create-button>
+
+{{-- Enlace a formulario --}}
+<x-ui.create-button :href="route('...')" class="w-full justify-center sm:w-auto">
+    Nuevo cliente
+</x-ui.create-button>
+
+{{-- Tamaño pequeño --}}
+<x-ui.create-button wire:click="openCreate" size="sm" class="flex-1 sm:flex-none justify-center">
+    Nueva marca
+</x-ui.create-button>
+```
+
+### Modal — `<x-ui.modal>`
+
+**Nunca** crear overlay/panel manual. Siempre usar el componente.
+
+| Variante | Prop | Cuándo usar |
+|----------|------|-------------|
+| Centrada | `centered` | Formularios compactos: usuarios, marcas, roles |
+| Sheet (default) | — | Formularios largos: equipos, cotizaciones, catálogo |
+
+```blade
+@if($showModal)
+<x-ui.modal centered maxWidth="lg">
+    <x-slot:backdrop>
+        <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" wire:click="closeModal"></div>
+    </x-slot:backdrop>
+
+    {{-- Header --}}
+    <div class="flex shrink-0 items-center justify-between border-b border-slate-100 px-4 py-4 sm:px-6">
+        <h3 class="text-base font-semibold text-slate-900">Título</h3>
+        <button type="button" wire:click="closeModal" class="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600">
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+    </div>
+
+    {{-- Cuerpo (formulario) --}}
+    <form wire:submit="save" class="flex min-h-0 flex-1 flex-col">
+        <div class="flex-1 space-y-4 overflow-y-auto px-4 py-5 sm:px-6">
+            {{-- campos --}}
+        </div>
+        <div class="flex shrink-0 flex-col-reverse gap-2 border-t border-slate-100 px-4 py-4 sm:flex-row sm:justify-end sm:gap-3 sm:px-6">
+            <button type="button" wire:click="closeModal" class="w-full rounded-xl bg-slate-100 px-4 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-200 sm:w-auto">Cancelar</button>
+            <button type="submit" wire:loading.attr="disabled" class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-60 sm:w-auto">Guardar</button>
+        </div>
+    </form>
+</x-ui.modal>
+@endif
+```
+
+Con Alpine: `<x-ui.modal centered x-show="$wire.showModal" x-cloak style="display:none">`
+
+`maxWidth`: `sm` | `md` | `lg` (default) | `xl` | `2xl`
+
+---
+
+## Inputs y labels (modal / form)
+
+```blade
+<label class="mb-1.5 block text-xs font-medium text-slate-700">Nombre <span class="text-rose-500">*</span></label>
+<input type="text"
+    class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('campo') border-rose-400 bg-rose-50 @enderror">
+@error('campo') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+```
+
+- Grids de campos: `grid grid-cols-1 gap-4 sm:grid-cols-2`
+- Campos ancho completo en grid: `sm:col-span-2`
+- Select: mismas clases que input
+- Toggle estado: switch indigo + texto `Activo`/`Inactivo` (ver `user/index`, `brands/index`)
+- Formularios en página (no modal): usar clases `.form-input`, `.form-select`, `.label-up` de `app.css`
+
+---
+
+## Index
+
+### Breadcrumb
+```blade
+<nav class="mb-6 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-medium text-slate-500">
+```
+
+### Header
+```blade
+<header class="mb-8">
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div class="min-w-0 flex-1 border-l-4 border-indigo-600 pl-4 sm:pl-5">
+            <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-indigo-600/90">Sección</p>
+            <h1 class="mt-2 text-2xl font-bold tracking-tight text-slate-900">Título</h1>
+            <p class="mt-2 max-w-xl text-sm text-slate-600">Descripción</p>
+        </div>
+        <x-ui.create-button ... />
+    </div>
+</header>
+```
+
+### Stats
+`grid grid-cols-1 gap-3 sm:grid-cols-2` o `sm:grid-cols-3`
+
+### Datatable
+```blade
+<section class="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
+    <div class="border-b border-slate-100 bg-slate-50/80 px-4 py-4 sm:px-5">
+        <h2 class="font-semibold text-slate-800">Listado</h2>
+    </div>
+    <div class="overflow-x-auto p-3 sm:p-4">
+        <livewire:dynamic-component :component="$config['datatable_component']" :key="'...-datatable'" />
+    </div>
+</section>
+```
+
+### Tabla manual (sin datatable)
+- Envolver en `overflow-x-auto`
+- Celdas: `px-3 py-4 sm:px-5`
+- Ocultar columnas secundarias: `hidden sm:table-cell`, `hidden md:table-cell`, `hidden lg:table-cell`
+- Acciones móvil: solo icono; texto con `hidden sm:inline`
+- Botones de acción: `flex flex-wrap justify-end gap-1`
+
+---
+
+## Show
+
+```blade
+<header class="mb-8">
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div class="min-w-0 flex-1 border-l-4 border-indigo-600 pl-4 sm:pl-5">...</div>
+        <div class="flex w-full shrink-0 flex-wrap gap-2 sm:w-auto">
+            <a class="btn btn-outline-secondary btn-sm flex-1 sm:flex-none justify-center">Volver</a>
+            <button class="btn btn-danger btn-sm flex-1 sm:flex-none justify-center disabled:opacity-50" @disabled(...)>Eliminar</button>
+        </div>
+    </div>
+</header>
+
+<div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+    <section class="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
+        <div class="border-b border-slate-100 bg-slate-50/80 px-5 py-4">...</div>
+        <dl class="divide-y divide-slate-100 px-5 py-2">
+            <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                <dt class="text-xs font-medium text-slate-500">Campo</dt>
+                <dd class="text-sm text-slate-900 sm:col-span-2">Valor</dd>
+            </div>
+        </dl>
+    </section>
+</div>
+```
+
+---
+
+## Formulario en página (ruta dedicada)
+
+- Mismo contenedor `max-w-[90rem]`
+- Breadcrumb + header con borde izquierdo indigo
+- Card: `rounded-2xl border border-slate-200/90 bg-white shadow-sm`
+- Footer acciones: `flex flex-col-reverse gap-2 sm:flex-row sm:justify-end`
+- Botones: `.btn .btn-primary`, `.btn-outline-secondary`
+
+---
+
+## Layout app — menú lateral (`layouts/app.blade.php`)
+
+- Móvil/tablet (`< lg`): drawer oculto, overlay, botón ☰ en header
+- En móvil **siempre vista expandida** (iconos izquierda + textos): `showSidebarLabels()` / `showSidebarIconsOnly()` — no aplicar `sidebarCollapsed` del escritorio al drawer móvil
+- Escritorio (`lg+`): contraer/expandir con botón header; botón inferior solo en `lg+`
+- Al hacer clic en un enlace del nav móvil: `closeMobileSidebar()`
+
+---
+
+## Breakpoints
+
+| Elemento | Móvil | Tablet (`sm`/`md`) | Desktop (`lg`+) |
+|----------|-------|--------------------|-----------------|
+| Header index/show | columna, botones `w-full` | fila | fila |
+| Stats | 1–2 cols | 2–3 cols | 3–4 cols |
+| Tabla | scroll + cols esenciales | más columnas | todas |
+| Modal `centered` | centrado `pt-10`, `max-h-[85vh]` | igual | `max-w-lg` |
+| Modal default | sheet inferior | centrado `sm+` | centrado |
+| Sidebar | drawer overlay | drawer overlay | fijo / colapsable |
+
+---
+
+## Acciones bloqueadas (editar / eliminar / etc.)
+
+**No ocultar** iconos o botones de acción cuando el usuario **sí tiene el permiso** Spatie pero una regla de negocio impide la operación (p. ej. asistencia iniciada, registro en uso, estado cerrado).
+
+| Situación | UI |
+|-----------|-----|
+| Sin permiso Spatie | No mostrar la acción |
+| Con permiso + bloqueo de negocio | Mostrar acción **inactiva** (`disabled` / `opacity-50` / `cursor-not-allowed`) con `title` (y opcionalmente texto) explicando el motivo |
+
+```blade
+{{-- ✅ Correcto — visible e inactivo --}}
+@if($can_edit)
+    @if($edit_disabled)
+        <span title="Motivo del bloqueo" class="cursor-not-allowed rounded p-1.5 text-slate-300 opacity-50" aria-disabled="true">
+            {{-- icono editar --}}
+        </span>
+    @else
+        <a href="..." title="Editar" class="...">{{-- icono --}}</a>
+    @endif
+@endif
+
+{{-- ❌ Incorrecto — ocultar por regla de negocio --}}
+@if($can_edit && ! $edit_disabled)
+    <a href="...">...</a>
+@endif
+```
+
+En datatables/show: separar permiso (`can_edit`) de bloqueo (`edit_disabled` + `edit_disabled_title`). La autorización real sigue en Action / `authorize*`.
+
+---
+
+## Checklist antes de entregar
+
+- [ ] Contenedor `max-w-[90rem]` con padding responsive
+- [ ] Header en columna en móvil
+- [ ] `<x-ui.create-button>` para acción crear (no botón custom)
+- [ ] `<x-ui.modal>` con variante correcta (`centered` vs default)
+- [ ] Inputs con clases estándar y `@error`
+- [ ] Grids `grid-cols-1 sm:grid-cols-2`
+- [ ] Footer modal con botones `w-full sm:w-auto`
+- [ ] Datatable en `overflow-x-auto`
+- [ ] Acciones con permiso pero bloqueadas por negocio: visibles e inactivas (no ocultas)
+- [ ] Textos UI en español

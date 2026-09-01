@@ -1,0 +1,261 @@
+<?php
+
+namespace App\Actions\Workshop;
+
+use App\Actions\LogEquipmentHistoricalAction;
+use App\Actions\LogUserHistoricalAction;
+use App\Enums\QuotationStatus;
+use App\Enums\WorkOrderStatus;
+use App\Models\Client;
+use App\Models\Equipment;
+use App\Models\Product;
+use App\Models\ProductType;
+use App\Models\Quotation;
+use App\Models\WorkOrder;
+use App\Models\WorkOrderItem;
+use Illuminate\Support\Facades\DB;
+use Lorisleiva\Actions\Concerns\AsAction;
+
+class CreateOrUpdateWorkOrderAction
+{
+    use AsAction;
+
+    /**
+     * @param  list<int>  $equipment_ids
+     * @param  array<string, mixed>  $data
+     * @param  array<int, array<string, mixed>>  $items
+     */
+    public function handle(
+        int $business_id,
+        ?int $work_order_id,
+        int $client_id,
+        array $equipment_ids,
+        array $data,
+        array $items = []
+    ): WorkOrder {
+        abort_unless(
+            auth()->user()->can($work_order_id ? 'workshop.work-orders.edit' : 'workshop.work-orders.create'),
+            403
+        );
+
+        $user = auth()->user();
+        abort_unless((int) $user->business_id === $business_id || $user->hasRole('superAdmin'), 403);
+
+        abort_unless(Client::query()->forAuthUser()->whereKey($client_id)->exists(), 422);
+
+        $equipment_ids = $this->normalizeEquipmentIds($equipment_ids);
+        abort_unless($equipment_ids !== [], 422, 'Selecciona al menos un equipo.');
+        $this->assertEquipmentsBelongToClient($client_id, $equipment_ids);
+
+        $quotation_id = ! empty($data['quotation_id']) ? (int) $data['quotation_id'] : null;
+        $quotation = null;
+
+        if ($quotation_id) {
+            $quotation = $this->assertAcceptedQuotationAvailable($business_id, $quotation_id, $work_order_id);
+            $client_id = (int) $quotation->client_id;
+            $quotation->loadMissing('equipments:id');
+            $equipment_ids = $quotation->equipments->pluck('id')->map(fn ($id) => (int) $id)->values()->all();
+            abort_unless($equipment_ids !== [], 422, 'La cotización no tiene equipos asociados.');
+        }
+
+        return DB::transaction(function () use ($business_id, $work_order_id, $client_id, $equipment_ids, $data, $items, $quotation_id, $quotation) {
+            $payload = [
+                'client_id'          => $client_id,
+                'quotation_id'       => $quotation_id,
+                'diagnosis'          => $data['diagnosis'] ?? null,
+                'estimated_delivery' => $data['estimated_delivery'] ?? null,
+                'tax_percentage'     => $data['tax_percentage'] ?? 19,
+                'notes'              => $data['notes'] ?? null,
+                'observations'       => $data['observations'] ?? null,
+            ];
+
+            if ($work_order_id) {
+                $work_order = WorkOrder::query()->forAuthUser()->findOrFail($work_order_id);
+                abort_unless((int) $work_order->business_id === $business_id, 403);
+                abort_unless($work_order->status?->isOpen() ?? false, 422);
+
+                $work_order->update($payload);
+            } else {
+                $work_order = WorkOrder::create([
+                    ...$payload,
+                    'business_id' => $business_id,
+                    'reference'   => WorkOrder::generateReference($business_id),
+                    'status'      => WorkOrderStatus::Created,
+                    'created_by'  => $data['created_by'] ?? auth()->id(),
+                    'advance_percentage' => 0,
+                    'advance_amount' => 0,
+                ]);
+            }
+
+            $work_order->equipments()->sync($equipment_ids);
+            $this->syncItems($work_order, $items, $equipment_ids);
+            $work_order->recalculateTotals();
+
+            $advance_percentage = $quotation && ! $work_order_id
+                ? (float) ($quotation->advance_percentage ?? 0)
+                : (float) ($data['advance_percentage'] ?? 0);
+
+            SyncWorkOrderAdvanceCommitmentAction::run($work_order, $advance_percentage);
+
+            $work_order = $work_order->fresh([
+                'items.productType',
+                'items.catalogProduct',
+                'items.equipment',
+                'client:id,name',
+                'equipments',
+            ]);
+
+            $action = $work_order_id ? 'updated' : 'created';
+            $description = ($work_order_id ? 'Actualizó' : 'Creó') . " la orden de trabajo {$work_order->reference}";
+            $properties = [
+                'status'         => $work_order->status,
+                'client_id'      => $work_order->client_id,
+                'equipment_ids'  => $work_order->equipments->pluck('id')->all(),
+                'quotation_id'   => $work_order->quotation_id,
+                'total'          => $work_order->total,
+                'items_count'    => $work_order->items->count(),
+                'advance_percentage' => $work_order->advance_percentage,
+                'advance_amount' => $work_order->advance_amount,
+            ];
+
+            LogUserHistoricalAction::run(
+                action: $action,
+                module: 'workshop.work-orders',
+                description: $description,
+                subject: $work_order,
+                subject_label: $work_order->reference,
+                properties: $properties,
+                business_id: $business_id,
+            );
+
+            foreach ($work_order->equipments as $equipment) {
+                LogEquipmentHistoricalAction::run(
+                    action: $action,
+                    module: 'workshop.work-orders',
+                    description: $description,
+                    equipment: $equipment,
+                    subject: $work_order,
+                    properties: $properties,
+                    business_id: $business_id,
+                );
+            }
+
+            return $work_order;
+        });
+    }
+
+    /** @param  list<int|string>  $equipment_ids
+     *  @return list<int>
+     */
+    private function normalizeEquipmentIds(array $equipment_ids): array
+    {
+        return array_values(array_unique(array_filter(
+            array_map(fn ($id) => (int) $id, $equipment_ids),
+            fn (int $id) => $id > 0
+        )));
+    }
+
+    /** @param  list<int>  $equipment_ids */
+    private function assertEquipmentsBelongToClient(int $client_id, array $equipment_ids): void
+    {
+        $count = Equipment::query()
+            ->forAuthUser()
+            ->where('client_id', $client_id)
+            ->whereIn('id', $equipment_ids)
+            ->count();
+
+        abort_unless($count === count($equipment_ids), 422, 'Uno o más equipos no pertenecen al cliente.');
+    }
+
+    private function assertAcceptedQuotationAvailable(int $business_id, int $quotation_id, ?int $work_order_id): Quotation
+    {
+        $quotation = Quotation::query()
+            ->forAuthUser()
+            ->where('business_id', $business_id)
+            ->where('status', QuotationStatus::Accepted)
+            ->whereKey($quotation_id)
+            ->firstOrFail();
+
+        $linked = WorkOrder::query()
+            ->where('quotation_id', $quotation->id)
+            ->when($work_order_id, fn ($q) => $q->whereKeyNot($work_order_id))
+            ->exists();
+
+        abort_unless(! $linked, 422, 'La cotización ya tiene una orden de trabajo asociada.');
+
+        return $quotation;
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $items
+     * @param  list<int>  $equipment_ids
+     */
+    private function syncItems(WorkOrder $work_order, array $items, array $equipment_ids): void
+    {
+        $kept_ids = [];
+        $allowed = array_flip($equipment_ids);
+        $default_equipment_id = $equipment_ids[0] ?? null;
+
+        foreach ($items as $row) {
+            $description = trim((string) ($row['description'] ?? ''));
+            if ($description === '') {
+                continue;
+            }
+
+            if (! empty($row['product_type_id'])) {
+                abort_unless(ProductType::query()->visibleToUser()->whereKey($row['product_type_id'])->exists(), 422);
+            }
+
+            if (! empty($row['product_id'])) {
+                abort_unless(
+                    Product::query()
+                        ->forAuthUser()
+                        ->where('business_id', $work_order->business_id)
+                        ->whereKey($row['product_id'])
+                        ->exists(),
+                    422
+                );
+            }
+
+            $equipment_id = ! empty($row['equipment_id'])
+                ? (int) $row['equipment_id']
+                : $default_equipment_id;
+
+            abort_unless(
+                $equipment_id !== null && isset($allowed[$equipment_id]),
+                422,
+                'Cada ítem debe asociarse a un equipo de la OT.'
+            );
+
+            $qty      = (float) ($row['quantity'] ?? 1);
+            $price    = (float) ($row['unit_price'] ?? 0);
+            $discount = (float) ($row['discount_percentage'] ?? 0);
+            $subtotal = round($qty * $price * (1 - $discount / 100), 2);
+
+            $payload = [
+                'equipment_id'        => $equipment_id,
+                'product_id'          => $row['product_id'] ?: null,
+                'product_type_id'     => $row['product_type_id'] ?: null,
+                'description'         => $description,
+                'quantity'            => $qty,
+                'unit_price'          => $price,
+                'discount_percentage' => $discount,
+                'subtotal'            => $subtotal,
+            ];
+
+            if (! empty($row['id'])) {
+                $item = WorkOrderItem::query()
+                    ->where('work_order_id', $work_order->id)
+                    ->whereKey($row['id'])
+                    ->firstOrFail();
+                $item->update($payload);
+                $kept_ids[] = (int) $item->id;
+            } else {
+                $item = $work_order->items()->create($payload);
+                $kept_ids[] = (int) $item->id;
+            }
+        }
+
+        $work_order->items()->whereNotIn('id', $kept_ids)->delete();
+    }
+}

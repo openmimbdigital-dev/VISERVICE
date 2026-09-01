@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Support\CurrentBusiness;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -14,6 +15,17 @@ class AuthController extends Controller
     public function showLoginForm(): View|RedirectResponse
     {
         if (Auth::check()) {
+            $user = Auth::user();
+
+            if (! $user->hasRole('superAdmin')) {
+                CurrentBusiness::initializeForUser($user);
+                $business = CurrentBusiness::get() ?? $user->primaryBusiness();
+
+                if ($business === null || ! $business->hasActiveSubscription()) {
+                    return redirect()->route('pending-activation');
+                }
+            }
+
             return redirect()->route('dashboard');
         }
 
@@ -56,7 +68,24 @@ class AuthController extends Controller
             ]);
         }
 
+        CurrentBusiness::initializeForUser($user);
+
+        if (! $user->hasRole('superAdmin') && ! $this->userBusinessHasConfirmedAccess($user)) {
+            Auth::logout();
+
+            throw ValidationException::withMessages([
+                'username' => 'Tu pago aún no ha sido confirmado. Podrás iniciar sesión cuando el administrador valide el pago en el módulo de pagos.',
+            ]);
+        }
+
         return redirect()->intended(route('dashboard'));
+    }
+
+    private function userBusinessHasConfirmedAccess(User $user): bool
+    {
+        $business = CurrentBusiness::get() ?? $user->primaryBusiness();
+
+        return $business !== null && $business->hasActiveSubscription();
     }
 
     public function logout(Request $request): RedirectResponse

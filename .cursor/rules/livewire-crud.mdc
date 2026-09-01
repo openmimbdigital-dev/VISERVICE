@@ -1,0 +1,170 @@
+---
+description: Flujo CRUD Livewire — Form para validación, Action para persistencia
+globs: app/Livewire/**/*.php,app/Livewire/Forms/**/*.php,app/Actions/**/*.php,resources/views/livewire/**/*.blade.php
+alwaysApply: true
+---
+
+# CRUD con Livewire — VISERVICE
+
+Antes de crear o modificar un CRUD, **lee siempre** los archivos existentes del módulo (referencia: clientes, marcas, atributos):
+
+- Componente Livewire (`Index`, `Form`, `Show`, `Datatable*`)
+- Vista Blade asociada (`resources/views/livewire/...`)
+- `Livewire\Form` del módulo
+- `Action`(s) de persistencia
+- Modelo, rutas y permisos en `config/permissions.php`
+
+Replica la estructura y convenciones del módulo más cercano; no improvises un flujo distinto.
+
+---
+
+## Capas y responsabilidades
+
+| Capa | Responsabilidad |
+|------|-----------------|
+| **Componente Livewire** | Autorización (`mount`, `save`), UI, redirección, alertas, delegar a Form y Action |
+| **`Livewire\Form`** | Estado del formulario, `rules()`, `messages()`, `set*()`, `validated()` |
+| **Action** | Crear/actualizar/eliminar en BD, relaciones, reglas de negocio, transacciones |
+| **Blade** | Solo presentación; sin lógica de persistencia |
+
+---
+
+## Form (`app/Livewire/Forms/...`)
+
+- Una clase `*Form extends Form` por entidad.
+- Propiedades públicas en **snake_case**.
+- `rules()` y `messages()` en español.
+- `setModel($model)` para edición; `reset()` limpia todo.
+- `validated()` llama `$this->validate()` y devuelve solo datos listos para la Action.
+- **No** usar `DB::`, `Model::create()` ni `update()` dentro del Form.
+
+```php
+// ✅ Componente
+public function save(): void
+{
+    abort_unless(auth()->user()->can('...'), 403);
+
+    CreateOrUpdateClientAction::run(
+        $this->form->resolvedBusinessId(),
+        $this->form->client_id,
+        $this->form->validated()
+    );
+
+    $this->redirectRoute('...', navigate: true);
+}
+```
+
+---
+
+## Action (`app/Actions/...`)
+
+- Usar `Lorisleiva\Actions\Concerns\AsAction`.
+- Recibir datos **ya validados** desde `$form->validated()`.
+- Un Action por operación: `CreateOrUpdate*Action`, `Delete*Action`, `Sync*Action`.
+- Autorización de permisos en Action o en el componente antes de llamarla (consistente con el módulo).
+- Side effects (pivot, sync, archivos) van en la Action, no en el componente.
+
+```php
+// ❌ Persistencia en el componente Livewire
+public function save() {
+    Client::create($this->form->only([...]));
+}
+
+// ✅ Action dedicada
+CreateOrUpdateClientAction::run($business_id, $client_id, $this->form->validated());
+```
+
+---
+
+## Componente Livewire
+
+- `public *Form $form;` tipado.
+- `mount()`: permisos + cargar registro con `$this->form->set*()`.
+- `save()`: validar vía Form → llamar Action → feedback → redirect.
+- Usar `$this->redirectRoute(..., navigate: true)`, **no** `redirect()->route(..., navigate: true)`.
+- Datatables: lógica de listado en `Datatable*`, borrado vía `Delete*Action`.
+
+---
+
+## Aislamiento multi-tenant (obligatorio)
+
+Un usuario de negocio **no** puede ver, crear, editar ni eliminar registros de otro `business_id`. El **superAdmin** ve todos los negocios.
+
+### Scopes del modelo
+
+| Scope / método | Cuándo usar |
+|----------------|-------------|
+| `forAuthUser()` | Datos del negocio: `Client`, `Equipment`, `Attribute` |
+| `visibleToUser()` | Catálogo compartido: `Brand`, `EquipmentModel`, `EquipmentType` |
+| `isAccessibleToUser()` | Instancia de `EquipmentType` (taller / URL) |
+| `isEditableBy()` | Escritura en catálogo (marca, modelo, atributo) |
+
+### Dónde aplicar (defensa en profundidad)
+
+1. **`mount()` / Show / Form edit** — comprobar acceso antes de cargar el formulario:
+   ```php
+   abort_unless(
+       Client::query()->forAuthUser()->whereKey($client->id)->exists(),
+       404
+   );
+   ```
+2. **Datatable `builder()`** — filtrar listados con el scope correspondiente.
+3. **Datatable / Show delete** — `Model::query()->{scope}()->findOrFail($id)`, no `Model::findOrFail()`.
+4. **Action create/update** — revalidar tenant:
+   - Usuario no superAdmin: `abort_unless((int) $business_id === (int) auth()->user()->business_id, 403)`
+   - Update: cargar con scope + `abort_unless((int) $record->business_id === (int) $business_id, 403)`
+5. **Route model binding** — en `AppServiceProvider`: `{client}`, `{equipment}`, `{brand}`, `{equipmentModel}`, `{attribute}` con scope; `{equipmentType}` con `isAccessibleToUser()` en rutas de taller/configuración.
+
+### Form
+
+- `resolvedBusinessId()`: superAdmin → campo del form; negocio → `auth()->user()->business_id`.
+- Reglas `Rule::in()` / `exists` sobre colecciones ya filtradas por negocio (`getClients()`, `getBrands()`, etc.).
+
+### Action
+
+- Nunca confiar solo en el componente Livewire; repetir la verificación de tenant al persistir.
+- Relaciones (cliente, marca, modelo): resolver con scope + pertenencia al negocio/tipo.
+
+---
+
+## SRP al crear métodos y unidades de código
+
+**SRP:** cada unidad de código (método, clase, Action, Form) debe encargarse de una **única responsabilidad coherente** y tener una **sola razón de cambio**. No significa que deba hacer una sola operación, sino que **todas sus operaciones deben pertenecer a la misma responsabilidad**.
+
+- Al crear o refactorizar métodos: agrupa solo lo que cambia por el mismo motivo; separa lo que cambia por motivos distintos.
+- **No** mezclar responsabilidades distintas en el mismo método (p. ej. validación de negocio + persistencia + side effects no relacionados).
+- Componente Livewire: `mount()` autoriza y carga estado; `save()` orquesta Form + Action; la eliminación va en `Delete*Action` o `onDeleteConfirmed()` mínimo.
+- Actions: un Action por responsabilidad de persistencia (`CreateOrUpdate*`, `Delete*`, `Sync*`); no mezclar create/update de entidades distintas.
+- Form: `rules()`, `messages()`, `validated()` y helpers de consulta (`get*()`) separados; sin queries de escritura.
+- Formularios complejos: vista dedicada (`Form.php` + `form.blade.php`), no modal sobrecargado.
+
+```php
+// ❌ Dos razones de cambio: UI/autorización + escritura en BD
+public function save(): void
+{
+    abort_unless(auth()->user()->can('...'), 403);
+    $this->validate();
+    Client::create($this->only([...]));
+    $this->dispatch('swal', [...]);
+}
+
+// ✅ Una responsabilidad por capa: el componente orquesta; Form valida; Action persiste
+public function save(): void
+{
+    abort_unless(auth()->user()->can('...'), 403);
+    CreateOrUpdateClientAction::run($this->form->resolvedBusinessId(), $this->form->client_id, $this->form->validated());
+    $this->redirectRoute('...', navigate: true);
+}
+```
+
+---
+
+## Checklist al terminar un CRUD
+
+- [ ] Form con reglas y mensajes en español
+- [ ] Action con persistencia y relaciones
+- [ ] Componente sin queries de escritura directas
+- [ ] Vistas alineadas con el módulo de referencia
+- [ ] Rutas con middleware de permisos Spatie
+- [ ] Textos de UI en español
+- [ ] Aislamiento multi-tenant: scope en listados, mount, delete, Action y route binding

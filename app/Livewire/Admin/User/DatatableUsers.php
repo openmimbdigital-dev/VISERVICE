@@ -17,7 +17,23 @@ class DatatableUsers extends LivewireDatatable
 
     public function builder(): Builder
     {
-        return User::query()->orderByDesc('id');
+        $user  = auth()->user();
+        $query = User::query()->select('users.*');
+
+        if (! $user->hasRole('superAdmin')) {
+            $business_ids = $user->businessIds();
+
+            if ($business_ids === []) {
+                return $query->whereRaw('0 = 1');
+            }
+
+            $query->whereHas(
+                'businesses',
+                fn ($q) => $q->whereIn('businesses.id', $business_ids)
+            );
+        }
+
+        return $query->orderByDesc('users.id');
     }
 
     public function getColumns(): Model|array

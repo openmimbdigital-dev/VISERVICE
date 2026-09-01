@@ -17,6 +17,8 @@
         "laravel/tinker": "^2.10.1",
         "livewire/livewire": "^3.6",
         "lorisleiva/laravel-actions": "^2.9.0",
+        "maatwebsite/excel": "^3.1",
+        "simplesoftwareio/simple-qrcode": "^4.2",
         "spatie/laravel-permission": "^6.21",
         "tymon/jwt-auth": "^2.2"
     },
@@ -34,7 +36,10 @@
             "App\\": "app/",
             "Database\\Factories\\": "database/factories/",
             "Database\\Seeders\\": "database/seeders/"
-        }
+        },
+        "files": [
+            "app/helpers.php"
+        ]
     },
     "autoload-dev": {
         "psr-4": {

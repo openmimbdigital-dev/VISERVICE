@@ -11,9 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('business_types', function (Blueprint $table) {
+        Schema::create('organization_types', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
+            $table->string('name')->unique();
+            $table->string('label');
             $table->boolean('status')->default(true);
             $table->timestamps();
             $table->softDeletes();
@@ -26,6 +27,8 @@ return new class extends Migration
             $table->string('email')->nullable();
             $table->string('slug')->unique();
             $table->string('nit')->unique();
+            $table->string('tagline', 200)->nullable()->comment('Eslogan o línea comercial');
+            $table->string('tax_regime', 80)->nullable()->comment('Régimen tributario, ej. Responsable de IVA');
             $table->string('logo')->nullable();
             $table->string('website')->nullable();
             $table->string('facebook')->nullable();
@@ -34,7 +37,7 @@ return new class extends Migration
             $table->string('phone_number')->nullable();
             $table->unsignedBigInteger('city_id')->nullable();
             $table->unsignedBigInteger('country_id')->nullable();
-            $table->unsignedBigInteger('business_type_id');
+            $table->unsignedBigInteger('organization_type_id');
             $table->unsignedBigInteger('business_id')->nullable();
             $table->json('representative')->nullable();
             $table->json('configurations')->nullable();
@@ -42,10 +45,11 @@ return new class extends Migration
             $table->boolean('status')->default(true);
             $table->timestamps();
             $table->softDeletes();
+            $table->index('name', 'businesses_name_idx');
             // Claves foráneas
             $table->foreign('city_id')->references('id')->on('cities')->onDelete('set null');
             $table->foreign('country_id')->references('id')->on('countries')->onDelete('set null');
-            $table->foreign('business_type_id')->references('id')->on('business_types')->onDelete('cascade');
+            $table->foreign('organization_type_id')->references('id')->on('organization_types')->onDelete('cascade');
         });
 
 
@@ -111,8 +115,10 @@ return new class extends Migration
             $table->integer('document_number')->nullable();
             $table->unsignedBigInteger('city_id')->nullable();
             $table->unsignedBigInteger('country_id')->nullable();
-            $table->unsignedBigInteger('business_id')->nullable();
             $table->softDeletes();
+
+            // Listado usuarios (superAdmin) y filtros por estado/fecha
+            $table->index(['deleted_at', 'status', 'created_at'], 'users_deleted_status_created_idx');
 
             // Índices para las claves foráneas
             $table->index('city_id');
@@ -121,7 +127,6 @@ return new class extends Migration
             // Claves foráneas
             $table->foreign('city_id')->references('id')->on('cities')->onDelete('set null');
             $table->foreign('country_id')->references('id')->on('countries')->onDelete('set null');
-            $table->foreign('business_id')->references('id')->on('businesses')->onDelete('set null');
         });
     }
 
@@ -130,8 +135,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('business_types');
-        Schema::dropIfExists('businesses');
         Schema::dropIfExists('business_addresses');
+        Schema::dropIfExists('businesses');
+        Schema::dropIfExists('organization_types');
     }
 };

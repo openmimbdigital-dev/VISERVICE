@@ -1,0 +1,184 @@
+.background-test {
+    background-color: blue;
+}
+
+:root {
+    --max: 18rem;
+    --width-menu-lateral: 255px;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.design-scrollbar::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+}
+
+.design-scrollbar::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.design-scrollbar::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+}
+
+.design-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+.grid-cols-10 { grid-template-columns: repeat(10, minmax(0, 1fr)); }
+.grid-cols-11 { grid-template-columns: repeat(11, minmax(0, 1fr)); }
+.grid-cols-12 { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+.grid-cols-13 { grid-template-columns: repeat(13, minmax(0, 1fr)); }
+.grid-cols-14 { grid-template-columns: repeat(14, minmax(0, 1fr)); }
+.grid-cols-15 { grid-template-columns: repeat(15, minmax(0, 1fr)); }
+.grid-cols-16 { grid-template-columns: repeat(16, minmax(0, 1fr)); }
+
+.text-xxs { font-size: 0.68rem; }
+.text-xxxs { font-size: 10px !important; }
+.text-11 { font-size: 11px !important; }
+
+.multiline-ellipsis {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.oneline-ellipsis {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* SweetAlert2 — confirmación de eliminación (línea visual VISERVICE) */
+.swal-viservice-popup {
+    border-radius: 1rem !important;
+    padding: 1.5rem !important;
+    font-family: 'Inter', sans-serif !important;
+}
+
+.swal-viservice-title {
+    font-size: 1.125rem !important;
+    font-weight: 600 !important;
+    color: #0f172a !important;
+}
+
+.swal-viservice-html {
+    font-size: 0.875rem !important;
+    color: #475569 !important;
+}
+
+.swal-confirm-button {
+    background-color: #e11d48 !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 0.75rem !important;
+    box-shadow: none !important;
+    font-weight: 600 !important;
+    font-size: 0.875rem !important;
+    padding: 0.5rem 1rem !important;
+}
+
+.swal-confirm-button:hover {
+    background-color: #be123c !important;
+}
+
+.swal-cancel-button {
+    background-color: #f1f5f9 !important;
+    color: #475569 !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 0.75rem !important;
+    box-shadow: none !important;
+    font-weight: 600 !important;
+    font-size: 0.875rem !important;
+    padding: 0.5rem 1rem !important;
+}
+
+.swal-cancel-button:hover {
+    background-color: #e2e8f0 !important;
+    color: #334155 !important;
+}
+
+.swal-success-button {
+    background-color: #4f46e5 !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: 0.75rem !important;
+    box-shadow: none !important;
+    font-weight: 600 !important;
+    font-size: 0.875rem !important;
+    padding: 0.5rem 1rem !important;
+}
+
+.swal-success-button:hover {
+    background-color: #4338ca !important;
+}
+
+.custom-radio {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 1px solid gray;
+    background-color: white;
+    appearance: none;
+    cursor: pointer;
+    transition: background 0.3s, border 0.3s;
+}
+
+.custom-checkbox {
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border: 2px solid #d1d5db;
+    border-radius: 4px;
+    background-color: white;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s;
+}
+
+.custom-checkbox:checked {
+    background-color: #1C64F2;
+    border-color: #1C64F2;
+}
+
+.custom-checkbox:checked::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.custom-checkbox:focus {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+}
+
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+@media print {
+    .hidden-print {
+        display: none !important;
+    }
+}

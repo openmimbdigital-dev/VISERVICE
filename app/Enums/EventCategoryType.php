@@ -1,0 +1,29 @@
+<?php
+
+namespace App\Enums;
+
+enum EventCategoryType: string
+{
+    case Periodic = 'periodic';
+    case Occasional = 'occasional';
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::Periodic => 'Periódico',
+            self::Occasional => 'Eventual',
+        };
+    }
+
+    /** @return array<string, string> */
+    public static function options(): array
+    {
+        $options = [];
+
+        foreach (self::cases() as $case) {
+            $options[$case->value] = $case->label();
+        }
+
+        return $options;
+    }
+}
