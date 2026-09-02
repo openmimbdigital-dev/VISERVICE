@@ -12,13 +12,13 @@ class WorkOrderAssociatedDocument extends Model
         'associated_document_type_id',
         'name',
         'value',
-        'document_send',
+        'send_invoice',
     ];
 
     protected function casts(): array
     {
         return [
-            'document_send' => 'boolean',
+            'send_invoice' => 'boolean',
         ];
     }
 

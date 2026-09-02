@@ -76,6 +76,25 @@
                             Ver remisión {{ $linked_remission->reference }}
                         </a>
                         @endif
+                        @if($can_invoice)
+                        <button type="button" wire:click="invoiceWorkOrder" wire:loading.attr="disabled" wire:target="invoiceWorkOrder"
+                            class="btn btn-primary btn-sm flex-1 justify-center sm:flex-none disabled:opacity-60">
+                            <span wire:loading.remove wire:target="invoiceWorkOrder">Facturar</span>
+                            <span wire:loading wire:target="invoiceWorkOrder">Facturando…</span>
+                        </button>
+                        @elseif($latest_invoice)
+                        @can('workshop.invoices.view')
+                        <a href="{{ route('admin.workshop.invoices.show', $latest_invoice) }}" wire:navigate
+                            class="btn btn-outline-secondary btn-sm flex-1 justify-center sm:flex-none">
+                            Factura {{ $latest_invoice->reference }}
+                        </a>
+                        @else
+                        <span class="inline-flex flex-1 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-700 sm:flex-none"
+                            title="Factura generada">
+                            Factura {{ $latest_invoice->reference }}
+                        </span>
+                        @endcan
+                        @endif
                         @if($can_edit)
                         @if($edit_disabled)
                         <button type="button" disabled title="{{ $edit_disabled_title }}"
@@ -489,13 +508,13 @@
 
                 <div>
                     <div class="flex items-center gap-3">
-                        <button type="button" wire:click="$toggle('document_send_value')"
-                            class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 {{ $document_send_value ? 'bg-indigo-600' : 'bg-slate-300' }}">
-                            <span class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 {{ $document_send_value ? 'translate-x-6' : 'translate-x-1' }}"></span>
+                        <button type="button" wire:click="$toggle('send_invoice_value')"
+                            class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 {{ $send_invoice_value ? 'bg-indigo-600' : 'bg-slate-300' }}">
+                            <span class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 {{ $send_invoice_value ? 'translate-x-6' : 'translate-x-1' }}"></span>
                         </button>
-                        <span class="text-sm {{ $document_send_value ? 'font-medium text-indigo-700' : 'text-slate-500' }}">Requiere envío de documento</span>
+                        <span class="text-sm {{ $send_invoice_value ? 'font-medium text-indigo-700' : 'text-slate-500' }}">Enviar a facturación</span>
                     </div>
-                    @if($document_send_value)
+                    @if($send_invoice_value)
                     <p class="mt-1.5 text-xs text-slate-500">Este número de documento se usará para la facturación y será enviado a la DIAN.</p>
                     @endif
                 </div>

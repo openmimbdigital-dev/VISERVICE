@@ -13,7 +13,7 @@ class FinalizeWorkOrderAction
     use AsAction;
 
     /**
-     * Finaliza la OT: cambia estado y genera factura si no existe.
+     * Finaliza la OT: cambia estado y sincroniza remisiones.
      */
     public function handle(WorkOrder $workOrder, ?string $work_description = null): WorkOrder
     {
@@ -31,14 +31,6 @@ class FinalizeWorkOrderAction
             ]);
 
             SyncWorkOrderRemissionsStatusAction::run($workOrder, WorkOrderStatus::Completed);
-
-            $hasInvoice = $workOrder->invoices()
-                ->whereIn('status', ['pendiente', 'pagada'])
-                ->exists();
-
-            if (! $hasInvoice && $workOrder->total > 0) {
-                GenerateWorkOrderInvoiceAction::run($workOrder);
-            }
 
             return $workOrder->fresh();
         });

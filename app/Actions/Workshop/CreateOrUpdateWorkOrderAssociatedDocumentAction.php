@@ -19,7 +19,7 @@ class CreateOrUpdateWorkOrderAssociatedDocumentAction
         ?int $document_id,
         int $document_type_id,
         string $document_value,
-        bool $document_send = false,
+        bool $send_invoice = false,
     ): WorkOrderAssociatedDocument {
         abort_unless(auth()->user()?->can('workshop.work-orders.edit'), 403);
 
@@ -56,7 +56,7 @@ class CreateOrUpdateWorkOrderAssociatedDocumentAction
             'associated_document_type_id' => $document_type->id,
             'name'                        => $document_type->name,
             'value'                       => $value,
-            'document_send'               => $document_send,
+            'send_invoice'                => $send_invoice,
         ];
 
         if ($document_id) {

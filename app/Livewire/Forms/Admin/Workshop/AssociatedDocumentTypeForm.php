@@ -17,7 +17,7 @@ class AssociatedDocumentTypeForm extends Form
 
     public bool $active = true;
 
-    public bool $document_send = false;
+    public bool $send_invoice = false;
 
     public function setDocumentType(AssociatedDocumentType $type): void
     {
@@ -25,7 +25,7 @@ class AssociatedDocumentTypeForm extends Form
         $this->business_id      = (int) $type->business_id;
         $this->name             = $type->name;
         $this->active           = $type->active;
-        $this->document_send    = $type->document_send;
+        $this->send_invoice    = $type->send_invoice;
     }
 
     public function reset(...$properties): void
@@ -35,7 +35,7 @@ class AssociatedDocumentTypeForm extends Form
         $this->business_id      = null;
         $this->name             = '';
         $this->active           = true;
-        $this->document_send    = false;
+        $this->send_invoice    = false;
     }
 
     public function isSuperAdmin(): bool
@@ -86,7 +86,7 @@ class AssociatedDocumentTypeForm extends Form
                 },
             ],
             'active'        => ['boolean'],
-            'document_send' => ['boolean'],
+            'send_invoice' => ['boolean'],
         ];
     }
 
@@ -99,7 +99,7 @@ class AssociatedDocumentTypeForm extends Form
         ];
     }
 
-    /** @return array{business_id: int, name: string, active: bool, document_send: bool} */
+    /** @return array{business_id: int, name: string, active: bool, send_invoice: bool} */
     public function validated(): array
     {
         if ($this->isSuperAdmin() && ! $this->business_id) {
@@ -112,7 +112,7 @@ class AssociatedDocumentTypeForm extends Form
             'business_id'   => $this->resolvedBusinessId(),
             'name'          => trim($this->name),
             'active'        => $this->active,
-            'document_send' => $this->document_send,
+            'send_invoice' => $this->send_invoice,
         ];
     }
 }

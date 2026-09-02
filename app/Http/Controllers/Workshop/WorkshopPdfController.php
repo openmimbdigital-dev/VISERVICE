@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Quotation;
 use App\Models\Remission;
 use App\Models\WorkOrder;
+use App\Models\WorkOrderInvoice;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Response;
 
@@ -85,5 +86,30 @@ class WorkshopPdfController extends Controller
         ])
             ->setPaper('letter')
             ->download($workOrder->reference . '.pdf');
+    }
+
+    public function workOrderInvoice(WorkOrderInvoice $workOrderInvoice): Response
+    {
+        abort_unless(auth()->user()?->can('workshop.invoices.view'), 403);
+
+        abort_unless(
+            WorkOrderInvoice::query()->forAuthUser()->whereKey($workOrderInvoice->id)->exists(),
+            404
+        );
+
+        $workOrderInvoice->load([
+            'business',
+            'items.workOrderItem.productType',
+            'items.workOrderItem.equipment',
+            'workOrder.client',
+            'createdBy',
+        ]);
+
+        return Pdf::loadView('pdf.work-order-invoice', [
+            'invoice' => $workOrderInvoice,
+            'title'   => 'Factura ' . $workOrderInvoice->reference,
+        ])
+            ->setPaper('letter')
+            ->download($workOrderInvoice->reference . '.pdf');
     }
 }

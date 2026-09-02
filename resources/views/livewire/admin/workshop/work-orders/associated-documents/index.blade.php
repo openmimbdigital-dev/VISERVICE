@@ -94,11 +94,11 @@
 
                 <div>
                     <div class="flex items-center gap-3">
-                        <button type="button" wire:click="$toggle('form.document_send')"
-                            class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 {{ $form->document_send ? 'bg-indigo-600' : 'bg-slate-300' }}">
-                            <span class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 {{ $form->document_send ? 'translate-x-6' : 'translate-x-1' }}"></span>
+                        <button type="button" wire:click="$toggle('form.send_invoice')"
+                            class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 {{ $form->send_invoice ? 'bg-indigo-600' : 'bg-slate-300' }}">
+                            <span class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 {{ $form->send_invoice ? 'translate-x-6' : 'translate-x-1' }}"></span>
                         </button>
-                        <span class="text-sm {{ $form->document_send ? 'font-medium text-indigo-700' : 'text-slate-500' }}">Requiere envío de documento</span>
+                        <span class="text-sm {{ $form->send_invoice ? 'font-medium text-indigo-700' : 'text-slate-500' }}">Enviar a facturación</span>
                     </div>
                     <p class="mt-1.5 text-xs text-slate-500">Actívalo si este documento debe adjuntarse/enviarse como archivo al registrarlo en la OT.</p>
                 </div>
