@@ -14,7 +14,7 @@ return new class extends Migration
             $table->string('key', 150)->comment('Identificador único generado a partir del nombre');
             $table->string('name', 150)->comment('Nombre visible del documento asociado');
             $table->boolean('active')->default(true);
-            $table->boolean('document_send')->default(false)->comment('Indica si el documento requiere envío de archivo');
+            $table->boolean('send_invoice')->default(false)->comment('Indica si el documento se envía a facturación (DIAN)');
             $table->timestamps();
             $table->softDeletes();
 

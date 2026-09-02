@@ -53,11 +53,11 @@ class DatatableAssociatedDocuments extends LivewireDatatable
                 : '<span class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600 ring-1 ring-slate-500/20">Inactivo</span>';
         })->label('Estado');
 
-        $columns[] = Column::callback(['associated_document_types.document_send'], function ($document_send) {
-            return $document_send
+        $columns[] = Column::callback(['associated_document_types.send_invoice'], function ($send_invoice) {
+            return $send_invoice
                 ? '<span class="inline-flex items-center rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-indigo-600/20">Sí</span>'
                 : '<span class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600 ring-1 ring-slate-500/20">No</span>';
-        })->label('Envío doc.');
+        })->label('Facturación');
 
         $columns[] = Column::callback(
             ['associated_document_types.id'],

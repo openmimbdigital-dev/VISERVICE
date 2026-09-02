@@ -508,13 +508,13 @@
 
                 <div>
                     <div class="flex items-center gap-3">
-                        <button type="button" wire:click="$toggle('document_send_value')"
-                            class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 {{ $document_send_value ? 'bg-indigo-600' : 'bg-slate-300' }}">
-                            <span class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 {{ $document_send_value ? 'translate-x-6' : 'translate-x-1' }}"></span>
+                        <button type="button" wire:click="$toggle('send_invoice_value')"
+                            class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 {{ $send_invoice_value ? 'bg-indigo-600' : 'bg-slate-300' }}">
+                            <span class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 {{ $send_invoice_value ? 'translate-x-6' : 'translate-x-1' }}"></span>
                         </button>
-                        <span class="text-sm {{ $document_send_value ? 'font-medium text-indigo-700' : 'text-slate-500' }}">Requiere envío de documento</span>
+                        <span class="text-sm {{ $send_invoice_value ? 'font-medium text-indigo-700' : 'text-slate-500' }}">Enviar a facturación</span>
                     </div>
-                    @if($document_send_value)
+                    @if($send_invoice_value)
                     <p class="mt-1.5 text-xs text-slate-500">Este número de documento se usará para la facturación y será enviado a la DIAN.</p>
                     @endif
                 </div>

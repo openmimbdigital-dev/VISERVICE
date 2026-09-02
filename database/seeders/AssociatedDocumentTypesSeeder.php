@@ -20,11 +20,11 @@ class AssociatedDocumentTypesSeeder extends Seeder
         }
 
         $documents = [
-            ['name' => 'Cédula del cliente', 'document_send' => false],
-            ['name' => 'Tarjeta de propiedad', 'document_send' => false],
-            ['name' => 'SOAT vigente', 'document_send' => true],
-            ['name' => 'Revisión técnico-mecánica', 'document_send' => true],
-            ['name' => 'Póliza de seguro', 'document_send' => false],
+            ['name' => 'Cédula del cliente', 'send_invoice' => false],
+            ['name' => 'Tarjeta de propiedad', 'send_invoice' => false],
+            ['name' => 'SOAT vigente', 'send_invoice' => true],
+            ['name' => 'Revisión técnico-mecánica', 'send_invoice' => true],
+            ['name' => 'Póliza de seguro', 'send_invoice' => false],
         ];
 
         $created = 0;
@@ -42,7 +42,7 @@ class AssociatedDocumentTypesSeeder extends Seeder
                         [
                             'name'          => $document['name'],
                             'active'        => true,
-                            'document_send' => $document['document_send'],
+                            'send_invoice' => $document['send_invoice'],
                         ]
                     );
 

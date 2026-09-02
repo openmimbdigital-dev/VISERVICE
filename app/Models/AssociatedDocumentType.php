@@ -19,14 +19,14 @@ class AssociatedDocumentType extends Model
         'key',
         'name',
         'active',
-        'document_send',
+        'send_invoice',
     ];
 
     protected function casts(): array
     {
         return [
             'active'        => 'boolean',
-            'document_send' => 'boolean',
+            'send_invoice' => 'boolean',
         ];
     }
 
