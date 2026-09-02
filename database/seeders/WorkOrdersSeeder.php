@@ -247,7 +247,7 @@ class WorkOrdersSeeder extends Seeder
             ->where('business_id', $business->id)
             ->where('active', true)
             ->orderBy('id')
-            ->get(['id', 'name', 'document_send']);
+            ->get(['id', 'name', 'send_invoice']);
 
         $samples = [
             'Cédula del cliente'         => $client->document_number ?: '1020304050',
@@ -267,7 +267,7 @@ class WorkOrdersSeeder extends Seeder
             'associated_document_type_id' => $type->id,
             'name'                        => $type->name,
             'value'                       => $samples[$type->name] ?? ('DEMO-' . $sequence),
-            'document_send'               => $type->document_send,
+            'send_invoice'                => $type->send_invoice,
         ]);
 
         foreach ($rows as $row) {

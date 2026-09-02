@@ -16,7 +16,7 @@ class CreateOrUpdateAssociatedDocumentTypeAction
      *   business_id: int,
      *   name: string,
      *   active: bool,
-     *   document_send: bool
+     *   send_invoice: bool
      * }  $data
      */
     public function handle(?int $document_type_id, array $data): AssociatedDocumentType
@@ -43,7 +43,7 @@ class CreateOrUpdateAssociatedDocumentTypeAction
                 'key'           => AssociatedDocumentType::makeKeyFromName($data['name']),
                 'name'          => $data['name'],
                 'active'        => $data['active'],
-                'document_send' => $data['document_send'],
+                'send_invoice' => $data['send_invoice'],
             ];
 
             if ($document_type_id) {
@@ -67,7 +67,7 @@ class CreateOrUpdateAssociatedDocumentTypeAction
                 properties: [
                     'key'           => $type->key,
                     'active'        => $type->active,
-                    'document_send' => $type->document_send,
+                    'send_invoice' => $type->send_invoice,
                 ],
                 business_id: $business_id,
             );

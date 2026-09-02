@@ -307,6 +307,12 @@ return [
                 'workshop.remissions.delete' => 'Eliminar remisiones',
             ],
         ],
+        'workshop_invoices' => [
+            'name' => 'Taller — Facturación',
+            'permissions' => [
+                'workshop.invoices.view' => 'Ver facturación',
+            ],
+        ],
         'workshop_advance_payments' => [
             'name' => 'Taller — Gestión de anticipos',
             'permissions' => [

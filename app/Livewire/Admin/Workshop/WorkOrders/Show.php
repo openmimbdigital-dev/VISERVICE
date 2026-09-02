@@ -6,6 +6,7 @@ use App\Actions\LogEquipmentHistoricalAction;
 use App\Actions\LogUserHistoricalAction;
 use App\Actions\Workshop\AdjustWorkOrderItemQuantityAction;
 use App\Actions\Workshop\CreateOrUpdateWorkOrderAssociatedDocumentAction;
+use App\Actions\Workshop\CreateWorkOrderInvoiceFromWorkOrderAction;
 use App\Actions\Workshop\UpdateWorkOrderStatusAction;
 use App\Enums\WorkOrderStatus;
 use App\Models\AssociatedDocumentType;
@@ -40,7 +41,7 @@ class Show extends Component
 
     public string $document_input_value = '';
 
-    public bool $document_send_value = false;
+    public bool $send_invoice_value = false;
 
     public ?int $editing_associated_document_id = null;
 
@@ -456,7 +457,7 @@ class Show extends Component
         $this->editing_document_name = null;
         $this->selected_document_type_id = null;
         $this->document_input_value = '';
-        $this->document_send_value = false;
+        $this->send_invoice_value = false;
         $this->showDocumentModal = true;
         $this->resetValidation();
     }
@@ -472,7 +473,7 @@ class Show extends Component
         $this->editing_document_name = $document->name;
         $this->selected_document_type_id = $document->associated_document_type_id;
         $this->document_input_value = (string) $document->value;
-        $this->document_send_value = (bool) $document->document_send;
+        $this->send_invoice_value = (bool) $document->send_invoice;
         $this->showDocumentModal = true;
         $this->resetValidation();
     }
@@ -480,7 +481,7 @@ class Show extends Component
     public function updatedSelectedDocumentTypeId(mixed $value): void
     {
         if (! $value) {
-            $this->document_send_value = false;
+            $this->send_invoice_value = false;
 
             return;
         }
@@ -490,7 +491,7 @@ class Show extends Component
             ->where('business_id', $this->workOrder->business_id)
             ->find($value);
 
-        $this->document_send_value = (bool) $document_type?->document_send;
+        $this->send_invoice_value = (bool) $document_type?->send_invoice;
     }
 
     public function closeDocumentModal(): void
@@ -500,7 +501,7 @@ class Show extends Component
         $this->editing_document_name = null;
         $this->selected_document_type_id = null;
         $this->document_input_value = '';
-        $this->document_send_value = false;
+        $this->send_invoice_value = false;
         $this->resetValidation();
     }
 
@@ -525,7 +526,7 @@ class Show extends Component
                 $this->editing_associated_document_id,
                 $this->selected_document_type_id,
                 $this->document_input_value,
-                $this->document_send_value,
+                $this->send_invoice_value,
             );
             $this->workOrder->refresh();
         } catch (ValidationException $exception) {
@@ -544,6 +545,31 @@ class Show extends Component
 
         $this->dispatch('swal', [
             'title' => $is_editing ? 'Documento actualizado' : 'Documento asociado',
+            'icon'  => 'success',
+        ]);
+    }
+
+    public function invoiceWorkOrder(): void
+    {
+        abort_unless(auth()->user()?->can('workshop.work-orders.edit'), 403);
+
+        try {
+            $invoice = CreateWorkOrderInvoiceFromWorkOrderAction::run($this->workOrder);
+            $this->workOrder->refresh()->load(['latestInvoice', 'invoices']);
+        } catch (ValidationException $exception) {
+            $message = collect($exception->errors())->flatten()->first()
+                ?? 'No se pudo generar la factura.';
+
+            $this->dispatch('swal', [
+                'title' => $message,
+                'icon'  => 'error',
+            ]);
+
+            return;
+        }
+
+        $this->dispatch('swal', [
+            'title' => "Factura {$invoice->reference} creada",
             'icon'  => 'success',
         ]);
     }
@@ -590,6 +616,8 @@ class Show extends Component
             'quotation',
             'remissions',
             'associatedDocuments',
+            'latestInvoice',
+            'invoices',
         ]);
 
         $product_types = ProductType::query()
@@ -638,6 +666,14 @@ class Show extends Component
             && ($this->workOrder->status?->isOpen() ?? false)
             && ! $linked_remission;
 
+        $has_active_invoice = $this->workOrder->invoices
+            ->whereIn('status', ['pendiente', 'pagada'])
+            ->isNotEmpty();
+
+        $can_invoice = $can_edit
+            && $this->workOrder->status === WorkOrderStatus::Completed
+            && ! $has_active_invoice;
+
         $status_badge_class = $this->workOrder->status instanceof WorkOrderStatus
             ? $this->workOrder->status->badgeClass()
             : 'bg-slate-100 text-slate-600 ring-1 ring-slate-500/20';
@@ -679,6 +715,8 @@ class Show extends Component
             'status_comments_history' => $status_comments_history,
             'can_create_remission' => $can_create_remission,
             'linked_remission' => $linked_remission,
+            'can_invoice' => $can_invoice,
+            'latest_invoice' => $this->workOrder->latestInvoice,
         ]);
     }
 }

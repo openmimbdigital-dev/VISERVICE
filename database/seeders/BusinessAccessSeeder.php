@@ -71,6 +71,7 @@ class BusinessAccessSeeder extends Seeder
             ...$this->quotationModulePermissions(),
             ...$this->workOrderModulePermissions(),
             ...$this->remissionModulePermissions(),
+            ...$this->invoiceModulePermissions(),
             ...$this->advancePaymentModulePermissions(),
         ]));
     }
@@ -94,6 +95,14 @@ class BusinessAccessSeeder extends Seeder
             'workshop.remissions.create',
             'workshop.remissions.edit',
             'workshop.remissions.delete',
+        ];
+    }
+
+    /** @return list<string> */
+    private function invoiceModulePermissions(): array
+    {
+        return [
+            'workshop.invoices.view',
         ];
     }
 

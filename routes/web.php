@@ -100,6 +100,9 @@ use App\Livewire\Admin\Workshop\Quotations\PrintView as WorkshopQuotationsPrint;
 use App\Livewire\Admin\Workshop\Quotations\Show as WorkshopQuotationsShow;
 use App\Livewire\Admin\Workshop\QuotationServiceTypes\Index as WorkshopQuotationServiceTypesIndex;
 use App\Livewire\Admin\Workshop\QuotationServiceTypes\Show as WorkshopQuotationServiceTypesShow;
+use App\Livewire\Admin\Workshop\Invoices\Index as WorkshopInvoicesIndex;
+use App\Livewire\Admin\Workshop\Invoices\PrintView as WorkshopInvoicesPrint;
+use App\Livewire\Admin\Workshop\Invoices\Show as WorkshopInvoicesShow;
 use App\Livewire\Admin\Workshop\Remissions\Form as WorkshopRemissionsForm;
 use App\Livewire\Admin\Workshop\Remissions\Index as WorkshopRemissionsIndex;
 use App\Livewire\Admin\Workshop\Remissions\PrintView as WorkshopRemissionsPrint;
@@ -327,6 +330,12 @@ Route::middleware(['auth', 'ensure.business', 'business.module'])->group(functio
             Route::get('/remissions/{remission}/print', WorkshopRemissionsPrint::class)->name('remissions.print');
             Route::get('/remissions/{remission}/pdf', [WorkshopPdfController::class, 'remission'])->name('remissions.pdf');
             Route::get('/remissions/{remission}', WorkshopRemissionsShow::class)->name('remissions.show');
+        });
+        Route::middleware('permission:workshop.invoices.view')->group(function () {
+            Route::get('/invoices', WorkshopInvoicesIndex::class)->name('invoices.index');
+            Route::get('/invoices/{workOrderInvoice}/print', WorkshopInvoicesPrint::class)->name('invoices.print');
+            Route::get('/invoices/{workOrderInvoice}/pdf', [WorkshopPdfController::class, 'workOrderInvoice'])->name('invoices.pdf');
+            Route::get('/invoices/{workOrderInvoice}', WorkshopInvoicesShow::class)->name('invoices.show');
         });
     });
 

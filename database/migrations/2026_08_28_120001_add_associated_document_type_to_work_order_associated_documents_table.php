@@ -22,9 +22,9 @@ return new class extends Migration
                 );
             }
 
-            if (! Schema::hasColumn('work_order_associated_documents', 'document_send')) {
-                $table->boolean('document_send')->default(false)->after('value')
-                    ->comment('Copia del indicador de envío del tipo de documento al momento del registro');
+            if (! Schema::hasColumn('work_order_associated_documents', 'send_invoice')) {
+                $table->boolean('send_invoice')->default(false)->after('value')
+                    ->comment('Indica si el valor se envía a facturación (DIAN) al momento del registro');
             }
         });
     }
@@ -38,8 +38,8 @@ return new class extends Migration
                 $table->dropColumn('associated_document_type_id');
             }
 
-            if (Schema::hasColumn('work_order_associated_documents', 'document_send')) {
-                $table->dropColumn('document_send');
+            if (Schema::hasColumn('work_order_associated_documents', 'send_invoice')) {
+                $table->dropColumn('send_invoice');
             }
         });
     }
