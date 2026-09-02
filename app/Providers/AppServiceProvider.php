@@ -25,6 +25,7 @@ use App\Models\Remission;
 use App\Models\TeamPosition;
 use App\Models\Unit;
 use App\Models\WorkOrder;
+use App\Models\WorkOrderInvoice;
 use App\Support\CurrentBusiness;
 use App\Support\SidebarMenuBuilder;
 use Illuminate\Support\Facades\Route;
@@ -98,6 +99,11 @@ class AppServiceProvider extends ServiceProvider
             ->firstOrFail());
 
         Route::bind('remission', fn (string $value) => Remission::query()
+            ->forAuthUser()
+            ->whereKey($value)
+            ->firstOrFail());
+
+        Route::bind('workOrderInvoice', fn (string $value) => WorkOrderInvoice::query()
             ->forAuthUser()
             ->whereKey($value)
             ->firstOrFail());

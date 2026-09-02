@@ -6,6 +6,7 @@ use App\Actions\LogEquipmentHistoricalAction;
 use App\Actions\LogUserHistoricalAction;
 use App\Actions\Workshop\AdjustWorkOrderItemQuantityAction;
 use App\Actions\Workshop\CreateOrUpdateWorkOrderAssociatedDocumentAction;
+use App\Actions\Workshop\CreateWorkOrderInvoiceFromWorkOrderAction;
 use App\Actions\Workshop\UpdateWorkOrderStatusAction;
 use App\Enums\WorkOrderStatus;
 use App\Models\AssociatedDocumentType;
@@ -548,6 +549,31 @@ class Show extends Component
         ]);
     }
 
+    public function invoiceWorkOrder(): void
+    {
+        abort_unless(auth()->user()?->can('workshop.work-orders.edit'), 403);
+
+        try {
+            $invoice = CreateWorkOrderInvoiceFromWorkOrderAction::run($this->workOrder);
+            $this->workOrder->refresh()->load(['latestInvoice', 'invoices']);
+        } catch (ValidationException $exception) {
+            $message = collect($exception->errors())->flatten()->first()
+                ?? 'No se pudo generar la factura.';
+
+            $this->dispatch('swal', [
+                'title' => $message,
+                'icon'  => 'error',
+            ]);
+
+            return;
+        }
+
+        $this->dispatch('swal', [
+            'title' => "Factura {$invoice->reference} creada",
+            'icon'  => 'success',
+        ]);
+    }
+
     public function closeItemModal(): void
     {
         $this->showItemModal = false;
@@ -590,6 +616,8 @@ class Show extends Component
             'quotation',
             'remissions',
             'associatedDocuments',
+            'latestInvoice',
+            'invoices',
         ]);
 
         $product_types = ProductType::query()
@@ -638,6 +666,14 @@ class Show extends Component
             && ($this->workOrder->status?->isOpen() ?? false)
             && ! $linked_remission;
 
+        $has_active_invoice = $this->workOrder->invoices
+            ->whereIn('status', ['pendiente', 'pagada'])
+            ->isNotEmpty();
+
+        $can_invoice = $can_edit
+            && $this->workOrder->status === WorkOrderStatus::Completed
+            && ! $has_active_invoice;
+
         $status_badge_class = $this->workOrder->status instanceof WorkOrderStatus
             ? $this->workOrder->status->badgeClass()
             : 'bg-slate-100 text-slate-600 ring-1 ring-slate-500/20';
@@ -679,6 +715,8 @@ class Show extends Component
             'status_comments_history' => $status_comments_history,
             'can_create_remission' => $can_create_remission,
             'linked_remission' => $linked_remission,
+            'can_invoice' => $can_invoice,
+            'latest_invoice' => $this->workOrder->latestInvoice,
         ]);
     }
 }

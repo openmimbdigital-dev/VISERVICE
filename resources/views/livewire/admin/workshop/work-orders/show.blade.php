@@ -76,6 +76,25 @@
                             Ver remisión {{ $linked_remission->reference }}
                         </a>
                         @endif
+                        @if($can_invoice)
+                        <button type="button" wire:click="invoiceWorkOrder" wire:loading.attr="disabled" wire:target="invoiceWorkOrder"
+                            class="btn btn-primary btn-sm flex-1 justify-center sm:flex-none disabled:opacity-60">
+                            <span wire:loading.remove wire:target="invoiceWorkOrder">Facturar</span>
+                            <span wire:loading wire:target="invoiceWorkOrder">Facturando…</span>
+                        </button>
+                        @elseif($latest_invoice)
+                        @can('workshop.invoices.view')
+                        <a href="{{ route('admin.workshop.invoices.show', $latest_invoice) }}" wire:navigate
+                            class="btn btn-outline-secondary btn-sm flex-1 justify-center sm:flex-none">
+                            Factura {{ $latest_invoice->reference }}
+                        </a>
+                        @else
+                        <span class="inline-flex flex-1 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-700 sm:flex-none"
+                            title="Factura generada">
+                            Factura {{ $latest_invoice->reference }}
+                        </span>
+                        @endcan
+                        @endif
                         @if($can_edit)
                         @if($edit_disabled)
                         <button type="button" disabled title="{{ $edit_disabled_title }}"

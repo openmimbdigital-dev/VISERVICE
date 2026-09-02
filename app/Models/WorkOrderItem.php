@@ -60,6 +60,11 @@ class WorkOrderItem extends Model
         return $this->hasMany(RemissionItem::class);
     }
 
+    public function invoiceItems(): HasMany
+    {
+        return $this->hasMany(WorkOrderInvoiceItem::class);
+    }
+
     public function calculateSubtotal(): float
     {
         $base     = (float) $this->quantity * (float) $this->unit_price;

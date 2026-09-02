@@ -237,6 +237,7 @@ class MenuSeeder extends Seeder
                     'admin.workshop.quotation-service-types.*',
                     'admin.workshop.work-orders.*',
                     'admin.workshop.remissions.*',
+                    'admin.workshop.invoices.*',
                     'admin.workshop.advance-payments.*',
                 ],
                 'behavior' => 'collapsible',
@@ -250,6 +251,7 @@ class MenuSeeder extends Seeder
                     ['name' => 'Órdenes de Trabajo', 'route_name' => 'admin.workshop.work-orders.index', 'active_route_pattern' => 'admin.workshop.work-orders.*', 'icon_svg_path' => 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01', 'permission' => 'workshop.work-orders.view', 'sort_order' => 40],
                     ['name' => 'Gestión de anticipo', 'route_name' => 'admin.workshop.advance-payments.index', 'active_route_pattern' => 'admin.workshop.advance-payments.*', 'icon_svg_path' => 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z', 'permission' => 'workshop.advance-payments.view', 'sort_order' => 45],
                     ['name' => 'Remisiones', 'route_name' => 'admin.workshop.remissions.index', 'active_route_pattern' => 'admin.workshop.remissions.*', 'icon_svg_path' => 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', 'permission' => 'workshop.remissions.view', 'sort_order' => 50],
+                    ['name' => 'Facturación', 'route_name' => 'admin.workshop.invoices.index', 'active_route_pattern' => 'admin.workshop.invoices.*', 'icon_svg_path' => 'M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z', 'permission' => 'workshop.invoices.view', 'sort_order' => 55],
                 ],
             ],
             [

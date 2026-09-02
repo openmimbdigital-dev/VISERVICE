@@ -176,6 +176,7 @@ class RolesAndPermissionsSeeder extends Seeder
             ...$this->quotationPermissions(),
             ...$this->workOrderPermissions(),
             ...$this->remissionPermissions(),
+            ...$this->invoicePermissions(),
             ...$this->advancePaymentPermissions(),
         ];
     }
@@ -221,6 +222,14 @@ class RolesAndPermissionsSeeder extends Seeder
             'workshop.remissions.create',
             'workshop.remissions.edit',
             'workshop.remissions.delete',
+        ];
+    }
+
+    /** @return list<string> */
+    private function invoicePermissions(): array
+    {
+        return [
+            'workshop.invoices.view',
         ];
     }
 
@@ -284,6 +293,7 @@ class RolesAndPermissionsSeeder extends Seeder
             ...$this->quotationPermissions(),
             ...$this->workOrderPermissions(),
             ...$this->remissionPermissions(),
+            ...$this->invoicePermissions(),
             ...$this->advancePaymentPermissions(),
             // Gestión de Negocios (solo superAdmin)
             ...$this->businessManagementPermissions(),
