@@ -451,7 +451,7 @@ class Show extends Component
     public function openDocumentModal(): void
     {
         abort_unless(auth()->user()?->can('workshop.work-orders.edit'), 403);
-        $this->assertWorkOrderEditable();
+        $this->assertCanManageAssociatedDocuments();
 
         $this->editing_associated_document_id = null;
         $this->editing_document_name = null;
@@ -465,7 +465,7 @@ class Show extends Component
     public function openEditAssociatedDocument(int $id): void
     {
         abort_unless(auth()->user()?->can('workshop.work-orders.edit'), 403);
-        $this->assertWorkOrderEditable();
+        $this->assertCanManageAssociatedDocuments();
 
         $document = $this->workOrder->associatedDocuments()->findOrFail($id);
 
@@ -508,7 +508,7 @@ class Show extends Component
     public function saveDocumentClient(): void
     {
         abort_unless(auth()->user()?->can('workshop.work-orders.edit'), 403);
-        $this->assertWorkOrderEditable();
+        $this->assertCanManageAssociatedDocuments();
 
         $this->validate([
             'selected_document_type_id' => 'required|integer',
@@ -605,6 +605,17 @@ class Show extends Component
         );
     }
 
+    private function assertCanManageAssociatedDocuments(): void
+    {
+        $this->workOrder->refresh();
+
+        abort_unless(
+            $this->workOrder->canManageAssociatedDocuments(),
+            403,
+            'La OT está cancelada y no admite documentos asociados.'
+        );
+    }
+
     public function render()
     {
         $this->workOrder->load([
@@ -663,7 +674,7 @@ class Show extends Component
         $is_locked = ! $this->workOrder->isEditable();
         $linked_remission = $this->workOrder->remissions->first();
         $can_create_remission = auth()->user()->can('workshop.remissions.create')
-            && ($this->workOrder->status?->isOpen() ?? false)
+            && $this->workOrder->canReceiveRemission()
             && ! $linked_remission;
 
         $has_active_invoice = $this->workOrder->invoices
@@ -700,6 +711,8 @@ class Show extends Component
             'catalog_products' => $catalog_products,
             'available_associated_documents' => $available_associated_documents,
             'can_edit' => $can_edit,
+            'can_manage_documents' => $can_edit && $this->workOrder->canManageAssociatedDocuments(),
+            'documents_disabled_title' => 'La OT está cancelada y no admite documentos asociados',
             'can_edit_items' => $can_edit && ! $is_locked,
             'can_manage' => $can_edit && ! $is_locked,
             'edit_disabled' => $is_locked,

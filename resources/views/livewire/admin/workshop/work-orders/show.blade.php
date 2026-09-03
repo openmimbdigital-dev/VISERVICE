@@ -96,16 +96,16 @@
                         @endcan
                         @endif
                         @if($can_edit)
-                        @if($edit_disabled)
-                        <button type="button" disabled title="{{ $edit_disabled_title }}"
-                            class="btn btn-outline-secondary btn-sm flex-1 justify-center opacity-50 sm:flex-none">
-                            Documento asociado
-                        </button>
-                        @else
+                        @if($can_manage_documents)
                         <button type="button"
                             wire:click="openDocumentModal"
                             title="Asociar documento"
                             class="btn btn-outline-secondary btn-sm flex-1 justify-center sm:flex-none">
+                            Documento asociado
+                        </button>
+                        @else
+                        <button type="button" disabled title="{{ $documents_disabled_title }}"
+                            class="btn btn-outline-secondary btn-sm flex-1 justify-center opacity-50 sm:flex-none">
                             Documento asociado
                         </button>
                         @endif
@@ -132,10 +132,10 @@
         <div class="flex flex-col gap-2 border-b border-slate-100 bg-slate-50/80 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
             <h2 class="font-semibold text-slate-900">Documentos asociados</h2>
             @if($can_edit)
-                @if($edit_disabled)
-                <span title="{{ $edit_disabled_title }}" class="cursor-not-allowed text-xs font-medium text-slate-300 opacity-50" aria-disabled="true">Agregar</span>
-                @else
+                @if($can_manage_documents)
                 <button type="button" wire:click="openDocumentModal" class="btn btn-outline-secondary btn-sm w-full justify-center sm:w-auto">Agregar</button>
+                @else
+                <span title="{{ $documents_disabled_title }}" class="cursor-not-allowed text-xs font-medium text-slate-300 opacity-50" aria-disabled="true">Agregar</span>
                 @endif
             @endif
         </div>
@@ -146,14 +146,14 @@
                 <dd class="flex items-start justify-between gap-3 text-sm text-slate-900 sm:col-span-2">
                     <span>{{ $document->value }}</span>
                     @if($can_edit)
-                        @if($edit_disabled)
-                        <span title="{{ $edit_disabled_title }}" class="cursor-not-allowed rounded p-1 text-slate-300 opacity-50" aria-disabled="true">
-                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536M4 20h4.586a1 1 0 00.707-.293l9.414-9.414a2 2 0 00-2.828-2.828L6.465 16.88A1 1 0 006.172 17.586V20z"/></svg>
-                        </span>
-                        @else
+                        @if($can_manage_documents)
                         <button type="button" wire:click="openEditAssociatedDocument({{ $document->id }})" title="Editar documento" class="rounded p-1 text-slate-400 transition hover:bg-slate-100 hover:text-indigo-600">
                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536M4 20h4.586a1 1 0 00.707-.293l9.414-9.414a2 2 0 00-2.828-2.828L6.465 16.88A1 1 0 006.172 17.586V20z"/></svg>
                         </button>
+                        @else
+                        <span title="{{ $documents_disabled_title }}" class="cursor-not-allowed rounded p-1 text-slate-300 opacity-50" aria-disabled="true">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536M4 20h4.586a1 1 0 00.707-.293l9.414-9.414a2 2 0 00-2.828-2.828L6.465 16.88A1 1 0 006.172 17.586V20z"/></svg>
+                        </span>
                         @endif
                     @endif
                 </dd>

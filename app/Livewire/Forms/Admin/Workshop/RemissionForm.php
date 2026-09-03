@@ -92,7 +92,7 @@ class RemissionForm extends Form
                 'integer',
                 Rule::exists('work_orders', 'id')->where(fn ($q) => $q
                     ->where('business_id', $business_id)
-                    ->whereIn('status', WorkOrderStatus::openValues())
+                    ->whereIn('status', WorkOrderStatus::remissionEligibleValues())
                     ->whereNull('deleted_at')),
                 Rule::unique('remissions', 'work_order_id')
                     ->whereNull('deleted_at')
@@ -120,7 +120,7 @@ class RemissionForm extends Form
     {
         return [
             'work_order_id.required' => 'Selecciona una orden de trabajo.',
-            'work_order_id.exists'   => 'La OT debe existir, pertenecer al negocio y estar creada o en proceso.',
+            'work_order_id.exists'   => 'La OT debe existir, pertenecer al negocio y estar creada, en proceso o finalizada.',
             'work_order_id.unique'   => 'Esta OT ya tiene una remisión generada.',
             'type.required'          => 'Selecciona el tipo de remisión.',
             'type.in'                => 'El tipo de remisión no es válido.',
@@ -169,7 +169,7 @@ class RemissionForm extends Form
             ->forAuthUser()
             ->where('business_id', $business_id)
             ->where(function ($query) {
-                $query->whereIn('status', WorkOrderStatus::openValues());
+                $query->whereIn('status', WorkOrderStatus::remissionEligibleValues());
 
                 if ($this->work_order_id) {
                     $query->orWhere('work_orders.id', $this->work_order_id);

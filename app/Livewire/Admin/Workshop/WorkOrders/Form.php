@@ -379,7 +379,7 @@ class Form extends Component
 
             $linked_remission = $work_order?->remissions->first();
             $can_create_remission = auth()->user()->can('workshop.remissions.create')
-                && ($work_order?->status?->isOpen() ?? false)
+                && ($work_order?->canReceiveRemission() ?? false)
                 && ! $linked_remission;
         }
 

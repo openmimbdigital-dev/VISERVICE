@@ -126,9 +126,9 @@ class CreateOrUpdateRemissionAction
             ->firstOrFail();
 
         abort_unless(
-            $work_order->status?->isOpen() ?? false,
+            $work_order->canReceiveRemission(),
             422,
-            'La remisión solo puede asociarse a una OT creada o en proceso.'
+            'La remisión solo puede asociarse a una OT creada, en proceso o finalizada.'
         );
 
         return $work_order;

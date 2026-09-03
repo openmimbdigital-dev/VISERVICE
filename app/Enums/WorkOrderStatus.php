@@ -39,10 +39,26 @@ enum WorkOrderStatus: string
         return $this === self::Completed || $this === self::Cancelled;
     }
 
+    public function allowsAssociatedDocuments(): bool
+    {
+        return $this !== self::Cancelled;
+    }
+
+    public function canReceiveRemission(): bool
+    {
+        return $this !== self::Cancelled;
+    }
+
     /** @return list<string> */
     public static function openValues(): array
     {
         return [self::Created->value, self::InProgress->value];
+    }
+
+    /** @return list<string> */
+    public static function remissionEligibleValues(): array
+    {
+        return [self::Created->value, self::InProgress->value, self::Completed->value];
     }
 
     /** @return array<string, string> */

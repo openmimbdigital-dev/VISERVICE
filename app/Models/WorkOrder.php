@@ -197,6 +197,20 @@ class WorkOrder extends Model
             : true;
     }
 
+    public function canManageAssociatedDocuments(): bool
+    {
+        return $this->status instanceof WorkOrderStatus
+            ? $this->status->allowsAssociatedDocuments()
+            : true;
+    }
+
+    public function canReceiveRemission(): bool
+    {
+        return $this->status instanceof WorkOrderStatus
+            ? $this->status->canReceiveRemission()
+            : true;
+    }
+
     public function canChangeStatus(): bool
     {
         return $this->isEditable();
