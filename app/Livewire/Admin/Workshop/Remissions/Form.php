@@ -60,7 +60,7 @@ class Form extends Component
             $work_order = WorkOrder::query()
                 ->forAuthUser()
                 ->where('business_id', $this->form->resolvedBusinessId())
-                ->whereIn('status', WorkOrderStatus::openValues())
+                ->whereIn('status', WorkOrderStatus::remissionEligibleValues())
                 ->whereDoesntHave('remissions')
                 ->with(['client.city', 'equipments'])
                 ->find($work_order_id);
@@ -82,13 +82,13 @@ class Form extends Component
         $work_order = WorkOrder::query()
             ->forAuthUser()
             ->where('business_id', $this->form->resolvedBusinessId())
-            ->whereIn('status', WorkOrderStatus::openValues())
+            ->whereIn('status', WorkOrderStatus::remissionEligibleValues())
             ->with(['client.city', 'equipments'])
             ->find((int) $value);
 
         if (! $work_order) {
             $this->form->work_order_id = null;
-            $this->addError('form.work_order_id', 'La OT no está disponible o no está creada/en proceso.');
+            $this->addError('form.work_order_id', 'La OT no está disponible o no está creada, en proceso o finalizada.');
 
             return;
         }

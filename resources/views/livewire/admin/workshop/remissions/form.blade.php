@@ -19,7 +19,7 @@
                     {{ $is_editing ? 'Remisión ' . ($reference ?? '') : 'Nueva remisión' }}
                 </h1>
                 <p class="mt-2 max-w-xl text-sm text-slate-600">
-                    Solo puedes asociar remisiones a OTs en estado creada o en proceso. Los ítems se toman de la OT.
+                    Puedes asociar remisiones a OTs creadas, en proceso o finalizadas. Los ítems se toman de la OT. Si la OT está finalizada, la remisión se crea en estado finalizado.
                 </p>
             </div>
             @if($is_editing)

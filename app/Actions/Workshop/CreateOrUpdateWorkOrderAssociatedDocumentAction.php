@@ -25,9 +25,9 @@ class CreateOrUpdateWorkOrderAssociatedDocumentAction
 
         $work_order = WorkOrder::query()->forAuthUser()->findOrFail($work_order_id);
 
-        if (! $work_order->isEditable()) {
+        if (! $work_order->canManageAssociatedDocuments()) {
             throw ValidationException::withMessages([
-                'document_input_value' => 'La OT está finalizada o cancelada y no admite cambios.',
+                'document_input_value' => 'La OT está cancelada y no admite documentos asociados.',
             ]);
         }
 
