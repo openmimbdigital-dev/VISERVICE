@@ -33,13 +33,15 @@ class DatatableEquipment extends LivewireDatatable
     {
         $user = auth()->user();
 
-        $work_orders_count = DB::table('work_orders')
-            ->select('equipment_id', DB::raw('COUNT(*) as work_orders_count'))
-            ->whereNull('deleted_at');
+        $work_orders_count = DB::table('equipment_work_order')
+            ->join('work_orders', 'equipment_work_order.work_order_id', '=', 'work_orders.id')
+            ->select('equipment_work_order.equipment_id', DB::raw('COUNT(DISTINCT work_orders.id) as work_orders_count'))
+            ->whereNull('work_orders.deleted_at');
 
-        $quotations_count = DB::table('quotations')
-            ->select('equipment_id', DB::raw('COUNT(*) as quotations_count'))
-            ->whereNull('deleted_at');
+        $quotations_count = DB::table('equipment_quotation')
+            ->join('quotations', 'equipment_quotation.quotation_id', '=', 'quotations.id')
+            ->select('equipment_quotation.equipment_id', DB::raw('COUNT(DISTINCT quotations.id) as quotations_count'))
+            ->whereNull('quotations.deleted_at');
 
         if ($user && ! $user->hasRole('superAdmin')) {
             $business_ids = $user->businessIds();
@@ -48,13 +50,13 @@ class DatatableEquipment extends LivewireDatatable
                 $work_orders_count->whereRaw('0 = 1');
                 $quotations_count->whereRaw('0 = 1');
             } else {
-                $work_orders_count->whereIn('business_id', $business_ids);
-                $quotations_count->whereIn('business_id', $business_ids);
+                $work_orders_count->whereIn('work_orders.business_id', $business_ids);
+                $quotations_count->whereIn('quotations.business_id', $business_ids);
             }
         }
 
-        $work_orders_count->groupBy('equipment_id');
-        $quotations_count->groupBy('equipment_id');
+        $work_orders_count->groupBy('equipment_work_order.equipment_id');
+        $quotations_count->groupBy('equipment_quotation.equipment_id');
 
         $query = Equipment::query()
             ->forAuthUser()
