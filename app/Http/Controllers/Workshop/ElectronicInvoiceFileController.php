@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Workshop;
 
+use App\Actions\Dian\DownloadElectronicInvoiceFilesAction;
 use App\Http\Controllers\Controller;
 use App\Models\ElectronicInvoice;
 use Illuminate\Support\Facades\Storage;
@@ -26,9 +27,9 @@ class ElectronicInvoiceFileController extends Controller
 
         $path = $type === 'xml' ? $electronicInvoice->xml_path : $electronicInvoice->pdf_path;
 
-        abort_if(blank($path) || ! Storage::disk('local')->exists($path), 404);
+        abort_if(blank($path) || ! Storage::disk(DownloadElectronicInvoiceFilesAction::DISK)->exists($path), 404);
 
-        return Storage::disk('local')->download(
+        return Storage::disk(DownloadElectronicInvoiceFilesAction::DISK)->download(
             $path,
             "{$electronicInvoice->document_number}.{$type}"
         );

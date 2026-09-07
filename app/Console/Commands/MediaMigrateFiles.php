@@ -1,0 +1,97 @@
+<?php
+
+namespace App\Console\Commands;
+
+use App\Actions\Dian\DownloadElectronicInvoiceFilesAction;
+use App\Support\ProductImageStorage;
+use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Storage;
+
+/**
+ * Traslada al volumen de datos los archivos que quedaron dentro del proyecto,
+ * conservando la ruta relativa para que los registros existentes sigan siendo válidos.
+ */
+class MediaMigrateFiles extends Command
+{
+    protected $signature = 'media:migrate
+                            {--dry-run : Muestra lo que se movería sin copiar nada}
+                            {--keep : Conserva el archivo original en lugar de borrarlo}';
+
+    protected $description = 'Mueve los archivos de storage/app al volumen de datos (discos media y documents)';
+
+    /**
+     * Carpetas a trasladar: origen => [disco origen, disco destino].
+     *
+     * Solo se incluyen los recursos cuyo código ya lee desde el volumen. Los logos
+     * de negocio y los comprobantes de pago siguen en el disco «public» porque su
+     * lectura aún apunta allí.
+     *
+     * @var array<string, array{0:string, 1:string}>
+     */
+    private const FOLDERS = [
+        'products' => ['public', ProductImageStorage::DISK],
+        'dian'     => ['local', DownloadElectronicInvoiceFilesAction::DISK],
+    ];
+
+    public function handle(): int
+    {
+        $dry_run = (bool) $this->option('dry-run');
+        $keep = (bool) $this->option('keep');
+        $total = 0;
+
+        foreach (self::FOLDERS as $folder => [$source_disk, $target_disk]) {
+            $files = Storage::disk($source_disk)->allFiles($folder);
+
+            if ($files === []) {
+                $this->line("· {$folder}: sin archivos en «{$source_disk}»");
+
+                continue;
+            }
+
+            $this->line("· {$folder}: ".count($files)." archivo(s) de «{$source_disk}» a «{$target_disk}»");
+
+            foreach ($files as $file) {
+                if (Storage::disk($target_disk)->exists($file)) {
+                    $this->warn("    ya existía, se omite: {$file}");
+
+                    continue;
+                }
+
+                if ($dry_run) {
+                    $this->line("    [simulación] {$file}");
+                    $total++;
+
+                    continue;
+                }
+
+                $contents = Storage::disk($source_disk)->get($file);
+
+                if ($contents === null) {
+                    $this->warn("    no se pudo leer: {$file}");
+
+                    continue;
+                }
+
+                Storage::disk($target_disk)->put($file, $contents);
+
+                if (! $keep) {
+                    Storage::disk($source_disk)->delete($file);
+                }
+
+                $this->line("    movido: {$file}");
+                $total++;
+            }
+        }
+
+        $this->newLine();
+        $this->info($dry_run
+            ? "Simulación: se moverían {$total} archivo(s)."
+            : "Listo: {$total} archivo(s) en el volumen de datos.");
+
+        if (! $dry_run && $total > 0) {
+            $this->line('Recuerda ejecutar «php artisan storage:link» para publicar el enlace /media.');
+        }
+
+        return self::SUCCESS;
+    }
+}

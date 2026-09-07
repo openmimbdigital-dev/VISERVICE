@@ -17,6 +17,9 @@ class DownloadElectronicInvoiceFilesAction
 {
     use AsAction;
 
+    /** Disco privado del volumen de datos. */
+    public const DISK = 'documents';
+
     /**
      * @return array{invoice: ElectronicInvoice, notice: ?string}
      *         El aviso explica qué archivo no entregó el proveedor y por qué.
@@ -51,7 +54,7 @@ class DownloadElectronicInvoiceFilesAction
             }
 
             $path = "{$directory}/{$electronic_invoice->document_number}.{$extension}";
-            Storage::disk('local')->put($path, $contents);
+            Storage::disk(self::DISK)->put($path, $contents);
 
             $paths[$attribute] = $path;
         }
@@ -74,7 +77,7 @@ class DownloadElectronicInvoiceFilesAction
 
     public static function directory(ElectronicInvoice $electronic_invoice): string
     {
-        return "dian/{$electronic_invoice->business_id}/{$electronic_invoice->id}";
+        return "electronic-invoices/{$electronic_invoice->business_id}/{$electronic_invoice->id}";
     }
 
     /**

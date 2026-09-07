@@ -1,5 +1,21 @@
 <?php
 
+if (! function_exists('media_root')) {
+    /**
+     * Ruta absoluta dentro del volumen de datos, fuera del proyecto.
+     *
+     * En producción MEDIA_ROOT apunta al volumen montado; si no está definida
+     * (entornos locales) se usa storage/app/media para que todo siga funcionando.
+     */
+    function media_root(string $path = ''): string
+    {
+        $root = rtrim((string) env('MEDIA_ROOT', storage_path('app/media')), '/\\');
+
+        // Se usa siempre «/»: Flysystem lo entiende en Linux y en Windows.
+        return $path === '' ? $root : $root.'/'.ltrim($path, '/\\');
+    }
+}
+
 if (! function_exists('col_number')) {
     /**
      * Formatea un número con separación de miles y decimales al estilo colombiano.

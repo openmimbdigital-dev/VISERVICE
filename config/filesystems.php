@@ -47,6 +47,33 @@ return [
             'report' => false,
         ],
 
+        /*
+        | Volumen de datos montado fuera del proyecto (MEDIA_ROOT). Se divide en dos
+        | discos para que los archivos servidos por la web y los de acceso restringido
+        | nunca compartan carpeta:
+        |
+        |   {MEDIA_ROOT}/public   -> imágenes y logos, accesibles vía /media
+        |   {MEDIA_ROOT}/private  -> facturación electrónica y demás documentos
+        |
+        | En local, si no se define MEDIA_ROOT, se usa storage/app/media.
+        */
+
+        'media' => [
+            'driver' => 'local',
+            'root' => media_root('public'),
+            'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/media',
+            'visibility' => 'public',
+            'throw' => false,
+            'report' => false,
+        ],
+
+        'documents' => [
+            'driver' => 'local',
+            'root' => media_root('private'),
+            'throw' => false,
+            'report' => false,
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),
@@ -75,6 +102,7 @@ return [
 
     'links' => [
         public_path('storage') => storage_path('app/public'),
+        public_path('media') => media_root('public'),
     ],
 
 ];
