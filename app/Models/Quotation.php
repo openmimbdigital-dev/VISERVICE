@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\QuotationStatus;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -15,6 +16,8 @@ class Quotation extends Model
 {
     use SoftDeletes;
 
+    public const DEFAULT_FINAL_STEP = 3;
+
     public const PDF_CATEGORY_GROUPS = [
         'mano_obra'    => ['Mano de Obra'],
         'repuestos'    => ['Repuestos'],
@@ -23,7 +26,7 @@ class Quotation extends Model
     ];
 
     protected $fillable = [
-        'business_id', 'client_id', 'quotation_service_type_id',
+        'business_id', 'step', 'final_step', 'client_id', 'quotation_service_type_id',
         'business_payment_method_id', 'business_bank_account_id',
         'reference', 'status', 'diagnosis', 'hours_entry',
         'validity_days', 'valid_until', 'execution_time',
@@ -37,6 +40,8 @@ class Quotation extends Model
     protected function casts(): array
     {
         return [
+            'step'            => 'integer',
+            'final_step'      => 'integer',
             'status'          => QuotationStatus::class,
             'valid_until'     => 'date',
             'issued_at'       => 'datetime',
@@ -129,6 +134,33 @@ class Quotation extends Model
         }
 
         return $query->whereIn($query->getModel()->getTable() . '.business_id', $business_ids);
+    }
+
+    public function scopeComplete(Builder $query): Builder
+    {
+        $table = $query->getModel()->getTable();
+
+        return $query->whereExists(function ($sub) use ($table) {
+            $sub->selectRaw('1')
+                ->from('quotation_items')
+                ->whereColumn('quotation_items.quotation_id', "{$table}.id");
+        });
+    }
+
+    public function isComplete(): bool
+    {
+        if ($this->relationLoaded('items')) {
+            return $this->items->isNotEmpty();
+        }
+
+        return $this->items()->exists();
+    }
+
+    public function progressPercent(): int
+    {
+        $final = max(1, (int) $this->final_step);
+
+        return (int) min(100, round(((int) $this->step / $final) * 100));
     }
 
     public function getHoursEntryFormattedAttribute(): ?string

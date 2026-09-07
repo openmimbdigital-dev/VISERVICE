@@ -15,6 +15,14 @@ use Livewire\Form;
 
 class EquipmentForm extends Form
 {
+    public const STEP_GENERAL = 1;
+
+    public const STEP_IDENTIFICATION = 2;
+
+    public const STEP_DETAILS = 3;
+
+    public const TOTAL_STEPS = 3;
+
     public ?int $equipment_id = null;
 
     public ?int $business_id = null;
@@ -36,6 +44,8 @@ class EquipmentForm extends Form
     public bool $status = true;
 
     public string $notes = '';
+
+    public int $persisted_step = 1;
 
     /** @var array<int, mixed> */
     public array $attribute_values = [];
@@ -60,6 +70,7 @@ class EquipmentForm extends Form
         $this->year              = $equipment->year ? (string) $equipment->year : '';
         $this->status            = $equipment->status;
         $this->notes             = $equipment->notes ?? '';
+        $this->persisted_step    = max(1, (int) $equipment->step);
         $this->attribute_values  = EquipmentTypeAttributeResolver::valuesForEquipment($equipment);
         $this->hydrateAttributeDefaults();
     }
@@ -110,43 +121,47 @@ class EquipmentForm extends Form
 
     public function rules(): array
     {
-        $business_id = $this->resolvedBusinessId();
-
-        $client_rule = Rule::exists('clients', 'id')->where(
-            fn ($query) => $query->where('business_id', $business_id)->whereNull('deleted_at')
+        return array_merge(
+            $this->rulesForStep(self::STEP_GENERAL),
+            $this->rulesForStep(self::STEP_IDENTIFICATION),
+            $this->rulesForStep(self::STEP_DETAILS),
         );
+    }
 
-        $rules = [
-            'client_id'         => ['required', 'integer', $client_rule],
-            'brand_id'          => ['required', 'integer', Rule::in($this->getBrands()->pluck('id')->all())],
-            'model_id'          => ['required', 'integer', Rule::in($this->getModels()->pluck('id')->all())],
-            'equipment_type_id' => ['required', 'integer', 'exists:equipment_types,id'],
-            'name'              => ['required', 'string', 'max:120'],
-            'plate'             => [
-                'required',
-                'string',
-                'max:20',
-                Rule::unique('equipment', 'plate')
-                    ->where(fn ($query) => $query->where('business_id', $business_id)->whereNull('deleted_at'))
-                    ->ignore($this->equipment_id),
-            ],
-            'year'              => ['required', 'integer', 'min:1900', 'max:' . (date('Y') + 1)],
-            'status'            => ['boolean'],
-            'notes'             => ['nullable', 'string'],
+    /** @return array<string, mixed> */
+    public function rulesForStep(int $step): array
+    {
+        return match ($step) {
+            self::STEP_GENERAL => $this->generalRules(),
+            self::STEP_IDENTIFICATION => $this->identificationRules(),
+            self::STEP_DETAILS => $this->detailsRules(),
+            default => [],
+        };
+    }
+
+    public function firstStepWithErrors(array $errors): int
+    {
+        $step_fields = [
+            self::STEP_GENERAL => ['business_id', 'client_id', 'name', 'plate', 'equipment_type_id'],
+            self::STEP_IDENTIFICATION => ['brand_id', 'model_id', 'year'],
+            self::STEP_DETAILS => ['status', 'notes', 'attribute_values'],
         ];
 
-        if ($this->isSuperAdmin()) {
-            $rules['business_id'] = ['required', 'integer', 'exists:businesses,id'];
+        $error_keys = collect(array_keys($errors))
+            ->map(fn (string $key) => str_replace('form.', '', $key))
+            ->all();
+
+        foreach ($step_fields as $step => $fields) {
+            foreach ($error_keys as $key) {
+                foreach ($fields as $field) {
+                    if ($key === $field || str_starts_with($key, $field . '.')) {
+                        return $step;
+                    }
+                }
+            }
         }
 
-        $links = $this->getAttributeLinks();
-
-        if ($links->isNotEmpty()) {
-            $attribute_validator = new DynamicAttributeValidator($links, ! $this->isEditing(), 'attribute_values');
-            $rules               = array_merge($rules, $attribute_validator->rules());
-        }
-
-        return $rules;
+        return self::STEP_GENERAL;
     }
 
     public function messages(): array
@@ -185,6 +200,15 @@ class EquipmentForm extends Form
     public function isEditing(): bool
     {
         return (bool) $this->equipment_id;
+    }
+
+    public function isFlowComplete(): bool
+    {
+        return $this->equipment_id
+            && $this->brand_id
+            && $this->model_id
+            && $this->year !== ''
+            && $this->persisted_step >= self::TOTAL_STEPS;
     }
 
     public function getClients(): Collection
@@ -258,23 +282,89 @@ class EquipmentForm extends Form
     {
         $this->validate();
 
-        $links             = $this->getAttributeLinks();
-        $attribute_values  = $links->isNotEmpty()
+        return $this->payload(self::TOTAL_STEPS);
+    }
+
+    /** @return array<string, mixed> */
+    public function payload(int $step): array
+    {
+        $links            = $this->getAttributeLinks();
+        $attribute_values = $links->isNotEmpty()
             ? (new DynamicAttributeValidator($links, ! $this->isEditing(), 'attribute_values'))
                 ->normalize($this->attribute_values)
             : [];
 
         return [
             'client_id'         => (int) $this->client_id,
-            'brand_id'          => (int) $this->brand_id,
-            'model_id'          => (int) $this->model_id,
+            'brand_id'          => $this->brand_id ? (int) $this->brand_id : null,
+            'model_id'          => $this->model_id ? (int) $this->model_id : null,
             'equipment_type_id' => (int) $this->equipment_type_id,
             'name'              => trim($this->name),
             'plate'             => strtoupper(trim($this->plate)),
-            'year'              => (int) $this->year,
+            'year'              => $this->year === '' ? null : (int) $this->year,
             'status'            => $this->status,
             'notes'             => trim($this->notes) ?: null,
             'attribute_values'  => $attribute_values,
+            'step'              => $step,
+            'final_step'        => self::TOTAL_STEPS,
         ];
+    }
+
+    /** @return array<string, mixed> */
+    private function generalRules(): array
+    {
+        $business_id = $this->resolvedBusinessId();
+
+        $client_rule = Rule::exists('clients', 'id')->where(
+            fn ($query) => $query->where('business_id', $business_id)->whereNull('deleted_at')
+        );
+
+        $rules = [
+            'client_id'         => ['required', 'integer', $client_rule],
+            'equipment_type_id' => ['required', 'integer', 'exists:equipment_types,id'],
+            'name'              => ['required', 'string', 'max:120'],
+            'plate'             => [
+                'required',
+                'string',
+                'max:20',
+                Rule::unique('equipment', 'plate')
+                    ->where(fn ($query) => $query->where('business_id', $business_id)->whereNull('deleted_at'))
+                    ->ignore($this->equipment_id),
+            ],
+        ];
+
+        if ($this->isSuperAdmin()) {
+            $rules['business_id'] = ['required', 'integer', 'exists:businesses,id'];
+        }
+
+        return $rules;
+    }
+
+    /** @return array<string, mixed> */
+    private function identificationRules(): array
+    {
+        return [
+            'brand_id' => ['required', 'integer', Rule::in($this->getBrands()->pluck('id')->all())],
+            'model_id' => ['required', 'integer', Rule::in($this->getModels()->pluck('id')->all())],
+            'year'     => ['required', 'integer', 'min:1900', 'max:' . (date('Y') + 1)],
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function detailsRules(): array
+    {
+        $rules = [
+            'status' => ['boolean'],
+            'notes'  => ['nullable', 'string'],
+        ];
+
+        $links = $this->getAttributeLinks();
+
+        if ($links->isNotEmpty()) {
+            $attribute_validator = new DynamicAttributeValidator($links, ! $this->isEditing(), 'attribute_values');
+            $rules               = array_merge($rules, $attribute_validator->rules());
+        }
+
+        return $rules;
     }
 }

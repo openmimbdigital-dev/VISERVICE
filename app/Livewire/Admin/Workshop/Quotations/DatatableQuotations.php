@@ -11,6 +11,7 @@ use Arm092\LivewireDatatables\DateColumn;
 use Arm092\LivewireDatatables\Livewire\LivewireDatatable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\On;
 
 class DatatableQuotations extends LivewireDatatable
@@ -26,6 +27,10 @@ class DatatableQuotations extends LivewireDatatable
 
     public function builder(): Builder
     {
+        $items_count = DB::table('quotation_items')
+            ->select('quotation_id', DB::raw('COUNT(*) as items_count'))
+            ->groupBy('quotation_id');
+
         return Quotation::query()
             ->forAuthUser()
             ->leftJoin('clients', 'quotations.client_id', '=', 'clients.id')
@@ -33,8 +38,14 @@ class DatatableQuotations extends LivewireDatatable
                 $join->on('work_orders.quotation_id', '=', 'quotations.id')
                     ->whereNull('work_orders.deleted_at');
             })
+            ->leftJoinSub(
+                $items_count,
+                'quotation_items_agg',
+                fn ($join) => $join->on('quotations.id', '=', 'quotation_items_agg.quotation_id')
+            )
             ->select('quotations.*')
             ->addSelect('work_orders.id as linked_work_order_id')
+            ->addSelect('quotation_items_agg.items_count')
             ->orderByDesc('quotations.created_at');
     }
 
@@ -54,6 +65,20 @@ class DatatableQuotations extends LivewireDatatable
             Column::callback(['quotations.total'], function ($total) {
                 return '<span class="tabular-nums font-semibold">' . col_money($total) . '</span>';
             })->label('Total')->sortable(),
+
+            Column::callback(['quotations.step', 'quotations.final_step', 'quotation_items_agg.items_count'], function ($step, $final_step, $items_count) {
+                $final    = max(1, (int) $final_step);
+                $percent  = (int) min(100, round(((int) $step / $final) * 100));
+                $complete = (int) $items_count > 0;
+                $label    = $complete ? 'Completo' : 'Paso ' . (int) $step . '/' . $final;
+                $class    = $complete
+                    ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20'
+                    : 'bg-amber-50 text-amber-800 ring-1 ring-amber-600/20';
+
+                return '<span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ' . $class . '">'
+                    . $label
+                    . ' · ' . $percent . '%</span>';
+            })->label('Progreso')->unsortable(),
 
             Column::callback(['quotations.valid_until'], function ($date) {
                 return $date ? \Carbon\Carbon::parse($date)->format('d/m/Y') : '<span class="text-slate-400">—</span>';

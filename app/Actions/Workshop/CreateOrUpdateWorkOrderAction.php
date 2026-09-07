@@ -62,9 +62,11 @@ class CreateOrUpdateWorkOrderAction
             $payload = [
                 'client_id'          => $client_id,
                 'quotation_id'       => $quotation_id,
+                'step'               => (int) ($data['step'] ?? 1),
+                'final_step'         => (int) ($data['final_step'] ?? WorkOrder::DEFAULT_FINAL_STEP),
                 'diagnosis'          => $data['diagnosis'] ?? null,
                 'estimated_delivery' => $data['estimated_delivery'] ?? null,
-                'tax_percentage'     => $data['tax_percentage'] ?? 19,
+                'tax_percentage'     => $data['tax_percentage'] ?? 0,
                 'notes'              => $data['notes'] ?? null,
                 'observations'       => $data['observations'] ?? null,
             ];

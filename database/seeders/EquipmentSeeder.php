@@ -179,6 +179,8 @@ class EquipmentSeeder extends Seeder
                 'model_name'          => $model->name,
                 'year'                => $year,
                 'status'              => true,
+                'step'                => Equipment::DEFAULT_FINAL_STEP,
+                'final_step'          => Equipment::DEFAULT_FINAL_STEP,
                 'notes'               => 'Equipo de demostración generado por seeder.',
                 'created_by'          => $created_by,
                 'deleted_at'          => null,

@@ -19,6 +19,7 @@ use App\Models\Quotation;
 use App\Models\QuotationServiceType;
 use App\Models\Status;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -30,6 +31,8 @@ class Form extends Component
     use ConfirmsDeletionWithLivewireAlert;
 
     public QuotationForm $form;
+
+    public int $step = QuotationForm::STEP_GENERAL;
 
     /** @var array<int, array<string, mixed>> */
     public array $items = [];
@@ -61,6 +64,9 @@ class Form extends Component
             }
 
             $this->form->setQuotation($quotation);
+            $this->step = $quotation->isComplete()
+                ? QuotationForm::STEP_GENERAL
+                : max(QuotationForm::STEP_GENERAL, min((int) $quotation->step, QuotationForm::TOTAL_STEPS));
             $this->reference = $quotation->reference;
             $this->quotation_status = $quotation->status instanceof QuotationStatus
                 ? $quotation->status->value
@@ -194,6 +200,36 @@ class Form extends Component
         $this->items = array_values($this->items);
     }
 
+    public function nextStep(): void
+    {
+        $this->validateCurrentStep();
+        $this->advanceToStep(min($this->step + 1, QuotationForm::TOTAL_STEPS));
+    }
+
+    public function previousStep(): void
+    {
+        $this->step = max($this->step - 1, QuotationForm::STEP_GENERAL);
+    }
+
+    public function goToStep(int $step): void
+    {
+        if ($step < QuotationForm::STEP_GENERAL || $step > QuotationForm::TOTAL_STEPS) {
+            return;
+        }
+
+        if ($step > $this->step) {
+            for ($current = $this->step; $current < $step; $current++) {
+                if ($current === QuotationForm::STEP_ITEMS) {
+                    $this->validateItemsStep();
+                } else {
+                    $this->form->validate($this->form->rulesForStep($current));
+                }
+            }
+        }
+
+        $this->advanceToStep($step);
+    }
+
     public function save(): void
     {
         abort_unless(
@@ -209,18 +245,26 @@ class Form extends Component
             fn ($row) => trim((string) ($row['description'] ?? '')) !== ''
         ));
 
-        if ($this->items !== []) {
-            $this->validate($this->itemRules());
-        }
+        try {
+            if ($this->items !== []) {
+                $this->validate($this->itemRules());
+            } else {
+                $this->validate(['items' => ['required', 'array', 'min:1']]);
+            }
 
-        $quotation = CreateOrUpdateQuotationAction::run(
-            $business_id,
-            $this->form->quotation_id,
-            $this->form->client_id,
-            $this->form->resolvedEquipmentIds(),
-            $this->form->validated(),
-            $this->items
-        );
+            $quotation = CreateOrUpdateQuotationAction::run(
+                $business_id,
+                $this->form->quotation_id,
+                $this->form->client_id,
+                $this->form->resolvedEquipmentIds(),
+                $this->form->validated(),
+                $this->items
+            );
+        } catch (ValidationException $exception) {
+            $this->step = $this->form->firstStepWithErrors($exception->errors());
+
+            throw $exception;
+        }
 
         $this->dispatch('swal', [
             'title' => $this->form->isEditing()
@@ -228,6 +272,8 @@ class Form extends Component
                 : "Cotización {$quotation->reference} creada",
             'icon'  => 'success',
         ]);
+
+        $this->dispatch('quotation-saved');
 
         $this->redirectRoute('admin.workshop.quotations.index', navigate: true);
     }
@@ -277,7 +323,86 @@ class Form extends Component
             'items.*.description'  => 'descripción del ítem',
             'items.*.quantity'     => 'cantidad',
             'items.*.unit_price'   => 'precio unitario',
+            'items'                => 'ítems',
         ];
+    }
+
+    /** @return array<string, string> */
+    protected function messages(): array
+    {
+        return [
+            'items.required' => 'Agrega al menos un ítem a la cotización.',
+            'items.min'      => 'Agrega al menos un ítem a la cotización.',
+        ];
+    }
+
+    protected function validateCurrentStep(): void
+    {
+        if ($this->step === QuotationForm::STEP_ITEMS) {
+            $this->validateItemsStep();
+
+            return;
+        }
+
+        $this->form->validate($this->form->rulesForStep($this->step));
+    }
+
+    protected function validateItemsStep(): void
+    {
+        $this->items = array_values(array_filter(
+            $this->items,
+            fn ($row) => trim((string) ($row['description'] ?? '')) !== ''
+        ));
+
+        if ($this->items === []) {
+            $this->validate(['items' => ['required', 'array', 'min:1']]);
+
+            return;
+        }
+
+        $this->validate($this->itemRules());
+    }
+
+    protected function isFlowComplete(): bool
+    {
+        return $this->form->quotation_id
+            && collect($this->items)->contains(fn ($row) => trim((string) ($row['description'] ?? '')) !== '');
+    }
+
+    protected function advanceToStep(int $step): void
+    {
+        if ($step > $this->step && ! $this->isFlowComplete()) {
+            $was_new   = ! $this->form->isEditing();
+            $quotation = $this->persistProgress($step);
+
+            if ($was_new) {
+                $this->redirectRoute('admin.workshop.quotations.form.edit', $quotation, navigate: true);
+
+                return;
+            }
+        }
+
+        $this->step = $step;
+    }
+
+    protected function persistProgress(int $step): Quotation
+    {
+        $business_id = $this->form->resolvedBusinessId();
+        abort_unless($business_id, 403);
+
+        $quotation = CreateOrUpdateQuotationAction::run(
+            $business_id,
+            $this->form->quotation_id,
+            $this->form->client_id,
+            $this->form->resolvedEquipmentIds(),
+            $this->form->payload($step),
+            $this->items
+        );
+
+        $this->form->quotation_id = $quotation->id;
+        $this->reference          = $quotation->reference;
+
+        return $quotation;
     }
 
     protected function clearItemEquipmentAssignments(): void
@@ -347,25 +472,26 @@ class Form extends Component
         $product_types = ProductType::query()->visibleToUser()->where('active', true)->orderBy('name')->get();
         $catalog_products = Product::query()->forAuthUser()->complete()->where('business_id', $business_id)->active()->orderBy('name')->get();
 
+        $selected_equipment_ids = $this->form->resolvedEquipmentIds();
+
         $equipment_query = Equipment::query()->forAuthUser()
             ->where('client_id', $this->form->client_id)
+            ->where(function ($query) use ($selected_equipment_ids) {
+                $query->where(function ($complete) {
+                    $complete->complete()->where('status', true);
+                });
+
+                if ($selected_equipment_ids !== []) {
+                    $query->orWhereIn('id', $selected_equipment_ids);
+                }
+            })
             ->orderBy('name')
             ->orderBy('plate');
-
-        if ($this->form->resolvedEquipmentIds() !== []) {
-            $equipment_query->where(function ($q) {
-                $q->where('status', true)
-                    ->orWhereIn('id', $this->form->resolvedEquipmentIds());
-            });
-        } else {
-            $equipment_query->where('status', true);
-        }
 
         $equipment_for_client = $this->form->client_id
             ? $equipment_query->get(['id', 'name', 'brand_name', 'plate'])
             : collect();
 
-        $selected_equipment_ids = $this->form->resolvedEquipmentIds();
         $selected_equipments = $equipment_for_client
             ->whereIn('id', $selected_equipment_ids)
             ->values();
@@ -405,8 +531,32 @@ class Form extends Component
             );
         }
 
+        $total_steps   = QuotationForm::TOTAL_STEPS;
+        $progress      = (int) round(($this->step / $total_steps) * 100);
+        $radius        = 30;
+        $circumference = round(2 * M_PI * $radius, 2);
+
         return view('livewire.admin.workshop.quotations.form', [
-            'is_editing'           => $this->form->isEditing(),
+            'is_editing'             => $this->form->isEditing(),
+            'step'                   => $this->step,
+            'total_steps'            => $total_steps,
+            'progress'               => $progress,
+            'progress_circumference' => $circumference,
+            'progress_offset'        => round($circumference * (1 - $progress / 100), 2),
+            'steps'                  => [
+                QuotationForm::STEP_GENERAL => [
+                    'title'       => 'Datos',
+                    'description' => 'Cliente y equipos',
+                ],
+                QuotationForm::STEP_CONDITIONS => [
+                    'title'       => 'Condiciones',
+                    'description' => 'Vigencia, impuesto y pago',
+                ],
+                QuotationForm::STEP_ITEMS => [
+                    'title'       => 'Ítems',
+                    'description' => 'Productos y servicios',
+                ],
+            ],
             'clients'              => $clients,
             'service_types'        => $service_types,
             'payment_methods'      => $payment_methods,

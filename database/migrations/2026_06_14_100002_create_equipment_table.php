@@ -11,6 +11,8 @@ return new class extends Migration
         Schema::create('equipment', function (Blueprint $table) {
             $table->id();
             $table->foreignId('business_id')->constrained()->onDelete('cascade');
+            $table->unsignedTinyInteger('step')->default(1)->comment('Paso actual del flujo de alta');
+            $table->unsignedTinyInteger('final_step')->default(3)->comment('Pasos totales del flujo de alta');
             $table->foreignId('client_id')->constrained('clients')->onDelete('cascade');
             $table->foreignId('brand_id')->nullable()->constrained('brands')->nullOnDelete();
             $table->foreignId('model_id')->nullable()->constrained('equipment_models')->nullOnDelete();
@@ -28,6 +30,7 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
+            $table->index(['business_id', 'deleted_at', 'step'], 'equipment_business_deleted_step_idx');
             $table->index(['business_id', 'deleted_at', 'plate'], 'equipment_business_deleted_plate_idx');
             $table->index(['business_id', 'deleted_at', 'name'], 'equipment_business_deleted_name_idx');
             $table->index(['business_id', 'deleted_at', 'client_id'], 'equipment_business_deleted_client_idx');

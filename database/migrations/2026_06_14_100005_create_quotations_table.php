@@ -25,6 +25,8 @@ return new class extends Migration
         Schema::create('quotations', function (Blueprint $table) {
             $table->id();
             $table->foreignId('business_id')->constrained()->onDelete('cascade');
+            $table->unsignedTinyInteger('step')->default(1)->comment('Paso actual del flujo de alta');
+            $table->unsignedTinyInteger('final_step')->default(3)->comment('Pasos totales del flujo de alta');
             $table->foreignId('client_id')->constrained('clients')->onDelete('cascade');
             $table->foreignId('quotation_service_type_id')->nullable()->constrained('quotation_service_types')->nullOnDelete();
             $table->unsignedBigInteger('business_payment_method_id')->nullable();
@@ -61,6 +63,7 @@ return new class extends Migration
 
             $table->unique(['business_id', 'reference']);
 
+            $table->index(['business_id', 'deleted_at', 'step'], 'quotations_business_deleted_step_idx');
             $table->index(['business_id', 'deleted_at', 'created_at'], 'quotations_business_deleted_created_idx');
             $table->index(['business_id', 'deleted_at', 'status'], 'quotations_business_deleted_status_idx');
             $table->index(['business_id', 'deleted_at', 'reference'], 'quotations_business_deleted_reference_idx');

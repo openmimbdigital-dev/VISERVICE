@@ -84,12 +84,24 @@ class SyncEquipmentAttributeValuesAction
         foreach ($links as $link) {
             $attribute = $link->attribute;
             $existing  = $existing_rows->get($attribute->id);
+            $raw       = $attribute_values[$attribute->id] ?? null;
 
             if (! $existing) {
+                if ($this->isEmpty($attribute->type, $raw)) {
+                    continue;
+                }
+
+                AttributeEquipmentType::create([
+                    'business_id'  => $business_id,
+                    'model_id'     => $equipment->id,
+                    'model_type'   => Equipment::class,
+                    'attribute_id' => $attribute->id,
+                    'general'      => (bool) $attribute->general,
+                    'value'        => $this->serializeValue($attribute->type, $raw),
+                ]);
+
                 continue;
             }
-
-            $raw = $attribute_values[$attribute->id] ?? null;
 
             $existing->update([
                 'business_id' => $business_id,

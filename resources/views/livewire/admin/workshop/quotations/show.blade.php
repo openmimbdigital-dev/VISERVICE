@@ -69,6 +69,15 @@
         </div>
     </header>
 
+    @if(! $quotation->isComplete())
+    <div class="mb-6 flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 sm:flex-row sm:items-center sm:justify-between">
+        <p>Esta cotización está incompleta (paso {{ $quotation->step }} de {{ $quotation->final_step }}, {{ $quotation->progressPercent() }}%).</p>
+        @if($can_edit && ! $edit_disabled)
+        <a href="{{ route('admin.workshop.quotations.form.edit', $quotation) }}" wire:navigate class="font-semibold text-amber-800 underline underline-offset-2">Continuar registro</a>
+        @endif
+    </div>
+    @endif
+
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div class="lg:col-span-2 space-y-4">
             <section class="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">

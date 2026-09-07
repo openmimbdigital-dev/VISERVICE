@@ -23,10 +23,11 @@
         </div>
     </header>
 
-    <section class="mb-6 overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm ring-1 ring-slate-900/[0.035] sm:p-5">
-        <div class="flex flex-col gap-5 lg:flex-row lg:items-center lg:gap-8">
-            <div class="flex shrink-0 items-center gap-4">
-                <div class="relative h-[4.5rem] w-[4.5rem]" role="img" aria-label="Progreso {{ $progress }} por ciento">
+    <form @if($step === $total_steps) wire:submit="save" @else wire:submit.prevent="nextStep" @endif class="space-y-4">
+    <section class="overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-3 shadow-sm ring-1 ring-slate-900/[0.035] sm:p-4">
+        <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-6">
+            <div class="flex shrink-0 items-center gap-3">
+                <div class="relative h-14 w-14" role="img" aria-label="Progreso {{ $progress }} por ciento">
                     <svg class="h-full w-full -rotate-90" viewBox="0 0 72 72" aria-hidden="true">
                         <circle cx="36" cy="36" r="30" fill="none" class="stroke-slate-100" stroke-width="6"></circle>
                         <circle cx="36" cy="36" r="30" fill="none" class="stroke-indigo-600" stroke-width="6" stroke-linecap="round" stroke-dasharray="{{ $progress_circumference }}" stroke-dashoffset="{{ $progress_offset }}"></circle>
@@ -68,10 +69,23 @@
                 </li>
                 @endforeach
             </ol>
+
+            <div class="flex w-full shrink-0 flex-wrap gap-2 lg:w-auto lg:justify-end">
+                <a href="{{ route('admin.catalog.products.index') }}" wire:navigate class="btn btn-outline-secondary btn-sm flex-1 justify-center sm:flex-none">Cancelar</a>
+                @if($step > 1)
+                <button type="button" wire:click="previousStep" class="btn btn-outline-secondary btn-sm flex-1 justify-center sm:flex-none">Anterior</button>
+                @endif
+                @if($step < $total_steps)
+                <button type="button" wire:click="nextStep" wire:loading.attr="disabled" class="btn btn-primary btn-sm flex-1 justify-center sm:flex-none">Siguiente</button>
+                @else
+                <button type="submit" wire:loading.attr="disabled" class="btn btn-primary btn-sm flex-1 justify-center sm:flex-none">
+                    <span wire:loading.remove wire:target="save">{{ $is_editing ? 'Guardar' : 'Crear' }}</span>
+                    <span wire:loading wire:target="save">Guardando...</span>
+                </button>
+                @endif
+            </div>
         </div>
     </section>
-
-    <form @if($step === $total_steps) wire:submit="save" @else wire:submit.prevent="nextStep" @endif class="space-y-6">
         @if($step === 1)
         <section class="rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
             <div class="overflow-hidden rounded-t-2xl border-b border-slate-100 bg-slate-50/80 px-5 py-4">
@@ -231,22 +245,5 @@
             </div>
         </section>
         @endif
-
-        <div class="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-            <a href="{{ route('admin.catalog.products.index') }}" wire:navigate class="btn btn-outline-secondary w-full justify-center sm:w-auto">Cancelar</a>
-            <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3">
-                @if($step > 1)
-                <button type="button" wire:click="previousStep" class="btn btn-outline-secondary w-full justify-center sm:w-auto">Anterior</button>
-                @endif
-                @if($step < $total_steps)
-                <button type="button" wire:click="nextStep" wire:loading.attr="disabled" class="btn btn-primary w-full justify-center sm:w-auto">Siguiente</button>
-                @else
-                <button type="submit" wire:loading.attr="disabled" class="btn btn-primary w-full justify-center sm:w-auto">
-                    <span wire:loading.remove wire:target="save">{{ $is_editing ? 'Actualizar producto' : 'Crear producto' }}</span>
-                    <span wire:loading wire:target="save">Guardando...</span>
-                </button>
-                @endif
-            </div>
-        </div>
     </form>
 </div>
