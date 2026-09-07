@@ -11,7 +11,11 @@
 /* Componentes de botones personalizados */
 @layer components {
     .btn {
-        @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-lg border transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+        @apply inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border select-none;
+        @apply transition-[background-color,border-color,color,box-shadow,transform] duration-200 ease-out;
+        @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2;
+        @apply hover:-translate-y-px hover:shadow-sm active:translate-y-0 active:scale-[0.98] active:shadow-none;
+        @apply disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none disabled:active:scale-100;
     }
 
     .btn-primary {
@@ -56,6 +60,111 @@
 
     .btn-xl {
         @apply px-8 py-4 text-lg;
+    }
+}
+
+/* Micro-interacciones y animaciones de entrada */
+@layer utilities {
+    /* Tarjetas y filas que responden al puntero */
+    .card-interactive {
+        @apply transition-[transform,box-shadow,border-color] duration-200 ease-out;
+        @apply hover:-translate-y-0.5 hover:shadow-md;
+    }
+
+    /* Entrada de secciones al cargar la página */
+    .animate-fade-in-up {
+        animation: fade-in-up 0.35s ease-out both;
+    }
+
+    .animate-fade-in {
+        animation: fade-in 0.25s ease-out both;
+    }
+
+    /* Escalona la entrada de una lista de tarjetas */
+    .stagger > * {
+        animation: fade-in-up 0.35s ease-out both;
+    }
+
+    .stagger > *:nth-child(1)  { animation-delay: 0.02s; }
+    .stagger > *:nth-child(2)  { animation-delay: 0.06s; }
+    .stagger > *:nth-child(3)  { animation-delay: 0.10s; }
+    .stagger > *:nth-child(4)  { animation-delay: 0.14s; }
+    .stagger > *:nth-child(5)  { animation-delay: 0.18s; }
+    .stagger > *:nth-child(6)  { animation-delay: 0.22s; }
+    .stagger > *:nth-child(7)  { animation-delay: 0.26s; }
+    .stagger > *:nth-child(8)  { animation-delay: 0.30s; }
+}
+
+/* Avisos de SweetAlert alineados con la interfaz del panel */
+.swal-app-popup {
+    border-radius: 1rem !important;
+    border: 1px solid var(--color-slate-200, #e2e8f0) !important;
+    box-shadow: 0 20px 45px -15px rgb(15 23 42 / 0.25) !important;
+    padding: 1.25rem !important;
+}
+
+.swal-app-title {
+    font-size: 0.95rem !important;
+    font-weight: 600 !important;
+    color: var(--color-slate-900, #0f172a) !important;
+}
+
+.swal-app-text {
+    font-size: 0.8rem !important;
+    color: var(--color-slate-600, #475569) !important;
+}
+
+.swal-app-progress {
+    background: var(--color-indigo-600, #4f46e5) !important;
+}
+
+.swal-app-show {
+    animation: swal-app-in 0.22s ease-out both;
+}
+
+.swal-app-hide {
+    animation: swal-app-out 0.15s ease-in both;
+}
+
+@keyframes swal-app-in {
+    from { opacity: 0; transform: translateY(-0.5rem) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes swal-app-out {
+    from { opacity: 1; transform: scale(1); }
+    to   { opacity: 0; transform: scale(0.97); }
+}
+
+@keyframes fade-in-up {
+    from { opacity: 0; transform: translateY(0.75rem); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+/* Accesibilidad: respetar a quien pide menos movimiento */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+
+    /* Tailwind v4 anima con translate/scale y sus variables, no con transform */
+    .btn:hover,
+    .card-interactive:hover {
+        --tw-translate-y: 0 !important;
+    }
+
+    .btn:active {
+        scale: 1 !important;
     }
 }
 
