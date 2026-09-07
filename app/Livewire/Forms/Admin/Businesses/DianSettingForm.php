@@ -16,6 +16,8 @@ class DianSettingForm extends Form
 
     public string $environment = 'test';
 
+    public string $document_format = 'json';
+
     public string $tr_tipo_id = '';
 
     public string $cfg_lote_id = '';
@@ -57,6 +59,7 @@ class DianSettingForm extends Form
         $this->dian_setting_id     = $setting->id;
         $this->business_id         = $setting->business_id;
         $this->environment         = $setting->environment;
+        $this->document_format     = $setting->document_format;
         $this->tr_tipo_id          = (string) ($setting->tr_tipo_id ?? '');
         $this->cfg_lote_id         = (string) ($setting->cfg_lote_id ?? '');
         $this->resolution_number   = (string) ($setting->resolution_number ?? '');
@@ -84,6 +87,7 @@ class DianSettingForm extends Form
         $this->dian_setting_id     = null;
         $this->business_id         = null;
         $this->environment         = 'test';
+        $this->document_format     = 'json';
         $this->tr_tipo_id          = '';
         $this->cfg_lote_id         = '';
         $this->resolution_number   = '';
@@ -139,6 +143,7 @@ class DianSettingForm extends Form
     {
         $rules = [
             'environment'         => ['required', Rule::in(['test', 'production'])],
+            'document_format'     => ['required', Rule::in(['json', 'xml'])],
             'tr_tipo_id'          => ['nullable', 'numeric', 'min:1'],
             'cfg_lote_id'         => ['nullable', 'numeric', 'min:1'],
             'resolution_number'   => ['nullable', 'string', 'max:30'],
@@ -180,6 +185,7 @@ class DianSettingForm extends Form
             'business_id.unique'      => 'Este negocio ya tiene una configuración de facturación electrónica.',
             'environment.required'    => 'Debe seleccionar el entorno.',
             'environment.in'          => 'El entorno seleccionado no es válido.',
+            'document_format.in'      => 'El formato de documento seleccionado no es válido.',
             'tr_tipo_id.numeric'      => 'El identificador de perfil debe ser numérico.',
             'prefix.regex'            => 'El prefijo solo admite letras y números.',
             'range_to.gte'            => 'El rango final debe ser mayor o igual al inicial.',
@@ -196,6 +202,7 @@ class DianSettingForm extends Form
         $data = [
             'business_id'         => $this->resolvedBusinessId(),
             'environment'         => $this->environment,
+            'document_format'     => $this->document_format,
             'tr_tipo_id'          => $this->tr_tipo_id !== '' ? (int) $this->tr_tipo_id : null,
             'cfg_lote_id'         => $this->cfg_lote_id !== '' ? (int) $this->cfg_lote_id : null,
             'resolution_number'   => $this->nullIfBlank($this->resolution_number),

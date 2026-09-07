@@ -126,15 +126,15 @@
             @endif
             @endif
 
-            @if($electronic_invoice && $electronic_invoice->request_xml)
+            @if($electronic_invoice && $electronic_invoice->request_document)
             <button type="button" wire:click="toggleXml" class="btn btn-outline-secondary btn-sm">
-                {{ $show_xml ? 'Ocultar XML enviado' : 'Ver XML enviado' }}
+                {{ $show_xml ? 'Ocultar documento enviado' : 'Ver documento enviado' }}
             </button>
             @endif
         </div>
 
-        @if($show_xml && $electronic_invoice?->request_xml)
-        <pre class="max-h-96 overflow-auto rounded-xl bg-slate-900 p-4 text-[11px] leading-relaxed text-slate-100">{{ $electronic_invoice->request_xml }}</pre>
+        @if($show_xml && $electronic_invoice?->request_document)
+        <pre class="max-h-96 overflow-auto rounded-xl bg-slate-900 p-4 text-[11px] leading-relaxed text-slate-100">{{ $electronic_invoice->request_document }}</pre>
         @endif
     </div>
 </div>

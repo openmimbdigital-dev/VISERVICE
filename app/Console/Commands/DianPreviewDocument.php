@@ -7,15 +7,15 @@ use App\Enums\ElectronicInvoiceStatus;
 use App\Models\BusinessDianSetting;
 use App\Models\ElectronicInvoice;
 use App\Models\WorkOrderInvoice;
-use App\Services\Dian\InvoiceXmlBuilder;
+use App\Services\Dian\InvoiceDocumentBuilder;
 use Illuminate\Console\Command;
 
-class DianPreviewInvoiceXml extends Command
+class DianPreviewDocument extends Command
 {
-    protected $signature = 'dian:preview-xml {invoice : ID de la factura de orden de trabajo}
-                            {--save= : Ruta donde guardar el XML generado}';
+    protected $signature = 'dian:preview-document {invoice : ID de la factura de orden de trabajo}
+                            {--save= : Ruta donde guardar el documento generado}';
 
-    protected $description = 'Genera el XML de facturación electrónica de una factura sin enviarlo al proveedor';
+    protected $description = 'Genera el documento de facturación electrónica de una factura sin enviarlo al proveedor';
 
     public function handle(): int
     {
@@ -61,16 +61,18 @@ class DianPreviewInvoiceXml extends Command
             'issued_at'             => now(),
         ]);
 
-        $xml = (new InvoiceXmlBuilder())->build($electronic_invoice, $invoice, $setting);
+        $document = (new InvoiceDocumentBuilder())->build($electronic_invoice, $invoice, $setting);
 
         if ($path = $this->option('save')) {
-            file_put_contents($path, $xml);
-            $this->info("XML guardado en {$path}");
+            file_put_contents($path, $document);
+            $this->info("Documento guardado en {$path}");
 
             return self::SUCCESS;
         }
 
-        $this->line($xml);
+        $this->line('Formato del perfil: '.$setting->document_format);
+        $this->newLine();
+        $this->line($document);
 
         return self::SUCCESS;
     }

@@ -16,6 +16,7 @@ class BusinessDianSetting extends Model
     protected $fillable = [
         'business_id',
         'provider',
+        'document_format',
         'environment',
         'tr_tipo_id',
         'cfg_lote_id',

@@ -26,7 +26,7 @@ class ElectronicInvoice extends Model
         'dian_status',
         'error_id',
         'error_message',
-        'request_xml',
+        'request_document',
         'response_payload',
         'attempts',
         'issued_at',

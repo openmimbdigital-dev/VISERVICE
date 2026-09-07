@@ -169,6 +169,16 @@
                     </div>
 
                     <div>
+                        <label class="mb-1.5 block text-xs font-medium text-slate-700">Formato del documento <span class="text-rose-500">*</span></label>
+                        <select wire:model="form.document_format" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm">
+                            <option value="json">JSON (JSON_DATASET)</option>
+                            <option value="xml">XML (DATASET_DATASET)</option>
+                        </select>
+                        <p class="mt-1 text-xs text-slate-500">Debe coincidir con el formato de entrada configurado por el proveedor en el perfil.</p>
+                        @error('form.document_format') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                    </div>
+
+                    <div>
                         <label class="mb-1.5 block text-xs font-medium text-slate-700">Perfil de emisión (tr_tipo_id)</label>
                         <input type="number" wire:model="form.tr_tipo_id" placeholder="Lo entrega el proveedor"
                             class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm @error('form.tr_tipo_id') border-rose-400 bg-rose-50 @enderror">

@@ -11,12 +11,14 @@ use DOMDocument;
 use DOMElement;
 
 /**
- * Construye el documento XML en el formato DATASET de TITANIO a partir de una
- * factura de orden de trabajo. La plataforma lo traduce luego a UBL 2.1 DIAN.
+ * Construye el documento en el formato DATASET de TITANIO a partir de una factura
+ * de orden de trabajo. La plataforma lo traduce luego a UBL 2.1 DIAN.
  *
- * Referencia de estructura: bloques EXT, FAC, NOT, ASP, ACP, PYM, TOT, TAX, IVL, REC, ADD.
+ * El documento se arma primero como arreglo (bloques EXT, FAC, NOT, ASP, ACP, PYM,
+ * TOT, TAX, IVL, REC, ADD) y de ahí se serializa a JSON o a XML, según el formato
+ * de entrada con el que el proveedor haya configurado el perfil del emisor.
  */
-class InvoiceXmlBuilder
+class InvoiceDocumentBuilder
 {
     /** Identificadores internos de las direcciones referenciadas por ASP y ACP. */
     private const ADDRESS_ISSUER_PHYSICAL = 'ED1';
@@ -30,52 +32,99 @@ class InvoiceXmlBuilder
     /** Estándar de adopción del contribuyente para el código de producto. */
     private const ITEM_SCHEME_ID = '999';
 
-    private DOMDocument $document;
 
+    /** Serializa el documento en el formato configurado para el emisor. */
     public function build(
         ElectronicInvoice $electronic_invoice,
         WorkOrderInvoice $invoice,
         BusinessDianSetting $setting,
     ): string {
+        $document = $this->buildArray($electronic_invoice, $invoice, $setting);
+
+        return $setting->document_format === 'xml'
+            ? $this->toXml($document)
+            : $this->toJson($document);
+    }
+
+    /**
+     * Estructura completa del documento.
+     *
+     * @return array<string, mixed>
+     */
+    public function buildArray(
+        ElectronicInvoice $electronic_invoice,
+        WorkOrderInvoice $invoice,
+        BusinessDianSetting $setting,
+    ): array {
         $invoice->loadMissing([
             'items.workOrderItem.catalogProduct.unit',
             'workOrder.client.city.country',
             'business.city.country',
         ]);
 
-        $this->document = new DOMDocument('1.0', 'UTF-8');
-        $this->document->formatOutput = true;
-
-        $root = $this->document->createElement('Document');
-        $this->document->appendChild($root);
-
         $lines = $this->buildLines($invoice);
         $totals = $this->calculateTotals($invoice, $lines);
 
-        $this->appendExtension($root, $setting, $electronic_invoice);
-        $this->appendInvoiceHeader($root, $electronic_invoice, $setting, count($lines));
-        $this->appendNotes($root, $invoice);
-        $this->appendIssuer($root, $invoice, $setting);
-        $this->appendCustomer($root, $invoice);
-        $this->appendPayment($root, $invoice, $electronic_invoice);
-        $this->appendTotals($root, $totals);
-        $this->appendTaxes($root, $totals);
-        $this->appendLines($root, $lines);
-        $this->appendDelivery($root, $invoice, $setting);
-        $this->appendAddresses($root, $invoice);
+        // Cada bloque va como lista de ocurrencias: el conversor del proveedor descarta
+        // los bloques enviados como objeto suelto y los genera vacíos.
+        $document = [
+            'EXT' => [$this->extensionBlock($setting)],
+            'FAC' => [$this->invoiceHeaderBlock($electronic_invoice, $setting, count($lines))],
+            'NOT' => [['Note' => (string) ($invoice->notes ?? '')]],
+            'ASP' => [$this->issuerBlock($invoice, $setting)],
+            'ACP' => [$this->customerBlock($invoice)],
+            'PYM' => [$this->paymentBlock($invoice, $electronic_invoice)],
+            'TOT' => [$this->totalsBlock($totals)],
+        ];
 
-        return (string) $this->document->saveXML();
+        if ($totals['tax_amount'] > 0) {
+            $document['TAX'] = [$this->taxBlock($totals)];
+        }
+
+        $document['IVL'] = $this->lineBlocks($lines);
+        $document['REC'] = [$this->deliveryBlock($invoice, $setting)];
+        $document['ADD'] = $this->addressBlocks($invoice);
+
+        return ['Document' => $document];
+    }
+
+    /** @param array<string, mixed> $document */
+    public function toJson(array $document): string
+    {
+        return (string) json_encode(
+            $document,
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT
+        );
+    }
+
+    /** @param array<string, mixed> $document */
+    public function toXml(array $document): string
+    {
+        $dom = new DOMDocument('1.0', 'UTF-8');
+        $dom->formatOutput = true;
+
+        $root = $dom->createElement('Document');
+        $dom->appendChild($root);
+
+        foreach ((array) ($document['Document'] ?? []) as $block => $occurrences) {
+            foreach ((array) $occurrences as $values) {
+                $root->appendChild($this->xmlBlock($dom, $block, (array) $values));
+            }
+        }
+
+        return (string) $dom->saveXML();
     }
 
     /* ----------------------------------------------------------------- *
      |  Bloques del documento
      * ----------------------------------------------------------------- */
 
-    private function appendExtension(DOMElement $root, BusinessDianSetting $setting, ElectronicInvoice $electronic_invoice): void
+    /** @return array<string, string> */
+    private function extensionBlock(BusinessDianSetting $setting): array
     {
         $defaults = (array) config('dian.defaults');
 
-        $this->appendBlock($root, 'EXT', [
+        return [
             'InvoiceAuthorization'             => (string) $setting->resolution_number,
             'StartDate'                        => $setting->valid_from?->format('Y-m-d') ?? '',
             'EndDate'                          => $setting->valid_to?->format('Y-m-d') ?? '',
@@ -90,19 +139,19 @@ class InvoiceXmlBuilder
             'AuthorizationProviderID'          => (string) $defaults['authorization_provider_id'],
             'AuthorizationProviderID_schemeID' => (string) $defaults['authorization_provider_id_scheme_id'],
             'QRCode'                           => '',
-        ]);
+        ];
     }
 
-    private function appendInvoiceHeader(
-        DOMElement $root,
+    /** @return array<string, string> */
+    private function invoiceHeaderBlock(
         ElectronicInvoice $electronic_invoice,
         BusinessDianSetting $setting,
         int $line_count,
-    ): void {
+    ): array {
         $defaults = (array) config('dian.defaults');
         $issued_at = $electronic_invoice->issued_at ?? now();
 
-        $this->appendBlock($root, 'FAC', [
+        return [
             'UBLVersionID'         => (string) $defaults['ubl_version_id'],
             'CustomizationID'      => (string) $defaults['customization_id'],
             'ProfileID'            => (string) $defaults['profile_id'],
@@ -114,27 +163,20 @@ class InvoiceXmlBuilder
             'InvoiceTypeCode'      => (string) $defaults['invoice_type_code'],
             'DocumentCurrencyCode' => (string) $defaults['currency_code'],
             'LineCountNumeric'     => (string) $line_count,
-        ]);
+        ];
     }
 
-    private function appendNotes(DOMElement $root, WorkOrderInvoice $invoice): void
-    {
-        $this->appendBlock($root, 'NOT', [
-            'Note' => (string) ($invoice->notes ?? ''),
-        ]);
-    }
-
-    private function appendIssuer(DOMElement $root, WorkOrderInvoice $invoice, BusinessDianSetting $setting): void
+    /** @return array<string, string> */
+    private function issuerBlock(WorkOrderInvoice $invoice, BusinessDianSetting $setting): array
     {
         $business = $invoice->business;
-        $nit = DianNit::normalize($business?->nit);
 
-        $this->appendBlock($root, 'ASP', [
+        return [
             'AdditionalAccountID'            => (string) ($business?->person_type ?: 1),
             'PartyName'                      => (string) $business?->name,
             'Physical_ADD_ID'                => self::ADDRESS_ISSUER_PHYSICAL,
             'Tax_RegistrationName'           => (string) $business?->name,
-            'Tax_CompanyID'                  => $nit,
+            'Tax_CompanyID'                  => DianNit::normalize($business?->nit),
             'Tax_CompanyID_schemeID'         => (string) DianNit::resolveVerificationDigit($business?->nit, $business?->verification_digit),
             'Tax_CompanyID_schemeName'       => self::SCHEME_NAME_NIT,
             'Tax_LevelCode'                  => (string) ($business?->fiscal_responsibilities ?: 'R-99-PN'),
@@ -143,15 +185,16 @@ class InvoiceXmlBuilder
             'Tax_Scheme_Name'                => 'IVA',
             'Registration_ADD_ID'            => self::ADDRESS_ISSUER_FISCAL,
             'CorporateRegistrationScheme_ID' => (string) $setting->prefix,
-        ]);
+        ];
     }
 
-    private function appendCustomer(DOMElement $root, WorkOrderInvoice $invoice): void
+    /** @return array<string, string> */
+    private function customerBlock(WorkOrderInvoice $invoice): array
     {
         $client = $invoice->workOrder?->client;
         $is_company = (int) ($client?->person_type ?: 2) === 1;
 
-        $this->appendBlock($root, 'ACP', [
+        return [
             'AdditionalAccountID'      => (string) ($client?->person_type ?: 2),
             'PartyName'                => (string) $client?->name,
             'Physical_ADD_ID'          => self::ADDRESS_CUSTOMER_PHYSICAL,
@@ -167,10 +210,11 @@ class InvoiceXmlBuilder
             'Tax_Scheme_Name'          => $is_company ? 'IVA' : 'No aplica',
             'Registration_ADD_ID'      => self::ADDRESS_CUSTOMER_FISCAL,
             'DeliveryContact_ID'       => 'ADC1',
-        ]);
+        ];
     }
 
-    private function appendPayment(DOMElement $root, WorkOrderInvoice $invoice, ElectronicInvoice $electronic_invoice): void
+    /** @return array<string, string> */
+    private function paymentBlock(WorkOrderInvoice $invoice, ElectronicInvoice $electronic_invoice): array
     {
         $issued_at = $electronic_invoice->issued_at ?? now();
         $due_date = $invoice->due_date;
@@ -178,52 +222,57 @@ class InvoiceXmlBuilder
         // 1 = Contado, 2 = Crédito.
         $is_credit = $due_date !== null && $due_date->gt($issued_at);
 
-        $this->appendBlock($root, 'PYM', [
+        return [
             'ID'               => $is_credit ? '2' : '1',
             'PaymentMeansCode' => '1',
             'PaymentDueDate'   => ($due_date ?? $issued_at)->format('Y-m-d'),
-        ]);
+        ];
     }
 
-    /** @param array<string, float> $totals */
-    private function appendTotals(DOMElement $root, array $totals): void
+    /**
+     * @param  array<string, float>  $totals
+     * @return array<string, string>
+     */
+    private function totalsBlock(array $totals): array
     {
-        $this->appendBlock($root, 'TOT', [
+        return [
             'LineExtensionAmount' => $this->amount($totals['line_extension']),
             'TaxExclusiveAmount'  => $this->amount($totals['taxable_base']),
             'TaxInclusiveAmount'  => $this->amount($totals['tax_inclusive']),
             'PayableAmount'       => $this->amount($totals['payable']),
-        ]);
+        ];
     }
 
     /**
      * Totales de impuestos del documento.
      *
-     * El XML de referencia del proveedor corresponde a una factura sin IVA, por lo que
-     * este bloque sigue la nomenclatura del propio dialecto y el estándar DIAN. Si el
+     * El documento de referencia del proveedor corresponde a una factura sin IVA, por lo
+     * que este bloque sigue la nomenclatura del propio dialecto y el estándar DIAN. Si el
      * proveedor lo rechaza, este es el único punto a ajustar.
      *
-     * @param array<string, float> $totals
+     * @param  array<string, float>  $totals
+     * @return array<string, string>
      */
-    private function appendTaxes(DOMElement $root, array $totals): void
+    private function taxBlock(array $totals): array
     {
-        if ($totals['tax_amount'] <= 0) {
-            return;
-        }
-
-        $this->appendBlock($root, 'TAX', [
-            'ID'               => '01',
-            'TaxAmount'        => $this->amount($totals['tax_amount']),
-            'TaxableAmount'    => $this->amount($totals['taxable_base']),
-            'Percent'          => $this->amount($totals['tax_percentage']),
-            'Tax_Scheme_ID'    => '01',
-            'Tax_Scheme_Name'  => 'IVA',
-        ]);
+        return [
+            'ID'              => '01',
+            'TaxAmount'       => $this->amount($totals['tax_amount']),
+            'TaxableAmount'   => $this->amount($totals['taxable_base']),
+            'Percent'         => $this->amount($totals['tax_percentage']),
+            'Tax_Scheme_ID'   => '01',
+            'Tax_Scheme_Name' => 'IVA',
+        ];
     }
 
-    /** @param list<array<string, mixed>> $lines */
-    private function appendLines(DOMElement $root, array $lines): void
+    /**
+     * @param  list<array<string, mixed>>  $lines
+     * @return list<array<string, string>>
+     */
+    private function lineBlocks(array $lines): array
     {
+        $blocks = [];
+
         foreach ($lines as $line) {
             $values = [
                 'ID'                       => (string) $line['id'],
@@ -246,25 +295,29 @@ class InvoiceXmlBuilder
                 $values['Tax_Scheme_Name']   = 'IVA';
             }
 
-            $this->appendBlock($root, 'IVL', $values);
+            $blocks[] = $values;
         }
+
+        return $blocks;
     }
 
-    private function appendDelivery(DOMElement $root, WorkOrderInvoice $invoice, BusinessDianSetting $setting): void
+    /** @return array<string, string> */
+    private function deliveryBlock(WorkOrderInvoice $invoice, BusinessDianSetting $setting): array
     {
         $client = $invoice->workOrder?->client;
 
-        $this->appendBlock($root, 'REC', [
+        return [
             'Nombre'         => (string) $client?->name,
             'Email'          => (string) ($client?->email ?? ''),
             'Enviar_Email'   => $this->boolean($setting->notify_customer && filled($client?->email)),
             'Incluir_Anexos' => $this->boolean($setting->include_attachments),
             'Incluir_PDF'    => $this->boolean($setting->include_pdf),
             'Incluir_XML'    => $this->boolean($setting->include_xml),
-        ]);
+        ];
     }
 
-    private function appendAddresses(DOMElement $root, WorkOrderInvoice $invoice): void
+    /** @return list<array<string, string>> */
+    private function addressBlocks(WorkOrderInvoice $invoice): array
     {
         $business = $invoice->business;
         $client = $invoice->workOrder?->client;
@@ -281,13 +334,12 @@ class InvoiceXmlBuilder
             ''
         );
 
-        foreach ([self::ADDRESS_ISSUER_PHYSICAL, self::ADDRESS_ISSUER_FISCAL] as $id) {
-            $this->appendBlock($root, 'ADD', ['ID' => $id] + $issuer);
-        }
-
-        foreach ([self::ADDRESS_CUSTOMER_PHYSICAL, self::ADDRESS_CUSTOMER_FISCAL] as $id) {
-            $this->appendBlock($root, 'ADD', ['ID' => $id] + $customer);
-        }
+        return [
+            ['ID' => self::ADDRESS_ISSUER_PHYSICAL] + $issuer,
+            ['ID' => self::ADDRESS_ISSUER_FISCAL] + $issuer,
+            ['ID' => self::ADDRESS_CUSTOMER_PHYSICAL] + $customer,
+            ['ID' => self::ADDRESS_CUSTOMER_FISCAL] + $customer,
+        ];
     }
 
     /* ----------------------------------------------------------------- *
@@ -343,13 +395,12 @@ class InvoiceXmlBuilder
     {
         $line_extension = round(array_sum(array_column($lines, 'line_amount')), 2);
         $tax_amount = round(array_sum(array_column($lines, 'tax_amount')), 2);
-        $tax_percentage = (float) $invoice->tax_percentage;
 
         return [
             'line_extension' => $line_extension,
             'taxable_base'   => $tax_amount > 0 ? $line_extension : 0.0,
             'tax_amount'     => $tax_amount,
-            'tax_percentage' => $tax_percentage,
+            'tax_percentage' => (float) $invoice->tax_percentage,
             'tax_inclusive'  => round($line_extension + $tax_amount, 2),
             'payable'        => round($line_extension + $tax_amount, 2),
         ];
@@ -391,23 +442,18 @@ class InvoiceXmlBuilder
     }
 
     /** @param array<string, string> $values */
-    private function appendBlock(DOMElement $root, string $block, array $values): void
+    private function xmlBlock(DOMDocument $dom, string $block, array $values): DOMElement
     {
-        $element = $this->document->createElement($block);
+        $element = $dom->createElement($block);
 
         foreach ($values as $tag => $value) {
-            $element->appendChild($this->createElement($tag, (string) $value));
-        }
+            $child = $dom->createElement($tag);
 
-        $root->appendChild($element);
-    }
+            if ((string) $value !== '') {
+                $child->appendChild($dom->createTextNode((string) $value));
+            }
 
-    private function createElement(string $tag, string $value): DOMElement
-    {
-        $element = $this->document->createElement($tag);
-
-        if ($value !== '') {
-            $element->appendChild($this->document->createTextNode($value));
+            $element->appendChild($child);
         }
 
         return $element;

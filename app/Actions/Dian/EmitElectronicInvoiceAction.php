@@ -8,7 +8,7 @@ use App\Models\BusinessDianSetting;
 use App\Models\ElectronicInvoice;
 use App\Models\WorkOrderInvoice;
 use App\Services\Dian\DianRequestException;
-use App\Services\Dian\InvoiceXmlBuilder;
+use App\Services\Dian\InvoiceDocumentBuilder;
 use App\Services\Dian\TitanioClient;
 use App\Support\DianNit;
 use Illuminate\Support\Facades\DB;
@@ -53,17 +53,17 @@ class EmitElectronicInvoiceAction
             ]);
         }
 
-        $xml = (new InvoiceXmlBuilder())->build($electronic_invoice, $invoice, $setting);
+        $document = (new InvoiceDocumentBuilder())->build($electronic_invoice, $invoice, $setting);
 
         $electronic_invoice->forceFill([
-            'request_xml'   => $xml,
+            'request_document' => $document,
             'attempts'      => $electronic_invoice->attempts + 1,
             'error_id'      => null,
             'error_message' => null,
         ])->save();
 
         try {
-            $result = TitanioClient::for($setting->environment)->emit((int) $setting->tr_tipo_id, $xml);
+            $result = TitanioClient::for($setting->environment)->emit((int) $setting->tr_tipo_id, $document);
         } catch (DianRequestException $exception) {
             $electronic_invoice->forceFill([
                 'status'           => ElectronicInvoiceStatus::Error,
