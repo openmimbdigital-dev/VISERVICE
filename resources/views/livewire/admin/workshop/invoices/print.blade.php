@@ -100,6 +100,12 @@
             <span class="text-slate-500">Subtotal</span>
             <span class="font-medium">{{ col_money($invoice->subtotal) }}</span>
         </div>
+        @if((float) $invoice->discount_amount > 0)
+        <div class="flex justify-between border-b border-slate-100 py-1">
+            <span class="text-slate-500">Descuento{{ $invoice->coupon_code ? ' ('.$invoice->coupon_code.')' : '' }}</span>
+            <span class="font-medium">−{{ col_money($invoice->discount_amount) }}</span>
+        </div>
+        @endif
         <div class="flex justify-between border-b border-slate-100 py-1">
             <span class="text-slate-500">Impuesto ({{ rtrim(rtrim(number_format((float) $invoice->tax_percentage, 2, '.', ''), '0'), '.') }}%)</span>
             <span class="font-medium">{{ col_money($invoice->tax_amount) }}</span>

@@ -67,9 +67,33 @@ class WorkOrderItem extends Model
 
     public function calculateSubtotal(): float
     {
-        $base     = (float) $this->quantity * (float) $this->unit_price;
-        $discount = $base * ((float) $this->discount_percentage / 100);
+        return round($this->lineBase() - $this->discountAmount(), 2);
+    }
 
-        return round($base - $discount, 2);
+    /** Lo que costaría la línea sin el descuento del producto. */
+    public function lineBase(): float
+    {
+        return round((float) $this->quantity * (float) $this->unit_price, 2);
+    }
+
+    public function hasDiscount(): bool
+    {
+        return (float) $this->discount_percentage > 0;
+    }
+
+    /** Valor descontado en la línea por el descuento del producto. */
+    public function discountAmount(): float
+    {
+        return round($this->lineBase() * ((float) $this->discount_percentage / 100), 2);
+    }
+
+    /** Etiqueta corta del descuento, para mostrarlo junto a la línea. */
+    public function discountLabel(): ?string
+    {
+        if (! $this->hasDiscount()) {
+            return null;
+        }
+
+        return rtrim(rtrim(number_format((float) $this->discount_percentage, 2, '.', ''), '0'), '.').'%';
     }
 }

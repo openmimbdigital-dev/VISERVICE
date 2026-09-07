@@ -73,6 +73,7 @@ class RolesAndPermissionsSeeder extends Seeder
         return [
             'catalog.view',
             'catalog.products.view', 'catalog.products.create', 'catalog.products.edit', 'catalog.products.delete',
+            'catalog.coupons.view', 'catalog.coupons.create', 'catalog.coupons.edit', 'catalog.coupons.delete',
         ];
     }
 

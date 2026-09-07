@@ -340,6 +340,10 @@ return [
                 'catalog.products.create' => 'Crear productos y servicios',
                 'catalog.products.edit' => 'Editar productos y servicios',
                 'catalog.products.delete' => 'Eliminar productos y servicios',
+                'catalog.coupons.view' => 'Ver cupones de descuento',
+                'catalog.coupons.create' => 'Crear cupones de descuento',
+                'catalog.coupons.edit' => 'Editar cupones de descuento',
+                'catalog.coupons.delete' => 'Eliminar cupones de descuento',
             ],
         ],
         'settings_product_types' => [

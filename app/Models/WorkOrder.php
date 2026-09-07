@@ -22,7 +22,8 @@ class WorkOrder extends Model
         'business_id', 'client_id', 'quotation_id', 'step', 'final_step',
         'reference', 'status', 'status_comments',
         'diagnosis', 'work_description', 'observations', 'notes',
-        'estimated_delivery', 'subtotal', 'tax_percentage',
+        'estimated_delivery', 'subtotal', 'coupon_id', 'coupon_code',
+        'discount_amount', 'tax_percentage',
         'tax_amount', 'total', 'advance_percentage', 'advance_amount',
         'created_by', 'finalized_at',
     ];
@@ -37,6 +38,7 @@ class WorkOrder extends Model
             'estimated_delivery' => 'date',
             'finalized_at'       => 'datetime',
             'subtotal'           => 'decimal:2',
+            'discount_amount'    => 'decimal:2',
             'tax_percentage'     => 'decimal:2',
             'tax_amount'         => 'decimal:2',
             'total'              => 'decimal:2',
@@ -64,6 +66,11 @@ class WorkOrder extends Model
     public function quotation(): BelongsTo
     {
         return $this->belongsTo(Quotation::class);
+    }
+
+    public function coupon(): BelongsTo
+    {
+        return $this->belongsTo(Coupon::class);
     }
 
     public function createdBy(): BelongsTo
@@ -207,14 +214,50 @@ class WorkOrder extends Model
         return $query->where('status', WorkOrderStatus::Completed);
     }
 
+    /**
+     * Subtotal ya descontado el cupón: es la base sobre la que se calculan el
+     * IVA, el anticipo y el total.
+     */
+    public function taxableBase(): float
+    {
+        return max(0, round((float) $this->subtotal - (float) $this->discount_amount, 2));
+    }
+
+    /** Suma de lo que se ahorró el cliente por descuentos de producto. */
+    public function itemsDiscountAmount(): float
+    {
+        $items = $this->relationLoaded('items') ? $this->items : $this->items()->get();
+
+        return round($items->sum(fn (WorkOrderItem $item) => $item->discountAmount()), 2);
+    }
+
     public function recalculateTotals(): void
     {
-        $subtotal = $this->items()->sum('subtotal');
-        $tax      = round($subtotal * ($this->tax_percentage / 100), 2);
+        $subtotal = round((float) $this->items()->sum('subtotal'), 2);
+
+        // El cupón se recalcula contra el subtotal actual: si se agregan o quitan
+        // ítems, un descuento porcentual tiene que moverse con ellos.
+        // Se relee el cupón en vez de usar la relación cargada: el coupon_id pudo
+        // acabar de cambiar en este mismo guardado. Si el cupón se eliminó, la OT
+        // conserva el descuento con el que se acordó.
+        $coupon = $this->coupon_id ? Coupon::find($this->coupon_id) : null;
+
+        $discount = match (true) {
+            (bool) $coupon      => $coupon->discountOn($subtotal),
+            // Sin registro pero con código: el cupón se eliminó después de
+            // aplicarlo, así que se respeta el descuento ya pactado.
+            (bool) $this->coupon_code => min($subtotal, round((float) $this->discount_amount, 2)),
+            default             => 0.0,
+        };
+
+        $base = max(0, round($subtotal - $discount, 2));
+        $tax  = round($base * ($this->tax_percentage / 100), 2);
+
         $this->update([
-            'subtotal'   => $subtotal,
-            'tax_amount' => $tax,
-            'total'      => $subtotal + $tax,
+            'subtotal'        => $subtotal,
+            'discount_amount' => $discount,
+            'tax_amount'      => $tax,
+            'total'           => $base + $tax,
         ]);
     }
 

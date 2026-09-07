@@ -111,6 +111,12 @@
         <td class="muted">Subtotal</td>
         <td class="text-right bold">{{ col_money($invoice->subtotal) }}</td>
     </tr>
+    @if((float) $invoice->discount_amount > 0)
+    <tr>
+        <td class="muted">Descuento{{ $invoice->coupon_code ? ' ('.$invoice->coupon_code.')' : '' }}</td>
+        <td class="text-right bold">−{{ col_money($invoice->discount_amount) }}</td>
+    </tr>
+    @endif
     <tr>
         <td class="muted">Impuesto ({{ rtrim(rtrim(number_format((float) $invoice->tax_percentage, 2, '.', ''), '0'), '.') }}%)</td>
         <td class="text-right bold">{{ col_money($invoice->tax_amount) }}</td>

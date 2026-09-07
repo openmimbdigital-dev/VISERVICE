@@ -484,6 +484,48 @@ class InvoiceDocumentBuilder
             ];
         }
 
+        return $this->spreadInvoiceDiscount($lines, round((float) $invoice->discount_amount, 2), $tax_percentage);
+    }
+
+    /**
+     * Reparte el descuento de la OT (el cupón) entre las líneas, en proporción a
+     * lo que pesa cada una.
+     *
+     * El descuento del cupón es del documento completo, pero este formato solo
+     * conoce importes por línea y deriva los totales de ellas. Si no se repartiera,
+     * se le facturaría a la DIAN más de lo que el cliente realmente paga.
+     *
+     * @param  list<array<string, mixed>>  $lines
+     * @return list<array<string, mixed>>
+     */
+    private function spreadInvoiceDiscount(array $lines, float $discount, float $tax_percentage): array
+    {
+        $total = round(array_sum(array_column($lines, 'line_amount')), 2);
+
+        if ($discount <= 0 || $total <= 0) {
+            return $lines;
+        }
+
+        $discount = min($discount, $total);
+        $assigned = 0.0;
+        $last     = array_key_last($lines);
+
+        foreach ($lines as $index => $line) {
+            // La última línea absorbe el redondeo para que la suma cuadre al centavo.
+            $line_discount = $index === $last
+                ? round($discount - $assigned, 2)
+                : round($discount * $line['line_amount'] / $total, 2);
+
+            $assigned += $line_discount;
+
+            $line_amount = round($line['line_amount'] - $line_discount, 2);
+            $quantity    = (float) $line['quantity'];
+
+            $lines[$index]['line_amount'] = $line_amount;
+            $lines[$index]['unit_price']  = $quantity > 0 ? round($line_amount / $quantity, 2) : 0.0;
+            $lines[$index]['tax_amount']  = round($line_amount * $tax_percentage / 100, 2);
+        }
+
         return $lines;
     }
 

@@ -21,6 +21,7 @@ use App\Livewire\Admin\Businesses\PaymentMethods\Index as AdminBusinessPaymentMe
 use App\Livewire\Admin\Businesses\PaymentMethods\Show as AdminBusinessPaymentMethodsShow;
 use App\Livewire\Admin\Businesses\Show as AdminBusinessesShow;
 use App\Livewire\Admin\BusinessTypes\Index as AdminBusinessTypesIndex;
+use App\Livewire\Admin\Catalog\Coupons\Index as CatalogCouponsIndex;
 use App\Livewire\Admin\Catalog\Products\Form as CatalogProductsForm;
 use App\Livewire\Admin\Catalog\Products\Index as CatalogProductsIndex;
 use App\Livewire\Admin\Catalog\Products\Show as CatalogProductsShow;
@@ -524,6 +525,9 @@ Route::middleware(['auth', 'ensure.business', 'business.module'])->group(functio
         });
         Route::middleware('permission:catalog.products.view')->group(function () {
             Route::get('/products/{product}', CatalogProductsShow::class)->name('products.show');
+        });
+        Route::middleware('permission:catalog.coupons.view')->group(function () {
+            Route::get('/coupons', CatalogCouponsIndex::class)->name('coupons.index');
         });
     });
     });

@@ -27,6 +27,11 @@ class WorkOrderForm extends Form
 
     public ?int $client_id = null;
 
+    public ?int $coupon_id = null;
+
+    /** Código del cupón aplicado, para mostrarlo sin volver a consultarlo. */
+    public string $coupon_code = '';
+
     /** @var list<int|string> */
     public array $equipment_ids = [];
 
@@ -51,6 +56,8 @@ class WorkOrderForm extends Form
         $this->work_order_id       = $work_order->id;
         $this->quotation_id        = $work_order->quotation_id;
         $this->client_id           = $work_order->client_id;
+        $this->coupon_id           = $work_order->coupon_id;
+        $this->coupon_code         = $work_order->coupon_code ?? '';
         $this->equipment_ids       = $work_order->equipments->pluck('id')->map(fn ($id) => (int) $id)->values()->all();
         $this->diagnosis           = $work_order->diagnosis ?? '';
         $this->estimated_delivery  = $work_order->estimated_delivery?->format('Y-m-d') ?? '';
@@ -156,7 +163,7 @@ class WorkOrderForm extends Form
                 'diagnosis', 'estimated_delivery', 'tax_percentage',
                 'advance_percentage', 'notes', 'observations',
             ],
-            self::STEP_ITEMS => ['items'],
+            self::STEP_ITEMS => ['items', 'coupon_code', 'coupon_id'],
         ];
 
         $error_keys = collect(array_keys($errors))
@@ -198,6 +205,8 @@ class WorkOrderForm extends Form
         parent::reset(...$properties);
         $this->work_order_id = null;
         $this->quotation_id = null;
+        $this->coupon_id = null;
+        $this->coupon_code = '';
         $this->equipment_ids = [];
         $this->tax_percentage = '0';
         $this->advance_percentage = '0';
@@ -241,6 +250,7 @@ class WorkOrderForm extends Form
 
         $data = [
             'quotation_id'        => $this->quotation_id ?: null,
+            'coupon_id'           => $this->coupon_id ?: null,
             'diagnosis'           => $this->diagnosis ?: null,
             'estimated_delivery'  => $this->estimated_delivery ?: null,
             'tax_percentage'      => $this->tax_percentage !== '' ? $this->tax_percentage : 0,

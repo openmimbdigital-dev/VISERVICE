@@ -229,7 +229,14 @@
                             </div>
                         </td>
                         <td class="hidden px-3 py-3 text-right text-sm text-slate-600 sm:table-cell sm:px-4">{{ $item->quantity }}</td>
-                        <td class="hidden px-3 py-3 text-right text-sm text-slate-600 md:table-cell sm:px-4">{{ col_money($item->unit_price) }}</td>
+                        <td class="hidden px-3 py-3 text-right text-sm text-slate-600 md:table-cell sm:px-4">
+                            {{ col_money($item->unit_price) }}
+                            @if($item->hasDiscount())
+                            <span class="mt-0.5 block text-[10px] font-semibold text-amber-700" title="Descuento del producto: −{{ col_money($item->discountAmount()) }}">
+                                −{{ $item->discountLabel() }} descuento
+                            </span>
+                            @endif
+                        </td>
                         <td class="px-3 py-3 text-right font-semibold text-slate-900 sm:px-4">{{ col_money($item->subtotal) }}</td>
                         <td class="px-3 py-3 text-center text-sm font-semibold text-emerald-700 sm:px-4">{{ $item->quantity_complete + 0 }}</td>
                         <td class="px-3 py-3 text-center text-sm font-semibold text-rose-600 sm:px-4">{{ $item->quantity_canceled + 0 }}</td>
@@ -282,6 +289,14 @@
                         <td class="px-4 py-2 text-right font-semibold text-slate-700">{{ col_money($workOrder->subtotal) }}</td>
                         <td colspan="{{ $can_manage ? 4 : 2 }}"></td>
                     </tr>
+                    @if((float) $workOrder->discount_amount > 0)
+                    <tr>
+                        <td colspan="5" class="hidden px-4 py-1 text-right text-xs font-semibold uppercase text-emerald-700 md:table-cell">Cupón {{ $workOrder->coupon_code }}</td>
+                        <td colspan="3" class="px-4 py-1 text-right text-xs font-semibold uppercase text-emerald-700 md:hidden">Cupón {{ $workOrder->coupon_code }}</td>
+                        <td class="px-4 py-1 text-right font-semibold text-emerald-700">−{{ col_money($workOrder->discount_amount) }}</td>
+                        <td colspan="{{ $can_manage ? 4 : 2 }}"></td>
+                    </tr>
+                    @endif
                     @if((float) $workOrder->advance_amount > 0)
                     <tr>
                         <td colspan="5" class="hidden px-4 py-1 text-right text-xs font-semibold uppercase text-amber-700 md:table-cell">Anticipo {{ $workOrder->advance_percentage }}%</td>

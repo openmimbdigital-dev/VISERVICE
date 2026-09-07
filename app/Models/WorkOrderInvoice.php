@@ -13,7 +13,8 @@ class WorkOrderInvoice extends Model
 
     protected $fillable = [
         'business_id', 'work_order_id', 'reference',
-        'subtotal', 'tax_percentage', 'tax_amount', 'total',
+        'subtotal', 'discount_amount', 'coupon_code',
+        'tax_percentage', 'tax_amount', 'total',
         'status', 'due_date', 'paid_at',
         'payment_method', 'payment_reference', 'notes', 'created_by',
     ];
@@ -21,13 +22,20 @@ class WorkOrderInvoice extends Model
     protected function casts(): array
     {
         return [
-            'due_date'       => 'date',
-            'paid_at'        => 'datetime',
-            'subtotal'       => 'decimal:2',
-            'tax_percentage' => 'decimal:2',
-            'tax_amount'     => 'decimal:2',
-            'total'          => 'decimal:2',
+            'due_date'        => 'date',
+            'paid_at'         => 'datetime',
+            'subtotal'        => 'decimal:2',
+            'discount_amount' => 'decimal:2',
+            'tax_percentage'  => 'decimal:2',
+            'tax_amount'      => 'decimal:2',
+            'total'           => 'decimal:2',
         ];
+    }
+
+    /** Base gravable: el subtotal ya descontado el cupón de la OT. */
+    public function taxableBase(): float
+    {
+        return max(0, round((float) $this->subtotal - (float) $this->discount_amount, 2));
     }
 
     public function business(): BelongsTo

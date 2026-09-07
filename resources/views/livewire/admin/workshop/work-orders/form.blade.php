@@ -362,7 +362,7 @@
                 <section class="mt-4 overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
                     <div class="border-b border-slate-100 bg-slate-50/80 px-4 py-3 sm:px-5">
                         <h2 class="font-semibold text-slate-800">Ítems de la OT</h2>
-                        <p class="mt-0.5 text-xs text-slate-500">Ajusta cantidad, precio o el equipo asignado a cada ítem.</p>
+                        <p class="mt-0.5 text-xs text-slate-500">Ajusta la cantidad y el equipo asignado. El precio y el descuento los define el catálogo.</p>
                     </div>
                     <div class="space-y-3 p-4 sm:p-6">
                         @error('items') <p class="text-sm text-rose-600">{{ $message }}</p> @enderror
@@ -374,7 +374,16 @@
                                 <x-ui.product-image :product="$cart_product" size="sm" />
                                 <div class="min-w-0">
                                     <p class="truncate text-sm font-medium text-slate-800">{{ $row['description'] }}</p>
-                                    <span class="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-600">Catálogo</span>
+                                    <div class="mt-0.5 flex flex-wrap items-center gap-1">
+                                        <span class="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-600">Catálogo</span>
+                                        @if((float) ($row['discount_percentage'] ?? 0) > 0)
+                                        <span class="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800"
+                                            title="Descuento definido en el producto">
+                                            −{{ rtrim(rtrim(number_format((float) $row['discount_percentage'], 2, '.', ''), '0'), '.') }}% descuento
+                                            <span class="font-normal">({{ col_money($item_line_discounts[$index] ?? 0) }})</span>
+                                        </span>
+                                        @endif
+                                    </div>
                                 </div>
                             </div>
                             @else
@@ -398,28 +407,37 @@
                                     </select>
                                     @error('items.'.$index.'.equipment_id') <p class="mt-1 text-[11px] text-rose-600">{{ $message }}</p> @enderror
                                 </div>
-                                <div class="w-full sm:w-16">
-                                    <label class="mb-1 block text-[10px] font-medium uppercase tracking-wide text-slate-500">Cant.</label>
-                                    <input type="number" wire:model.live="items.{{ $index }}.quantity" min="0.01" step="0.01"
-                                        class="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs">
-                                </div>
+                                {{-- Contador en vez de input abierto: la cantidad se sube y baja de a uno. --}}
                                 <div class="w-full sm:w-24">
+                                    <label class="mb-1 block text-[10px] font-medium uppercase tracking-wide text-slate-500">Cant.</label>
+                                    <div class="flex items-center justify-between rounded-lg border border-slate-200 bg-white">
+                                        <button type="button" tabindex="-1" wire:click="changeItemQuantity({{ $index }}, -1)" wire:loading.attr="disabled"
+                                            class="px-2 py-1.5 text-slate-500 transition hover:bg-slate-100 disabled:opacity-40" title="Quitar uno">−</button>
+                                        <span class="px-1 text-xs font-semibold tabular-nums text-slate-700">{{ rtrim(rtrim(number_format((float) ($row['quantity'] ?? 0), 2, '.', ''), '0'), '.') }}</span>
+                                        <button type="button" tabindex="-1" wire:click="changeItemQuantity({{ $index }}, 1)" wire:loading.attr="disabled"
+                                            class="px-2 py-1.5 text-slate-500 transition hover:bg-slate-100 disabled:opacity-40" title="Agregar uno">+</button>
+                                    </div>
+                                    @error('items.'.$index.'.quantity') <p class="mt-1 text-[11px] text-rose-600">{{ $message }}</p> @enderror
+                                </div>
+                                <div class="w-full sm:w-28">
                                     <label class="mb-1 block text-[10px] font-medium uppercase tracking-wide text-slate-500">Precio</label>
+                                    @if($cart_product)
+                                    {{-- Precio bloqueado: lo define el catálogo, no la OT. --}}
+                                    <div class="rounded-lg border border-slate-200 bg-slate-100 px-2 py-1.5 text-center text-xs text-slate-600"
+                                        title="El precio viene del catálogo. Para cambiarlo, edita el producto.">
+                                        @if((float) ($row['discount_percentage'] ?? 0) > 0)
+                                        <span class="text-[10px] text-slate-400 line-through">{{ col_money($row['unit_price'] ?? 0) }}</span>
+                                        <span class="ml-1 font-semibold text-emerald-700">{{ col_money((float) ($row['unit_price'] ?? 0) * (1 - (float) $row['discount_percentage'] / 100)) }}</span>
+                                        @else
+                                        <span class="font-medium">{{ col_money($row['unit_price'] ?? 0) }}</span>
+                                        @endif
+                                    </div>
+                                    @else
+                                    {{-- Un ítem manual (mano de obra, servicio) no tiene catálogo del cual tomar el precio. --}}
                                     <input type="number" wire:model.live="items.{{ $index }}.unit_price" min="0" step="0.01"
                                         class="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs">
-                                </div>
-                                {{-- El descuento solo ocupa espacio si existe; si no, se ofrece agregarlo. --}}
-                                <div class="w-full sm:w-20" x-data="{ open: @js((float) ($row['discount_percentage'] ?? 0) > 0) }">
-                                    <div x-show="open" x-cloak>
-                                        <label class="mb-1 block text-[10px] font-medium uppercase tracking-wide text-slate-500">Desc. %</label>
-                                        <input type="number" wire:model.live="items.{{ $index }}.discount_percentage" min="0" max="100" step="0.01"
-                                            class="w-full rounded-lg border px-2 py-1.5 text-xs {{ (float) ($row['discount_percentage'] ?? 0) > 0 ? 'border-amber-300 bg-amber-50 font-medium text-amber-800' : 'border-slate-200' }}">
-                                        @error('items.'.$index.'.discount_percentage') <p class="mt-1 text-[11px] text-rose-600">{{ $message }}</p> @enderror
-                                    </div>
-                                    <button type="button" x-show="! open" x-on:click="open = true; $nextTick(() => $el.previousElementSibling.querySelector('input')?.focus())"
-                                        class="w-full rounded-lg border border-dashed border-slate-300 px-2 py-1.5 text-[11px] text-slate-500 transition hover:border-amber-300 hover:text-amber-700">
-                                        + Desc.
-                                    </button>
+                                    @error('items.'.$index.'.unit_price') <p class="mt-1 text-[11px] text-rose-600">{{ $message }}</p> @enderror
+                                    @endif
                                 </div>
                                 <div class="w-full sm:w-24">
                                     <label class="mb-1 block text-[10px] font-medium uppercase tracking-wide text-slate-500">Total</label>
@@ -442,10 +460,26 @@
                 <section class="sticky top-2 z-10 rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm ring-1 ring-slate-900/[0.035] lg:top-4">
                     <h3 class="font-semibold text-slate-900">Resumen</h3>
                     <dl class="mt-4 space-y-2 text-sm">
+                        @if($items_discount_total > 0)
+                        <div class="flex justify-between text-slate-500">
+                            <dt class="text-xs">Precio de lista</dt>
+                            <dd class="tabular-nums text-xs">{{ col_money($preview_subtotal + $items_discount_total) }}</dd>
+                        </div>
+                        <div class="flex justify-between text-amber-700">
+                            <dt class="text-xs">Descuentos de productos</dt>
+                            <dd class="tabular-nums text-xs font-medium">−{{ col_money($items_discount_total) }}</dd>
+                        </div>
+                        @endif
                         <div class="flex justify-between text-slate-600">
                             <dt>Subtotal</dt>
                             <dd class="tabular-nums font-medium text-slate-900">{{ col_money($preview_subtotal) }}</dd>
                         </div>
+                        @if($applied_coupon)
+                        <div class="flex justify-between text-emerald-700">
+                            <dt>Cupón {{ $applied_coupon->code }}</dt>
+                            <dd class="tabular-nums font-medium">−{{ col_money($coupon_discount) }}</dd>
+                        </div>
+                        @endif
                         <div class="flex justify-between text-slate-600">
                             <dt>Anticipo ({{ $form->advance_percentage }}%)</dt>
                             <dd class="tabular-nums font-medium text-amber-700">{{ col_money($preview_advance_amount) }}</dd>
@@ -461,6 +495,36 @@
                     </dl>
 
                     @if($step === 3)
+                    {{-- Descuento de toda la OT: solo entra por cupón, no a mano. --}}
+                    <div class="mt-4 border-t border-slate-100 pt-4">
+                        <h4 class="text-xs font-semibold uppercase tracking-wider text-slate-500">Cupón de descuento</h4>
+
+                        @if($applied_coupon)
+                        <div class="mt-2 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2">
+                            <svg class="h-4 w-4 shrink-0 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <div class="min-w-0 flex-1">
+                                <p class="truncate text-xs font-semibold text-emerald-800">{{ $applied_coupon->code }}</p>
+                                <p class="truncate text-[11px] text-emerald-700">
+                                    {{ $applied_coupon->name ?: 'Descuento de '.$applied_coupon->discountLabel() }} · −{{ col_money($coupon_discount) }}
+                                </p>
+                            </div>
+                            <button type="button" wire:click="removeCoupon" class="shrink-0 rounded-lg p-1 text-emerald-700 transition hover:bg-emerald-100" title="Quitar cupón">
+                                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                            </button>
+                        </div>
+                        @else
+                        <div class="mt-2 flex gap-2">
+                            <input type="text" wire:model="coupon_input" wire:keydown.enter.prevent="applyCoupon" placeholder="Código"
+                                class="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-xs uppercase placeholder:normal-case @error('coupon_input') border-rose-400 @enderror">
+                            <button type="button" wire:click="applyCoupon" wire:loading.attr="disabled" wire:target="applyCoupon"
+                                class="btn btn-secondary btn-sm shrink-0 !px-3 !py-1.5 !text-xs">Aplicar</button>
+                        </div>
+                        @endif
+
+                        @error('coupon_input') <p class="mt-1.5 text-[11px] text-rose-600">{{ $message }}</p> @enderror
+                        @error('coupon_code') <p class="mt-1.5 text-[11px] text-rose-600">{{ $message }}</p> @enderror
+                    </div>
+
                     <div class="mt-4 border-t border-slate-100 pt-4">
                         <div class="flex items-center justify-between">
                             <h4 class="text-xs font-semibold uppercase tracking-wider text-slate-500">Ítems agregados</h4>
@@ -479,7 +543,12 @@
                                 @endif
                                 <div class="min-w-0 flex-1">
                                     <p class="truncate text-xs font-medium text-slate-700">{{ $row['description'] ?: 'Ítem' }}</p>
-                                    <p class="text-[11px] text-slate-400">x{{ rtrim(rtrim(number_format((float) ($row['quantity'] ?? 0), 2, '.', ''), '0'), '.') }}</p>
+                                    <p class="flex items-center gap-1 text-[11px] text-slate-400">
+                                        x{{ rtrim(rtrim(number_format((float) ($row['quantity'] ?? 0), 2, '.', ''), '0'), '.') }}
+                                        @if((float) ($row['discount_percentage'] ?? 0) > 0)
+                                        <span class="rounded bg-amber-100 px-1 font-semibold text-amber-800">−{{ rtrim(rtrim(number_format((float) $row['discount_percentage'], 2, '.', ''), '0'), '.') }}%</span>
+                                        @endif
+                                    </p>
                                 </div>
                                 <p class="shrink-0 text-xs font-semibold text-slate-700">{{ col_money($item_line_totals[$index] ?? 0) }}</p>
                                 <button type="button" wire:click="removeItem({{ $index }})" class="shrink-0 rounded p-1 text-slate-400 hover:bg-rose-50 hover:text-rose-600" title="Quitar">

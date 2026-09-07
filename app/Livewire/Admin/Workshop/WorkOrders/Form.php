@@ -8,6 +8,7 @@ use App\Enums\QuotationStatus;
 use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
 use App\Livewire\Forms\Admin\Workshop\WorkOrderForm;
 use App\Models\Client;
+use App\Models\Coupon;
 use App\Models\Equipment;
 use App\Models\Product;
 use App\Models\ProductType;
@@ -49,6 +50,9 @@ class Form extends Component
     public array $catalog_quantities = [];
 
     public ?int $active_equipment_id = null;
+
+    /** Código que el usuario escribe para aplicar un cupón a toda la OT. */
+    public string $coupon_input = '';
 
     public function mount(?WorkOrder $workOrder = null): void
     {
@@ -307,6 +311,78 @@ class Form extends Component
         $this->catalog_quantities[$product_id] = '1';
     }
 
+    /**
+     * La cantidad se mueve con los botones + / −: el precio y el descuento de un
+     * producto vienen del catálogo, así que la cantidad es lo único ajustable.
+     */
+    public function changeItemQuantity(int $index, float $delta): void
+    {
+        if (! isset($this->items[$index])) {
+            return;
+        }
+
+        $quantity = (float) ($this->items[$index]['quantity'] ?? 1) + $delta;
+
+        // No baja de uno: para dejar la línea en cero está el botón de quitar.
+        $this->items[$index]['quantity'] = $this->formatQuantity(max(1, $quantity));
+    }
+
+    private function formatQuantity(float $quantity): string
+    {
+        return rtrim(rtrim(number_format($quantity, 2, '.', ''), '0'), '.') ?: '1';
+    }
+
+    /** Busca el cupón por código y lo aplica a toda la OT. */
+    public function applyCoupon(): void
+    {
+        $this->resetValidation('coupon_input');
+
+        $code = Coupon::normalizeCode($this->coupon_input);
+
+        if ($code === '') {
+            $this->addError('coupon_input', 'Escribe el código del cupón.');
+
+            return;
+        }
+
+        $coupon = Coupon::query()
+            ->where('business_id', $this->form->resolvedBusinessId())
+            ->where('code', $code)
+            ->first();
+
+        if (! $coupon) {
+            $this->addError('coupon_input', 'No existe un cupón con ese código.');
+
+            return;
+        }
+
+        $reason = $coupon->unavailableReason($this->previewSubtotal(), $this->form->work_order_id);
+
+        if ($reason !== null) {
+            $this->addError('coupon_input', $reason);
+
+            return;
+        }
+
+        $this->form->coupon_id   = $coupon->id;
+        $this->form->coupon_code = $coupon->code;
+        $this->coupon_input      = '';
+
+        $this->dispatch('swal', [
+            'title' => "Cupón {$coupon->code} aplicado",
+            'text'  => 'Descuento de '.$coupon->discountLabel().' sobre el subtotal.',
+            'icon'  => 'success',
+        ]);
+    }
+
+    public function removeCoupon(): void
+    {
+        $this->form->coupon_id   = null;
+        $this->form->coupon_code = '';
+        $this->coupon_input      = '';
+        $this->resetValidation('coupon_input');
+    }
+
     public function removeItem(int $index): void
     {
         if (! isset($this->items[$index])) {
@@ -410,6 +486,19 @@ class Form extends Component
         } catch (\Throwable $e) {
             $this->alertDeleteError($e->getMessage() ?: 'No se pudo eliminar la OT.');
         }
+    }
+
+    /** Subtotal de los ítems en pantalla, ya con el descuento de cada producto. */
+    private function previewSubtotal(): float
+    {
+        $subtotal = 0.0;
+
+        foreach ($this->items as $row) {
+            $base     = round((float) ($row['quantity'] ?? 0) * (float) ($row['unit_price'] ?? 0), 2);
+            $subtotal += round($base * (1 - (float) ($row['discount_percentage'] ?? 0) / 100), 2);
+        }
+
+        return round($subtotal, 2);
     }
 
     /** @return array<string, mixed> */
@@ -605,28 +694,38 @@ class Form extends Component
             ->whereIn('id', $selected_equipment_ids)
             ->values();
 
-        $subtotal = 0.0;
-        foreach ($this->items as $row) {
-            $qty      = (float) ($row['quantity'] ?? 0);
-            $price    = (float) ($row['unit_price'] ?? 0);
-            $discount = (float) ($row['discount_percentage'] ?? 0);
-            $subtotal += round($qty * $price * (1 - $discount / 100), 2);
+        $subtotal = $this->previewSubtotal();
+
+        $applied_coupon = $this->form->coupon_id
+            ? Coupon::query()->where('business_id', $business_id)->find($this->form->coupon_id)
+            : null;
+
+        if ($this->form->coupon_id && ! $applied_coupon) {
+            // El cupón se eliminó mientras la OT estaba abierta.
+            $this->form->coupon_id   = null;
+            $this->form->coupon_code = '';
         }
+
+        $coupon_discount = $applied_coupon ? $applied_coupon->discountOn($subtotal) : 0.0;
+        $taxable_base    = max(0, round($subtotal - $coupon_discount, 2));
+
         $tax_pct = (float) ($this->form->tax_percentage ?: 0);
-        $tax     = round($subtotal * ($tax_pct / 100), 2);
-        $total   = $subtotal + $tax;
+        $tax     = round($taxable_base * ($tax_pct / 100), 2);
+        $total   = $taxable_base + $tax;
         $advance_pct = (float) ($this->form->advance_percentage ?: 0);
-        $advance_amount = round($subtotal * ($advance_pct / 100), 2);
+        $advance_amount = round($taxable_base * ($advance_pct / 100), 2);
         $this->form->advance_amount = (string) $advance_amount;
 
-        $item_line_totals = [];
+        $item_line_totals   = [];
+        $item_line_discounts = [];
+        $items_discount_total = 0.0;
         foreach ($this->items as $index => $row) {
-            $item_line_totals[$index] = round(
-                (float) ($row['quantity'] ?? 0)
-                * (float) ($row['unit_price'] ?? 0)
-                * (1 - (float) ($row['discount_percentage'] ?? 0) / 100),
-                2
-            );
+            $base     = round((float) ($row['quantity'] ?? 0) * (float) ($row['unit_price'] ?? 0), 2);
+            $discount = round($base * ((float) ($row['discount_percentage'] ?? 0) / 100), 2);
+
+            $item_line_totals[$index]    = round($base - $discount, 2);
+            $item_line_discounts[$index] = $discount;
+            $items_discount_total += $discount;
         }
 
         $linked_remission = null;
@@ -684,7 +783,11 @@ class Form extends Component
             'preview_tax'          => $tax,
             'preview_total'        => $total,
             'preview_advance_amount' => $advance_amount,
+            'applied_coupon'       => $applied_coupon,
+            'coupon_discount'      => $coupon_discount,
+            'items_discount_total' => round($items_discount_total, 2),
             'item_line_totals'     => $item_line_totals,
+            'item_line_discounts'  => $item_line_discounts,
             'can_delete'           => $this->form->work_order_id
                 && auth()->user()->can('workshop.work-orders.delete'),
             'can_create_remission' => $can_create_remission,
