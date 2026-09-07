@@ -29,9 +29,16 @@ class Product extends Model
         'cost_price',
         'profit_percentage',
         'sale_price',
+        'discount_type',
+        'discount_value',
         'track_inventory',
         'status',
     ];
+
+    /** Formas admitidas de expresar el descuento. */
+    public const DISCOUNT_PERCENTAGE = 'percentage';
+
+    public const DISCOUNT_AMOUNT = 'amount';
 
     protected function casts(): array
     {
@@ -41,6 +48,7 @@ class Product extends Model
             'cost_price'         => 'decimal:2',
             'profit_percentage'  => 'decimal:2',
             'sale_price'         => 'decimal:2',
+            'discount_value'     => 'decimal:2',
             'track_inventory'  => 'boolean',
             'status'           => 'boolean',
         ];
@@ -112,6 +120,68 @@ class Product extends Model
             && $this->cost_price !== null
             && $this->profit_percentage !== null
             && $this->sale_price !== null;
+    }
+
+    public function hasDiscount(): bool
+    {
+        return $this->discount_type !== null
+            && $this->discount_value !== null
+            && (float) $this->discount_value > 0
+            && (float) $this->sale_price > 0;
+    }
+
+    /**
+     * Descuento expresado en porcentaje.
+     *
+     * Los ítems de cotizaciones y órdenes de trabajo descuentan por porcentaje, así
+     * que un descuento en valor se convierte aquí: sobre un precio P, un descuento
+     * de $V por unidad equivale a V/P × 100, y la línea da exactamente lo mismo.
+     */
+    public function discountPercentage(): float
+    {
+        if (! $this->hasDiscount()) {
+            return 0.0;
+        }
+
+        if ($this->discount_type === self::DISCOUNT_PERCENTAGE) {
+            return min(100.0, round((float) $this->discount_value, 2));
+        }
+
+        $percentage = (float) $this->discount_value / (float) $this->sale_price * 100;
+
+        return min(100.0, round($percentage, 2));
+    }
+
+    /** Valor descontado por unidad. */
+    public function discountAmount(): float
+    {
+        if (! $this->hasDiscount()) {
+            return 0.0;
+        }
+
+        if ($this->discount_type === self::DISCOUNT_AMOUNT) {
+            return min((float) $this->sale_price, round((float) $this->discount_value, 2));
+        }
+
+        return round((float) $this->sale_price * (float) $this->discount_value / 100, 2);
+    }
+
+    /** Precio unitario ya con el descuento aplicado. */
+    public function finalPrice(): float
+    {
+        return round(max(0, (float) $this->sale_price - $this->discountAmount()), 2);
+    }
+
+    /** Etiqueta corta del descuento para mostrar en listados. */
+    public function discountLabel(): ?string
+    {
+        if (! $this->hasDiscount()) {
+            return null;
+        }
+
+        return $this->discount_type === self::DISCOUNT_PERCENTAGE
+            ? rtrim(rtrim(number_format((float) $this->discount_value, 2, '.', ''), '0'), '.').'%'
+            : col_money($this->discountAmount());
     }
 
     public function profitMarginAmount(): ?float

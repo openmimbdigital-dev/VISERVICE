@@ -174,7 +174,36 @@ class Form extends Component
             'units'              => $this->form->getUnits(),
             'brands'             => $this->form->getBrands(),
             'product'            => $this->form->product_id ? Product::find($this->form->product_id) : null,
+            'discount_preview'   => $this->discountPreview(),
         ]);
+    }
+
+    /**
+     * Cómo queda el precio con el descuento capturado, para verlo antes de guardar.
+     *
+     * @return array{sale_price: float, discount: float, final: float}|null
+     */
+    private function discountPreview(): ?array
+    {
+        if ($this->form->discount_type === '' || ! is_numeric($this->form->discount_value)) {
+            return null;
+        }
+
+        $preview = new Product([
+            'sale_price'     => $this->form->sale_price === '' ? 0 : (float) $this->form->sale_price,
+            'discount_type'  => $this->form->discount_type,
+            'discount_value' => (float) $this->form->discount_value,
+        ]);
+
+        if (! $preview->hasDiscount()) {
+            return null;
+        }
+
+        return [
+            'sale_price' => (float) $preview->sale_price,
+            'discount'   => $preview->discountAmount(),
+            'final'      => $preview->finalPrice(),
+        ];
     }
 
     private function advanceToStep(int $step): void

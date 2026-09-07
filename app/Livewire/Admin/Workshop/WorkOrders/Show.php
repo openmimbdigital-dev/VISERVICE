@@ -206,6 +206,8 @@ class Show extends Component
         $this->product_type_id = $product->product_type_id;
         $this->item_description = $product->name;
         $this->item_unit_price = (string) $product->sale_price;
+        // El descuento del catálogo se propone y queda editable en el ítem.
+        $this->item_discount = (string) $product->discountPercentage();
     }
 
     public function saveItem(): void

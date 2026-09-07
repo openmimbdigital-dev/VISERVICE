@@ -300,7 +300,8 @@ class Form extends Component
             'description'         => $catalog->name,
             'quantity'            => (string) $quantity,
             'unit_price'          => (string) $catalog->sale_price,
-            'discount_percentage' => '0',
+            // El descuento del catálogo llega como sugerencia y se puede ajustar en la línea.
+            'discount_percentage' => (string) $catalog->discountPercentage(),
         ];
 
         $this->catalog_quantities[$product_id] = '1';

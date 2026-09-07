@@ -303,6 +303,11 @@
                                     {{ $product->product_type->name }}
                                 </span>
                                 @endif
+                                @if($product->hasDiscount())
+                                <span class="absolute {{ $in_cart > 0 ? 'right-2 top-9' : 'right-2 top-2' }} z-10 inline-flex items-center rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-bold text-white shadow">
+                                    −{{ $product->discountLabel() }}
+                                </span>
+                                @endif
                                 @if($in_cart > 0)
                                 <span class="absolute right-2 top-2 z-10 inline-flex items-center rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white shadow">
                                     En OT: {{ rtrim(rtrim(number_format($in_cart, 2, '.', ''), '0'), '.') }}
@@ -313,7 +318,14 @@
                                     <div class="flex flex-1 flex-col gap-1 p-3">
                                         <p class="line-clamp-2 text-sm font-medium leading-snug text-slate-800" title="{{ $product->name }}">{{ $product->name }}</p>
                                         <p class="font-mono text-[11px] text-slate-400">{{ $product->sku }}</p>
+                                        @if($product->hasDiscount())
+                                        <div class="mt-auto">
+                                            <p class="text-[11px] text-slate-400 line-through">{{ col_money($product->sale_price) }}</p>
+                                            <p class="text-sm font-semibold text-emerald-700">{{ col_money($product->finalPrice()) }}</p>
+                                        </div>
+                                        @else
                                         <p class="mt-auto text-sm font-semibold text-indigo-700">{{ col_money($product->sale_price) }}</p>
+                                        @endif
                                     </div>
                                 </button>
                                 <div class="flex items-center gap-1.5 border-t border-slate-100 p-2">
@@ -374,11 +386,12 @@
                             </div>
                             @endif
 
-                            <div class="grid grid-cols-2 gap-2 sm:flex sm:shrink-0 sm:items-center">
+                            <div class="grid grid-cols-2 gap-2 sm:flex sm:shrink-0 sm:items-end">
                                 <div class="w-full sm:w-36">
+                                    <label class="mb-1 block text-[10px] font-medium uppercase tracking-wide text-slate-500">Equipo</label>
                                     <select wire:model="items.{{ $index }}.equipment_id" @disabled($selected_equipments->isEmpty())
                                         class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs disabled:opacity-60 @error('items.'.$index.'.equipment_id') border-rose-400 @enderror">
-                                        <option value="">Equipo</option>
+                                        <option value="">Sin asignar</option>
                                         @foreach($selected_equipments as $equipment)
                                         <option value="{{ $equipment->id }}">{{ $equipment->select_label }}</option>
                                         @endforeach
@@ -386,17 +399,26 @@
                                     @error('items.'.$index.'.equipment_id') <p class="mt-1 text-[11px] text-rose-600">{{ $message }}</p> @enderror
                                 </div>
                                 <div class="w-full sm:w-16">
-                                    <input type="number" wire:model.live="items.{{ $index }}.quantity" min="0.01" step="0.01" title="Cantidad"
+                                    <label class="mb-1 block text-[10px] font-medium uppercase tracking-wide text-slate-500">Cant.</label>
+                                    <input type="number" wire:model.live="items.{{ $index }}.quantity" min="0.01" step="0.01"
                                         class="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs">
                                 </div>
                                 <div class="w-full sm:w-24">
-                                    <input type="number" wire:model.live="items.{{ $index }}.unit_price" min="0" step="0.01" title="Precio unitario"
+                                    <label class="mb-1 block text-[10px] font-medium uppercase tracking-wide text-slate-500">Precio</label>
+                                    <input type="number" wire:model.live="items.{{ $index }}.unit_price" min="0" step="0.01"
                                         class="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs">
                                 </div>
+                                <div class="w-full sm:w-20">
+                                    <label class="mb-1 block text-[10px] font-medium uppercase tracking-wide text-slate-500">Desc. %</label>
+                                    <input type="number" wire:model.live="items.{{ $index }}.discount_percentage" min="0" max="100" step="0.01"
+                                        class="w-full rounded-lg border px-2 py-1.5 text-xs {{ (float) ($row['discount_percentage'] ?? 0) > 0 ? 'border-amber-300 bg-amber-50 font-medium text-amber-800' : 'border-slate-200' }}">
+                                    @error('items.'.$index.'.discount_percentage') <p class="mt-1 text-[11px] text-rose-600">{{ $message }}</p> @enderror
+                                </div>
                                 <div class="w-full sm:w-24">
+                                    <label class="mb-1 block text-[10px] font-medium uppercase tracking-wide text-slate-500">Total</label>
                                     <p class="rounded-lg bg-indigo-50 px-2 py-1.5 text-center text-xs font-semibold text-indigo-700">{{ col_money($item_line_totals[$index] ?? 0) }}</p>
                                 </div>
-                                <button type="button" wire:click="removeItem({{ $index }})" class="shrink-0 rounded-lg p-1.5 text-rose-500 hover:bg-rose-50" title="Quitar">
+                                <button type="button" wire:click="removeItem({{ $index }})" class="mb-0.5 shrink-0 rounded-lg p-1.5 text-rose-500 hover:bg-rose-50" title="Quitar">
                                     <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                                 </button>
                             </div>

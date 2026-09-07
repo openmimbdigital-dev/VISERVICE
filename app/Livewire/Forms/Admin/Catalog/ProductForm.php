@@ -49,6 +49,10 @@ class ProductForm extends Form
 
     public string $sale_price = '';
 
+    public string $discount_type = '';
+
+    public string $discount_value = '';
+
     public bool $status = true;
 
     public function setProduct(Product $product): void
@@ -66,6 +70,8 @@ class ProductForm extends Form
         $this->cost_price          = $product->cost_price !== null ? (string) $product->cost_price : '';
         $this->profit_percentage   = $product->profit_percentage !== null ? (string) $product->profit_percentage : '';
         $this->sale_price          = $product->sale_price !== null ? (string) $product->sale_price : '';
+        $this->discount_type       = (string) ($product->discount_type ?? '');
+        $this->discount_value      = $product->discount_value !== null ? (string) $product->discount_value : '';
         $this->status              = $product->status;
     }
 
@@ -85,6 +91,8 @@ class ProductForm extends Form
         $this->cost_price          = '';
         $this->profit_percentage   = '';
         $this->sale_price          = '';
+        $this->discount_type       = '';
+        $this->discount_value      = '';
         $this->status              = true;
     }
 
@@ -158,12 +166,7 @@ class ProductForm extends Form
         return match ($step) {
             self::STEP_GENERAL => $this->generalRules($business_id),
             self::STEP_CLASSIFICATION => $this->classificationRules(),
-            self::STEP_PRICING => [
-                'cost_price'         => ['required', 'numeric', 'min:0'],
-                'profit_percentage'  => ['required', 'numeric', 'min:0'],
-                'sale_price'         => ['required', 'numeric', 'min:0'],
-                'status'             => ['boolean'],
-            ],
+            self::STEP_PRICING => $this->pricingRules(),
             default => [],
         };
     }
@@ -173,7 +176,7 @@ class ProductForm extends Form
         $step_fields = [
             self::STEP_GENERAL         => ['business_id', 'sku', 'barcode', 'name', 'description'],
             self::STEP_CLASSIFICATION  => ['product_type_id', 'product_category_id', 'unit_id', 'brand_id'],
-            self::STEP_PRICING         => ['cost_price', 'profit_percentage', 'sale_price', 'status'],
+            self::STEP_PRICING         => ['cost_price', 'profit_percentage', 'sale_price', 'discount_type', 'discount_value', 'status'],
         ];
 
         $error_keys = collect(array_keys($errors))
@@ -214,6 +217,12 @@ class ProductForm extends Form
             'profit_percentage.required'   => 'El porcentaje de ganancia es obligatorio.',
             'profit_percentage.numeric'    => 'El porcentaje de ganancia debe ser numérico.',
             'profit_percentage.min'        => 'El porcentaje de ganancia no puede ser negativo.',
+            'discount_type.in'             => 'La forma del descuento no es válida.',
+            'discount_value.required'      => 'Indica el valor del descuento o deja la opción «Sin descuento».',
+            'discount_value.numeric'       => 'El descuento debe ser numérico.',
+            'discount_value.gt'            => 'El descuento debe ser mayor a cero.',
+            'discount_value.max'           => 'El descuento no puede superar el 100%.',
+            'discount_value.lt'            => 'El descuento debe ser menor al precio de venta.',
             'sale_price.required'          => 'El precio de venta es obligatorio.',
             'sale_price.numeric'           => 'El precio de venta debe ser numérico.',
             'sale_price.min'               => 'El precio de venta no puede ser negativo.',
@@ -284,6 +293,10 @@ class ProductForm extends Form
             'cost_price'          => $this->cost_price === '' ? null : (float) $this->cost_price,
             'profit_percentage'   => $this->profit_percentage === '' ? null : (float) $this->profit_percentage,
             'sale_price'          => $this->sale_price === '' ? null : (float) $this->sale_price,
+            'discount_type'       => $this->discount_type !== '' ? $this->discount_type : null,
+            'discount_value'      => $this->discount_type !== '' && $this->discount_value !== ''
+                ? (float) $this->discount_value
+                : null,
             'status'              => $this->status,
             'step'                => $step,
             'final_step'          => self::TOTAL_STEPS,
@@ -300,6 +313,44 @@ class ProductForm extends Form
     {
         $this->sku     = trim($this->sku);
         $this->barcode = trim($this->barcode);
+    }
+
+    /**
+     * Reglas del paso de precios.
+     *
+     * El descuento es opcional, pero si se elige una forma hay que indicar el valor:
+     * un porcentaje no puede pasar de 100 y un valor fijo no puede alcanzar el precio
+     * de venta, porque dejaría el producto en cero o por debajo.
+     *
+     * @return array<string, mixed>
+     */
+    private function pricingRules(): array
+    {
+        $rules = [
+            'cost_price'        => ['required', 'numeric', 'min:0'],
+            'profit_percentage' => ['required', 'numeric', 'min:0'],
+            'sale_price'        => ['required', 'numeric', 'min:0'],
+            'discount_type'     => ['nullable', Rule::in([Product::DISCOUNT_PERCENTAGE, Product::DISCOUNT_AMOUNT])],
+            'status'            => ['boolean'],
+        ];
+
+        if ($this->discount_type === Product::DISCOUNT_PERCENTAGE) {
+            $rules['discount_value'] = ['required', 'numeric', 'gt:0', 'max:100'];
+
+            return $rules;
+        }
+
+        if ($this->discount_type === Product::DISCOUNT_AMOUNT) {
+            $sale_price = is_numeric($this->sale_price) ? (float) $this->sale_price : 0;
+
+            $rules['discount_value'] = ['required', 'numeric', 'gt:0', 'lt:'.max($sale_price, 0.01)];
+
+            return $rules;
+        }
+
+        $rules['discount_value'] = ['nullable'];
+
+        return $rules;
     }
 
     /** @return array<string, mixed> */

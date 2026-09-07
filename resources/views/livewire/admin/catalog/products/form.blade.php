@@ -232,6 +232,49 @@
                     @error('form.sale_price')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
                 </div>
 
+                <div class="md:col-span-2">
+                    <div class="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Descuento</p>
+                        <p class="mt-0.5 text-xs text-slate-500">
+                            Opcional. Se aplica solo al agregar el producto a una orden de trabajo, y ahí se puede ajustar.
+                        </p>
+
+                        <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+                            <div class="relative">
+                                <label class="label-up">Forma del descuento</label>
+                                <select wire:model.live="form.discount_type" class="form-select w-full border bg-white px-3 py-2 text-sm @error('form.discount_type') border-rose-400 @enderror">
+                                    <option value="">Sin descuento</option>
+                                    <option value="percentage">Porcentaje (%)</option>
+                                    <option value="amount">Valor fijo por unidad</option>
+                                </select>
+                                @error('form.discount_type')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
+                            </div>
+
+                            @if($form->discount_type !== '')
+                            <div class="relative">
+                                <label class="label-up">
+                                    {{ $form->discount_type === 'percentage' ? 'Porcentaje de descuento' : 'Valor del descuento' }}
+                                    <span class="text-rose-500">*</span>
+                                </label>
+                                <input type="number" step="0.01" min="0"
+                                    @if($form->discount_type === 'percentage') max="100" @endif
+                                    wire:model.live.debounce.400ms="form.discount_value"
+                                    class="form-input w-full border px-3 py-2 text-sm tabular-nums [-moz-appearance:text-field] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" />
+                                @error('form.discount_value')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
+                            </div>
+                            @endif
+                        </div>
+
+                        @if($discount_preview)
+                        <div class="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-slate-200 pt-3 text-sm">
+                            <span class="text-slate-500">Precio de venta: <span class="tabular-nums text-slate-700 line-through">{{ col_money($discount_preview['sale_price']) }}</span></span>
+                            <span class="text-slate-500">Descuento: <span class="tabular-nums font-medium text-amber-700">−{{ col_money($discount_preview['discount']) }}</span></span>
+                            <span class="font-semibold text-slate-900">Precio final: <span class="tabular-nums text-emerald-700">{{ col_money($discount_preview['final']) }}</span></span>
+                        </div>
+                        @endif
+                    </div>
+                </div>
+
                 <div class="relative flex flex-col justify-end gap-3 md:col-span-2">
                     <label class="flex items-center gap-3 text-sm text-slate-700">
                         <span class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center">

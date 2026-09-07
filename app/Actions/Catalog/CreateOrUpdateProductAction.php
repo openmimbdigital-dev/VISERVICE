@@ -76,6 +76,8 @@ class CreateOrUpdateProductAction
             'cost_price'          => $data['cost_price'] ?? null,
             'profit_percentage'   => $data['profit_percentage'] ?? null,
             'sale_price'          => $data['sale_price'] ?? null,
+            'discount_type'       => $data['discount_type'] ?? null,
+            'discount_value'      => $data['discount_value'] ?? null,
             'track_inventory'     => $track_inventory,
             'status'              => $data['status'] ?? true,
         ];
