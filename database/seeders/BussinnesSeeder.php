@@ -41,11 +41,16 @@ class BussinnesSeeder extends Seeder
 
         $businesses = [
             [
-                'name'             => 'Transportes TRANSAD',
+                // Emisor de facturación electrónica: la razón social y el NIT deben
+                // coincidir con el RUT, o la DIAN rechaza el documento (regla FAJ43b).
+                'name'             => 'ALEX HURTADO YENERIS',
                 'address'          => 'Carrera 68 # 25-47',
                 'email'            => 'info@transad.com.co',
                 'slug'             => 'transportes-transad',
-                'nit'              => '900123456-1',
+                'nit'              => '1047221605-6',
+                'verification_digit'      => '6',
+                'person_type'             => 2,
+                'fiscal_responsibilities' => 'R-99-PN',
                 'logo'             => 'logos/transad-logo.png',
                 'website'          => 'https://www.transad.com.co',
                 'phone_number'     => '+57 1 234 5678',

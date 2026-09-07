@@ -156,18 +156,23 @@ class EmitElectronicInvoiceAction
     }
 
     /**
-     * Recupera el documento electrónico de la factura o reserva un consecutivo nuevo.
-     * Un reintento conserva siempre el número ya asignado.
+     * Recupera el documento electrónico de la factura o le reserva un consecutivo.
+     *
+     * Si el envío anterior ni siquiera llegó a crear transacción en el proveedor, el
+     * número no se consumió y el reintento lo conserva. Pero si el proveedor ya creó
+     * la transacción —aunque la DIAN la haya rechazado— ese número queda quemado: la
+     * plataforma responde "Documento duplicado", así que el reintento toma uno nuevo.
+     * El historial de cada intento queda en la bitácora de envíos.
      */
     private function resolveElectronicInvoice(WorkOrderInvoice $invoice, BusinessDianSetting $setting): ElectronicInvoice
     {
         $existing = ElectronicInvoice::query()->where('work_order_invoice_id', $invoice->id)->first();
 
-        if ($existing) {
+        if ($existing && ! $existing->transaction_id) {
             return $existing;
         }
 
-        return DB::transaction(function () use ($invoice, $setting) {
+        return DB::transaction(function () use ($invoice, $setting, $existing) {
             $locked_setting = BusinessDianSetting::query()
                 ->whereKey($setting->id)
                 ->lockForUpdate()
@@ -181,18 +186,35 @@ class EmitElectronicInvoiceAction
                 ]);
             }
 
-            $electronic_invoice = ElectronicInvoice::query()->create([
-                'business_id'           => $invoice->business_id,
-                'work_order_invoice_id' => $invoice->id,
-                'document_type'         => 'invoice',
-                'environment'           => $locked_setting->environment,
-                'prefix'                => $locked_setting->prefix,
-                'consecutive'           => $consecutive,
-                'document_number'       => $locked_setting->prefix.$consecutive,
-                'status'                => ElectronicInvoiceStatus::Pending,
-                'issued_at'             => now(),
-                'created_by'            => auth()->id(),
-            ]);
+            $attributes = [
+                'environment'     => $locked_setting->environment,
+                'prefix'          => $locked_setting->prefix,
+                'consecutive'     => $consecutive,
+                'document_number' => $locked_setting->prefix.$consecutive,
+                'status'          => ElectronicInvoiceStatus::Pending,
+                'issued_at'       => now(),
+            ];
+
+            if ($existing) {
+                // Numeración nueva: los datos de la transacción anterior ya no aplican.
+                $existing->forceFill($attributes + [
+                    'transaction_id' => null,
+                    'cufe'           => null,
+                    'qr_code'        => null,
+                    'dian_status'    => null,
+                    'xml_path'       => null,
+                    'pdf_path'       => null,
+                ])->save();
+
+                $electronic_invoice = $existing;
+            } else {
+                $electronic_invoice = ElectronicInvoice::query()->create($attributes + [
+                    'business_id'           => $invoice->business_id,
+                    'work_order_invoice_id' => $invoice->id,
+                    'document_type'         => 'invoice',
+                    'created_by'            => auth()->id(),
+                ]);
+            }
 
             $locked_setting->update(['next_consecutive' => $consecutive + 1]);
 

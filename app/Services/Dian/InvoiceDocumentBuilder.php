@@ -87,16 +87,14 @@ class InvoiceDocumentBuilder
             'PYM' => $this->paymentBlocks($invoice, $electronic_invoice),
         ];
 
-        if ($totals['tax_amount'] > 0) {
-            $document['TXT'] = $this->documentTaxBlocks($totals);
-        }
-
+        // El bloque de impuestos se envía siempre: la fórmula del CUFE de la DIAN
+        // incluye el código de impuesto y su valor, aunque la factura no lleve IVA.
+        $document['TXT'] = $this->documentTaxBlocks($totals);
         $document['TOT'] = $this->totalsBlock($totals);
         $document['IVL'] = $this->lineBlocks($lines);
 
-        if ($totals['tax_amount'] > 0) {
-            $document['LIT'] = $this->lineTaxBlocks($lines);
-        }
+        // Cada impuesto declarado en TXT debe tener su contraparte por línea en LIT.
+        $document['LIT'] = $this->lineTaxBlocks($lines);
 
         $document['REC'] = $this->deliveryBlocks($invoice, $setting);
         $document['ADD'] = $this->addressBlocks($invoice);
@@ -369,10 +367,6 @@ class InvoiceDocumentBuilder
         $blocks = [];
 
         foreach ($lines as $line) {
-            if ($line['tax_amount'] <= 0) {
-                continue;
-            }
-
             $blocks[] = [
                 'ID'                        => (string) $line['id'],
                 'TaxAmount'                 => $line['tax_amount'],
@@ -507,7 +501,9 @@ class InvoiceDocumentBuilder
 
         return [
             'line_extension' => $line_extension,
-            'taxable_base'   => $tax_amount > 0 ? $line_extension : 0.0,
+            // La base imponible del documento debe cuadrar con la suma de las bases
+            // de cada línea, incluso cuando la tarifa del impuesto es cero.
+            'taxable_base'   => $line_extension,
             'tax_amount'     => $tax_amount,
             'tax_percentage' => round((float) $invoice->tax_percentage, 2),
             'tax_inclusive'  => round($line_extension + $tax_amount, 2),

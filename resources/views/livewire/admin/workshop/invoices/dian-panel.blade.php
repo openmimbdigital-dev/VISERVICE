@@ -77,7 +77,12 @@
             </p>
             <p class="mt-1 text-xs text-rose-800">{{ $electronic_invoice->error_message }}</p>
             <p class="mt-1.5 text-xs text-rose-700">
-                Intentos: {{ $electronic_invoice->attempts }} — al reintentar se conserva el mismo número autorizado.
+                Intentos: {{ $electronic_invoice->attempts }} —
+                @if($electronic_invoice->transaction_id)
+                    el proveedor ya registró este número, así que el reintento tomará el siguiente del rango.
+                @else
+                    al reintentar se conserva el mismo número autorizado.
+                @endif
             </p>
         </div>
         @endif
