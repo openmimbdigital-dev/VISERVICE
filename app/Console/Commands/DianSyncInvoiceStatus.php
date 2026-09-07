@@ -36,6 +36,7 @@ class DianSyncInvoiceStatus extends Command
         foreach ($pending as $electronic_invoice) {
             try {
                 $timeline = TitanioClient::for($electronic_invoice->environment)
+                    ->forInvoice($electronic_invoice)
                     ->documentStatus((int) $electronic_invoice->transaction_id);
             } catch (DianRequestException $exception) {
                 $this->warn("  {$electronic_invoice->document_number}: {$exception->getMessage()}");

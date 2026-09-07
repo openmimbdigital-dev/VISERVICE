@@ -6,6 +6,7 @@ use App\Actions\Dian\DownloadElectronicInvoiceFilesAction;
 use App\Actions\Dian\EmitElectronicInvoiceAction;
 use App\Actions\Dian\SyncElectronicInvoiceStatusAction;
 use App\Models\BusinessDianSetting;
+use App\Models\DianRequestLog;
 use App\Models\ElectronicInvoice;
 use App\Models\WorkOrderInvoice;
 use App\Services\Dian\DianRequestException;
@@ -17,6 +18,10 @@ class DianPanel extends Component
     public WorkOrderInvoice $invoice;
 
     public bool $show_xml = false;
+
+    public bool $show_logs = false;
+
+    public ?int $expanded_log_id = null;
 
     public function mount(WorkOrderInvoice $invoice): void
     {
@@ -114,6 +119,17 @@ class DianPanel extends Component
         $this->show_xml = ! $this->show_xml;
     }
 
+    public function toggleLogs(): void
+    {
+        $this->show_logs = ! $this->show_logs;
+        $this->expanded_log_id = null;
+    }
+
+    public function toggleLogDetail(int $log_id): void
+    {
+        $this->expanded_log_id = $this->expanded_log_id === $log_id ? null : $log_id;
+    }
+
     private function electronicInvoice(): ?ElectronicInvoice
     {
         return ElectronicInvoice::query()
@@ -131,9 +147,18 @@ class DianPanel extends Component
             ->where('business_id', $this->invoice->business_id)
             ->first();
 
+        $logs = DianRequestLog::query()
+            ->forAuthUser()
+            ->where('work_order_invoice_id', $this->invoice->id)
+            ->with('createdBy')
+            ->latest()
+            ->limit(30)
+            ->get();
+
         return view('livewire.admin.workshop.invoices.dian-panel', [
             'electronic_invoice' => $electronic_invoice,
             'setting'            => $setting,
+            'logs'               => $logs,
             'missing'            => EmitElectronicInvoiceAction::missingRequirements($this->invoice, $setting),
             'can_send'           => auth()->user()->can('workshop.invoices.dian.send'),
             'can_download'       => auth()->user()->can('workshop.invoices.dian.download'),

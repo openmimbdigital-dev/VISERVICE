@@ -131,10 +131,72 @@
                 {{ $show_xml ? 'Ocultar documento enviado' : 'Ver documento enviado' }}
             </button>
             @endif
+
+            @if($logs->isNotEmpty())
+            <button type="button" wire:click="toggleLogs" class="btn btn-outline-secondary btn-sm">
+                {{ $show_logs ? 'Ocultar historial' : 'Historial de envíos ('.$logs->count().')' }}
+            </button>
+            @endif
         </div>
 
         @if($show_xml && $electronic_invoice?->request_document)
         <pre class="max-h-96 overflow-auto rounded-xl bg-slate-900 p-4 text-[11px] leading-relaxed text-slate-100">{{ $electronic_invoice->request_document }}</pre>
+        @endif
+
+        @if($show_logs)
+        <div class="overflow-hidden rounded-xl border border-slate-200">
+            <table class="min-w-full divide-y divide-slate-100 text-sm">
+                <thead class="bg-slate-50/80">
+                    <tr>
+                        <th class="px-3 py-2 text-left text-xs font-semibold uppercase text-slate-500">Fecha</th>
+                        <th class="px-3 py-2 text-left text-xs font-semibold uppercase text-slate-500">Operación</th>
+                        <th class="px-3 py-2 text-center text-xs font-semibold uppercase text-slate-500">Intento</th>
+                        <th class="px-3 py-2 text-center text-xs font-semibold uppercase text-slate-500">Resultado</th>
+                        <th class="px-3 py-2 text-left text-xs font-semibold uppercase text-slate-500">Detalle</th>
+                        <th class="px-3 py-2"></th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    @foreach($logs as $log)
+                    <tr wire:key="dian-log-{{ $log->id }}" class="align-top">
+                        <td class="whitespace-nowrap px-3 py-2 text-xs text-slate-600">{{ $log->created_at->format('d/m/Y H:i:s') }}</td>
+                        <td class="px-3 py-2 text-xs text-slate-700">{{ $log->operationLabel() }}</td>
+                        <td class="px-3 py-2 text-center text-xs text-slate-600">{{ $log->attempt }}</td>
+                        <td class="px-3 py-2 text-center">
+                            <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold {{ $log->badgeClass() }}">
+                                {{ $log->success ? 'Correcto' : 'Error' }}
+                            </span>
+                        </td>
+                        <td class="px-3 py-2 text-xs text-slate-600">
+                            @if($log->error_message)
+                                <span class="text-rose-700">
+                                    @if($log->error_id)[{{ $log->error_id }}] @endif{{ Str::limit($log->error_message, 140) }}
+                                </span>
+                            @else
+                                <span class="text-slate-400">{{ $log->duration_ms }} ms</span>
+                            @endif
+                        </td>
+                        <td class="whitespace-nowrap px-3 py-2 text-right">
+                            <button type="button" wire:click="toggleLogDetail({{ $log->id }})"
+                                class="text-xs font-medium text-indigo-600 hover:text-indigo-700">
+                                {{ $expanded_log_id === $log->id ? 'Ocultar' : 'Ver' }}
+                            </button>
+                        </td>
+                    </tr>
+                    @if($expanded_log_id === $log->id)
+                    <tr wire:key="dian-log-detail-{{ $log->id }}">
+                        <td colspan="6" class="bg-slate-50/60 px-3 py-3">
+                            <p class="mb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Enviado</p>
+                            <pre class="mb-3 max-h-64 overflow-auto rounded-lg bg-slate-900 p-3 text-[11px] text-slate-100">{{ $log->request_payload }}</pre>
+                            <p class="mb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Respuesta</p>
+                            <pre class="max-h-64 overflow-auto rounded-lg bg-slate-900 p-3 text-[11px] text-slate-100">{{ $log->response_payload ?: 'Sin respuesta del proveedor.' }}</pre>
+                        </td>
+                    </tr>
+                    @endif
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
         @endif
     </div>
 </div>

@@ -26,6 +26,7 @@ class SyncElectronicInvoiceStatusAction
         }
 
         $timeline = TitanioClient::for($electronic_invoice->environment)
+            ->forInvoice($electronic_invoice)
             ->documentStatus((int) $electronic_invoice->transaction_id);
 
         return $electronic_invoice->applyProviderTimeline($timeline)->refresh();

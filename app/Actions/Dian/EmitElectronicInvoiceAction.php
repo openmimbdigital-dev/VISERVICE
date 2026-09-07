@@ -63,7 +63,9 @@ class EmitElectronicInvoiceAction
         ])->save();
 
         try {
-            $result = TitanioClient::for($setting->environment)->emit((int) $setting->tr_tipo_id, $document);
+            $result = TitanioClient::for($setting->environment)
+                ->forInvoice($electronic_invoice)
+                ->emit((int) $setting->tr_tipo_id, $document);
         } catch (DianRequestException $exception) {
             $electronic_invoice->forceFill([
                 'status'           => ElectronicInvoiceStatus::Error,

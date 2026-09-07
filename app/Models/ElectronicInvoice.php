@@ -69,6 +69,11 @@ class ElectronicInvoice extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    public function requestLogs(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(DianRequestLog::class)->latest();
+    }
+
     public function hasFiles(): bool
     {
         return $this->xml_path !== null || $this->pdf_path !== null;

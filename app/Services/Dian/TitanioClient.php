@@ -2,6 +2,8 @@
 
 namespace App\Services\Dian;
 
+use App\Models\DianRequestLog;
+use App\Models\ElectronicInvoice;
 use Carbon\Carbon;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response;
@@ -31,6 +33,10 @@ class TitanioClient
     public const DOWNLOAD_PDF = 2;
     public const DOWNLOAD_XML_PDF = 3;
 
+    private ?ElectronicInvoice $context_invoice = null;
+
+    private int $context_attempt = 1;
+
     public function __construct(private readonly ?string $environment = null)
     {
     }
@@ -38,6 +44,18 @@ class TitanioClient
     public static function for(?string $environment = null): self
     {
         return new self($environment);
+    }
+
+    /**
+     * Asocia las llamadas siguientes a un documento electrónico, para que queden
+     * registradas en la bitácora junto con la factura del sistema.
+     */
+    public function forInvoice(ElectronicInvoice $electronic_invoice, ?int $attempt = null): self
+    {
+        $this->context_invoice = $electronic_invoice;
+        $this->context_attempt = $attempt ?? max(1, (int) $electronic_invoice->attempts);
+
+        return $this;
     }
 
     public function environment(): string
@@ -217,23 +235,35 @@ class TitanioClient
      */
     private function request(string $path, array $payload, bool $authenticated = true): array
     {
-        if ($authenticated) {
-            $payload = ['token' => $this->token()] + $payload;
-        }
+        $started_at = microtime(true);
+        $status = null;
 
-        $response = $this->send($path, $payload);
+        try {
+            if ($authenticated) {
+                $payload = ['token' => $this->token()] + $payload;
+            }
 
-        // Un token vencido se detecta reintentando una vez con credenciales frescas.
-        if ($authenticated && $this->isExpiredTokenResponse($response)) {
-            $payload['token'] = $this->token(force_refresh: true);
             $response = $this->send($path, $payload);
+
+            // Un token vencido se detecta reintentando una vez con credenciales frescas.
+            if ($authenticated && $this->isExpiredTokenResponse($response)) {
+                $payload['token'] = $this->token(force_refresh: true);
+                $response = $this->send($path, $payload);
+            }
+
+            $status = $response->status();
+            $body = $this->decode($path, $response);
+
+            if (isset($body['error_id']) && (int) $body['error_id'] !== 0) {
+                throw DianRequestException::fromResponse($path, $body);
+            }
+        } catch (DianRequestException $exception) {
+            $this->log($path, $payload, $exception->response, false, $status, $started_at, $exception);
+
+            throw $exception;
         }
 
-        $body = $this->decode($path, $response);
-
-        if (isset($body['error_id']) && (int) $body['error_id'] !== 0) {
-            throw DianRequestException::fromResponse($path, $body);
-        }
+        $this->log($path, $payload, $body, true, $status, $started_at);
 
         return $body;
     }
@@ -332,6 +362,92 @@ class TitanioClient
         $message = mb_strtolower((string) ($body['error_msg'] ?? $body['mensaje'] ?? ''));
 
         return str_contains($message, 'token');
+    }
+
+    /**
+     * Registra la llamada en la bitácora. Nunca debe interrumpir la emisión:
+     * si el registro falla, la operación continúa.
+     *
+     * @param  array<string, mixed>  $payload
+     * @param  array<string, mixed>  $body
+     */
+    private function log(
+        string $path,
+        array $payload,
+        array $body,
+        bool $success,
+        ?int $status,
+        float $started_at,
+        ?DianRequestException $exception = null,
+    ): void {
+        try {
+            DianRequestLog::query()->create([
+                'business_id'           => $this->context_invoice?->business_id,
+                'electronic_invoice_id' => $this->context_invoice?->id,
+                'work_order_invoice_id' => $this->context_invoice?->work_order_invoice_id,
+                'operation'             => $this->operationFor($path),
+                'endpoint'              => $path,
+                'environment'           => $this->environment(),
+                'success'               => $success,
+                'http_status'           => $status,
+                'error_id'              => $exception?->errorId ?? (isset($body['error_id']) ? (int) $body['error_id'] : null),
+                'error_message'         => $exception ? $this->providerMessage($body, $exception) : null,
+                'request_payload'       => $this->readablePayload($payload),
+                'response_payload'      => $body !== [] ? $this->encode($body) : null,
+                'attempt'               => $this->context_attempt,
+                'duration_ms'           => (int) round((microtime(true) - $started_at) * 1000),
+                'created_by'            => auth()->id(),
+            ]);
+        } catch (Throwable) {
+            // La bitácora es informativa: no puede tumbar la emisión.
+        }
+    }
+
+    /** @param array<string, mixed> $body */
+    private function providerMessage(array $body, DianRequestException $exception): string
+    {
+        // El detalle útil del rechazo suele venir en "mensaje", no en "error_msg".
+        $message = trim((string) ($body['mensaje'] ?? ''));
+
+        return $message !== '' ? $message : $exception->getMessage();
+    }
+
+    /**
+     * Payload legible para la bitácora: sin credenciales y con el documento decodificado.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    private function readablePayload(array $payload): string
+    {
+        unset($payload['token'], $payload['password']);
+
+        if (isset($payload['data']) && is_string($payload['data'])) {
+            $decoded = base64_decode($payload['data'], strict: true);
+            $payload['data'] = $decoded !== false ? $decoded : '[base64]';
+        }
+
+        return $this->encode($payload);
+    }
+
+    /** @param array<string, mixed> $value */
+    private function encode(array $value): string
+    {
+        return (string) json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+    }
+
+    private function operationFor(string $path): string
+    {
+        return match ($path) {
+            self::PATH_AUTHENTICATION    => DianRequestLog::OPERATION_AUTHENTICATE,
+            self::PATH_EMIT              => DianRequestLog::OPERATION_EMIT,
+            self::PATH_DOCUMENT_STATUS   => DianRequestLog::OPERATION_STATUS,
+            self::PATH_DOWNLOAD          => DianRequestLog::OPERATION_DOWNLOAD,
+            self::PATH_DETAIL            => DianRequestLog::OPERATION_DETAIL,
+            self::PATH_SAVE_COMPANY,
+            self::PATH_SAVE_PROFILE      => DianRequestLog::OPERATION_REGISTER_COMPANY,
+            self::PATH_QUERY_RESOLUTION  => DianRequestLog::OPERATION_QUERY_RESOLUTION,
+            default                      => trim($path, '/'),
+        };
     }
 
     private function tokenCacheKey(): string

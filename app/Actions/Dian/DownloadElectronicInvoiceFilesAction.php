@@ -26,7 +26,7 @@ class DownloadElectronicInvoiceFilesAction
             ]);
         }
 
-        $client = TitanioClient::for($electronic_invoice->environment);
+        $client = TitanioClient::for($electronic_invoice->environment)->forInvoice($electronic_invoice);
         $directory = self::directory($electronic_invoice);
         $paths = [];
 
