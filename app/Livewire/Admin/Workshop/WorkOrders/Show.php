@@ -621,7 +621,7 @@ class Show extends Component
     {
         $this->workOrder->load([
             'items.productType',
-            'items.catalogProduct',
+            'items.catalogProduct.images',
             'items.equipment',
             'client',
             'equipments',

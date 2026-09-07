@@ -124,4 +124,26 @@
             </dl>
         </section>
     </div>
+
+    <section class="mt-4 overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
+        <div class="border-b border-slate-100 bg-slate-50/80 px-5 py-4">
+            <h2 class="font-semibold text-slate-800">Imágenes</h2>
+            <p class="mt-0.5 text-xs text-slate-500">La primera imagen marcada como principal es la que se muestra en los listados y en el selector de la OT.</p>
+        </div>
+        <div class="p-5">
+            @if($can_edit)
+                <livewire:admin.catalog.products.image-gallery :product="$product" :key="'product-gallery-'.$product->id" />
+            @else
+                <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                    @forelse($product->images as $image)
+                    <div wire:key="ro-product-image-{{ $image->id }}" class="aspect-square overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
+                        <img src="{{ $image->url }}" alt="Imagen de {{ $product->name }}" class="h-full w-full object-cover">
+                    </div>
+                    @empty
+                    <p class="col-span-full py-6 text-center text-sm text-slate-400">Este producto aún no tiene imágenes.</p>
+                    @endforelse
+                </div>
+            @endif
+        </div>
+    </section>
 </div>

@@ -32,6 +32,7 @@ class Show extends Component
             'product_category',
             'unit',
             'brand',
+            'images',
         ]);
     }
 

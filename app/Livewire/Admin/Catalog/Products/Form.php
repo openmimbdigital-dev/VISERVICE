@@ -161,6 +161,10 @@ class Form extends Component
                     'title'       => 'Precios',
                     'description' => 'Costo, porcentaje y precio de venta',
                 ],
+                ProductForm::STEP_IMAGES => [
+                    'title'       => 'Imágenes',
+                    'description' => 'Fotos del producto (opcional)',
+                ],
             ],
             'businesses'         => $is_super_admin
                 ? Business::where('status', true)->orderBy('name')->get(['id', 'name'])
@@ -169,6 +173,7 @@ class Form extends Component
             'product_categories' => $this->form->getProductCategories(),
             'units'              => $this->form->getUnits(),
             'brands'             => $this->form->getBrands(),
+            'product'            => $this->form->product_id ? Product::find($this->form->product_id) : null,
         ]);
     }
 
