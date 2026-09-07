@@ -21,7 +21,11 @@ class TitanioClient
 {
     private const PATH_AUTHENTICATION = '/PDE/public/api/PDE/authentication';
     private const PATH_EMIT = '/PDE/public/api/PDE/emitir_v2';
-    private const PATH_DOCUMENT_STATUS = '/PDE/public/api/PDE/estadoDocumento';
+    /**
+     * La ruta REST real es «estado_documentos», no la «estadoDocumento» del manual
+     * (esa responde 404). La confirmó el proveedor por correo.
+     */
+    private const PATH_DOCUMENT_STATUS = '/PDE/public/api/PDE/estado_documentos';
     private const PATH_DOWNLOAD = '/PDE/public/api/PDE/descargar';
     private const PATH_DETAIL = '/PDE/public/api/PDE/detalle';
     private const PATH_SAVE_COMPANY = '/PDE/public/api/PDE/SaveAutoGestion';
@@ -138,27 +142,47 @@ class TitanioClient
     /**
      * Cronología de estados y motivo de rechazo de una transacción.
      *
-     * Se resuelve con /detalle porque /estadoDocumento responde 404 en la plataforma,
-     * pese a estar documentado, y además /detalle entrega el error que reportó la DIAN.
+     * La cronología viene de /estado_documentos, pero el motivo del rechazo solo lo
+     * entrega /detalle, así que ese se consulta únicamente cuando hizo falta.
      *
      * @return array{timeline:string, dian_error:?string, raw:array<string,mixed>}
      */
     public function transactionSummary(int $transaction_id): array
     {
+        $timeline = $this->documentStatus($transaction_id);
+
+        if ($timeline !== '' && ! str_contains(mb_strtolower($timeline), 'rechaz')) {
+            return ['timeline' => $timeline, 'dian_error' => null, 'raw' => []];
+        }
+
         $response = $this->detail($transaction_id);
         $dian_error = trim((string) ($response['error'] ?? ''));
 
         return [
-            'timeline'   => (string) ($response['detalleTransaccion']['estado_id'] ?? ''),
+            'timeline'   => $timeline !== '' ? $timeline : (string) ($response['detalleTransaccion']['estado_id'] ?? ''),
             'dian_error' => $dian_error !== '' ? $dian_error : null,
             'raw'        => $response,
         ];
     }
 
-    /** Cronología de estados ("Recibida, Validada, Enviado a la DIAN..."). */
+    /**
+     * Cronología de estados ("Recibida, Validada, Enviado a la DIAN...").
+     *
+     * El endpoint acepta varios documentos a la vez; aquí se consulta uno.
+     */
     public function documentStatus(int $transaction_id): string
     {
-        return $this->transactionSummary($transaction_id)['timeline'];
+        $response = $this->request(self::PATH_DOCUMENT_STATUS, [
+            'documentos' => [['transaccion_id' => $transaction_id]],
+        ]);
+
+        foreach ((array) ($response['documentos'] ?? []) as $document) {
+            if ((int) ($document['transaccion_id'] ?? 0) === $transaction_id) {
+                return (string) ($document['estado'] ?? '');
+            }
+        }
+
+        return '';
     }
 
     /**
