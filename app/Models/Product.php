@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Product extends Model
@@ -68,6 +69,21 @@ class Product extends Model
     public function brand(): BelongsTo
     {
         return $this->belongsTo(Brand::class);
+    }
+
+    public function images(): HasMany
+    {
+        return $this->hasMany(ProductImage::class)->orderBy('sort_order')->orderBy('id');
+    }
+
+    public function primaryImage(): ?ProductImage
+    {
+        return $this->images->firstWhere('is_primary', true) ?? $this->images->first();
+    }
+
+    public function primaryImageUrl(): ?string
+    {
+        return $this->primaryImage()?->url;
     }
 
     public function scopeActive(Builder $query): Builder

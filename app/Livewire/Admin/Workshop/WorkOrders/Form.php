@@ -37,6 +37,19 @@ class Form extends Component
     /** Bloquea el select de cotización cuando se abre el form desde una cotización. */
     public bool $quotation_locked = false;
 
+    public string $catalog_search = '';
+
+    public ?int $catalog_type_filter = null;
+
+    public int $catalog_visible_count = 20;
+
+    public ?int $preview_product_id = null;
+
+    /** @var array<int, string> */
+    public array $catalog_quantities = [];
+
+    public ?int $active_equipment_id = null;
+
     public function mount(?WorkOrder $workOrder = null): void
     {
         if ($workOrder) {
@@ -68,6 +81,8 @@ class Form extends Component
                 'discount_percentage' => (string) $item->discount_percentage,
             ])->values()->all();
 
+            $this->syncActiveEquipment();
+
             return;
         }
 
@@ -80,6 +95,8 @@ class Form extends Component
                 $this->quotation_locked = true;
             }
         }
+
+        $this->syncActiveEquipment();
     }
 
     public function updatedFormClientId(): void
@@ -90,6 +107,7 @@ class Form extends Component
 
         $this->form->equipment_ids = [];
         $this->clearItemEquipmentAssignments();
+        $this->syncActiveEquipment();
     }
 
     public function updatedFormEquipmentIds(): void
@@ -106,6 +124,29 @@ class Form extends Component
             if ($equipment_id > 0 && ! isset($allowed_flip[$equipment_id])) {
                 $this->items[$index]['equipment_id'] = null;
             }
+        }
+
+        $this->syncActiveEquipment();
+    }
+
+    private function syncActiveEquipment(): void
+    {
+        $allowed = $this->form->resolvedEquipmentIds();
+
+        if ($allowed === []) {
+            $this->active_equipment_id = null;
+
+            return;
+        }
+
+        if (count($allowed) === 1) {
+            $this->active_equipment_id = $allowed[0];
+
+            return;
+        }
+
+        if (! in_array($this->active_equipment_id, $allowed, true)) {
+            $this->active_equipment_id = null;
         }
     }
 
@@ -154,49 +195,43 @@ class Form extends Component
             'unit_price'          => (string) $item->unit_price,
             'discount_percentage' => (string) $item->discount_percentage,
         ])->values()->all();
+
+        $this->syncActiveEquipment();
     }
 
-    public function updatedItems(mixed $value, string $key): void
+    public function updatedCatalogSearch(): void
     {
-        $parts = explode('.', (string) $key);
-        $index = (int) ($parts[0] ?? -1);
-        $field = $parts[1] ?? null;
+        $this->catalog_visible_count = 20;
+    }
 
-        if ($index < 0 || ! isset($this->items[$index]) || $field === null) {
-            return;
-        }
+    public function updatedCatalogTypeFilter(): void
+    {
+        $this->catalog_visible_count = 20;
+    }
 
-        if ($field === 'product_type_id') {
-            $this->items[$index]['product_id'] = null;
+    public function loadMoreCatalogProducts(): void
+    {
+        $this->catalog_visible_count += 20;
+    }
 
-            return;
-        }
-
-        if ($field !== 'product_id' || ! $value) {
-            return;
-        }
-
-        $catalog = Product::query()
+    public function showProductPreview(int $product_id): void
+    {
+        $exists = Product::query()
             ->forAuthUser()
-            ->complete()
             ->where('business_id', $this->form->resolvedBusinessId())
-            ->whereKey($value)
-            ->first();
+            ->whereKey($product_id)
+            ->exists();
 
-        if (! $catalog) {
+        if (! $exists) {
             return;
         }
 
-        $selected_type = $this->items[$index]['product_type_id'] ?? null;
-        if ($selected_type && (int) $catalog->product_type_id !== (int) $selected_type) {
-            $this->items[$index]['product_id'] = null;
+        $this->preview_product_id = $product_id;
+    }
 
-            return;
-        }
-
-        $this->items[$index]['product_type_id'] = $catalog->product_type_id;
-        $this->items[$index]['description']     = $catalog->name;
-        $this->items[$index]['unit_price']      = (string) $catalog->sale_price;
+    public function closeProductPreview(): void
+    {
+        $this->preview_product_id = null;
     }
 
     public function addItem(): void
@@ -206,7 +241,7 @@ class Form extends Component
         $this->items[] = [
             'uid'                 => uniqid('wo-item-', true),
             'id'                  => null,
-            'equipment_id'        => count($equipment_ids) === 1 ? $equipment_ids[0] : null,
+            'equipment_id'        => $this->active_equipment_id ?: (count($equipment_ids) === 1 ? $equipment_ids[0] : null),
             'product_type_id'     => null,
             'product_id'          => null,
             'description'         => '',
@@ -214,6 +249,61 @@ class Form extends Component
             'unit_price'          => '0',
             'discount_percentage' => '0',
         ];
+    }
+
+    public function addCatalogItem(int $product_id): void
+    {
+        $equipment_ids = $this->form->resolvedEquipmentIds();
+        $equipment_id  = $this->active_equipment_id ?: (count($equipment_ids) === 1 ? $equipment_ids[0] : null);
+
+        if (! $equipment_id || ! in_array($equipment_id, $equipment_ids, true)) {
+            $this->addError('active_equipment_id', 'Selecciona el equipo al que se aplicará el producto.');
+
+            return;
+        }
+
+        $catalog = Product::query()
+            ->forAuthUser()
+            ->complete()
+            ->where('business_id', $this->form->resolvedBusinessId())
+            ->active()
+            ->whereKey($product_id)
+            ->first();
+
+        if (! $catalog) {
+            return;
+        }
+
+        $quantity = (float) ($this->catalog_quantities[$product_id] ?? 1);
+        if ($quantity <= 0) {
+            $quantity = 1;
+        }
+
+        foreach ($this->items as $index => $row) {
+            $same_product   = (int) ($row['product_id'] ?? 0) === (int) $catalog->id;
+            $same_equipment = (int) ($row['equipment_id'] ?? 0) === $equipment_id;
+
+            if ($same_product && $same_equipment) {
+                $this->items[$index]['quantity'] = (string) ((float) $this->items[$index]['quantity'] + $quantity);
+                $this->catalog_quantities[$product_id] = '1';
+
+                return;
+            }
+        }
+
+        $this->items[] = [
+            'uid'                 => uniqid('wo-item-', true),
+            'id'                  => null,
+            'equipment_id'        => $equipment_id,
+            'product_type_id'     => $catalog->product_type_id,
+            'product_id'          => $catalog->id,
+            'description'         => $catalog->name,
+            'quantity'            => (string) $quantity,
+            'unit_price'          => (string) $catalog->sale_price,
+            'discount_percentage' => '0',
+        ];
+
+        $this->catalog_quantities[$product_id] = '1';
     }
 
     public function removeItem(int $index): void
@@ -444,7 +534,51 @@ class Form extends Component
         $clients = Client::query()->forAuthUser()->where('status', true)->orderBy('name')->get();
         $accepted_quotations = $this->form->getAcceptedQuotations();
         $product_types = ProductType::query()->visibleToUser()->where('active', true)->orderBy('name')->get();
-        $catalog_products = Product::query()->forAuthUser()->complete()->where('business_id', $business_id)->active()->orderBy('name')->get();
+
+        $catalog_query = Product::query()
+            ->forAuthUser()
+            ->complete()
+            ->where('business_id', $business_id)
+            ->active()
+            ->with(['images', 'product_type'])
+            ->when($this->catalog_type_filter, fn ($query) => $query->where('product_type_id', $this->catalog_type_filter))
+            ->when(trim($this->catalog_search) !== '', function ($query) {
+                $term = trim($this->catalog_search);
+                $query->where(function ($q) use ($term) {
+                    $q->where('name', 'like', "%{$term}%")
+                        ->orWhere('sku', 'like', "%{$term}%");
+                });
+            })
+            ->orderBy('name');
+
+        $catalog_products_total = (clone $catalog_query)->count();
+        $catalog_products = $catalog_query->take($this->catalog_visible_count)->get();
+        $catalog_has_more = $catalog_products_total > $catalog_products->count();
+
+        foreach ($catalog_products as $catalog_product) {
+            $this->catalog_quantities[$catalog_product->id] ??= '1';
+        }
+
+        $preview_product = null;
+        if ($this->preview_product_id) {
+            $this->catalog_quantities[$this->preview_product_id] ??= '1';
+
+            $preview_product = Product::query()
+                ->forAuthUser()
+                ->where('business_id', $business_id)
+                ->with(['images', 'product_type', 'product_category', 'unit', 'brand'])
+                ->find($this->preview_product_id);
+        }
+
+        $cart_quantities = collect($this->items)
+            ->filter(fn ($row) => ! empty($row['product_id']))
+            ->groupBy('product_id')
+            ->map(fn ($rows) => $rows->sum(fn ($row) => (float) ($row['quantity'] ?? 0)));
+
+        $cart_product_ids = collect($this->items)->pluck('product_id')->filter()->unique()->values()->all();
+        $cart_products = $cart_product_ids !== []
+            ? Product::query()->forAuthUser()->whereIn('id', $cart_product_ids)->with('images')->get()->keyBy('id')
+            : collect();
 
         $selected_equipment_ids = $this->form->resolvedEquipmentIds();
 
@@ -539,6 +673,10 @@ class Form extends Component
             'accepted_quotations'  => $accepted_quotations,
             'product_types'        => $product_types,
             'catalog_products'     => $catalog_products,
+            'catalog_has_more'     => $catalog_has_more,
+            'preview_product'      => $preview_product,
+            'cart_quantities'      => $cart_quantities,
+            'cart_products'        => $cart_products,
             'equipment_for_client' => $equipment_for_client,
             'selected_equipments'  => $selected_equipments,
             'preview_subtotal'     => $subtotal,
