@@ -6,6 +6,7 @@ use App\Models\BusinessDianSetting;
 use App\Models\City;
 use App\Models\ElectronicInvoice;
 use App\Models\WorkOrderInvoice;
+use App\Models\WorkOrderItem;
 use App\Support\DianNit;
 use DOMDocument;
 use DOMElement;
@@ -464,9 +465,15 @@ class InvoiceDocumentBuilder
             }
 
             $quantity = round((float) $invoice_item->quantity, 2);
-            $unit_price = round((float) $item->unit_price, 2);
-            $discount = (float) $item->discount_percentage;
-            $line_amount = round($quantity * $unit_price * (1 - $discount / 100), 2);
+
+            // El descuento del producto viaja en el precio unitario, no restado del
+            // total: el proveedor valida que LineExtensionAmount sea exactamente
+            // cantidad × PriceAmount y rechaza con [FAV06] si no cuadra.
+            $unit_price = WorkOrderItem::discountedUnitPrice(
+                (float) $item->unit_price,
+                (float) $item->discount_percentage
+            );
+            $line_amount = round($quantity * $unit_price, 2);
 
             $product = $item->catalogProduct;
             $position++;
@@ -518,11 +525,17 @@ class InvoiceDocumentBuilder
 
             $assigned += $line_discount;
 
-            $line_amount = round($line['line_amount'] - $line_discount, 2);
-            $quantity    = (float) $line['quantity'];
+            // Igual que con el descuento del producto: se rebaja el precio unitario
+            // y el total se deriva de él, para que siga cuadrando cantidad × precio.
+            $quantity   = (float) $line['quantity'];
+            $unit_price = $quantity > 0
+                ? round(($line['line_amount'] - $line_discount) / $quantity, 2)
+                : 0.0;
 
+            $line_amount = round($quantity * $unit_price, 2);
+
+            $lines[$index]['unit_price']  = $unit_price;
             $lines[$index]['line_amount'] = $line_amount;
-            $lines[$index]['unit_price']  = $quantity > 0 ? round($line_amount / $quantity, 2) : 0.0;
             $lines[$index]['tax_amount']  = round($line_amount * $tax_percentage / 100, 2);
         }
 

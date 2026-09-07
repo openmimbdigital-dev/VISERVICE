@@ -14,6 +14,7 @@ use App\Models\Product;
 use App\Models\ProductType;
 use App\Models\Quotation;
 use App\Models\WorkOrder;
+use App\Models\WorkOrderItem;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
@@ -494,8 +495,11 @@ class Form extends Component
         $subtotal = 0.0;
 
         foreach ($this->items as $row) {
-            $base     = round((float) ($row['quantity'] ?? 0) * (float) ($row['unit_price'] ?? 0), 2);
-            $subtotal += round($base * (1 - (float) ($row['discount_percentage'] ?? 0) / 100), 2);
+            $subtotal += WorkOrderItem::lineSubtotal(
+                (float) ($row['quantity'] ?? 0),
+                (float) ($row['unit_price'] ?? 0),
+                (float) ($row['discount_percentage'] ?? 0)
+            );
         }
 
         return round($subtotal, 2);
@@ -720,12 +724,17 @@ class Form extends Component
         $item_line_discounts = [];
         $items_discount_total = 0.0;
         foreach ($this->items as $index => $row) {
-            $base     = round((float) ($row['quantity'] ?? 0) * (float) ($row['unit_price'] ?? 0), 2);
-            $discount = round($base * ((float) ($row['discount_percentage'] ?? 0) / 100), 2);
+            $quantity = (float) ($row['quantity'] ?? 0);
+            $base     = round($quantity * (float) ($row['unit_price'] ?? 0), 2);
+            $total    = WorkOrderItem::lineSubtotal(
+                $quantity,
+                (float) ($row['unit_price'] ?? 0),
+                (float) ($row['discount_percentage'] ?? 0)
+            );
 
-            $item_line_totals[$index]    = round($base - $discount, 2);
-            $item_line_discounts[$index] = $discount;
-            $items_discount_total += $discount;
+            $item_line_totals[$index]    = $total;
+            $item_line_discounts[$index] = round($base - $total, 2);
+            $items_discount_total += round($base - $total, 2);
         }
 
         $linked_remission = null;

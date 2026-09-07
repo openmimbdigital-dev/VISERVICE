@@ -234,7 +234,7 @@ class Show extends Component
         $qty = (float) $this->item_quantity;
         $price = (float) $this->item_unit_price;
         $discount = (float) $this->item_discount;
-        $subtotal = round(($qty * $price) * (1 - $discount / 100), 2);
+        $subtotal = WorkOrderItem::lineSubtotal($qty, $price, $discount);
 
         $data = [
             'equipment_id'        => (int) $this->item_equipment_id,

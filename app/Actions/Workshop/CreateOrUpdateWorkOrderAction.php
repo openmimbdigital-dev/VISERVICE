@@ -282,7 +282,7 @@ class CreateOrUpdateWorkOrderAction
             $qty      = (float) ($row['quantity'] ?? 1);
             $price    = (float) ($row['unit_price'] ?? 0);
             $discount = (float) ($row['discount_percentage'] ?? 0);
-            $subtotal = round($qty * $price * (1 - $discount / 100), 2);
+            $subtotal = WorkOrderItem::lineSubtotal($qty, $price, $discount);
 
             $payload = [
                 'equipment_id'        => $equipment_id,
