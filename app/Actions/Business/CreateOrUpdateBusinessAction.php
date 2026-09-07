@@ -42,6 +42,10 @@ class CreateOrUpdateBusinessAction
         $attributes = [
             'name'                 => $data['name'],
             'nit'                  => $data['nit'],
+            'verification_digit'      => $data['verification_digit'] ?? null,
+            'person_type'             => $data['person_type'] ?? 1,
+            'fiscal_responsibilities' => $data['fiscal_responsibilities'] ?? 'R-99-PN',
+            'postal_code'             => $data['postal_code'] ?? null,
             'business_type_id'     => $business_type->id,
             'organization_type_id' => $business_type->organization_type_id,
             'phone_number'         => $data['phone_number'],

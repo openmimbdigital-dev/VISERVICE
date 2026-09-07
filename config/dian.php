@@ -81,4 +81,23 @@ return [
         'test_technical_key' => 'fc8eac422eba16e22ffd8c6f94b3f40a6e38162c',
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Catálogos DIAN para los formularios
+    |--------------------------------------------------------------------------
+    */
+
+    'person_types' => [
+        1 => 'Persona jurídica',
+        2 => 'Persona natural',
+    ],
+
+    'fiscal_responsibilities' => [
+        'R-99-PN' => 'No responsable (R-99-PN)',
+        'O-13'    => 'Gran contribuyente (O-13)',
+        'O-15'    => 'Autorretenedor (O-15)',
+        'O-23'    => 'Agente de retención de IVA (O-23)',
+        'O-47'    => 'Régimen simple de tributación (O-47)',
+    ],
+
 ];

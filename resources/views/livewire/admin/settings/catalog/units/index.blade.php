@@ -79,6 +79,14 @@
                             class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('form.symbol') border-rose-400 bg-rose-50 @enderror">
                         @error('form.symbol') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                     </div>
+
+                    <div>
+                        <label class="mb-1.5 block text-xs font-medium text-slate-700">Código UN/ECE <span class="text-rose-500">*</span></label>
+                        <input wire:model="form.unece_code" type="text" maxlength="10" placeholder="Ej. NIU"
+                            class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 font-mono text-sm uppercase transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('form.unece_code') border-rose-400 bg-rose-50 @enderror">
+                        <p class="mt-1 text-xs text-slate-500">Unidad de medida exigida por la DIAN: NIU (unidad), KGM (kg), LTR (litro), MTR (metro).</p>
+                        @error('form.unece_code') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                    </div>
                 </div>
 
                 <div>

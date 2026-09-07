@@ -67,9 +67,46 @@
 
                 <div>
                     <label class="mb-1.5 block text-xs font-medium text-slate-700">NIT <span class="text-rose-500">*</span></label>
-                    <input type="text" wire:model="form.nit"
+                    <input type="text" wire:model.blur="form.nit"
                         class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('form.nit') border-rose-400 bg-rose-50 @enderror">
                     @error('form.nit') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                </div>
+
+                <div>
+                    <label class="mb-1.5 block text-xs font-medium text-slate-700">Dígito de verificación</label>
+                    <input type="text" maxlength="1" wire:model="form.verification_digit"
+                        class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 font-mono text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('form.verification_digit') border-rose-400 bg-rose-50 @enderror">
+                    <p class="mt-1 text-xs text-slate-500">Se calcula solo al escribir el NIT. Requerido para facturar electrónicamente.</p>
+                    @error('form.verification_digit') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                </div>
+
+                <div>
+                    <label class="mb-1.5 block text-xs font-medium text-slate-700">Tipo de persona <span class="text-rose-500">*</span></label>
+                    <select wire:model="form.person_type"
+                        class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('form.person_type') border-rose-400 bg-rose-50 @enderror">
+                        @foreach(config('dian.person_types') as $value => $label)
+                        <option value="{{ $value }}">{{ $label }}</option>
+                        @endforeach
+                    </select>
+                    @error('form.person_type') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                </div>
+
+                <div>
+                    <label class="mb-1.5 block text-xs font-medium text-slate-700">Responsabilidad fiscal <span class="text-rose-500">*</span></label>
+                    <select wire:model="form.fiscal_responsibilities"
+                        class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('form.fiscal_responsibilities') border-rose-400 bg-rose-50 @enderror">
+                        @foreach(config('dian.fiscal_responsibilities') as $value => $label)
+                        <option value="{{ $value }}">{{ $label }}</option>
+                        @endforeach
+                    </select>
+                    @error('form.fiscal_responsibilities') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                </div>
+
+                <div>
+                    <label class="mb-1.5 block text-xs font-medium text-slate-700">Código postal</label>
+                    <input type="text" wire:model="form.postal_code" placeholder="Ej. 110111"
+                        class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('form.postal_code') border-rose-400 bg-rose-50 @enderror">
+                    @error('form.postal_code') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                 </div>
 
                 <div>

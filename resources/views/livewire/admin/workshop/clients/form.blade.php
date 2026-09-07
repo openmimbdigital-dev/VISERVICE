@@ -71,7 +71,7 @@
 
             <div class="relative">
                 <label class="label-up">Tipo documento *</label>
-                <select wire:model="form.document_type" class="form-select w-full border px-3 py-2 text-sm">
+                <select wire:model.live="form.document_type" class="form-select w-full border px-3 py-2 text-sm">
                     @foreach(['CC', 'NIT', 'CE', 'PA', 'PPT', 'TI'] as $tipo)
                         <option value="{{ $tipo }}">{{ $tipo }}</option>
                     @endforeach
@@ -81,8 +81,38 @@
 
             <div class="relative">
                 <label class="label-up">Número documento</label>
-                <input type="text" wire:model="form.document_number" class="form-input w-full border px-3 py-2 text-sm" />
+                <input type="text" wire:model.blur="form.document_number" class="form-input w-full border px-3 py-2 text-sm" />
                 @error('form.document_number')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+            </div>
+
+            @if($form->document_type === 'NIT')
+            <div class="relative">
+                <label class="label-up">Dígito de verificación</label>
+                <input type="text" maxlength="1" wire:model="form.verification_digit" class="form-input w-full border px-3 py-2 text-sm font-mono" />
+                <p class="mt-1 text-xs text-slate-500">Se calcula automáticamente al escribir el NIT.</p>
+                @error('form.verification_digit')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+            </div>
+            @endif
+
+            <div class="relative">
+                <label class="label-up">Tipo de persona *</label>
+                <select wire:model="form.person_type" class="form-select w-full border px-3 py-2 text-sm">
+                    @foreach(config('dian.person_types') as $value => $label)
+                        <option value="{{ $value }}">{{ $label }}</option>
+                    @endforeach
+                </select>
+                <p class="mt-1 text-xs text-slate-500">Requerido para la factura electrónica.</p>
+                @error('form.person_type')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+            </div>
+
+            <div class="relative">
+                <label class="label-up">Responsabilidad fiscal *</label>
+                <select wire:model="form.fiscal_responsibilities" class="form-select w-full border px-3 py-2 text-sm">
+                    @foreach(config('dian.fiscal_responsibilities') as $value => $label)
+                        <option value="{{ $value }}">{{ $label }}</option>
+                    @endforeach
+                </select>
+                @error('form.fiscal_responsibilities')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
             </div>
 
             <div class="relative">

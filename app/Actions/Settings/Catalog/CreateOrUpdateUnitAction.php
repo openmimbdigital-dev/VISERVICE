@@ -10,7 +10,7 @@ class CreateOrUpdateUnitAction
 {
     use AsAction;
 
-    /** @param  array{name: string, symbol: string, active: bool}  $data */
+    /** @param  array{name: string, symbol: string, unece_code: string, active: bool}  $data */
     public function handle(?int $unit_id, array $data): Unit
     {
         abort_unless(
@@ -25,6 +25,7 @@ class CreateOrUpdateUnitAction
             'name'   => $data['name'],
             'label'  => CatalogLabelNormalizer::fromName($data['name']),
             'symbol' => $data['symbol'],
+            'unece_code' => $data['unece_code'] ?? 'NIU',
             'active' => $data['active'],
         ];
 
