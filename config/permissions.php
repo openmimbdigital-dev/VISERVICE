@@ -112,6 +112,15 @@ return [
                 'custom_taxes.delete' => 'Eliminar impuestos personalizados',
             ],
         ],
+        'dian_settings' => [
+            'name' => 'Negocios — Facturación electrónica',
+            'permissions' => [
+                'dian_settings.view' => 'Ver configuración de facturación electrónica',
+                'dian_settings.create' => 'Crear configuración de facturación electrónica',
+                'dian_settings.edit' => 'Editar configuración de facturación electrónica',
+                'dian_settings.delete' => 'Eliminar configuración de facturación electrónica',
+            ],
+        ],
         'reports' => [
             'name' => 'Gestión de Reportes',
             'permissions' => [
@@ -311,6 +320,8 @@ return [
             'name' => 'Taller — Facturación',
             'permissions' => [
                 'workshop.invoices.view' => 'Ver facturación',
+                'workshop.invoices.dian.send' => 'Emitir factura electrónica ante la DIAN',
+                'workshop.invoices.dian.download' => 'Descargar XML y PDF de la factura electrónica',
             ],
         ],
         'workshop_advance_payments' => [

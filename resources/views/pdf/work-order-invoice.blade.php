@@ -14,8 +14,10 @@
             @if($business?->email)<p class="muted">{{ $business->email }}</p>@endif
         </td>
         <td class="header-right">
-            <h2>FACTURA</h2>
-            <p class="ref">{{ $invoice->reference }}</p>
+            @php $electronic = $invoice->electronicInvoice; @endphp
+            <h2>{{ $electronic?->cufe ? 'FACTURA ELECTRÓNICA DE VENTA' : 'FACTURA' }}</h2>
+            <p class="ref">{{ $electronic?->document_number ?? $invoice->reference }}</p>
+            @if($electronic?->document_number)<p class="muted">Interna: {{ $invoice->reference }}</p>@endif
             <p class="muted">Estado: {{ $invoice->status_label }}</p>
             <p class="muted">Fecha: {{ $invoice->created_at->format('d/m/Y') }}</p>
             @if($invoice->due_date)<p class="muted">Vence: {{ $invoice->due_date->format('d/m/Y') }}</p>@endif
@@ -23,6 +25,28 @@
         </td>
     </tr>
 </table>
+
+@if($invoice->electronicInvoice?->cufe)
+@php
+    $electronic = $invoice->electronicInvoice;
+    $qr_data_uri = \App\Support\DianQrImage::dataUri($electronic->qr_code);
+@endphp
+<table class="grid section">
+    <tr>
+        @if($qr_data_uri)
+        <td style="width: 110px; text-align: center;">
+            <img src="{{ $qr_data_uri }}" alt="Código QR DIAN" style="width: 100px; height: 100px;">
+        </td>
+        @endif
+        <td>
+            <div class="section-title">Factura electrónica DIAN</div>
+            <p class="muted" style="word-break: break-all;"><strong>CUFE:</strong> {{ $electronic->cufe }}</p>
+            @if($electronic->dian_status)<p class="muted">{{ $electronic->dian_status }}</p>@endif
+            @if($electronic->environment === 'test')<p class="muted"><em>Documento emitido en ambiente de pruebas.</em></p>@endif
+        </td>
+    </tr>
+</table>
+@endif
 
 <table class="grid section">
     <tr>

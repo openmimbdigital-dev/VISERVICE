@@ -103,6 +103,7 @@ class WorkshopPdfController extends Controller
             'items.workOrderItem.equipment',
             'workOrder.client',
             'createdBy',
+            'electronicInvoice',
         ]);
 
         return Pdf::loadView('pdf.work-order-invoice', [

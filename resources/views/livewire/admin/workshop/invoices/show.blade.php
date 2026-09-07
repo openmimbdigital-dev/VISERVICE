@@ -82,6 +82,8 @@
         </section>
     </div>
 
+    <livewire:admin.workshop.invoices.dian-panel :invoice="$invoice" :key="'dian-panel-'.$invoice->id" />
+
     @if($invoice->notes)
     <section class="mb-6 overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
         <div class="border-b border-slate-100 bg-slate-50/80 px-5 py-4">

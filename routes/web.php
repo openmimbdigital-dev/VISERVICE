@@ -4,12 +4,14 @@ use App\Http\Controllers\Admin\Events\ScheduleEventsFeedController;
 use App\Http\Controllers\Admin\Reports\Events\EventAttendancePdfController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CurrentBusinessController;
+use App\Http\Controllers\Workshop\ElectronicInvoiceFileController;
 use App\Http\Controllers\Workshop\WorkshopPdfController;
 use App\Livewire\Admin\BankAccounts\Index as AdminBankAccountsIndex;
 use App\Livewire\Admin\Banks\Index as AdminBanksIndex;
 use App\Livewire\Admin\Businesses\BankAccounts\Index as AdminBusinessBankAccountsIndex;
 use App\Livewire\Admin\Businesses\BankAccounts\Show as AdminBusinessBankAccountsShow;
 use App\Livewire\Admin\Businesses\CustomTaxes\Index as AdminCustomTaxesIndex;
+use App\Livewire\Admin\Businesses\DianSettings\Index as AdminDianSettingsIndex;
 use App\Livewire\Admin\Businesses\CustomTaxes\Show as AdminCustomTaxesShow;
 use App\Livewire\Admin\Businesses\Form as AdminBusinessesForm;
 use App\Livewire\Admin\Businesses\Index as AdminBusinessesIndex;
@@ -246,6 +248,9 @@ Route::middleware(['auth', 'ensure.business', 'business.module'])->group(functio
                 ->whereNumber('customTax')
                 ->name('custom-taxes.show');
         });
+        Route::middleware('permission:dian_settings.view')->group(function () {
+            Route::get('/dian-settings', AdminDianSettingsIndex::class)->name('dian-settings.index');
+        });
     });
 
     // Rutas del Comercio
@@ -335,6 +340,9 @@ Route::middleware(['auth', 'ensure.business', 'business.module'])->group(functio
             Route::get('/invoices', WorkshopInvoicesIndex::class)->name('invoices.index');
             Route::get('/invoices/{workOrderInvoice}/print', WorkshopInvoicesPrint::class)->name('invoices.print');
             Route::get('/invoices/{workOrderInvoice}/pdf', [WorkshopPdfController::class, 'workOrderInvoice'])->name('invoices.pdf');
+            Route::get('/invoices/dian/{electronicInvoice}/{type}', ElectronicInvoiceFileController::class)
+                ->whereIn('type', ['xml', 'pdf'])
+                ->name('invoices.dian.file');
             Route::get('/invoices/{workOrderInvoice}', WorkshopInvoicesShow::class)->name('invoices.show');
         });
     });

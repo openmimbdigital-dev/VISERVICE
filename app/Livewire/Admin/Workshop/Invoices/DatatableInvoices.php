@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin\Workshop\Invoices;
 
+use App\Enums\ElectronicInvoiceStatus;
 use App\Models\WorkOrderInvoice;
 use Arm092\LivewireDatatables\Column;
 use Arm092\LivewireDatatables\DateColumn;
@@ -19,6 +20,7 @@ class DatatableInvoices extends LivewireDatatable
     {
         return WorkOrderInvoice::query()
             ->forAuthUser()
+            ->leftJoin('electronic_invoices', 'electronic_invoices.work_order_invoice_id', '=', 'work_order_invoices.id')
             ->select('work_order_invoices.*')
             ->orderByDesc('work_order_invoices.created_at');
     }
@@ -57,6 +59,17 @@ class DatatableInvoices extends LivewireDatatable
                 'vencida'   => 'Vencida',
                 'anulada'   => 'Anulada',
             ]),
+
+            Column::callback(['electronic_invoices.status'], function ($status) {
+                $case = $status ? ElectronicInvoiceStatus::tryFrom($status) : null;
+
+                if (! $case) {
+                    return '<span class="text-xs text-slate-400">Sin emitir</span>';
+                }
+
+                return '<span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium '
+                    .$case->badgeClass().'">'.e($case->label()).'</span>';
+            })->label('Estado DIAN')->filterable(ElectronicInvoiceStatus::options()),
 
             DateColumn::name('work_order_invoices.due_date')
                 ->label('Vencimiento')

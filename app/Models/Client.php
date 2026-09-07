@@ -14,6 +14,7 @@ class Client extends Model
 
     protected $fillable = [
         'business_id', 'city_id', 'name', 'document_type', 'document_number',
+        'verification_digit', 'person_type', 'fiscal_responsibilities',
         'phone', 'email', 'address', 'contact_name',
         'status', 'notes', 'created_by',
     ];
@@ -21,7 +22,8 @@ class Client extends Model
     protected function casts(): array
     {
         return [
-            'status' => 'boolean',
+            'person_type' => 'integer',
+            'status'      => 'boolean',
         ];
     }
 

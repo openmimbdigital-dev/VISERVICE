@@ -45,6 +45,11 @@ class WorkOrderInvoice extends Model
         return $this->hasMany(WorkOrderInvoiceItem::class);
     }
 
+    public function electronicInvoice(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(ElectronicInvoice::class);
+    }
+
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
