@@ -4,12 +4,15 @@ use App\Http\Controllers\Admin\Events\ScheduleEventsFeedController;
 use App\Http\Controllers\Admin\Reports\Events\EventAttendancePdfController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CurrentBusinessController;
+use App\Http\Controllers\PaymentProofController;
+use App\Http\Controllers\Workshop\ElectronicInvoiceFileController;
 use App\Http\Controllers\Workshop\WorkshopPdfController;
 use App\Livewire\Admin\BankAccounts\Index as AdminBankAccountsIndex;
 use App\Livewire\Admin\Banks\Index as AdminBanksIndex;
 use App\Livewire\Admin\Businesses\BankAccounts\Index as AdminBusinessBankAccountsIndex;
 use App\Livewire\Admin\Businesses\BankAccounts\Show as AdminBusinessBankAccountsShow;
 use App\Livewire\Admin\Businesses\CustomTaxes\Index as AdminCustomTaxesIndex;
+use App\Livewire\Admin\Businesses\DianSettings\Index as AdminDianSettingsIndex;
 use App\Livewire\Admin\Businesses\CustomTaxes\Show as AdminCustomTaxesShow;
 use App\Livewire\Admin\Businesses\Form as AdminBusinessesForm;
 use App\Livewire\Admin\Businesses\Index as AdminBusinessesIndex;
@@ -18,6 +21,7 @@ use App\Livewire\Admin\Businesses\PaymentMethods\Index as AdminBusinessPaymentMe
 use App\Livewire\Admin\Businesses\PaymentMethods\Show as AdminBusinessPaymentMethodsShow;
 use App\Livewire\Admin\Businesses\Show as AdminBusinessesShow;
 use App\Livewire\Admin\BusinessTypes\Index as AdminBusinessTypesIndex;
+use App\Livewire\Admin\Catalog\Coupons\Index as CatalogCouponsIndex;
 use App\Livewire\Admin\Catalog\Products\Form as CatalogProductsForm;
 use App\Livewire\Admin\Catalog\Products\Index as CatalogProductsIndex;
 use App\Livewire\Admin\Catalog\Products\Show as CatalogProductsShow;
@@ -150,6 +154,8 @@ Route::middleware(['auth', 'ensure.business', 'business.module'])->group(functio
         Route::get('/subscriptions', AdminSubscriptionsIndex::class)->name('subscriptions.index');
         Route::get('/subscriptions/plans', AdminSubscriptionPlansIndex::class)->name('subscriptions.plans.index');
         Route::get('/payments', AdminPaymentsIndex::class)->name('payments.index');
+        Route::get('/payments/{subscriptionInvoice}/proof', PaymentProofController::class)
+            ->name('payments.proof');
         Route::get('/finance', AdminFinanceIndex::class)->name('finance.index');
         Route::get('/bank-accounts', AdminBankAccountsIndex::class)->name('bank-accounts.index');
         Route::get('/banks', AdminBanksIndex::class)->name('banks.index');
@@ -246,6 +252,9 @@ Route::middleware(['auth', 'ensure.business', 'business.module'])->group(functio
                 ->whereNumber('customTax')
                 ->name('custom-taxes.show');
         });
+        Route::middleware('permission:dian_settings.view')->group(function () {
+            Route::get('/dian-settings', AdminDianSettingsIndex::class)->name('dian-settings.index');
+        });
     });
 
     // Rutas del Comercio
@@ -335,6 +344,9 @@ Route::middleware(['auth', 'ensure.business', 'business.module'])->group(functio
             Route::get('/invoices', WorkshopInvoicesIndex::class)->name('invoices.index');
             Route::get('/invoices/{workOrderInvoice}/print', WorkshopInvoicesPrint::class)->name('invoices.print');
             Route::get('/invoices/{workOrderInvoice}/pdf', [WorkshopPdfController::class, 'workOrderInvoice'])->name('invoices.pdf');
+            Route::get('/invoices/dian/{electronicInvoice}/{type}', ElectronicInvoiceFileController::class)
+                ->whereIn('type', ['xml', 'pdf'])
+                ->name('invoices.dian.file');
             Route::get('/invoices/{workOrderInvoice}', WorkshopInvoicesShow::class)->name('invoices.show');
         });
     });
@@ -513,6 +525,9 @@ Route::middleware(['auth', 'ensure.business', 'business.module'])->group(functio
         });
         Route::middleware('permission:catalog.products.view')->group(function () {
             Route::get('/products/{product}', CatalogProductsShow::class)->name('products.show');
+        });
+        Route::middleware('permission:catalog.coupons.view')->group(function () {
+            Route::get('/coupons', CatalogCouponsIndex::class)->name('coupons.index');
         });
     });
     });

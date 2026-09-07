@@ -4,7 +4,6 @@ namespace App\Livewire\Admin\Payments;
 
 use App\Models\BankAccount;
 use App\Models\SubscriptionInvoice;
-use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -79,9 +78,9 @@ class Index extends Component
         $this->admin_notes            = '';
     }
 
-    public function getProofUrl(?string $proofPath): ?string
+    public function getProofUrl(SubscriptionInvoice $invoice, ?string $proofPath): ?string
     {
-        return $proofPath ? Storage::disk('public')->url($proofPath) : null;
+        return $proofPath ? route('admin.payments.proof', $invoice) : null;
     }
 
     public function render()

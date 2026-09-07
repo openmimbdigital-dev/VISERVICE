@@ -113,6 +113,21 @@
                     <dd class="tabular-nums text-sm font-medium text-slate-900 sm:col-span-2">{{ $product->sale_price !== null ? '$ ' . number_format((float) $product->sale_price, 2, ',', '.') : '—' }}</dd>
                 </div>
                 <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt class="text-xs font-medium text-slate-500">Descuento</dt>
+                    <dd class="text-sm sm:col-span-2">
+                        @if($product->hasDiscount())
+                        <span class="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800 ring-1 ring-amber-600/20">
+                            −{{ $product->discountLabel() }}
+                            @if($product->discount_type === 'amount') <span class="ml-1 font-normal text-amber-700">({{ $product->discountPercentage() }}%)</span> @endif
+                        </span>
+                        <span class="ml-2 tabular-nums text-slate-500">Precio final:</span>
+                        <span class="tabular-nums font-semibold text-emerald-700">{{ col_money($product->finalPrice()) }}</span>
+                        @else
+                        <span class="text-slate-500">Sin descuento</span>
+                        @endif
+                    </dd>
+                </div>
+                <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
                     <dt class="text-xs font-medium text-slate-500">Inventario</dt>
                     <dd class="text-sm text-slate-900 sm:col-span-2">
                         {{ $product->track_inventory ? 'Sí' : 'No' }}

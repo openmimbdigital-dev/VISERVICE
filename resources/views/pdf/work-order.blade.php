@@ -106,6 +106,9 @@
 
 <table class="totals">
     <tr><td>Subtotal</td><td class="text-right">{{ col_money($workOrder->subtotal) }}</td></tr>
+    @if((float) $workOrder->discount_amount > 0)
+    <tr><td>Descuento{{ $workOrder->coupon_code ? ' ('.$workOrder->coupon_code.')' : '' }}</td><td class="text-right">−{{ col_money($workOrder->discount_amount) }}</td></tr>
+    @endif
     <tr><td>IVA ({{ $workOrder->tax_percentage }}%)</td><td class="text-right">{{ col_money($workOrder->tax_amount) }}</td></tr>
     <tr class="total"><td>TOTAL</td><td class="text-right">{{ col_money($workOrder->total) }}</td></tr>
 </table>

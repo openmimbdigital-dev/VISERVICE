@@ -65,11 +65,66 @@ class WorkOrderItem extends Model
         return $this->hasMany(WorkOrderInvoiceItem::class);
     }
 
+    /**
+     * Precio unitario con el descuento ya aplicado, a dos decimales.
+     *
+     * El descuento se aplica al precio, no al total de la línea: la facturación
+     * electrónica exige que el total sea exactamente cantidad × precio, y un
+     * descuento aplicado al total no siempre se puede repartir en un precio de
+     * dos decimales. Cobrar un precio unitario rebajado es además lo que el
+     * cliente entiende que está pagando.
+     */
+    public static function discountedUnitPrice(float $unit_price, float $discount_percentage): float
+    {
+        $discount_percentage = max(0, min(100, $discount_percentage));
+
+        return round($unit_price * (1 - $discount_percentage / 100), 2);
+    }
+
+    public static function lineSubtotal(float $quantity, float $unit_price, float $discount_percentage): float
+    {
+        return round($quantity * self::discountedUnitPrice($unit_price, $discount_percentage), 2);
+    }
+
     public function calculateSubtotal(): float
     {
-        $base     = (float) $this->quantity * (float) $this->unit_price;
-        $discount = $base * ((float) $this->discount_percentage / 100);
+        return self::lineSubtotal(
+            (float) $this->quantity,
+            (float) $this->unit_price,
+            (float) $this->discount_percentage
+        );
+    }
 
-        return round($base - $discount, 2);
+    /** Precio unitario que realmente se cobra en esta línea. */
+    public function finalUnitPrice(): float
+    {
+        return self::discountedUnitPrice((float) $this->unit_price, (float) $this->discount_percentage);
+    }
+
+    /** Lo que costaría la línea sin el descuento del producto. */
+    public function lineBase(): float
+    {
+        return round((float) $this->quantity * (float) $this->unit_price, 2);
+    }
+
+    public function hasDiscount(): bool
+    {
+        return (float) $this->discount_percentage > 0;
+    }
+
+    /** Valor descontado en la línea por el descuento del producto. */
+    public function discountAmount(): float
+    {
+        return round($this->lineBase() - $this->calculateSubtotal(), 2);
+    }
+
+    /** Etiqueta corta del descuento, para mostrarlo junto a la línea. */
+    public function discountLabel(): ?string
+    {
+        if (! $this->hasDiscount()) {
+            return null;
+        }
+
+        return rtrim(rtrim(number_format((float) $this->discount_percentage, 2, '.', ''), '0'), '.').'%';
     }
 }

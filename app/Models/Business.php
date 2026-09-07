@@ -24,6 +24,10 @@ class Business extends Model
         'email',
         'slug',
         'nit',
+        'verification_digit',
+        'person_type',
+        'fiscal_responsibilities',
+        'postal_code',
         'tagline',
         'tax_regime',
         'logo',
@@ -50,6 +54,7 @@ class Business extends Model
             'representative'       => 'array',
             'configurations'       => 'array',
             'configurations_value' => 'array',
+            'person_type'          => 'integer',
             'status'               => 'boolean',
         ];
     }
@@ -129,6 +134,11 @@ class Business extends Model
     public function customTaxes(): HasMany
     {
         return $this->hasMany(CustomTax::class);
+    }
+
+    public function dianSetting(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(BusinessDianSetting::class);
     }
 
     public function activeSubscription(): \Illuminate\Database\Eloquent\Relations\HasOne

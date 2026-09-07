@@ -337,5 +337,101 @@
     @livewireScripts
     @stack('scripts')
     <x-livewire-alert::scripts />
+
+    <div id="app-progress" class="pointer-events-none fixed inset-x-0 top-0 z-[60] h-0.5" aria-hidden="true">
+        <div id="app-progress-bar" class="h-full w-0 bg-gradient-to-r from-indigo-500 to-indigo-700 opacity-0"></div>
+    </div>
+
+    <script>
+        // Barra de progreso para las acciones de Livewire. Solo aparece si la petición
+        // tarda lo suficiente como para notarse, para no parpadear al escribir.
+        document.addEventListener('livewire:init', () => {
+            const bar = document.getElementById('app-progress-bar');
+            let pending = 0;
+            let show_timer = null;
+            let width_timer = null;
+
+            const start = () => {
+                bar.style.transition = 'none';
+                bar.style.width = '0%';
+                bar.style.opacity = '1';
+
+                requestAnimationFrame(() => {
+                    bar.style.transition = 'width 2.5s cubic-bezier(0.1, 0.9, 0.2, 1)';
+                    bar.style.width = '85%';
+                });
+            };
+
+            const finish = () => {
+                clearTimeout(show_timer);
+                clearTimeout(width_timer);
+
+                if (bar.style.opacity !== '1') {
+                    return;
+                }
+
+                bar.style.transition = 'width 0.2s ease-out, opacity 0.3s ease-out 0.15s';
+                bar.style.width = '100%';
+                bar.style.opacity = '0';
+
+                width_timer = setTimeout(() => {
+                    bar.style.transition = 'none';
+                    bar.style.width = '0%';
+                }, 450);
+            };
+
+            Livewire.hook('request', ({ respond }) => {
+                if (pending === 0) {
+                    show_timer = setTimeout(start, 250);
+                }
+
+                pending++;
+
+                respond(() => {
+                    pending = Math.max(0, pending - 1);
+
+                    if (pending === 0) {
+                        finish();
+                    }
+                });
+            });
+        });
+
+        // Los componentes emiten $this->dispatch('swal', [...]): sin este listener
+        // los avisos de guardado del panel no se mostraban.
+        document.addEventListener('livewire:init', () => {
+            Livewire.on('swal', (payload) => {
+                const data = Array.isArray(payload) ? payload[0] : payload;
+
+                if (! window.Swal || ! data) {
+                    return;
+                }
+
+                // Confirmaciones e información: aviso discreto que se cierra solo.
+                // Errores y advertencias: diálogo centrado que exige atención.
+                const is_toast = ['success', 'info'].includes(data.icon ?? 'success');
+
+                window.Swal.fire({
+                    toast: is_toast,
+                    position: is_toast ? 'top-end' : 'center',
+                    showConfirmButton: ! is_toast,
+                    timer: is_toast ? 3200 : undefined,
+                    timerProgressBar: is_toast,
+                    confirmButtonText: 'Entendido',
+                    buttonsStyling: false,
+                    customClass: {
+                        popup: 'swal-app-popup',
+                        title: 'swal-app-title',
+                        htmlContainer: 'swal-app-text',
+                        confirmButton: 'btn btn-primary',
+                        timerProgressBar: 'swal-app-progress',
+                    },
+                    showClass: { popup: 'swal-app-show' },
+                    hideClass: { popup: 'swal-app-hide' },
+                    ...data,
+                });
+            });
+        });
+    </script>
 </body>
 </html>

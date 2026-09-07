@@ -20,7 +20,9 @@ class SyncWorkOrderAdvanceCommitmentAction
     public function handle(WorkOrder $work_order, float $advance_percentage): void
     {
         $advance_percentage = max(0, min(100, $advance_percentage));
-        $amount = round((float) $work_order->subtotal * ($advance_percentage / 100), 2);
+        // Sobre el subtotal ya descontado el cupón: el cliente no debería anticipar
+        // sobre un valor que no va a pagar.
+        $amount = round($work_order->taxableBase() * ($advance_percentage / 100), 2);
 
         $paid = $work_order->advancePaidAmount();
         if ($amount + 0.009 < $paid) {

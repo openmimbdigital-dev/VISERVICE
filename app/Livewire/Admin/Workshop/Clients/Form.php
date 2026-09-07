@@ -38,6 +38,31 @@ class Form extends Component
         abort_unless(auth()->user()->can('workshop.clients.create'), 403);
     }
 
+    public function updatedFormDocumentType(): void
+    {
+        // Un NIT corresponde a persona jurídica; los demás documentos, a persona natural.
+        $this->form->person_type = $this->form->document_type === 'NIT' ? 1 : 2;
+
+        $this->fillVerificationDigit();
+    }
+
+    public function updatedFormDocumentNumber(): void
+    {
+        $this->fillVerificationDigit();
+    }
+
+    /** Sugiere el dígito de verificación mientras el usuario no lo haya escrito. */
+    private function fillVerificationDigit(): void
+    {
+        if ($this->form->document_type !== 'NIT') {
+            $this->form->verification_digit = '';
+
+            return;
+        }
+
+        $this->form->verification_digit = (string) ($this->form->suggestedVerificationDigit() ?? '');
+    }
+
     private function authorizeStatusChange(bool $new_status): void
     {
         if ($new_status) {

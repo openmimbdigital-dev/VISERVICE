@@ -60,11 +60,20 @@ class RolesAndPermissionsSeeder extends Seeder
     }
 
     /** @return list<string> */
+    private function dianSettingsPermissions(): array
+    {
+        return [
+            'dian_settings.view', 'dian_settings.create', 'dian_settings.edit', 'dian_settings.delete',
+        ];
+    }
+
+    /** @return list<string> */
     private function catalogProductsPermissions(): array
     {
         return [
             'catalog.view',
             'catalog.products.view', 'catalog.products.create', 'catalog.products.edit', 'catalog.products.delete',
+            'catalog.coupons.view', 'catalog.coupons.create', 'catalog.coupons.edit', 'catalog.coupons.delete',
         ];
     }
 
@@ -230,6 +239,8 @@ class RolesAndPermissionsSeeder extends Seeder
     {
         return [
             'workshop.invoices.view',
+            'workshop.invoices.dian.send',
+            'workshop.invoices.dian.download',
         ];
     }
 
@@ -304,6 +315,8 @@ class RolesAndPermissionsSeeder extends Seeder
             // Negocios — Pagos, bancos e impuestos
             ...$this->businessPaymentSettingsPermissions(),
             ...$this->customTaxPermissions(),
+            // Negocios — Facturación electrónica DIAN
+            ...$this->dianSettingsPermissions(),
             // Catálogo — Productos y servicios
             ...$this->catalogProductsPermissions(),
             ...$this->catalogProductsSettingsPermissions(),
@@ -341,6 +354,7 @@ class RolesAndPermissionsSeeder extends Seeder
         // Administrador y Comercio: métodos de pago, datos bancarios e impuestos del negocio
         $business_payment_settings = $this->businessPaymentSettingsPermissions();
         $custom_taxes = $this->customTaxPermissions();
+        $dian_settings = $this->dianSettingsPermissions();
 
         // Administrador: todo menos suscripciones (las gestiona solo el superAdmin).
         // OT CRUD: workshop.work-orders.* vía workOrderPermissions().
@@ -361,6 +375,7 @@ class RolesAndPermissionsSeeder extends Seeder
             ...$this->participantPermissions(),
             ...$business_payment_settings,
             ...$custom_taxes,
+            ...$dian_settings,
             ...$this->catalogProductsPermissions(),
             ...$this->catalogProductsSettingsPermissions(),
             ...$this->churchEventsSettingsPermissions(),
@@ -389,6 +404,7 @@ class RolesAndPermissionsSeeder extends Seeder
             ...$this->participantPermissions(),
             ...$business_payment_settings,
             ...$custom_taxes,
+            ...$dian_settings,
             ...$this->catalogProductsPermissions(),
             ...$this->catalogProductsSettingsPermissions(),
             ...$this->churchEventsSettingsPermissions(),

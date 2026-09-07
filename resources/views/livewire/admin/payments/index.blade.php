@@ -86,7 +86,7 @@
                                         Transferencia
                                     </span>
                                     @if($invoice->payment_proof)
-                                        <a href="{{ $this->getProofUrl($invoice->payment_proof) }}" target="_blank"
+                                        <a href="{{ $this->getProofUrl($invoice, $invoice->payment_proof) }}" target="_blank"
                                             class="flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 font-medium">
                                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13l-3 3m0 0l-3-3m3 3V8m0 13a9 9 0 110-18 9 9 0 010 18z"/></svg>
                                             Ver comprobante

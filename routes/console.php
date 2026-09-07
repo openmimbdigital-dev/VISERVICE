@@ -9,3 +9,6 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('subscriptions:expire')->daily();
+
+// El proveedor DIAN no notifica por webhook: el estado se consulta periódicamente.
+Schedule::command('dian:sync-status')->everyTenMinutes()->withoutOverlapping();

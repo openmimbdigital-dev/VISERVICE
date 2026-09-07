@@ -14,7 +14,7 @@ class Unit extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'business_id', 'name', 'label', 'symbol', 'active', 'general',
+        'business_id', 'name', 'label', 'symbol', 'unece_code', 'active', 'general',
     ];
 
     protected function casts(): array

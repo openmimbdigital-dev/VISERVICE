@@ -29,9 +29,9 @@
                 No hay módulos asignados a este negocio.
             </p>
         @else
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div class="stagger grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             @foreach($modules as $mod)
-            <div class="flex flex-col gap-4 rounded-2xl border {{ $mod['bg'] }} p-5 shadow-sm transition-shadow hover:shadow-md">
+            <div class="card-interactive flex flex-col gap-4 rounded-2xl border {{ $mod['bg'] }} p-5 shadow-sm">
                 <div class="flex items-center gap-3">
                     <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl {{ $mod['icon_bg'] }}">
                         <svg class="h-5 w-5 {{ $mod['icon_c'] }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">

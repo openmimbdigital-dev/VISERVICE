@@ -49,6 +49,12 @@ class Form extends Component
         abort_unless(auth()->user()?->can('businesses.create'), 403);
     }
 
+    /** Sugiere el dígito de verificación del NIT según el algoritmo de la DIAN. */
+    public function updatedFormNit(): void
+    {
+        $this->form->verification_digit = (string) (\App\Support\DianNit::verificationDigit($this->form->nit) ?? '');
+    }
+
     private function authorizeStatusChange(bool $new_status): void
     {
         if ($new_status) {

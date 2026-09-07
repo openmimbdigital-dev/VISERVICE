@@ -59,7 +59,7 @@
                             <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
                         </button>
                         @endif
-                        <button type="button" wire:click="deleteImage({{ $image->id }})" wire:confirm="¿Eliminar esta imagen?" title="Eliminar"
+                        <button type="button" wire:click="deleteImage({{ $image->id }})" title="Eliminar"
                             class="rounded-lg bg-white/95 p-1.5 text-rose-600 shadow hover:bg-white">
                             <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M4 7h16M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3"/></svg>
                         </button>

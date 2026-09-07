@@ -49,6 +49,8 @@ class CreateWorkOrderInvoiceFromWorkOrderAction
                 'work_order_id'  => $work_order->id,
                 'reference'      => WorkOrderInvoice::generateReference($work_order->business_id),
                 'subtotal'       => $work_order->subtotal,
+                'discount_amount' => $work_order->discount_amount,
+                'coupon_code'    => $work_order->coupon_code,
                 'tax_percentage' => $work_order->tax_percentage,
                 'tax_amount'     => $work_order->tax_amount,
                 'total'          => $work_order->total,

@@ -7,6 +7,7 @@ use App\Actions\LogUserHistoricalAction;
 use App\Enums\QuotationStatus;
 use App\Enums\WorkOrderStatus;
 use App\Models\Client;
+use App\Models\Coupon;
 use App\Models\Equipment;
 use App\Models\Product;
 use App\Models\ProductType;
@@ -14,6 +15,7 @@ use App\Models\Quotation;
 use App\Models\WorkOrder;
 use App\Models\WorkOrderItem;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 class CreateOrUpdateWorkOrderAction
@@ -91,6 +93,11 @@ class CreateOrUpdateWorkOrderAction
 
             $work_order->equipments()->sync($equipment_ids);
             $this->syncItems($work_order, $items, $equipment_ids);
+
+            // El cupón se resuelve con los ítems ya guardados: su validación
+            // depende del subtotal (monto mínimo) y del descuento resultante.
+            $this->applyCoupon($work_order, $data, $business_id);
+
             $work_order->recalculateTotals();
 
             $advance_percentage = $quotation && ! $work_order_id
@@ -114,6 +121,8 @@ class CreateOrUpdateWorkOrderAction
                 'client_id'      => $work_order->client_id,
                 'equipment_ids'  => $work_order->equipments->pluck('id')->all(),
                 'quotation_id'   => $work_order->quotation_id,
+                'coupon_code'    => $work_order->coupon_code,
+                'discount_amount' => $work_order->discount_amount,
                 'total'          => $work_order->total,
                 'items_count'    => $work_order->items->count(),
                 'advance_percentage' => $work_order->advance_percentage,
@@ -144,6 +153,46 @@ class CreateOrUpdateWorkOrderAction
 
             return $work_order;
         });
+    }
+
+    /**
+     * Guarda en la OT el cupón enviado, validando que sea del negocio y que se
+     * pueda usar con el subtotal que quedó.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function applyCoupon(WorkOrder $work_order, array $data, int $business_id): void
+    {
+        $coupon_id = ! empty($data['coupon_id']) ? (int) $data['coupon_id'] : null;
+
+        if (! $coupon_id) {
+            $work_order->forceFill(['coupon_id' => null, 'coupon_code' => null])->save();
+
+            return;
+        }
+
+        $coupon = Coupon::query()
+            ->where('business_id', $business_id)
+            ->whereKey($coupon_id)
+            ->first();
+
+        if (! $coupon) {
+            throw ValidationException::withMessages([
+                'coupon_code' => 'El cupón seleccionado no está disponible.',
+            ]);
+        }
+
+        $subtotal = round((float) $work_order->items()->sum('subtotal'), 2);
+        $reason   = $coupon->unavailableReason($subtotal, $work_order->id);
+
+        if ($reason !== null) {
+            throw ValidationException::withMessages(['coupon_code' => $reason]);
+        }
+
+        $work_order->forceFill([
+            'coupon_id'   => $coupon->id,
+            'coupon_code' => $coupon->code,
+        ])->save();
     }
 
     /** @param  list<int|string>  $equipment_ids
@@ -233,7 +282,7 @@ class CreateOrUpdateWorkOrderAction
             $qty      = (float) ($row['quantity'] ?? 1);
             $price    = (float) ($row['unit_price'] ?? 0);
             $discount = (float) ($row['discount_percentage'] ?? 0);
-            $subtotal = round($qty * $price * (1 - $discount / 100), 2);
+            $subtotal = WorkOrderItem::lineSubtotal($qty, $price, $discount);
 
             $payload = [
                 'equipment_id'        => $equipment_id,

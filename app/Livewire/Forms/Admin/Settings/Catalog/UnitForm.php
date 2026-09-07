@@ -16,6 +16,8 @@ class UnitForm extends Form
 
     public string $symbol = '';
 
+    public string $unece_code = 'NIU';
+
     public bool $active = true;
 
     public function setUnit(Unit $unit): void
@@ -23,6 +25,7 @@ class UnitForm extends Form
         $this->unit_id  = $unit->id;
         $this->name     = $unit->name;
         $this->symbol   = $unit->symbol;
+        $this->unece_code = $unit->unece_code ?: 'NIU';
         $this->active   = $unit->active;
     }
 
@@ -32,6 +35,7 @@ class UnitForm extends Form
         $this->unit_id  = null;
         $this->name     = '';
         $this->symbol   = '';
+        $this->unece_code = 'NIU';
         $this->active   = true;
     }
 
@@ -115,6 +119,7 @@ class UnitForm extends Form
                 },
             ],
             'symbol' => ['required', 'string', 'max:20'],
+            'unece_code' => ['required', 'string', 'max:10', 'regex:/^[A-Za-z0-9]+$/'],
             'active' => ['boolean'],
         ];
     }
@@ -127,6 +132,8 @@ class UnitForm extends Form
             'name.unique'     => 'Ya existe una unidad con este nombre.',
             'symbol.required' => 'El símbolo es obligatorio.',
             'symbol.max'      => 'El símbolo no puede superar 20 caracteres.',
+            'unece_code.required' => 'El código UN/ECE es obligatorio para la facturación electrónica.',
+            'unece_code.regex'    => 'El código UN/ECE solo admite letras y números.',
         ];
     }
 
@@ -142,6 +149,7 @@ class UnitForm extends Form
         return [
             'name'   => trim($this->name),
             'symbol' => trim($this->symbol),
+            'unece_code' => mb_strtoupper(trim($this->unece_code)),
             'active' => $this->active,
         ];
     }
