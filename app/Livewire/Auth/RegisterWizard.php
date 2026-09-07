@@ -14,6 +14,7 @@ use App\Models\SubscriptionInvoice;
 use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Support\BusinessLogoStorage;
+use App\Support\PaymentProofStorage;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -145,7 +146,7 @@ class RegisterWizard extends Component
             // 4. Guardar comprobante de pago si es transferencia
             $proofPath = null;
             if ($this->payment_proof) {
-                $proofPath = $this->payment_proof->store('payment-proofs', 'public');
+                $proofPath = PaymentProofStorage::store($business->id, $this->payment_proof);
             }
 
             // 5. Crear suscripción en estado pending

@@ -3,6 +3,8 @@
 namespace App\Console\Commands;
 
 use App\Actions\Dian\DownloadElectronicInvoiceFilesAction;
+use App\Support\BusinessLogoStorage;
+use App\Support\PaymentProofStorage;
 use App\Support\ProductImageStorage;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Storage;
@@ -22,15 +24,17 @@ class MediaMigrateFiles extends Command
     /**
      * Carpetas a trasladar: origen => [disco origen, disco destino].
      *
-     * Solo se incluyen los recursos cuyo código ya lee desde el volumen. Los logos
-     * de negocio y los comprobantes de pago siguen en el disco «public» porque su
-     * lectura aún apunta allí.
+     * Se conserva la ruta relativa para que los registros ya guardados en base de
+     * datos sigan apuntando al archivo correcto.
      *
      * @var array<string, array{0:string, 1:string}>
      */
     private const FOLDERS = [
-        'products' => ['public', ProductImageStorage::DISK],
-        'dian'     => ['local', DownloadElectronicInvoiceFilesAction::DISK],
+        'products'       => ['public', ProductImageStorage::DISK],
+        'business-logos' => ['public', BusinessLogoStorage::DISK],
+        'logos'          => ['public', BusinessLogoStorage::DISK],
+        'payment-proofs' => ['public', PaymentProofStorage::DISK],
+        'dian'           => ['local', DownloadElectronicInvoiceFilesAction::DISK],
     ];
 
     public function handle(): int

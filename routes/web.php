@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\Events\ScheduleEventsFeedController;
 use App\Http\Controllers\Admin\Reports\Events\EventAttendancePdfController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CurrentBusinessController;
+use App\Http\Controllers\PaymentProofController;
 use App\Http\Controllers\Workshop\ElectronicInvoiceFileController;
 use App\Http\Controllers\Workshop\WorkshopPdfController;
 use App\Livewire\Admin\BankAccounts\Index as AdminBankAccountsIndex;
@@ -152,6 +153,8 @@ Route::middleware(['auth', 'ensure.business', 'business.module'])->group(functio
         Route::get('/subscriptions', AdminSubscriptionsIndex::class)->name('subscriptions.index');
         Route::get('/subscriptions/plans', AdminSubscriptionPlansIndex::class)->name('subscriptions.plans.index');
         Route::get('/payments', AdminPaymentsIndex::class)->name('payments.index');
+        Route::get('/payments/{subscriptionInvoice}/proof', PaymentProofController::class)
+            ->name('payments.proof');
         Route::get('/finance', AdminFinanceIndex::class)->name('finance.index');
         Route::get('/bank-accounts', AdminBankAccountsIndex::class)->name('bank-accounts.index');
         Route::get('/banks', AdminBanksIndex::class)->name('banks.index');
