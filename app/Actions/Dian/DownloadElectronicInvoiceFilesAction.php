@@ -2,6 +2,7 @@
 
 namespace App\Actions\Dian;
 
+use App\Enums\ElectronicInvoiceStatus;
 use App\Models\ElectronicInvoice;
 use App\Services\Dian\TitanioClient;
 use Illuminate\Support\Facades\Storage;
@@ -16,7 +17,11 @@ class DownloadElectronicInvoiceFilesAction
 {
     use AsAction;
 
-    public function handle(ElectronicInvoice $electronic_invoice): ElectronicInvoice
+    /**
+     * @return array{invoice: ElectronicInvoice, notice: ?string}
+     *         El aviso explica qué archivo no entregó el proveedor y por qué.
+     */
+    public function handle(ElectronicInvoice $electronic_invoice): array
     {
         abort_unless(auth()->user()?->can('workshop.invoices.dian.download'), 403);
 
@@ -29,21 +34,19 @@ class DownloadElectronicInvoiceFilesAction
         $client = TitanioClient::for($electronic_invoice->environment)->forInvoice($electronic_invoice);
         $directory = self::directory($electronic_invoice);
         $paths = [];
+        $missing = [];
 
         // Se piden por separado: con dos o más archivos el proveedor devuelve un ZIP.
         foreach ([
-            'xml_path' => [TitanioClient::DOWNLOAD_XML, 'xml'],
-            'pdf_path' => [TitanioClient::DOWNLOAD_PDF, 'pdf'],
-        ] as $attribute => [$download_type, $extension]) {
+            'xml_path' => [TitanioClient::DOWNLOAD_XML, 'xml', 'XML'],
+            'pdf_path' => [TitanioClient::DOWNLOAD_PDF, 'pdf', 'PDF'],
+        ] as $attribute => [$download_type, $extension, $label]) {
             $file = $client->download((int) $electronic_invoice->transaction_id, $download_type);
-
-            if ($file === null) {
-                continue;
-            }
-
-            $contents = base64_decode($file['data'], strict: true);
+            $contents = filled($file['data']) ? base64_decode($file['data'], strict: true) : false;
 
             if ($contents === false || $contents === '') {
+                $missing[] = $label.': '.($file['mensaje'] ?? 'el proveedor no entregó el archivo');
+
                 continue;
             }
 
@@ -53,19 +56,46 @@ class DownloadElectronicInvoiceFilesAction
             $paths[$attribute] = $path;
         }
 
+        $notice = self::explain($missing, $electronic_invoice);
+
         if ($paths === []) {
             throw ValidationException::withMessages([
-                'dian' => 'El proveedor aún no tiene archivos disponibles para esta factura.',
+                'dian' => $notice ?? 'El proveedor aún no tiene archivos disponibles para esta factura.',
             ]);
         }
 
         $electronic_invoice->forceFill($paths)->save();
 
-        return $electronic_invoice->refresh();
+        return [
+            'invoice' => $electronic_invoice->refresh(),
+            'notice'  => $notice,
+        ];
     }
 
     public static function directory(ElectronicInvoice $electronic_invoice): string
     {
         return "dian/{$electronic_invoice->business_id}/{$electronic_invoice->id}";
+    }
+
+    /**
+     * Traduce lo que faltó a una explicación útil: el proveedor solo genera la
+     * representación gráfica de los documentos que la DIAN aceptó.
+     *
+     * @param  list<string>  $missing
+     */
+    private static function explain(array $missing, ElectronicInvoice $electronic_invoice): ?string
+    {
+        if ($missing === []) {
+            return null;
+        }
+
+        $notice = implode('. ', $missing).'.';
+
+        if ($electronic_invoice->status === ElectronicInvoiceStatus::Rejected) {
+            $notice .= ' El proveedor genera el PDF solo cuando la DIAN acepta el documento;'
+                .' corrige el motivo del rechazo y vuelve a emitir.';
+        }
+
+        return $notice;
     }
 }

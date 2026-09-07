@@ -25,10 +25,17 @@ class SyncElectronicInvoiceStatusAction
             ]);
         }
 
-        $timeline = TitanioClient::for($electronic_invoice->environment)
+        $summary = TitanioClient::for($electronic_invoice->environment)
             ->forInvoice($electronic_invoice)
-            ->documentStatus((int) $electronic_invoice->transaction_id);
+            ->transactionSummary((int) $electronic_invoice->transaction_id);
 
-        return $electronic_invoice->applyProviderTimeline($timeline)->refresh();
+        $electronic_invoice->applyProviderTimeline($summary['timeline']);
+
+        // El motivo de rechazo de la DIAN solo viene en el detalle de la transacción.
+        if ($summary['dian_error'] !== null) {
+            $electronic_invoice->forceFill(['error_message' => $summary['dian_error']])->save();
+        }
+
+        return $electronic_invoice->refresh();
     }
 }

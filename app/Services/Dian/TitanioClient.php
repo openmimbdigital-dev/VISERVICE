@@ -136,29 +136,41 @@ class TitanioClient
     }
 
     /**
-     * Cronología de estados de una transacción ("Recibida, Validada, Enviado a DIAN...").
+     * Cronología de estados y motivo de rechazo de una transacción.
+     *
+     * Se resuelve con /detalle porque /estadoDocumento responde 404 en la plataforma,
+     * pese a estar documentado, y además /detalle entrega el error que reportó la DIAN.
+     *
+     * @return array{timeline:string, dian_error:?string, raw:array<string,mixed>}
      */
+    public function transactionSummary(int $transaction_id): array
+    {
+        $response = $this->detail($transaction_id);
+        $dian_error = trim((string) ($response['error'] ?? ''));
+
+        return [
+            'timeline'   => (string) ($response['detalleTransaccion']['estado_id'] ?? ''),
+            'dian_error' => $dian_error !== '' ? $dian_error : null,
+            'raw'        => $response,
+        ];
+    }
+
+    /** Cronología de estados ("Recibida, Validada, Enviado a la DIAN..."). */
     public function documentStatus(int $transaction_id): string
     {
-        $response = $this->request(self::PATH_DOCUMENT_STATUS, [
-            'documentos' => [['transaccion_id' => $transaction_id]],
-        ]);
-
-        foreach ((array) ($response['documentos'] ?? []) as $document) {
-            if ((int) ($document['transaccion_id'] ?? 0) === $transaction_id) {
-                return (string) ($document['estado'] ?? '');
-            }
-        }
-
-        return '';
+        return $this->transactionSummary($transaction_id)['timeline'];
     }
 
     /**
      * Descarga los archivos de una transacción.
      *
-     * @return array{data:string, nombre_archivo:string}|null Contenido en base 64.
+     * Cuando el archivo todavía no existe, la plataforma responde sin error global
+     * pero con el motivo dentro del documento, así que se devuelve para poder
+     * explicárselo al usuario.
+     *
+     * @return array{data:?string, nombre_archivo:?string, mensaje:?string}
      */
-    public function download(int $transaction_id, int $download_type = self::DOWNLOAD_XML_PDF): ?array
+    public function download(int $transaction_id, int $download_type = self::DOWNLOAD_XML_PDF): array
     {
         $response = $this->request(self::PATH_DOWNLOAD, [
             'documentos' => [[
@@ -167,18 +179,21 @@ class TitanioClient
             ]],
         ]);
 
+        $message = null;
+
         foreach ((array) ($response['documentos'] ?? []) as $document) {
-            if (blank($document['data'] ?? null)) {
-                continue;
+            if (filled($document['data'] ?? null)) {
+                return [
+                    'data'           => (string) $document['data'],
+                    'nombre_archivo' => (string) ($document['nombre_archivo'] ?? "transaccion-{$transaction_id}"),
+                    'mensaje'        => null,
+                ];
             }
 
-            return [
-                'data'           => (string) $document['data'],
-                'nombre_archivo' => (string) ($document['nombre_archivo'] ?? "transaccion-{$transaction_id}"),
-            ];
+            $message ??= trim((string) ($document['error_msg'] ?? '')) ?: null;
         }
 
-        return null;
+        return ['data' => null, 'nombre_archivo' => null, 'mensaje' => $message];
     }
 
     /** Detalle completo de la transacción, incluida la respuesta de la DIAN. */

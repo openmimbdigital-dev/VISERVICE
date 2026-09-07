@@ -57,7 +57,8 @@ return [
         'authorization_provider_id'          => '800197268',
         'authorization_provider_id_scheme_id' => '4',
         'ubl_version_id'                     => 'UBL 2.1',
-        'profile_id'                         => 'DIAN 2.1: Factura Electrónica de Venta',
+        // Valor con el que el proveedor aceptó el documento de referencia.
+        'profile_id'                         => 'DIAN 2.1',
         'customization_id'                   => '10',
         'invoice_type_code'                  => '01',
         'currency_code'                      => 'COP',

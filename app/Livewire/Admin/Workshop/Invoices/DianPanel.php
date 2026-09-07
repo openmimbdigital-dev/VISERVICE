@@ -98,8 +98,16 @@ class DianPanel extends Component
         }
 
         try {
-            DownloadElectronicInvoiceFilesAction::run($electronic_invoice);
-        } catch (DianRequestException|ValidationException $exception) {
+            $result = DownloadElectronicInvoiceFilesAction::run($electronic_invoice);
+        } catch (ValidationException $exception) {
+            $this->dispatch('swal', [
+                'title' => 'No se pudieron descargar los archivos',
+                'text'  => collect($exception->errors())->flatten()->first(),
+                'icon'  => 'warning',
+            ]);
+
+            return;
+        } catch (DianRequestException $exception) {
             $this->dispatch('swal', [
                 'title' => 'No se pudieron descargar los archivos',
                 'text'  => $exception->getMessage(),
@@ -111,7 +119,9 @@ class DianPanel extends Component
 
         $this->invoice->refresh();
 
-        $this->dispatch('swal', ['title' => 'Archivos descargados', 'icon' => 'success']);
+        $this->dispatch('swal', $result['notice']
+            ? ['title' => 'Descarga parcial', 'text' => $result['notice'], 'icon' => 'info']
+            : ['title' => 'Archivos descargados', 'icon' => 'success']);
     }
 
     public function toggleXml(): void
