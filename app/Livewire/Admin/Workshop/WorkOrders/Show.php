@@ -195,6 +195,7 @@ class Show extends Component
 
         $product = Product::query()
             ->forAuthUser()
+            ->complete()
             ->where('business_id', $this->workOrder->business_id)
             ->find($value);
 
@@ -639,6 +640,7 @@ class Show extends Component
 
         $catalog_products = Product::query()
             ->forAuthUser()
+            ->complete()
             ->where('business_id', $this->workOrder->business_id)
             ->where('status', true)
             ->when($this->product_type_id, fn ($q) => $q->where('product_type_id', $this->product_type_id))

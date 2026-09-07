@@ -145,6 +145,7 @@ class Form extends Component
 
         $catalog = Product::query()
             ->forAuthUser()
+            ->complete()
             ->where('business_id', $this->form->resolvedBusinessId())
             ->whereKey($value)
             ->first();
@@ -344,7 +345,7 @@ class Form extends Component
             ->get();
         $selected_custom_tax = $custom_taxes->firstWhere('id', $this->form->custom_tax_id);
         $product_types = ProductType::query()->visibleToUser()->where('active', true)->orderBy('name')->get();
-        $catalog_products = Product::query()->forAuthUser()->where('business_id', $business_id)->active()->orderBy('name')->get();
+        $catalog_products = Product::query()->forAuthUser()->complete()->where('business_id', $business_id)->active()->orderBy('name')->get();
 
         $equipment_query = Equipment::query()->forAuthUser()
             ->where('client_id', $this->form->client_id)

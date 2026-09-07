@@ -210,6 +210,7 @@ class CreateOrUpdateWorkOrderAction
                 abort_unless(
                     Product::query()
                         ->forAuthUser()
+                        ->complete()
                         ->where('business_id', $work_order->business_id)
                         ->whereKey($row['product_id'])
                         ->exists(),

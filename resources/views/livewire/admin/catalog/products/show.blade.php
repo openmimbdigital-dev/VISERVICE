@@ -15,7 +15,7 @@
                 <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-indigo-600/90">Catálogo</p>
                 <div class="mt-2 flex flex-wrap items-center gap-3">
                     <h1 class="text-2xl font-bold tracking-tight text-slate-900">{{ $product->name }}</h1>
-                    <span class="font-mono text-xs text-slate-500">{{ $product->code }}</span>
+                    <span class="font-mono text-xs text-slate-500">{{ $product->sku }}</span>
                     <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium {{ $product->status ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20' : 'bg-slate-100 text-slate-600 ring-1 ring-slate-500/20' }}">
                         {{ $product->status ? 'Activo' : 'Inactivo' }}
                     </span>
@@ -33,6 +33,15 @@
         </div>
     </header>
 
+    @if(! $product->isComplete())
+    <div class="mb-6 flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 sm:flex-row sm:items-center sm:justify-between">
+        <p>Este producto está incompleto (paso {{ $product->step }} de {{ $product->final_step }}, {{ $product->progressPercent() }}%).</p>
+        @if($can_edit)
+        <a href="{{ route('admin.catalog.products.edit', $product) }}" wire:navigate class="font-semibold text-amber-800 underline underline-offset-2">Continuar registro</a>
+        @endif
+    </div>
+    @endif
+
     <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <section class="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
             <div class="border-b border-slate-100 bg-slate-50/80 px-5 py-4">
@@ -40,8 +49,12 @@
             </div>
             <dl class="divide-y divide-slate-100 px-5 py-2">
                 <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
-                    <dt class="text-xs font-medium text-slate-500">Código</dt>
-                    <dd class="font-mono text-sm text-slate-900 sm:col-span-2">{{ $product->code }}</dd>
+                    <dt class="text-xs font-medium text-slate-500">SKU</dt>
+                    <dd class="font-mono text-sm text-slate-900 sm:col-span-2">{{ $product->sku }}</dd>
+                </div>
+                <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt class="text-xs font-medium text-slate-500">Código de barras</dt>
+                    <dd class="font-mono text-sm text-slate-900 sm:col-span-2">{{ $product->barcode ?: '—' }}</dd>
                 </div>
                 <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
                     <dt class="text-xs font-medium text-slate-500">Nombre</dt>
@@ -85,17 +98,27 @@
                 </div>
                 <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
                     <dt class="text-xs font-medium text-slate-500">Precio costo</dt>
-                    <dd class="tabular-nums text-sm text-slate-900 sm:col-span-2">$ {{ number_format((float) $product->cost_price, 2, ',', '.') }}</dd>
+                    <dd class="tabular-nums text-sm text-slate-900 sm:col-span-2">{{ $product->cost_price !== null ? '$ ' . number_format((float) $product->cost_price, 2, ',', '.') : '—' }}</dd>
+                </div>
+                <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt class="text-xs font-medium text-slate-500">Porcentaje de ganancia</dt>
+                    <dd class="tabular-nums text-sm text-slate-900 sm:col-span-2">{{ $product->profit_percentage !== null ? number_format((float) $product->profit_percentage, 2, ',', '.') . ' %' : '—' }}</dd>
+                </div>
+                <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
+                    <dt class="text-xs font-medium text-slate-500">Margen de ganancia</dt>
+                    <dd class="tabular-nums text-sm text-slate-900 sm:col-span-2">{{ $product->profitMarginAmount() !== null ? '$ ' . number_format($product->profitMarginAmount(), 2, ',', '.') : '—' }}</dd>
                 </div>
                 <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
                     <dt class="text-xs font-medium text-slate-500">Precio venta</dt>
-                    <dd class="tabular-nums text-sm font-medium text-slate-900 sm:col-span-2">$ {{ number_format((float) $product->sale_price, 2, ',', '.') }}</dd>
+                    <dd class="tabular-nums text-sm font-medium text-slate-900 sm:col-span-2">{{ $product->sale_price !== null ? '$ ' . number_format((float) $product->sale_price, 2, ',', '.') : '—' }}</dd>
                 </div>
                 <div class="grid grid-cols-1 gap-1 py-3 sm:grid-cols-3 sm:gap-4">
                     <dt class="text-xs font-medium text-slate-500">Inventario</dt>
                     <dd class="text-sm text-slate-900 sm:col-span-2">
                         {{ $product->track_inventory ? 'Sí' : 'No' }}
-                        <span class="text-xs text-slate-500">(según categoría: {{ $product->product_category?->inventory ? 'cuantificable' : 'no cuantificable' }})</span>
+                        @if($product->product_category)
+                        <span class="text-xs text-slate-500">(según categoría: {{ $product->product_category->inventory ? 'cuantificable' : 'no cuantificable' }})</span>
+                        @endif
                     </dd>
                 </div>
             </dl>

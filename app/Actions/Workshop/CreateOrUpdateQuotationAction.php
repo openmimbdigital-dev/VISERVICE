@@ -232,6 +232,7 @@ class CreateOrUpdateQuotationAction
             if (! empty($row['product_id'])) {
                 abort_unless(
                     Product::query()->forAuthUser()
+                        ->complete()
                         ->where('business_id', $quotation->business_id)
                         ->whereKey($row['product_id'])
                         ->exists(),

@@ -6,6 +6,7 @@ use App\Actions\Catalog\CreateOrUpdateProductAction;
 use App\Livewire\Forms\Admin\Catalog\ProductForm;
 use App\Models\Business;
 use App\Models\Product;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -16,9 +17,11 @@ class Form extends Component
 {
     public ProductForm $form;
 
+    public int $step = ProductForm::STEP_GENERAL;
+
     public function mount(?Product $product = null): void
     {
-        if ($product) {
+        if ($product?->exists) {
             abort_unless(auth()->user()->can('catalog.products.edit'), 403);
 
             abort_unless(
@@ -29,6 +32,9 @@ class Form extends Component
             abort_unless($product->isEditableBy(), 403);
 
             $this->form->setProduct($product);
+            $this->step = $product->isComplete()
+                ? ProductForm::STEP_GENERAL
+                : max(ProductForm::STEP_GENERAL, min((int) $product->step, ProductForm::TOTAL_STEPS));
 
             return;
         }
@@ -38,6 +44,55 @@ class Form extends Component
         if (! auth()->user()->hasRole('superAdmin')) {
             $this->form->business_id = auth()->user()->business_id;
         }
+    }
+
+    public function updatedFormSku(): void
+    {
+        $this->form->normalizeIdentifiers();
+        $this->form->validateOnly('sku');
+    }
+
+    public function updatedFormBarcode(): void
+    {
+        $this->form->normalizeIdentifiers();
+        $this->form->validateOnly('barcode');
+    }
+
+    public function updatedFormCostPrice(): void
+    {
+        $this->form->recalculateSalePrice();
+    }
+
+    public function updatedFormProfitPercentage(): void
+    {
+        $this->form->recalculateSalePrice();
+    }
+
+    public function nextStep(): void
+    {
+        $this->validateCurrentStep();
+        $this->advanceToStep(min($this->step + 1, ProductForm::TOTAL_STEPS));
+    }
+
+    public function previousStep(): void
+    {
+        $this->step = max($this->step - 1, ProductForm::STEP_GENERAL);
+    }
+
+    public function goToStep(int $step): void
+    {
+        if ($step < ProductForm::STEP_GENERAL || $step > ProductForm::TOTAL_STEPS) {
+            return;
+        }
+
+        if ($step > $this->step) {
+            for ($current = $this->step; $current < $step; $current++) {
+                $this->form->normalizeIdentifiers();
+                $this->form->validate($this->form->rulesForStep($current));
+            }
+        }
+
+        $this->advanceToStep($step);
     }
 
     public function save(): void
@@ -51,10 +106,17 @@ class Form extends Component
 
         $was_editing = $this->form->isEditing();
 
-        $product = CreateOrUpdateProductAction::run(
-            $this->form->product_id,
-            $this->form->validated()
-        );
+        try {
+            $this->form->normalizeIdentifiers();
+            $product = CreateOrUpdateProductAction::run(
+                $this->form->product_id,
+                $this->form->validated()
+            );
+        } catch (ValidationException $exception) {
+            $this->step = $this->form->firstStepWithErrors($exception->errors());
+
+            throw $exception;
+        }
 
         $this->dispatch('swal', [
             'title' => $was_editing ? 'Producto actualizado' : 'Producto creado',
@@ -73,10 +135,33 @@ class Form extends Component
     public function render()
     {
         $is_super_admin = auth()->user()->hasRole('superAdmin');
+        $total_steps    = ProductForm::TOTAL_STEPS;
+        $progress       = (int) round(($this->step / $total_steps) * 100);
+        $radius         = 30;
+        $circumference  = round(2 * M_PI * $radius, 2);
 
         return view('livewire.admin.catalog.products.form', [
-            'is_editing'         => $this->form->isEditing(),
-            'is_super_admin'     => $is_super_admin,
+            'is_editing'              => $this->form->isEditing(),
+            'is_super_admin'          => $is_super_admin,
+            'step'                    => $this->step,
+            'total_steps'             => $total_steps,
+            'progress'                => $progress,
+            'progress_circumference'  => $circumference,
+            'progress_offset'         => round($circumference * (1 - $progress / 100), 2),
+            'steps'                   => [
+                ProductForm::STEP_GENERAL => [
+                    'title'       => 'Información general',
+                    'description' => 'SKU, código de barras y datos básicos',
+                ],
+                ProductForm::STEP_CLASSIFICATION => [
+                    'title'       => 'Clasificación',
+                    'description' => 'Tipo, categoría, unidad y marca',
+                ],
+                ProductForm::STEP_PRICING => [
+                    'title'       => 'Precios',
+                    'description' => 'Costo, porcentaje y precio de venta',
+                ],
+            ],
             'businesses'         => $is_super_admin
                 ? Business::where('status', true)->orderBy('name')->get(['id', 'name'])
                 : collect(),
@@ -85,5 +170,44 @@ class Form extends Component
             'units'              => $this->form->getUnits(),
             'brands'             => $this->form->getBrands(),
         ]);
+    }
+
+    private function advanceToStep(int $step): void
+    {
+        if ($step > $this->step && ! $this->form->isFlowComplete()) {
+            $was_new = ! $this->form->isEditing();
+            $product = $this->persistProgress($step);
+
+            if ($was_new) {
+                $this->redirectRoute('admin.catalog.products.edit', ['product' => $product], navigate: true);
+
+                return;
+            }
+        }
+
+        $this->step = $step;
+    }
+
+    private function persistProgress(int $step): Product
+    {
+        $product = CreateOrUpdateProductAction::run(
+            $this->form->product_id,
+            $this->form->payload($step)
+        );
+
+        $this->form->product_id = $product->id;
+
+        return $product;
+    }
+
+    private function validateCurrentStep(): void
+    {
+        $this->form->normalizeIdentifiers();
+
+        if ($this->step === ProductForm::STEP_PRICING) {
+            $this->form->recalculateSalePrice();
+        }
+
+        $this->form->validate($this->form->rulesForStep($this->step));
     }
 }
