@@ -408,11 +408,18 @@
                                     <input type="number" wire:model.live="items.{{ $index }}.unit_price" min="0" step="0.01"
                                         class="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs">
                                 </div>
-                                <div class="w-full sm:w-20">
-                                    <label class="mb-1 block text-[10px] font-medium uppercase tracking-wide text-slate-500">Desc. %</label>
-                                    <input type="number" wire:model.live="items.{{ $index }}.discount_percentage" min="0" max="100" step="0.01"
-                                        class="w-full rounded-lg border px-2 py-1.5 text-xs {{ (float) ($row['discount_percentage'] ?? 0) > 0 ? 'border-amber-300 bg-amber-50 font-medium text-amber-800' : 'border-slate-200' }}">
-                                    @error('items.'.$index.'.discount_percentage') <p class="mt-1 text-[11px] text-rose-600">{{ $message }}</p> @enderror
+                                {{-- El descuento solo ocupa espacio si existe; si no, se ofrece agregarlo. --}}
+                                <div class="w-full sm:w-20" x-data="{ open: @js((float) ($row['discount_percentage'] ?? 0) > 0) }">
+                                    <div x-show="open" x-cloak>
+                                        <label class="mb-1 block text-[10px] font-medium uppercase tracking-wide text-slate-500">Desc. %</label>
+                                        <input type="number" wire:model.live="items.{{ $index }}.discount_percentage" min="0" max="100" step="0.01"
+                                            class="w-full rounded-lg border px-2 py-1.5 text-xs {{ (float) ($row['discount_percentage'] ?? 0) > 0 ? 'border-amber-300 bg-amber-50 font-medium text-amber-800' : 'border-slate-200' }}">
+                                        @error('items.'.$index.'.discount_percentage') <p class="mt-1 text-[11px] text-rose-600">{{ $message }}</p> @enderror
+                                    </div>
+                                    <button type="button" x-show="! open" x-on:click="open = true; $nextTick(() => $el.previousElementSibling.querySelector('input')?.focus())"
+                                        class="w-full rounded-lg border border-dashed border-slate-300 px-2 py-1.5 text-[11px] text-slate-500 transition hover:border-amber-300 hover:text-amber-700">
+                                        + Desc.
+                                    </button>
                                 </div>
                                 <div class="w-full sm:w-24">
                                     <label class="mb-1 block text-[10px] font-medium uppercase tracking-wide text-slate-500">Total</label>

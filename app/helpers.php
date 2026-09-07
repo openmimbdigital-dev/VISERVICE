@@ -1,15 +1,29 @@
 <?php
 
+if (! function_exists('media_environment')) {
+    /**
+     * Carpeta del volumen según el entorno: «production» o «test».
+     *
+     * Local y staging comparten «test» a propósito, para que ninguna prueba
+     * escriba sobre los archivos reales de los clientes.
+     */
+    function media_environment(): string
+    {
+        return env('APP_ENV', 'production') === 'production' ? 'production' : 'test';
+    }
+}
+
 if (! function_exists('media_root')) {
     /**
      * Ruta absoluta dentro del volumen de datos, fuera del proyecto.
      *
      * En producción MEDIA_ROOT apunta al volumen montado; si no está definida
-     * (entornos locales) se usa storage/app/media para que todo siga funcionando.
+     * (entornos locales) se usa storage/app/media. Dentro, cada entorno tiene
+     * su propia carpeta.
      */
     function media_root(string $path = ''): string
     {
-        $root = rtrim((string) env('MEDIA_ROOT', storage_path('app/media')), '/\\');
+        $root = rtrim((string) env('MEDIA_ROOT', storage_path('app/media')), '/\\').'/'.media_environment();
 
         // Se usa siempre «/»: Flysystem lo entiende en Linux y en Windows.
         return $path === '' ? $root : $root.'/'.ltrim($path, '/\\');

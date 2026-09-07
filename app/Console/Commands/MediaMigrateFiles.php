@@ -7,6 +7,7 @@ use App\Support\BusinessLogoStorage;
 use App\Support\PaymentProofStorage;
 use App\Support\ProductImageStorage;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -42,6 +43,11 @@ class MediaMigrateFiles extends Command
         $dry_run = (bool) $this->option('dry-run');
         $keep = (bool) $this->option('keep');
         $total = 0;
+
+        $this->line('Entorno de destino: <comment>'.media_environment().'</comment> ('.media_root().')');
+        $this->newLine();
+
+        $total += $this->moveLegacyEnvironmentFolders($dry_run);
 
         foreach (self::FOLDERS as $folder => [$source_disk, $target_disk]) {
             $files = Storage::disk($source_disk)->allFiles($folder);
@@ -92,6 +98,62 @@ class MediaMigrateFiles extends Command
             ? "Simulación: se moverían {$total} archivo(s)."
             : "Listo: {$total} archivo(s) en el volumen de datos.");
 
+        return $this->finish($dry_run, $total);
+    }
+
+    /**
+     * Reubica los archivos que quedaron directamente bajo el volumen, de cuando
+     * todavía no se separaba por entorno, dentro de la carpeta que les corresponde.
+     */
+    private function moveLegacyEnvironmentFolders(bool $dry_run): int
+    {
+        $volume = rtrim((string) env('MEDIA_ROOT', storage_path('app/media')), '/\\');
+        $moved = 0;
+
+        foreach (['public', 'private'] as $folder) {
+            $legacy = $volume.'/'.$folder;
+
+            if (! File::isDirectory($legacy)) {
+                continue;
+            }
+
+            $target = media_root($folder);
+            $files = File::allFiles($legacy);
+
+            $this->line("· {$folder}/ (sin entorno): ".count($files).' archivo(s) a '.media_environment().'/');
+
+            foreach ($files as $file) {
+                $relative = str_replace('\\', '/', $file->getRelativePathname());
+                $destination = $target.'/'.$relative;
+
+                if ($dry_run) {
+                    $this->line("    [simulación] {$folder}/{$relative}");
+                    $moved++;
+
+                    continue;
+                }
+
+                File::ensureDirectoryExists(dirname($destination));
+                File::move($file->getPathname(), $destination);
+
+                $this->line("    movido: {$folder}/{$relative}");
+                $moved++;
+            }
+
+            if (! $dry_run && File::allFiles($legacy) === []) {
+                File::deleteDirectory($legacy);
+            }
+        }
+
+        if ($moved > 0) {
+            $this->newLine();
+        }
+
+        return $moved;
+    }
+
+    private function finish(bool $dry_run, int $total): int
+    {
         if (! $dry_run && $total > 0) {
             $this->line('Recuerda ejecutar «php artisan storage:link» para publicar el enlace /media.');
         }
