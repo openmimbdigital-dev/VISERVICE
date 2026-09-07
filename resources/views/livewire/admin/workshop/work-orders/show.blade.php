@@ -216,10 +216,17 @@
                             </span>
                         </td>
                         <td class="px-3 py-3 text-sm text-slate-900 sm:px-4">
-                            <p>{{ $item->description }}</p>
-                            @if($item->technician_notes)
-                            <p class="mt-0.5 text-xs text-slate-400">{{ $item->technician_notes }}</p>
-                            @endif
+                            <div class="flex items-center gap-2.5">
+                                @if($item->catalogProduct)
+                                <x-ui.product-image :product="$item->catalogProduct" size="sm" />
+                                @endif
+                                <div class="min-w-0">
+                                    <p>{{ $item->description }}</p>
+                                    @if($item->technician_notes)
+                                    <p class="mt-0.5 text-xs text-slate-400">{{ $item->technician_notes }}</p>
+                                    @endif
+                                </div>
+                            </div>
                         </td>
                         <td class="hidden px-3 py-3 text-right text-sm text-slate-600 sm:table-cell sm:px-4">{{ $item->quantity }}</td>
                         <td class="hidden px-3 py-3 text-right text-sm text-slate-600 md:table-cell sm:px-4">{{ col_money($item->unit_price) }}</td>

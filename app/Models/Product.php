@@ -12,7 +12,7 @@ class Product extends Model
 {
     use SoftDeletes;
 
-    public const DEFAULT_FINAL_STEP = 3;
+    public const DEFAULT_FINAL_STEP = 4;
 
     protected $fillable = [
         'business_id',

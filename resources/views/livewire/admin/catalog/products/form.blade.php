@@ -245,5 +245,22 @@
             </div>
         </section>
         @endif
+
+        @if($step === 4)
+        <section class="rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
+            <div class="overflow-hidden rounded-t-2xl border-b border-slate-100 bg-slate-50/80 px-5 py-4">
+                <p class="text-[11px] font-semibold uppercase tracking-wider text-indigo-600">Paso 4 de {{ $total_steps }}</p>
+                <h2 class="font-semibold text-slate-800">Imágenes</h2>
+                <p class="mt-1 text-xs text-slate-500">Opcional. La imagen marcada como principal es la que se muestra en los listados y en el selector de productos de la OT.</p>
+            </div>
+            <div class="p-6">
+                @if($product)
+                <livewire:admin.catalog.products.image-gallery :product="$product" :key="'product-gallery-form-'.$product->id" />
+                @else
+                <p class="text-sm text-slate-400">Guarda la información general del producto para poder agregar imágenes.</p>
+                @endif
+            </div>
+        </section>
+        @endif
     </form>
 </div>

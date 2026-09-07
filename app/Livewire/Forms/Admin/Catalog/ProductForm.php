@@ -19,7 +19,9 @@ class ProductForm extends Form
 
     public const STEP_PRICING = 3;
 
-    public const TOTAL_STEPS = 3;
+    public const STEP_IMAGES = 4;
+
+    public const TOTAL_STEPS = 4;
 
     public ?int $product_id = null;
 
