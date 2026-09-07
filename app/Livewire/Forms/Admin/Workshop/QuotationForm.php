@@ -12,6 +12,14 @@ use Livewire\Form;
 
 class QuotationForm extends Form
 {
+    public const STEP_GENERAL = 1;
+
+    public const STEP_CONDITIONS = 2;
+
+    public const STEP_ITEMS = 3;
+
+    public const TOTAL_STEPS = 3;
+
     public ?int $quotation_id = null;
 
     public ?int $client_id = null;
@@ -85,57 +93,102 @@ class QuotationForm extends Form
 
     public function rules(): array
     {
+        return array_merge(
+            $this->rulesForStep(self::STEP_GENERAL),
+            $this->rulesForStep(self::STEP_CONDITIONS),
+        );
+    }
+
+    /** @return array<string, mixed> */
+    public function rulesForStep(int $step): array
+    {
+        $this->normalizeOptionalFields();
+
         $business_id = $this->resolvedBusinessId();
 
-        return [
-            'client_id' => [
-                'required',
-                'integer',
-                Rule::exists('clients', 'id')->where(fn ($q) => $q
-                    ->where('business_id', $business_id)
-                    ->whereNull('deleted_at')),
+        return match ($step) {
+            self::STEP_GENERAL => [
+                'client_id' => [
+                    'required',
+                    'integer',
+                    Rule::exists('clients', 'id')->where(fn ($q) => $q
+                        ->where('business_id', $business_id)
+                        ->whereNull('deleted_at')),
+                ],
+                'equipment_ids' => ['required', 'array', 'min:1'],
+                'equipment_ids.*' => [
+                    'integer',
+                    Rule::exists('equipment', 'id')->where(fn ($q) => $q
+                        ->where('business_id', $business_id)
+                        ->where('client_id', $this->client_id)
+                        ->whereNull('deleted_at')),
+                ],
+                'hours_entry' => ['nullable', 'date_format:H:i'],
+                'notes'       => ['nullable', 'string'],
             ],
-            'equipment_ids' => ['required', 'array', 'min:1'],
-            'equipment_ids.*' => [
-                'integer',
-                Rule::exists('equipment', 'id')->where(fn ($q) => $q
-                    ->where('business_id', $business_id)
-                    ->where('client_id', $this->client_id)
-                    ->whereNull('deleted_at')),
+            self::STEP_CONDITIONS => [
+                'quotation_service_type_id' => [
+                    'nullable',
+                    'integer',
+                    Rule::exists('quotation_service_types', 'id')->whereNull('deleted_at'),
+                ],
+                'business_payment_method_id' => [
+                    'nullable',
+                    'integer',
+                    Rule::exists('business_payment_methods', 'id')->whereNull('deleted_at'),
+                ],
+                'business_bank_account_id' => [
+                    'nullable',
+                    'integer',
+                    Rule::exists('business_bank_accounts', 'id')->where(fn ($q) => $q
+                        ->where('business_id', $business_id)
+                        ->whereNull('deleted_at')),
+                ],
+                'custom_tax_id' => [
+                    'nullable',
+                    'integer',
+                    Rule::exists('custom_taxes', 'id')->where(fn ($q) => $q
+                        ->where('business_id', $business_id)
+                        ->whereNull('deleted_at')),
+                ],
+                'validity_days'      => ['required', 'integer', 'min:1', 'max:365'],
+                'execution_time'     => ['nullable', 'string', 'max:120'],
+                'tax_percentage'     => ['nullable', 'numeric', 'min:0', 'max:100'],
+                'advance_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
+                'diagnosis'          => ['nullable', 'string'],
+                'observations'       => ['nullable', 'string'],
             ],
-            'quotation_service_type_id' => [
-                'nullable',
-                'integer',
-                Rule::exists('quotation_service_types', 'id')->whereNull('deleted_at'),
+            default => [],
+        };
+    }
+
+    public function firstStepWithErrors(array $errors): int
+    {
+        $step_fields = [
+            self::STEP_GENERAL => ['client_id', 'equipment_ids', 'hours_entry', 'notes'],
+            self::STEP_CONDITIONS => [
+                'quotation_service_type_id', 'business_payment_method_id', 'business_bank_account_id',
+                'custom_tax_id', 'validity_days', 'execution_time', 'tax_percentage',
+                'advance_percentage', 'diagnosis', 'observations',
             ],
-            'business_payment_method_id' => [
-                'nullable',
-                'integer',
-                Rule::exists('business_payment_methods', 'id')->whereNull('deleted_at'),
-            ],
-            'business_bank_account_id' => [
-                'nullable',
-                'integer',
-                Rule::exists('business_bank_accounts', 'id')->where(fn ($q) => $q
-                    ->where('business_id', $business_id)
-                    ->whereNull('deleted_at')),
-            ],
-            'custom_tax_id' => [
-                'required',
-                'integer',
-                Rule::exists('custom_taxes', 'id')->where(fn ($q) => $q
-                    ->where('business_id', $business_id)
-                    ->whereNull('deleted_at')),
-            ],
-            'hours_entry'     => ['nullable', 'date_format:H:i'],
-            'diagnosis'       => ['nullable', 'string'],
-            'validity_days'   => ['required', 'integer', 'min:1', 'max:365'],
-            'execution_time'  => ['nullable', 'string', 'max:120'],
-            'tax_percentage'  => ['required', 'numeric', 'min:0', 'max:100'],
-            'advance_percentage' => ['required', 'numeric', 'min:0', 'max:100'],
-            'notes'           => ['nullable', 'string'],
-            'observations'    => ['nullable', 'string'],
+            self::STEP_ITEMS => ['items'],
         ];
+
+        $error_keys = collect(array_keys($errors))
+            ->map(fn (string $key) => str_replace('form.', '', $key))
+            ->all();
+
+        foreach ($step_fields as $step => $fields) {
+            foreach ($error_keys as $key) {
+                foreach ($fields as $field) {
+                    if ($key === $field || str_starts_with($key, $field . '.')) {
+                        return $step;
+                    }
+                }
+            }
+        }
+
+        return self::STEP_GENERAL;
     }
 
     public function messages(): array
@@ -149,10 +202,8 @@ class QuotationForm extends Form
             'hours_entry.date_format' => 'Las horas al ingreso deben tener formato HH:MM.',
             'validity_days.required'  => 'Indica los días de vigencia.',
             'validity_days.min'       => 'La vigencia debe ser al menos 1 día.',
-            'custom_tax_id.required'  => 'Selecciona un impuesto.',
             'custom_tax_id.exists'    => 'El impuesto seleccionado no es válido.',
-            'tax_percentage.required' => 'El porcentaje del impuesto es obligatorio.',
-            'advance_percentage.required' => 'Indica el porcentaje de anticipo.',
+            'tax_percentage.numeric'  => 'El porcentaje del impuesto debe ser un número.',
             'advance_percentage.numeric' => 'El anticipo debe ser un número.',
             'advance_percentage.min' => 'El anticipo no puede ser negativo.',
             'advance_percentage.max' => 'El anticipo no puede superar el 100%.',
@@ -173,11 +224,7 @@ class QuotationForm extends Form
 
     public function validated(): array
     {
-        foreach (['quotation_service_type_id', 'business_payment_method_id', 'business_bank_account_id', 'custom_tax_id'] as $field) {
-            if ($this->{$field} === '' || $this->{$field} === 0) {
-                $this->{$field} = null;
-            }
-        }
+        $this->normalizeOptionalFields();
 
         $this->validate();
 
@@ -188,13 +235,16 @@ class QuotationForm extends Form
             );
         }
 
-        $custom_tax = CustomTax::query()
-            ->forAuthUser()
-            ->where('business_id', $this->resolvedBusinessId())
-            ->whereKey($this->custom_tax_id)
-            ->first();
-
-        abort_unless($custom_tax !== null, 422);
+        if ($this->custom_tax_id) {
+            abort_unless(
+                CustomTax::query()
+                    ->forAuthUser()
+                    ->where('business_id', $this->resolvedBusinessId())
+                    ->whereKey($this->custom_tax_id)
+                    ->exists(),
+                422
+            );
+        }
 
         abort_unless(
             Client::query()->forAuthUser()->whereKey($this->client_id)->exists(),
@@ -210,20 +260,46 @@ class QuotationForm extends Form
 
         abort_unless($count === count($equipment_ids), 422);
 
+        $data = $this->payload(self::TOTAL_STEPS);
+
+        if (! $this->isEditing()) {
+            $data['created_by'] = auth()->id();
+        }
+
+        return $data;
+    }
+
+    /** @return array<string, mixed> */
+    public function payload(int $step): array
+    {
+        $this->normalizeOptionalFields();
+
+        $custom_tax = null;
+
+        if ($this->custom_tax_id) {
+            $custom_tax = CustomTax::query()
+                ->forAuthUser()
+                ->where('business_id', $this->resolvedBusinessId())
+                ->whereKey($this->custom_tax_id)
+                ->first();
+        }
+
         $data = [
             'quotation_service_type_id'  => $this->quotation_service_type_id,
             'business_payment_method_id' => $this->business_payment_method_id,
             'business_bank_account_id'   => $this->business_bank_account_id,
-            'custom_tax_id'              => $custom_tax->id,
-            'custom_tax_name'            => $custom_tax->name,
+            'custom_tax_id'              => $custom_tax?->id,
+            'custom_tax_name'            => $custom_tax?->name,
             'hours_entry'                => $this->hours_entry !== '' ? $this->hours_entry : null,
             'diagnosis'                  => $this->diagnosis ?: null,
-            'validity_days'              => (int) $this->validity_days,
+            'validity_days'              => (int) ($this->validity_days ?: 15),
             'execution_time'             => $this->execution_time ?: null,
-            'tax_percentage'             => $this->tax_percentage,
-            'advance_percentage'         => $this->advance_percentage,
+            'tax_percentage'             => $this->tax_percentage !== '' ? $this->tax_percentage : ($custom_tax?->percentage ?? 0),
+            'advance_percentage'         => $this->advance_percentage !== '' ? $this->advance_percentage : 0,
             'notes'                      => $this->notes ?: null,
             'observations'               => $this->observations ?: null,
+            'step'                       => $step,
+            'final_step'                 => self::TOTAL_STEPS,
         ];
 
         if (! $this->isEditing()) {
@@ -231,5 +307,22 @@ class QuotationForm extends Form
         }
 
         return $data;
+    }
+
+    private function normalizeOptionalFields(): void
+    {
+        foreach (['quotation_service_type_id', 'business_payment_method_id', 'business_bank_account_id', 'custom_tax_id'] as $field) {
+            if ($this->{$field} === '' || $this->{$field} === 0) {
+                $this->{$field} = null;
+            }
+        }
+
+        if ($this->tax_percentage === '') {
+            $this->tax_percentage = '0';
+        }
+
+        if ($this->advance_percentage === '') {
+            $this->advance_percentage = '0';
+        }
     }
 }

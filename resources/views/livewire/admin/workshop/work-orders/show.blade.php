@@ -119,11 +119,20 @@
                             Editar
                         </a>
                         @endif
-                        @endif
-                    </div>
+                    @endif
                 </div>
             </div>
         </div>
+    </div>
+
+    @if(! $workOrder->isComplete())
+    <div class="mb-6 flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 sm:flex-row sm:items-center sm:justify-between">
+        <p>Esta orden de trabajo está incompleta (paso {{ $workOrder->step }} de {{ $workOrder->final_step }}, {{ $workOrder->progressPercent() }}%).</p>
+        @if($can_edit && ! $edit_disabled)
+        <a href="{{ route('admin.workshop.work-orders.form.edit', $workOrder) }}" wire:navigate class="font-semibold text-amber-800 underline underline-offset-2">Continuar registro</a>
+        @endif
+    </div>
+    @endif
     </div>
 
     <div class="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -448,7 +457,7 @@
                 </div>
                 <div>
                     <label class="mb-1.5 block text-xs font-medium text-slate-700">Precio unitario</label>
-                    <input type="number" wire:model="item_unit_price" min="0" step="100" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm">
+                    <input type="number" wire:model="item_unit_price" min="0" step="0.01" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm">
                 </div>
                 <div>
                     <label class="mb-1.5 block text-xs font-medium text-slate-700">Descuento (%)</label>

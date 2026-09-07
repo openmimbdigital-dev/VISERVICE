@@ -11,18 +11,23 @@ class Product extends Model
 {
     use SoftDeletes;
 
+    public const DEFAULT_FINAL_STEP = 3;
+
     protected $fillable = [
         'business_id',
+        'step',
+        'final_step',
         'product_type_id',
         'product_category_id',
         'unit_id',
         'brand_id',
-        'code',
+        'sku',
+        'barcode',
         'name',
         'description',
         'cost_price',
+        'profit_percentage',
         'sale_price',
-        'tax_id',
         'track_inventory',
         'status',
     ];
@@ -30,8 +35,11 @@ class Product extends Model
     protected function casts(): array
     {
         return [
-            'cost_price'       => 'decimal:2',
-            'sale_price'       => 'decimal:2',
+            'step'             => 'integer',
+            'final_step'       => 'integer',
+            'cost_price'         => 'decimal:2',
+            'profit_percentage'  => 'decimal:2',
+            'sale_price'         => 'decimal:2',
             'track_inventory'  => 'boolean',
             'status'           => 'boolean',
         ];
@@ -65,6 +73,45 @@ class Product extends Model
     public function scopeActive(Builder $query): Builder
     {
         return $query->where($query->getModel()->getTable() . '.status', true);
+    }
+
+    public function scopeComplete(Builder $query): Builder
+    {
+        $table = $query->getModel()->getTable();
+
+        return $query
+            ->whereNotNull("{$table}.product_type_id")
+            ->whereNotNull("{$table}.product_category_id")
+            ->whereNotNull("{$table}.unit_id")
+            ->whereNotNull("{$table}.cost_price")
+            ->whereNotNull("{$table}.profit_percentage")
+            ->whereNotNull("{$table}.sale_price");
+    }
+
+    public function isComplete(): bool
+    {
+        return $this->product_type_id !== null
+            && $this->product_category_id !== null
+            && $this->unit_id !== null
+            && $this->cost_price !== null
+            && $this->profit_percentage !== null
+            && $this->sale_price !== null;
+    }
+
+    public function profitMarginAmount(): ?float
+    {
+        if ($this->cost_price === null || $this->profit_percentage === null) {
+            return null;
+        }
+
+        return round((float) $this->cost_price * ((float) $this->profit_percentage / 100), 2);
+    }
+
+    public function progressPercent(): int
+    {
+        $final = max(1, (int) $this->final_step);
+
+        return (int) min(100, round(((int) $this->step / $final) * 100));
     }
 
     public function scopeForAuthUser(Builder $query, ?User $user = null): Builder

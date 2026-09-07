@@ -15,17 +15,20 @@ class CreateOrUpdateProductAction
 
     /**
      * @param  array{
-     *   product_type_id: int,
-     *   product_category_id: int,
-     *   unit_id: int,
+     *   product_type_id: int|null,
+     *   product_category_id: int|null,
+     *   unit_id: int|null,
      *   brand_id: int|null,
-     *   code: string,
+     *   sku: string,
+     *   barcode: string|null,
      *   name: string,
      *   description: string|null,
-     *   cost_price: float,
-     *   sale_price: float,
-     *   tax_id: int|null,
-     *   status: bool
+     *   cost_price: float|null,
+     *   profit_percentage: float|null,
+     *   sale_price: float|null,
+     *   status: bool,
+     *   step: int,
+     *   final_step: int
      * }  $data
      */
     public function handle(?int $product_id, array $data): Product
@@ -48,24 +51,33 @@ class CreateOrUpdateProductAction
 
         $this->assertRelationsBelongToBusiness($business_id, $data);
 
-        $product_category = ProductCategory::query()
-            ->visibleToUser($user)
-            ->findOrFail($data['product_category_id']);
+        $track_inventory = false;
+
+        if (! empty($data['product_category_id'])) {
+            $product_category = ProductCategory::query()
+                ->visibleToUser($user)
+                ->findOrFail($data['product_category_id']);
+
+            $track_inventory = (bool) $product_category->inventory;
+        }
 
         $attributes = [
             'business_id'         => $business_id,
-            'product_type_id'     => $data['product_type_id'],
-            'product_category_id' => $data['product_category_id'],
-            'unit_id'             => $data['unit_id'],
-            'brand_id'            => $data['brand_id'],
-            'code'                => $data['code'],
+            'step'                => (int) ($data['step'] ?? 1),
+            'final_step'          => (int) ($data['final_step'] ?? Product::DEFAULT_FINAL_STEP),
+            'product_type_id'     => $data['product_type_id'] ?? null,
+            'product_category_id' => $data['product_category_id'] ?? null,
+            'unit_id'             => $data['unit_id'] ?? null,
+            'brand_id'            => $data['brand_id'] ?? null,
+            'sku'                 => $data['sku'],
+            'barcode'             => $data['barcode'] ?? null,
             'name'                => $data['name'],
-            'description'         => $data['description'],
-            'cost_price'          => $data['cost_price'],
-            'sale_price'          => $data['sale_price'],
-            'tax_id'              => $data['tax_id'],
-            'track_inventory'     => (bool) $product_category->inventory,
-            'status'              => $data['status'],
+            'description'         => $data['description'] ?? null,
+            'cost_price'          => $data['cost_price'] ?? null,
+            'profit_percentage'   => $data['profit_percentage'] ?? null,
+            'sale_price'          => $data['sale_price'] ?? null,
+            'track_inventory'     => $track_inventory,
+            'status'              => $data['status'] ?? true,
         ];
 
         if ($product_id) {
@@ -85,22 +97,30 @@ class CreateOrUpdateProductAction
     {
         $user = auth()->user();
 
-        abort_unless(
-            ProductType::query()->visibleToUser($user)->whereKey($data['product_type_id'])->exists(),
-            422
-        );
+        if (! empty($data['product_type_id'])) {
+            abort_unless(
+                ProductType::query()->visibleToUser($user)->whereKey($data['product_type_id'])->exists(),
+                422
+            );
+        }
 
-        abort_unless(
-            ProductCategory::query()->visibleToUser($user)->whereKey($data['product_category_id'])->exists(),
-            422
-        );
+        if (! empty($data['product_category_id'])) {
+            abort_unless(
+                ProductCategory::query()->visibleToUser($user)->whereKey($data['product_category_id'])->exists(),
+                422
+            );
+        }
 
-        abort_unless(
-            Unit::query()->visibleToUser($user)->whereKey($data['unit_id'])->exists(),
-            422
-        );
+        if (! empty($data['unit_id'])) {
+            abort_unless(
+                Unit::query()->visibleToUser($user)->whereKey($data['unit_id'])->exists(),
+                422
+            );
+        }
 
-        if ($data['brand_id']) {
+        if ($data['brand_id'] ?? null) {
+            abort_unless(! empty($data['product_category_id']), 422);
+
             $brand_query = Brand::query()
                 ->visibleToUser($user)
                 ->forProductsCatalog()

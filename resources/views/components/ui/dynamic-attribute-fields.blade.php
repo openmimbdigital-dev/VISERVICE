@@ -1,31 +1,46 @@
 @props([
     'links',
     'wirePrefix' => 'form.attribute_values',
+    'embedded' => false,
+    'compact' => false,
 ])
 
 @php
     use App\Enums\AttributeType;
+
+    $input_class = $compact
+        ? 'form-input w-full border bg-white px-3 py-2 text-sm'
+        : 'w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20';
+
+    $grid_class = $compact
+        ? 'grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3'
+        : 'grid grid-cols-1 gap-5 p-4 sm:p-5 md:grid-cols-2';
 @endphp
 
 @if($links->isNotEmpty())
-    <section {{ $attributes->merge(['class' => 'md:col-span-2 overflow-hidden rounded-2xl border border-slate-200/90 bg-slate-50/40']) }}>
-        <div class="border-b border-slate-100 bg-slate-50/80 px-4 py-3 sm:px-5">
-            <h3 class="text-sm font-semibold text-slate-800">Atributos del tipo de equipo</h3>
-            <p class="mt-0.5 text-xs text-slate-500">Campos configurados según el tipo seleccionado.</p>
-        </div>
+    @if($embedded)
+        <div {{ $attributes->merge(['class' => $grid_class]) }}>
+    @else
+        <section {{ $attributes->merge(['class' => 'md:col-span-2 overflow-hidden rounded-2xl border border-slate-200/90 bg-slate-50/40']) }}>
+            <div class="border-b border-slate-100 bg-slate-50/80 px-4 py-3 sm:px-5">
+                <h3 class="text-sm font-semibold text-slate-800">Atributos del tipo de equipo</h3>
+                <p class="mt-0.5 text-xs text-slate-500">Campos configurados según el tipo seleccionado.</p>
+            </div>
+            <div class="{{ $grid_class }}">
+    @endif
 
-        <div class="grid grid-cols-1 gap-5 p-4 sm:p-5 md:grid-cols-2">
             @foreach($links as $link)
                 @php
                     $attribute = $link->attribute;
                     $field_key = $attribute->id;
                     $model_key = "{$wirePrefix}.{$field_key}";
                     $required  = $attribute->required;
-                    $input_class = 'w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20';
+                    $span_wide = $attribute->type === AttributeType::TEXTAREA
+                        || $attribute->type === AttributeType::CHECKBOX;
                 @endphp
 
-                <div @class(['md:col-span-2' => in_array($attribute->type, [AttributeType::TEXTAREA, AttributeType::CHECKBOX, AttributeType::RADIO], true)])>
-                    <label class="mb-1.5 block text-xs font-medium text-slate-700">
+                <div @class(['sm:col-span-2 xl:col-span-3' => $span_wide && $compact, 'md:col-span-2' => $span_wide && ! $compact])>
+                    <label class="mb-1 block text-xs font-medium text-slate-700">
                         {{ $attribute->name }}
                         @if($required)
                             <span class="text-rose-500">*</span>
@@ -47,13 +62,13 @@
                             @break
 
                         @case(AttributeType::TEXTAREA)
-                            <textarea wire:model="{{ $model_key }}" rows="3"
+                            <textarea wire:model="{{ $model_key }}" rows="{{ $compact ? 2 : 3 }}"
                                 class="{{ $input_class }} @error($model_key) border-rose-400 bg-rose-50 @enderror"></textarea>
                             @break
 
                         @case(AttributeType::SELECT)
                             <select wire:model="{{ $model_key }}"
-                                class="{{ $input_class }} @error($model_key) border-rose-400 bg-rose-50 @enderror">
+                                class="{{ $compact ? 'form-select w-full border bg-white px-3 py-2 text-sm' : $input_class }} @error($model_key) border-rose-400 bg-rose-50 @enderror">
                                 <option value="">Seleccionar</option>
                                 @foreach($attribute->options ?? [] as $option)
                                     <option value="{{ $option['value'] ?? $option['label'] }}">{{ $option['label'] }}</option>
@@ -62,10 +77,10 @@
                             @break
 
                         @case(AttributeType::RADIO)
-                            <div class="flex flex-wrap gap-3">
+                            <div class="flex flex-wrap gap-2">
                                 @foreach($attribute->options ?? [] as $option)
                                     @php $option_value = $option['value'] ?? $option['label']; @endphp
-                                    <label class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
+                                    <label class="inline-flex cursor-pointer items-center gap-2 rounded border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
                                         <input type="radio" wire:model="{{ $model_key }}" value="{{ $option_value }}"
                                             class="border-slate-300 text-indigo-600 focus:ring-indigo-500">
                                         {{ $option['label'] }}
@@ -78,7 +93,7 @@
                             <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
                                 @foreach($attribute->options ?? [] as $option)
                                     @php $option_value = $option['value'] ?? $option['label']; @endphp
-                                    <label class="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5">
+                                    <label class="flex cursor-pointer items-center gap-3 rounded border border-slate-200 bg-white px-3 py-2">
                                         <input type="checkbox" value="{{ $option_value }}" wire:model="{{ $model_key }}"
                                             class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
                                         <span class="text-sm text-slate-700">{{ $option['label'] }}</span>
@@ -88,9 +103,9 @@
                             @break
 
                         @case(AttributeType::COLOR)
-                            <div class="flex items-center gap-3">
+                            <div class="flex items-center gap-2">
                                 <input type="color" wire:model="{{ $model_key }}"
-                                    class="h-10 w-14 cursor-pointer rounded-lg border border-slate-200 bg-white p-1">
+                                    class="h-9 w-12 cursor-pointer rounded border border-slate-200 bg-white p-1">
                                 <input type="text" wire:model="{{ $model_key }}"
                                     class="{{ $input_class }} max-w-[8rem] font-mono text-xs uppercase @error($model_key) border-rose-400 bg-rose-50 @enderror">
                             </div>
@@ -102,6 +117,11 @@
                     @enderror
                 </div>
             @endforeach
+
+    @if($embedded)
         </div>
-    </section>
+    @else
+            </div>
+        </section>
+    @endif
 @endif

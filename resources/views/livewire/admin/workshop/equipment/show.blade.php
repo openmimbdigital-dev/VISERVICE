@@ -52,6 +52,15 @@
         </div>
     </header>
 
+    @if(! $equipment->isComplete())
+    <div class="mb-6 flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 sm:flex-row sm:items-center sm:justify-between">
+        <p>Este equipo está incompleto (paso {{ $equipment->step }} de {{ $equipment->final_step }}, {{ $equipment->progressPercent() }}%).</p>
+        @can('workshop.equipment.edit')
+        <a href="{{ route('admin.workshop.equipment.form.edit', [$equipment_type, $equipment]) }}" wire:navigate class="font-semibold text-amber-800 underline underline-offset-2">Continuar registro</a>
+        @endcan
+    </div>
+    @endif
+
     <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <section class="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
             <div class="border-b border-slate-100 bg-slate-50/80 px-5 py-4">

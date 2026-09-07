@@ -152,7 +152,7 @@ class RemissionsSeeder extends Seeder
                 'product_category_id' => $product?->product_category_id,
                 'unit_id'             => $product?->unit_id,
                 'description'         => $item->description,
-                'reference_brand'     => $product?->code
+                'reference_brand'     => $product?->sku
                     ?: $product?->brand?->name
                     ?: null,
                 'unit_name'           => $product?->unit?->name,

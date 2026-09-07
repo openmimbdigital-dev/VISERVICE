@@ -14,6 +14,7 @@ use App\Models\ProductType;
 use App\Models\Quotation;
 use App\Models\WorkOrder;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -25,6 +26,8 @@ class Form extends Component
     use ConfirmsDeletionWithLivewireAlert;
 
     public WorkOrderForm $form;
+
+    public int $step = WorkOrderForm::STEP_GENERAL;
 
     /** @var array<int, array<string, mixed>> */
     public array $items = [];
@@ -48,6 +51,9 @@ class Form extends Component
 
             $workOrder->load(['items.productType', 'items.catalogProduct', 'equipments:id']);
             $this->form->setWorkOrder($workOrder);
+            $this->step = $workOrder->isComplete()
+                ? WorkOrderForm::STEP_GENERAL
+                : max(WorkOrderForm::STEP_GENERAL, min((int) $workOrder->step, WorkOrderForm::TOTAL_STEPS));
             $this->reference = $workOrder->reference;
             $this->quotation_locked = (bool) $workOrder->quotation_id;
             $this->items = $workOrder->items->map(fn ($item) => [
@@ -172,6 +178,7 @@ class Form extends Component
 
         $catalog = Product::query()
             ->forAuthUser()
+            ->complete()
             ->where('business_id', $this->form->resolvedBusinessId())
             ->whereKey($value)
             ->first();
@@ -219,6 +226,36 @@ class Form extends Component
         $this->items = array_values($this->items);
     }
 
+    public function nextStep(): void
+    {
+        $this->validateCurrentStep();
+        $this->advanceToStep(min($this->step + 1, WorkOrderForm::TOTAL_STEPS));
+    }
+
+    public function previousStep(): void
+    {
+        $this->step = max($this->step - 1, WorkOrderForm::STEP_GENERAL);
+    }
+
+    public function goToStep(int $step): void
+    {
+        if ($step < WorkOrderForm::STEP_GENERAL || $step > WorkOrderForm::TOTAL_STEPS) {
+            return;
+        }
+
+        if ($step > $this->step) {
+            for ($current = $this->step; $current < $step; $current++) {
+                if ($current === WorkOrderForm::STEP_ITEMS) {
+                    $this->validateItemsStep();
+                } else {
+                    $this->form->validate($this->form->rulesForStep($current));
+                }
+            }
+        }
+
+        $this->advanceToStep($step);
+    }
+
     public function save(): void
     {
         abort_unless(
@@ -234,11 +271,13 @@ class Form extends Component
             fn ($row) => trim((string) ($row['description'] ?? '')) !== ''
         ));
 
-        if ($this->items !== []) {
-            $this->validate($this->itemRules());
-        }
-
         try {
+            if ($this->items !== []) {
+                $this->validate($this->itemRules());
+            } else {
+                $this->validate(['items' => ['required', 'array', 'min:1']]);
+            }
+
             $work_order = CreateOrUpdateWorkOrderAction::run(
                 $business_id,
                 $this->form->work_order_id,
@@ -247,15 +286,10 @@ class Form extends Component
                 $this->form->validated(),
                 $this->items
             );
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            foreach ($e->errors() as $field => $messages) {
-                $this->addError(
-                    str_starts_with($field, 'form.') ? $field : 'form.'.$field,
-                    $messages[0] ?? 'Error de validación.'
-                );
-            }
+        } catch (ValidationException $exception) {
+            $this->step = $this->form->firstStepWithErrors($exception->errors());
 
-            return;
+            throw $exception;
         }
 
         $this->dispatch('swal', [
@@ -265,7 +299,7 @@ class Form extends Component
             'icon'  => 'success',
         ]);
 
-        $this->redirectRoute('admin.workshop.work-orders.show', $work_order->id, navigate: true);
+        $this->redirectRoute('admin.workshop.work-orders.index', navigate: true);
     }
 
     public function deleteWorkOrder(): void
@@ -312,7 +346,87 @@ class Form extends Component
             'items.*.description'  => 'descripción del ítem',
             'items.*.quantity'     => 'cantidad',
             'items.*.unit_price'   => 'precio unitario',
+            'items'                => 'ítems',
         ];
+    }
+
+    /** @return array<string, string> */
+    protected function messages(): array
+    {
+        return [
+            'items.required' => 'Agrega al menos un ítem a la orden de trabajo.',
+            'items.min'      => 'Agrega al menos un ítem a la orden de trabajo.',
+        ];
+    }
+
+    protected function validateCurrentStep(): void
+    {
+        if ($this->step === WorkOrderForm::STEP_ITEMS) {
+            $this->validateItemsStep();
+
+            return;
+        }
+
+        $this->form->validate($this->form->rulesForStep($this->step));
+    }
+
+    protected function validateItemsStep(): void
+    {
+        $this->items = array_values(array_filter(
+            $this->items,
+            fn ($row) => trim((string) ($row['description'] ?? '')) !== ''
+        ));
+
+        if ($this->items === []) {
+            $this->validate(['items' => ['required', 'array', 'min:1']]);
+
+            return;
+        }
+
+        $this->validate($this->itemRules());
+    }
+
+    protected function isFlowComplete(): bool
+    {
+        return $this->form->work_order_id
+            && $this->step >= WorkOrderForm::TOTAL_STEPS
+            && collect($this->items)->contains(fn ($row) => trim((string) ($row['description'] ?? '')) !== '');
+    }
+
+    protected function advanceToStep(int $step): void
+    {
+        if ($step > $this->step && ! $this->isFlowComplete()) {
+            $was_new    = ! $this->form->isEditing();
+            $work_order = $this->persistProgress($step);
+
+            if ($was_new) {
+                $this->redirectRoute('admin.workshop.work-orders.form.edit', $work_order, navigate: true);
+
+                return;
+            }
+        }
+
+        $this->step = $step;
+    }
+
+    protected function persistProgress(int $step): WorkOrder
+    {
+        $business_id = $this->form->resolvedBusinessId();
+        abort_unless($business_id, 403);
+
+        $work_order = CreateOrUpdateWorkOrderAction::run(
+            $business_id,
+            $this->form->work_order_id,
+            (int) $this->form->client_id,
+            $this->form->resolvedEquipmentIds(),
+            $this->form->payload($step),
+            $this->items
+        );
+
+        $this->form->work_order_id = $work_order->id;
+        $this->reference           = $work_order->reference;
+
+        return $work_order;
     }
 
     protected function clearItemEquipmentAssignments(): void
@@ -330,27 +444,28 @@ class Form extends Component
         $clients = Client::query()->forAuthUser()->where('status', true)->orderBy('name')->get();
         $accepted_quotations = $this->form->getAcceptedQuotations();
         $product_types = ProductType::query()->visibleToUser()->where('active', true)->orderBy('name')->get();
-        $catalog_products = Product::query()->forAuthUser()->where('business_id', $business_id)->active()->orderBy('name')->get();
+        $catalog_products = Product::query()->forAuthUser()->complete()->where('business_id', $business_id)->active()->orderBy('name')->get();
+
+        $selected_equipment_ids = $this->form->resolvedEquipmentIds();
 
         $equipment_query = Equipment::query()->forAuthUser()
             ->where('client_id', $this->form->client_id)
+            ->where(function ($query) use ($selected_equipment_ids) {
+                $query->where(function ($complete) {
+                    $complete->complete()->where('status', true);
+                });
+
+                if ($selected_equipment_ids !== []) {
+                    $query->orWhereIn('id', $selected_equipment_ids);
+                }
+            })
             ->orderBy('name')
             ->orderBy('plate');
-
-        if ($this->form->resolvedEquipmentIds() !== []) {
-            $equipment_query->where(function ($q) {
-                $q->where('status', true)
-                    ->orWhereIn('id', $this->form->resolvedEquipmentIds());
-            });
-        } else {
-            $equipment_query->where('status', true);
-        }
 
         $equipment_for_client = $this->form->client_id
             ? $equipment_query->get(['id', 'name', 'brand_name', 'plate'])
             : collect();
 
-        $selected_equipment_ids = $this->form->resolvedEquipmentIds();
         $selected_equipments = $equipment_for_client
             ->whereIn('id', $selected_equipment_ids)
             ->values();
@@ -369,6 +484,16 @@ class Form extends Component
         $advance_amount = round($subtotal * ($advance_pct / 100), 2);
         $this->form->advance_amount = (string) $advance_amount;
 
+        $item_line_totals = [];
+        foreach ($this->items as $index => $row) {
+            $item_line_totals[$index] = round(
+                (float) ($row['quantity'] ?? 0)
+                * (float) ($row['unit_price'] ?? 0)
+                * (1 - (float) ($row['discount_percentage'] ?? 0) / 100),
+                2
+            );
+        }
+
         $linked_remission = null;
         $can_create_remission = false;
         if ($this->form->work_order_id) {
@@ -383,9 +508,33 @@ class Form extends Component
                 && ! $linked_remission;
         }
 
+        $total_steps   = WorkOrderForm::TOTAL_STEPS;
+        $progress      = (int) round(($this->step / $total_steps) * 100);
+        $radius        = 30;
+        $circumference = round(2 * M_PI * $radius, 2);
+
         return view('livewire.admin.workshop.work-orders.form', [
-            'is_editing'           => $this->form->isEditing(),
-            'from_quotation'       => $from_quotation,
+            'is_editing'             => $this->form->isEditing(),
+            'from_quotation'         => $from_quotation,
+            'step'                   => $this->step,
+            'total_steps'            => $total_steps,
+            'progress'               => $progress,
+            'progress_circumference' => $circumference,
+            'progress_offset'        => round($circumference * (1 - $progress / 100), 2),
+            'steps'                  => [
+                WorkOrderForm::STEP_GENERAL => [
+                    'title'       => 'Datos',
+                    'description' => 'Cliente y equipos',
+                ],
+                WorkOrderForm::STEP_CONDITIONS => [
+                    'title'       => 'Condiciones',
+                    'description' => 'Entrega, IVA y anticipo',
+                ],
+                WorkOrderForm::STEP_ITEMS => [
+                    'title'       => 'Ítems',
+                    'description' => 'Productos y servicios',
+                ],
+            ],
             'clients'              => $clients,
             'accepted_quotations'  => $accepted_quotations,
             'product_types'        => $product_types,
@@ -396,6 +545,7 @@ class Form extends Component
             'preview_tax'          => $tax,
             'preview_total'        => $total,
             'preview_advance_amount' => $advance_amount,
+            'item_line_totals'     => $item_line_totals,
             'can_delete'           => $this->form->work_order_id
                 && auth()->user()->can('workshop.work-orders.delete'),
             'can_create_remission' => $can_create_remission,

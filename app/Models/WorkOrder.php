@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\WorkOrderStatus;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -15,8 +16,10 @@ class WorkOrder extends Model
 {
     use SoftDeletes;
 
+    public const DEFAULT_FINAL_STEP = 3;
+
     protected $fillable = [
-        'business_id', 'client_id', 'quotation_id',
+        'business_id', 'client_id', 'quotation_id', 'step', 'final_step',
         'reference', 'status', 'status_comments',
         'diagnosis', 'work_description', 'observations', 'notes',
         'estimated_delivery', 'subtotal', 'tax_percentage',
@@ -28,6 +31,8 @@ class WorkOrder extends Model
     {
         return [
             'status'             => WorkOrderStatus::class,
+            'step'               => 'integer',
+            'final_step'         => 'integer',
             'status_comments'    => 'array',
             'estimated_delivery' => 'date',
             'finalized_at'       => 'datetime',
@@ -156,6 +161,40 @@ class WorkOrder extends Model
         }
 
         return $query->whereIn($query->getModel()->getTable() . '.business_id', $business_ids);
+    }
+
+    public function scopeComplete(Builder $query): Builder
+    {
+        $table = $query->getModel()->getTable();
+
+        return $query->whereColumn("{$table}.step", '>=', "{$table}.final_step")
+            ->whereExists(function ($sub) use ($table) {
+                $sub->selectRaw('1')
+                    ->from('work_order_items')
+                    ->whereColumn('work_order_items.work_order_id', "{$table}.id");
+            });
+    }
+
+    public function isComplete(): bool
+    {
+        $reached_end = (int) $this->step >= max(1, (int) $this->final_step);
+
+        if (! $reached_end) {
+            return false;
+        }
+
+        if ($this->relationLoaded('items')) {
+            return $this->items->isNotEmpty();
+        }
+
+        return $this->items()->exists();
+    }
+
+    public function progressPercent(): int
+    {
+        $final = max(1, (int) $this->final_step);
+
+        return (int) min(100, round(((int) $this->step / $final) * 100));
     }
 
     public function scopeOpen($query)

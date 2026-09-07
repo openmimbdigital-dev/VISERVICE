@@ -93,6 +93,8 @@ class WorkOrdersSeeder extends Seeder
                     'notes'              => 'Generada por WorkOrdersSeeder.',
                     'estimated_delivery' => now()->addDays(2 + ($sequence % 5))->toDateString(),
                     'tax_percentage'     => $quotation?->tax_percentage ?? 19,
+                    'step'               => 3,
+                    'final_step'         => 3,
                     'created_by'         => $created_by,
                     'finalized_at'       => $is_finalized ? now()->subDays($sequence) : null,
                     'deleted_at'         => null,

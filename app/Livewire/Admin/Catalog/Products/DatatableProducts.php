@@ -59,8 +59,13 @@ class DatatableProducts extends LivewireDatatable
         }
 
         return array_merge($columns, [
-            Column::name('products.code')
-                ->label('Código')
+            Column::name('products.sku')
+                ->label('SKU')
+                ->searchable()
+                ->sortable(),
+
+            Column::name('products.barcode')
+                ->label('Cód. barras')
                 ->searchable()
                 ->sortable(),
 
@@ -80,8 +85,26 @@ class DatatableProducts extends LivewireDatatable
                 ->searchable(),
 
             Column::callback(['products.sale_price'], function ($sale_price) {
+                if ($sale_price === null) {
+                    return '<span class="text-sm text-slate-400">—</span>';
+                }
+
                 return '<span class="tabular-nums text-sm text-slate-700">$ ' . number_format((float) $sale_price, 2, ',', '.') . '</span>';
             })->label('Precio venta')->sortable(),
+
+            Column::callback(['products.step', 'products.final_step', 'products.product_type_id', 'products.product_category_id', 'products.unit_id', 'products.cost_price', 'products.profit_percentage', 'products.sale_price'], function ($step, $final_step, $product_type_id, $product_category_id, $unit_id, $cost_price, $profit_percentage, $sale_price) {
+                $final = max(1, (int) $final_step);
+                $percent = (int) min(100, round(((int) $step / $final) * 100));
+                $complete = $product_type_id && $product_category_id && $unit_id && $cost_price !== null && $profit_percentage !== null && $sale_price !== null;
+                $label = $complete ? 'Completo' : 'Paso ' . (int) $step . '/' . $final;
+                $class = $complete
+                    ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20'
+                    : 'bg-amber-50 text-amber-800 ring-1 ring-amber-600/20';
+
+                return '<span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ' . $class . '">'
+                    . $label
+                    . ' · ' . $percent . '%</span>';
+            })->label('Progreso')->unsortable(),
 
             Column::callback(['products.track_inventory'], function ($track_inventory) {
                 if ($track_inventory) {

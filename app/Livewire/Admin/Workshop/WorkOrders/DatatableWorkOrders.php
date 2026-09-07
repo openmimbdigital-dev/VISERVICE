@@ -12,6 +12,7 @@ use Arm092\LivewireDatatables\DateColumn;
 use Arm092\LivewireDatatables\Livewire\LivewireDatatable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class DatatableWorkOrders extends LivewireDatatable
 {
@@ -23,10 +24,20 @@ class DatatableWorkOrders extends LivewireDatatable
 
     public function builder(): Builder
     {
+        $items_count = DB::table('work_order_items')
+            ->select('work_order_id', DB::raw('COUNT(*) as items_count'))
+            ->groupBy('work_order_id');
+
         return WorkOrder::query()
             ->forAuthUser()
             ->leftJoin('clients', 'work_orders.client_id', '=', 'clients.id')
+            ->leftJoinSub(
+                $items_count,
+                'work_order_items_agg',
+                fn ($join) => $join->on('work_orders.id', '=', 'work_order_items_agg.work_order_id')
+            )
             ->select('work_orders.*')
+            ->addSelect('work_order_items_agg.items_count')
             ->orderByDesc('work_orders.created_at');
     }
 
@@ -46,6 +57,20 @@ class DatatableWorkOrders extends LivewireDatatable
             Column::callback(['work_orders.total'], function ($total) {
                 return '<span class="tabular-nums font-semibold">' . col_money($total) . '</span>';
             })->label('Total')->sortable(),
+
+            Column::callback(['work_orders.step', 'work_orders.final_step', 'work_order_items_agg.items_count'], function ($step, $final_step, $items_count) {
+                $final    = max(1, (int) $final_step);
+                $percent  = (int) min(100, round(((int) $step / $final) * 100));
+                $complete = (int) $items_count > 0 && (int) $step >= $final;
+                $label    = $complete ? 'Completo' : 'Paso ' . (int) $step . '/' . $final;
+                $class    = $complete
+                    ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20'
+                    : 'bg-amber-50 text-amber-800 ring-1 ring-amber-600/20';
+
+                return '<span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ' . $class . '">'
+                    . $label
+                    . ' · ' . $percent . '%</span>';
+            })->label('Progreso')->unsortable(),
 
             Column::callback(['work_orders.estimated_delivery'], function ($date) {
                 return $date ? \Carbon\Carbon::parse($date)->format('d/m/Y') : '<span class="text-slate-400">—</span>';

@@ -18,15 +18,17 @@ class CreateOrUpdateEquipmentAction
     /**
      * @param  array{
      *     client_id: int,
-     *     brand_id: int,
-     *     model_id: int,
+     *     brand_id: int|null,
+     *     model_id: int|null,
      *     equipment_type_id: int,
      *     name: string,
      *     plate: string,
-     *     year: int,
+     *     year: int|null,
      *     status: bool,
      *     notes: string|null,
      *     attribute_values: array<int, mixed>,
+     *     step: int,
+     *     final_step: int,
      * }  $data
      */
     public function handle(int $business_id, ?int $equipment_id, array $data): Equipment
@@ -51,33 +53,47 @@ class CreateOrUpdateEquipmentAction
             ->whereKey($data['client_id'])
             ->firstOrFail();
 
-        $brand = Brand::query()
-            ->visibleToUser()
-            ->whereHas('equipmentTypes', fn ($query) => $query->whereKey($equipment_type->id))
-            ->findOrFail($data['brand_id']);
+        $brand      = null;
+        $brand_name = null;
 
-        $brand_name = $brand->name;
+        if (! empty($data['brand_id'])) {
+            $brand = Brand::query()
+                ->visibleToUser()
+                ->whereHas('equipmentTypes', fn ($query) => $query->whereKey($equipment_type->id))
+                ->findOrFail($data['brand_id']);
 
-        $model = EquipmentModel::query()
-            ->visibleToUser()
-            ->where('brand_id', $data['brand_id'])
-            ->findOrFail($data['model_id']);
+            $brand_name = $brand->name;
+        }
 
-        $model_name = $model->name;
+        $model      = null;
+        $model_name = null;
+
+        if (! empty($data['model_id'])) {
+            abort_unless(! empty($data['brand_id']), 422);
+
+            $model = EquipmentModel::query()
+                ->visibleToUser()
+                ->where('brand_id', $data['brand_id'])
+                ->findOrFail($data['model_id']);
+
+            $model_name = $model->name;
+        }
 
         $attributes = [
             'business_id'         => $business_id,
+            'step'                => (int) ($data['step'] ?? 1),
+            'final_step'          => (int) ($data['final_step'] ?? Equipment::DEFAULT_FINAL_STEP),
             'client_id'           => $client->id,
             'client_name'         => $client->name,
-            'brand_id'            => $data['brand_id'],
-            'model_id'            => $data['model_id'],
+            'brand_id'            => $data['brand_id'] ?? null,
+            'model_id'            => $data['model_id'] ?? null,
             'equipment_type_id'   => $equipment_type->id,
             'equipment_type_name' => $equipment_type->name,
             'name'                => $data['name'],
             'plate'               => $data['plate'],
             'brand_name'          => $brand_name,
             'model_name'          => $model_name,
-            'year'                => $data['year'],
+            'year'                => $data['year'] ?? null,
             'status'              => $data['status'],
             'notes'               => $data['notes'],
         ];
@@ -115,6 +131,7 @@ class CreateOrUpdateEquipmentAction
             'plate'             => $equipment->plate,
             'equipment_type_id' => $equipment->equipment_type_id,
             'status'            => $equipment->status,
+            'step'              => $equipment->step,
         ];
 
         LogUserHistoricalAction::run(

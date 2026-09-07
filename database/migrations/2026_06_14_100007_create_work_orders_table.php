@@ -13,6 +13,8 @@ return new class extends Migration
             $table->foreignId('business_id')->constrained()->onDelete('cascade');
             $table->foreignId('client_id')->constrained('clients')->onDelete('cascade');
             $table->foreignId('quotation_id')->nullable()->constrained('quotations')->nullOnDelete();
+            $table->unsignedTinyInteger('step')->default(1)->comment('Paso actual del flujo de alta');
+            $table->unsignedTinyInteger('final_step')->default(3)->comment('Pasos totales del flujo de alta');
             $table->string('reference')->comment('OT-YYYYMM-XXXX');
             $table->string('status', 100)->default('created');
             $table->foreign('status')->references('name')->on('statuses')->restrictOnDelete();
@@ -36,6 +38,7 @@ return new class extends Migration
             $table->unique(['business_id', 'reference']);
 
             // Listado datatable y conteos por equipo/cliente
+            $table->index(['business_id', 'deleted_at', 'step'], 'work_orders_business_deleted_step_idx');
             $table->index(['business_id', 'deleted_at', 'created_at'], 'work_orders_business_deleted_created_idx');
             $table->index(['business_id', 'deleted_at', 'status'], 'work_orders_business_deleted_status_idx');
             $table->index(['business_id', 'deleted_at', 'reference'], 'work_orders_business_deleted_reference_idx');

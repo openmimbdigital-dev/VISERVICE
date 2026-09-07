@@ -111,6 +111,8 @@ class QuotationsSeeder extends Seeder
                     'validity_days'              => 15,
                     'execution_time'             => ($sequence % 2 === 0) ? '2 días hábiles' : '1 día hábil',
                     'tax_percentage'             => 19,
+                    'step'                       => Quotation::DEFAULT_FINAL_STEP,
+                    'final_step'                 => Quotation::DEFAULT_FINAL_STEP,
                     'notes'                      => 'Cotización de demostración.',
                     'observations'               => 'Vigencia sujeta a disponibilidad de repuestos.',
                     'reject_reason'              => $entry['reject_reason'],

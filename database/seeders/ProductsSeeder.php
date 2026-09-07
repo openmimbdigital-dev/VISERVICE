@@ -47,7 +47,7 @@ class ProductsSeeder extends Seeder
         $products = [
             // Mano de obra — servicios
             [
-                'code' => 'SRV-MANT-PREV',
+                'sku' => 'SRV-MANT-PREV',
                 'name' => 'Servicio de mantenimiento preventivo',
                 'product_type_id' => $type_servicio->id,
                 'product_category_id' => $cat_mano_obra->id,
@@ -58,7 +58,7 @@ class ProductsSeeder extends Seeder
                 'cost_price' => 0,
             ],
             [
-                'code' => 'SRV-DIAG-ELEC',
+                'sku' => 'SRV-DIAG-ELEC',
                 'name' => 'Diagnóstico electrónico',
                 'product_type_id' => $type_servicio->id,
                 'product_category_id' => $cat_mano_obra->id,
@@ -69,7 +69,7 @@ class ProductsSeeder extends Seeder
                 'cost_price' => 0,
             ],
             [
-                'code' => 'SRV-AJ-FREN',
+                'sku' => 'SRV-AJ-FREN',
                 'name' => 'Ajuste de frenos',
                 'product_type_id' => $type_servicio->id,
                 'product_category_id' => $cat_mano_obra->id,
@@ -81,7 +81,7 @@ class ProductsSeeder extends Seeder
             ],
             // Repuestos — productos
             [
-                'code' => 'P550588',
+                'sku' => 'P550588',
                 'name' => 'Filtro de aceite Donaldson P550588',
                 'product_type_id' => $type_producto->id,
                 'product_category_id' => $cat_repuestos->id,
@@ -92,7 +92,7 @@ class ProductsSeeder extends Seeder
                 'cost_price' => 32000,
             ],
             [
-                'code' => 'P628182',
+                'sku' => 'P628182',
                 'name' => 'Filtro de aire Donaldson P628182',
                 'product_type_id' => $type_producto->id,
                 'product_category_id' => $cat_repuestos->id,
@@ -103,7 +103,7 @@ class ProductsSeeder extends Seeder
                 'cost_price' => 55000,
             ],
             [
-                'code' => 'P550926',
+                'sku' => 'P550926',
                 'name' => 'Filtro de combustible Donaldson P550926',
                 'product_type_id' => $type_producto->id,
                 'product_category_id' => $cat_repuestos->id,
@@ -114,7 +114,7 @@ class ProductsSeeder extends Seeder
                 'cost_price' => 38000,
             ],
             [
-                'code' => 'REP-PAST-FRE-DEL',
+                'sku' => 'REP-PAST-FRE-DEL',
                 'name' => 'Pastillas de freno juego (Delanteras)',
                 'product_type_id' => $type_producto->id,
                 'product_category_id' => $cat_repuestos->id,
@@ -125,7 +125,7 @@ class ProductsSeeder extends Seeder
                 'cost_price' => 140000,
             ],
             [
-                'code' => 'K081021',
+                'sku' => 'K081021',
                 'name' => 'Kit de bandas Gates K081021',
                 'product_type_id' => $type_producto->id,
                 'product_category_id' => $cat_repuestos->id,
@@ -137,7 +137,7 @@ class ProductsSeeder extends Seeder
             ],
             // Lubricantes y fluidos — productos
             [
-                'code' => 'LUB-ACE-RIMULA',
+                'sku' => 'LUB-ACE-RIMULA',
                 'name' => 'Aceite de motor Shell Rimula R6 15W-40 (Galón)',
                 'product_type_id' => $type_producto->id,
                 'product_category_id' => $cat_lubricantes->id,
@@ -148,7 +148,7 @@ class ProductsSeeder extends Seeder
                 'cost_price' => 98000,
             ],
             [
-                'code' => 'LUB-GRA-GADUS',
+                'sku' => 'LUB-GRA-GADUS',
                 'name' => 'Grasa multipropósito Shell Gadus S2 V220 (Cartucho)',
                 'product_type_id' => $type_producto->id,
                 'product_category_id' => $cat_lubricantes->id,
@@ -159,7 +159,7 @@ class ProductsSeeder extends Seeder
                 'cost_price' => 31000,
             ],
             [
-                'code' => 'LUB-REF-SHELL',
+                'sku' => 'LUB-REF-SHELL',
                 'name' => 'Líquido refrigerante Shell (Galón)',
                 'product_type_id' => $type_producto->id,
                 'product_category_id' => $cat_lubricantes->id,
@@ -174,10 +174,12 @@ class ProductsSeeder extends Seeder
         $created = 0;
 
         foreach ($products as $data) {
+            $pricing = $this->pricingFromCostAndSale((float) $data['cost_price'], (float) $data['sale_price']);
+
             Product::query()->updateOrCreate(
                 [
                     'business_id' => $business->id,
-                    'code'        => $data['code'],
+                    'sku'        => $data['sku'],
                 ],
                 [
                     'product_type_id'     => $data['product_type_id'],
@@ -186,11 +188,14 @@ class ProductsSeeder extends Seeder
                     'brand_id'         => $data['brand_id'],
                     'name'             => $data['name'],
                     'description'      => null,
-                    'cost_price'       => $data['cost_price'],
-                    'sale_price'       => $data['sale_price'],
-                    'tax_id'           => null,
+                    'barcode'          => $data['sku'],
+                    'cost_price'       => $pricing['cost_price'],
+                    'profit_percentage'  => $pricing['profit_percentage'],
+                    'sale_price'       => $pricing['sale_price'],
                     'track_inventory'  => $data['track_inventory'],
                     'status'           => true,
+                    'step'             => Product::DEFAULT_FINAL_STEP,
+                    'final_step'       => Product::DEFAULT_FINAL_STEP,
                 ]
             );
 
@@ -198,6 +203,26 @@ class ProductsSeeder extends Seeder
         }
 
         $this->command?->info("Products: {$created} productos/servicios sembrados para {$business->name}.");
+    }
+
+    /** @return array{cost_price: float, profit_percentage: float, sale_price: float} */
+    private function pricingFromCostAndSale(float $cost_price, float $sale_price): array
+    {
+        if ($cost_price <= 0) {
+            return [
+                'cost_price'         => $sale_price,
+                'profit_percentage'  => 0,
+                'sale_price'         => $sale_price,
+            ];
+        }
+
+        $profit_percentage = round((($sale_price - $cost_price) / $cost_price) * 100, 2);
+
+        return [
+            'cost_price'         => $cost_price,
+            'profit_percentage'  => $profit_percentage,
+            'sale_price'         => round($cost_price * (1 + ($profit_percentage / 100)), 2),
+        ];
     }
 
     /** @param  list<int|null>  $category_ids */

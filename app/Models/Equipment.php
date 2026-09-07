@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -13,19 +14,23 @@ class Equipment extends Model
 {
     use SoftDeletes;
 
+    public const DEFAULT_FINAL_STEP = 3;
+
     protected $table = 'equipment';
 
     protected $fillable = [
-        'business_id', 'client_id', 'brand_id', 'client_name', 'model_id', 'equipment_type_id',
-        'plate', 'name', 'brand_name', 'model_name', 'equipment_type_name', 'year',
-        'status', 'notes', 'created_by',
+        'business_id', 'step', 'final_step', 'client_id', 'brand_id', 'client_name', 'model_id',
+        'equipment_type_id', 'plate', 'name', 'brand_name', 'model_name', 'equipment_type_name',
+        'year', 'status', 'notes', 'created_by',
     ];
 
     protected function casts(): array
     {
         return [
-            'status' => 'boolean',
-            'year'   => 'integer',
+            'step'       => 'integer',
+            'final_step' => 'integer',
+            'status'     => 'boolean',
+            'year'       => 'integer',
         ];
     }
 
@@ -104,6 +109,30 @@ class Equipment extends Model
     public function scopeActive($query)
     {
         return $query->where('status', true);
+    }
+
+    public function scopeComplete(Builder $query): Builder
+    {
+        $table = $query->getModel()->getTable();
+
+        return $query
+            ->whereNotNull("{$table}.brand_id")
+            ->whereNotNull("{$table}.model_id")
+            ->whereNotNull("{$table}.year");
+    }
+
+    public function isComplete(): bool
+    {
+        return $this->brand_id !== null
+            && $this->model_id !== null
+            && $this->year !== null;
+    }
+
+    public function progressPercent(): int
+    {
+        $final = max(1, (int) $this->final_step);
+
+        return (int) min(100, round(((int) $this->step / $final) * 100));
     }
 
     public function scopeForAuthUser($query)
