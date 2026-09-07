@@ -93,7 +93,16 @@
             </div>
             <div>
                 <p class="text-xs font-medium text-slate-500">Clave técnica</p>
-                <p class="text-sm text-slate-900">{{ filled($setting->technical_key) ? 'Registrada' : '—' }}</p>
+                {{-- Se muestran las puntas de la clave: es la única forma de confirmar
+                     que quedó guardada la correcta sin exponerla completa. --}}
+                @if(filled($setting->technical_key))
+                <p class="font-mono text-sm text-slate-900" title="Clave técnica registrada (parcial)">
+                    {{ Str::substr($setting->technical_key, 0, 6) }}…{{ Str::substr($setting->technical_key, -4) }}
+                    <span class="font-sans text-xs text-slate-400">({{ Str::length($setting->technical_key) }} caracteres)</span>
+                </p>
+                @else
+                <p class="text-sm text-slate-900">—</p>
+                @endif
             </div>
             <div>
                 <p class="text-xs font-medium text-slate-500">Envío al cliente</p>
@@ -240,9 +249,17 @@
                         </div>
                         <div>
                             <label class="mb-1.5 block text-xs font-medium text-slate-700">Identificador del software</label>
-                            <input type="text" wire:model="form.software_id"
+                            <input type="text" wire:model="form.software_id" placeholder="Lo entrega el portal de la DIAN"
                                 class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-mono">
                             @error('form.software_id') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label class="mb-1.5 block text-xs font-medium text-slate-700">PIN del software</label>
+                            <input type="text" wire:model="form.software_pin"
+                                placeholder="{{ $form->isEditing() ? 'Déjalo vacío para conservar el actual' : 'PIN del portal de la DIAN' }}"
+                                class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-mono">
+                            <p class="mt-1 text-xs text-slate-500">Se almacena cifrado.</p>
+                            @error('form.software_pin') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                         </div>
                     </div>
                 </div>
