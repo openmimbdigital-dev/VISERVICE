@@ -6,12 +6,25 @@ use App\Actions\Catalog\DeleteProductImageAction;
 use App\Actions\Catalog\StoreProductImagesAction;
 use App\Models\Product;
 use App\Models\ProductImage;
+use App\Support\DeleteConfirmationAlert;
+use Jantinnerezo\LivewireAlert\LivewireAlert;
+use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
 class ImageGallery extends Component
 {
+    use LivewireAlert;
     use WithFileUploads;
+
+    /**
+     * La confirmación usa un evento propio porque este componente convive con la
+     * ficha del producto, que también confirma borrados: con el evento genérico
+     * ambas reaccionarían a la misma respuesta.
+     */
+    private const CONFIRMED_EVENT = 'product-image-delete-confirmed';
+
+    public ?int $deleting_image_id = null;
 
     public Product $product;
 
@@ -61,11 +74,52 @@ class ImageGallery extends Component
     {
         abort_unless($this->product->isEditableBy(), 403);
 
-        $image = ProductImage::query()->where('product_id', $this->product->id)->findOrFail($image_id);
+        abort_unless(
+            ProductImage::query()->where('product_id', $this->product->id)->whereKey($image_id)->exists(),
+            404
+        );
 
-        DeleteProductImageAction::run($image);
+        $this->deleting_image_id = $image_id;
 
-        $this->product->refresh();
+        $this->confirm(
+            '¿Eliminar esta imagen del producto?',
+            DeleteConfirmationAlert::options(self::CONFIRMED_EVENT)
+        );
+    }
+
+    #[On(self::CONFIRMED_EVENT)]
+    public function deleteConfirmedImage(): void
+    {
+        abort_unless($this->product->isEditableBy(), 403);
+
+        $image = ProductImage::query()
+            ->where('product_id', $this->product->id)
+            ->find($this->deleting_image_id);
+
+        $this->deleting_image_id = null;
+
+        if (! $image) {
+            return;
+        }
+
+        try {
+            DeleteProductImageAction::run($image);
+            $this->product->refresh();
+        } catch (\Throwable) {
+            $this->alert('error', 'No se pudo eliminar la imagen.', [
+                'position' => 'top-end',
+                'timer'    => 4000,
+                'toast'    => true,
+            ]);
+
+            return;
+        }
+
+        $this->alert('success', 'Imagen eliminada correctamente.', [
+            'position' => 'top-end',
+            'timer'    => 3000,
+            'toast'    => true,
+        ]);
     }
 
     public function moveImage(int $image_id, string $direction): void

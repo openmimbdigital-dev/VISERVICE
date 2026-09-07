@@ -50,12 +50,11 @@
                 @if($can_edit)
                 <button type="button" wire:click="openEdit({{ $setting->id }})" class="btn btn-outline-secondary btn-sm">Editar</button>
                 @if(! $setting->tr_tipo_id)
-                <button type="button" wire:click="registerWithProvider({{ $setting->id }})"
-                    wire:confirm="Se creará la empresa emisora en la plataforma del proveedor con los datos del negocio. ¿Continuar?"
-                    wire:loading.attr="disabled" wire:target="registerWithProvider({{ $setting->id }})"
+                <button type="button" wire:click="confirmRegistration({{ $setting->id }})"
+                    wire:loading.attr="disabled" wire:target="registerWithProvider"
                     class="btn btn-primary btn-sm">
-                    <span wire:loading.remove wire:target="registerWithProvider({{ $setting->id }})">Registrar ante el proveedor</span>
-                    <span wire:loading wire:target="registerWithProvider({{ $setting->id }})">Registrando...</span>
+                    <span wire:loading.remove wire:target="registerWithProvider">Registrar ante el proveedor</span>
+                    <span wire:loading wire:target="registerWithProvider">Registrando...</span>
                 </button>
                 @endif
                 @endif

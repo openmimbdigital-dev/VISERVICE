@@ -8,8 +8,11 @@ use App\Livewire\Forms\Admin\Businesses\DianSettingForm;
 use App\Models\BusinessDianSetting;
 use App\Services\Dian\DianRequestException;
 use App\Services\Dian\TitanioClient;
+use App\Support\ConfirmationAlert;
 use Illuminate\Validation\ValidationException;
+use Jantinnerezo\LivewireAlert\LivewireAlert;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
@@ -17,9 +20,15 @@ use Livewire\Component;
 #[Title('Facturación electrónica')]
 class Index extends Component
 {
+    use LivewireAlert;
+
+    private const REGISTRATION_CONFIRMED_EVENT = 'dian-registration-confirmed';
+
     public DianSettingForm $form;
 
     public bool $showModal = false;
+
+    public ?int $registering_id = null;
 
     public function mount(): void
     {
@@ -81,10 +90,33 @@ class Index extends Component
         ]);
     }
 
-    /** Crea la empresa emisora en la plataforma del proveedor y guarda el tr_tipo_id. */
-    public function registerWithProvider(int $id): void
+    /** Pide confirmación antes de crear la empresa en la plataforma del proveedor. */
+    public function confirmRegistration(int $id): void
     {
         abort_unless(auth()->user()?->can('dian_settings.edit'), 403);
+        abort_unless(BusinessDianSetting::query()->forAuthUser()->whereKey($id)->exists(), 404);
+
+        $this->registering_id = $id;
+
+        $this->confirm('¿Registrar el negocio ante el proveedor?', ConfirmationAlert::options(
+            on_confirmed: self::REGISTRATION_CONFIRMED_EVENT,
+            confirm_text: 'Registrar',
+            text: 'Se creará la empresa emisora en la plataforma del proveedor con los datos del negocio.',
+        ));
+    }
+
+    /** Crea la empresa emisora en la plataforma del proveedor y guarda el tr_tipo_id. */
+    #[On(self::REGISTRATION_CONFIRMED_EVENT)]
+    public function registerWithProvider(?int $id = null): void
+    {
+        abort_unless(auth()->user()?->can('dian_settings.edit'), 403);
+
+        $id ??= $this->registering_id;
+        $this->registering_id = null;
+
+        if (! $id) {
+            return;
+        }
 
         $setting = BusinessDianSetting::query()->forAuthUser()->findOrFail($id);
 
