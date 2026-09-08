@@ -22,6 +22,8 @@ use App\Livewire\Admin\Businesses\PaymentMethods\Show as AdminBusinessPaymentMet
 use App\Livewire\Admin\Businesses\Show as AdminBusinessesShow;
 use App\Livewire\Admin\BusinessTypes\Index as AdminBusinessTypesIndex;
 use App\Livewire\Admin\Catalog\Coupons\Index as CatalogCouponsIndex;
+use App\Livewire\Admin\Guides\Index as AdminGuidesIndex;
+use App\Livewire\Admin\Guides\Show as AdminGuidesShow;
 use App\Livewire\Admin\Catalog\Products\Form as CatalogProductsForm;
 use App\Livewire\Admin\Catalog\Products\Index as CatalogProductsIndex;
 use App\Livewire\Admin\Catalog\Products\Show as CatalogProductsShow;
@@ -159,6 +161,9 @@ Route::middleware(['auth', 'ensure.business', 'business.module'])->group(functio
         Route::get('/finance', AdminFinanceIndex::class)->name('finance.index');
         Route::get('/bank-accounts', AdminBankAccountsIndex::class)->name('bank-accounts.index');
         Route::get('/banks', AdminBanksIndex::class)->name('banks.index');
+
+        Route::get('/guides', AdminGuidesIndex::class)->name('guides.index');
+        Route::get('/guides/{guide}', AdminGuidesShow::class)->name('guides.show');
     });
 
     Route::prefix('admin')->name('admin.')->group(function () {

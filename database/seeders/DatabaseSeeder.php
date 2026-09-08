@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             RolesAndPermissionsSeeder::class,
             ChurchMinistryRolesSeeder::class,
             MenuSeeder::class,
+            GuidesSeeder::class,
             CountySeeder::class,
             CitySeeder::class,
             OrganizationTypeSeeder::class,
