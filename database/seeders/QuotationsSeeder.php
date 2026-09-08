@@ -7,6 +7,7 @@ use App\Models\Business;
 use App\Models\BusinessBankAccount;
 use App\Models\BusinessPaymentMethod;
 use App\Models\Client;
+use App\Models\CustomTax;
 use App\Models\Equipment;
 use App\Models\Product;
 use App\Models\Quotation;
@@ -110,7 +111,6 @@ class QuotationsSeeder extends Seeder
                     'hours_entry'                => sprintf('%02d:%02d:00', 8 + ($sequence % 4), ($sequence * 7) % 60),
                     'validity_days'              => 15,
                     'execution_time'             => ($sequence % 2 === 0) ? '2 días hábiles' : '1 día hábil',
-                    'tax_percentage'             => 19,
                     'step'                       => Quotation::DEFAULT_FINAL_STEP,
                     'final_step'                 => Quotation::DEFAULT_FINAL_STEP,
                     'notes'                      => 'Cotización de demostración.',
@@ -135,6 +135,7 @@ class QuotationsSeeder extends Seeder
                 $business->id === $transad->id,
                 $sequence
             );
+            $this->syncDefaultTax($quotation, $business);
             $quotation->syncValidUntil();
             $quotation->recalculateTotals();
 
@@ -288,5 +289,29 @@ class QuotationsSeeder extends Seeder
                 'discount_percentage' => 0,
             ],
         ];
+    }
+
+    private function syncDefaultTax(Quotation $quotation, Business $business): void
+    {
+        $tax = CustomTax::query()->firstOrCreate(
+            [
+                'business_id' => $business->id,
+                'name'        => 'IVA',
+            ],
+            [
+                'percentage'  => 19,
+                'active'      => true,
+                'description' => 'Impuesto al valor agregado',
+            ]
+        );
+
+        $quotation->appliedTaxes()->updateOrCreate(
+            ['custom_tax_id' => $tax->id],
+            [
+                'custom_tax_name' => $tax->name,
+                'tax_percentage'  => $tax->percentage,
+                'tax_amount'      => 0,
+            ]
+        );
     }
 }

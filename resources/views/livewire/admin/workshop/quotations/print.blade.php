@@ -102,8 +102,10 @@
         <p>Subtotal Otros materiales</p><p class="text-right font-medium">{{ col_money($subtotals['otros']) }}</p>
         <p class="border-t border-slate-200 pt-1">Subtotal</p>
         <p class="border-t border-slate-200 pt-1 text-right font-medium">{{ col_money($quotation->subtotal) }}</p>
-        <p>{{ $quotation->custom_tax_name ?? 'Impuesto' }} ({{ $quotation->tax_percentage }}%)</p>
-        <p class="text-right font-medium">{{ col_money($quotation->tax_amount) }}</p>
+        @foreach($quotation->appliedTaxes as $tax)
+        <p>{{ $tax->custom_tax_name }} ({{ $tax->percentageLabel() }}%)</p>
+        <p class="text-right font-medium">{{ col_money($tax->tax_amount) }}</p>
+        @endforeach
         <p class="text-base font-bold">TOTAL</p>
         <p class="text-right text-base font-bold text-indigo-700">{{ col_money($quotation->total) }}</p>
     </section>

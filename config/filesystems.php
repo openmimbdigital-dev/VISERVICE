@@ -61,7 +61,7 @@ return [
         'media' => [
             'driver' => 'local',
             'root' => media_root('public'),
-            'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/media',
+            'url' => rtrim(env('APP_URL', 'http://127.0.0.1'), '/').'/media',
             'visibility' => 'public',
             'throw' => false,
             'report' => false,

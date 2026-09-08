@@ -38,7 +38,7 @@ class Show extends Component
         $this->quotation = $quotation->load([
             'client', 'equipments', 'quotationServiceType', 'paymentMethod', 'bankAccount',
             'items.productType', 'items.productCategory', 'items.catalogProduct', 'items.equipment',
-            'createdBy', 'business', 'workOrder', 'statusDefinition',
+            'createdBy', 'business', 'workOrder', 'statusDefinition', 'appliedTaxes',
         ]);
 
         $this->status = $this->quotation->status instanceof QuotationStatus

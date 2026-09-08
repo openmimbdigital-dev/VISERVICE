@@ -204,10 +204,37 @@
                             <input type="date" wire:model="form.estimated_delivery" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm @error('form.estimated_delivery') border-rose-400 bg-rose-50 @enderror">
                             @error('form.estimated_delivery') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                         </div>
-                        <div>
-                            <label class="mb-1.5 block text-xs font-medium text-slate-700">IVA (%)</label>
-                            <input type="number" wire:model.live="form.tax_percentage" min="0" max="100" step="0.01" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm @error('form.tax_percentage') border-rose-400 bg-rose-50 @enderror">
-                            @error('form.tax_percentage') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                        <div class="sm:col-span-2">
+                            <label class="mb-1.5 block text-xs font-medium text-slate-700">Impuestos</label>
+                            <livewire:ui.searchable-select
+                                wire:model.live="pending_custom_tax_id"
+                                model-class="App\Models\CustomTax"
+                                :search-by="['name']"
+                                label-field="select_label"
+                                order-by="name"
+                                :filters="['active' => true, 'business_id' => $form->resolvedBusinessId(), 'exclude_ids' => $form->custom_tax_ids]"
+                                placeholder="Agregar impuesto"
+                                search-placeholder="Buscar impuesto..."
+                                :invalid="$errors->has('form.custom_tax_ids') || $errors->has('form.custom_tax_ids.*')"
+                                :key="'work-order-custom-tax-select-'.$form->resolvedBusinessId().'-'.implode('-', $form->custom_tax_ids)"
+                            />
+                            @error('form.custom_tax_ids') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                            @error('form.custom_tax_ids.*') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                            <div class="mt-2 space-y-2">
+                                @forelse($applied_tax_lines as $tax)
+                                <div class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5">
+                                    <div class="min-w-0">
+                                        <p class="truncate text-sm font-medium text-slate-800">{{ $tax['name'] }} ({{ $tax['percentage_label'] }}%)</p>
+                                        <p class="text-xs text-slate-500">{{ col_money($tax['amount']) }}</p>
+                                    </div>
+                                    <button type="button" wire:click="removeCustomTax({{ $tax['id'] }})" class="shrink-0 rounded-lg p-1 text-slate-400 transition hover:bg-white hover:text-rose-600" title="Quitar impuesto">
+                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                    </button>
+                                </div>
+                                @empty
+                                <p class="text-xs text-slate-400">Sin impuestos. Busca y selecciona uno o más.</p>
+                                @endforelse
+                            </div>
                         </div>
                         <div>
                             <label class="mb-1.5 block text-xs font-medium text-slate-700">Anticipo (%)</label>
@@ -320,15 +347,27 @@
                                         <p class="font-mono text-[11px] text-slate-400">{{ $product->sku }}</p>
                                         @if($product->hasDiscount())
                                         <div class="mt-auto">
+                                            @if($catalog_apply_discount[$product->id] ?? true)
                                             <p class="text-[11px] text-slate-400 line-through">{{ col_money($product->sale_price) }}</p>
                                             <p class="text-sm font-semibold text-emerald-700">{{ col_money($product->finalPrice()) }}</p>
+                                            @else
+                                            <p class="text-sm font-semibold text-indigo-700">{{ col_money($product->sale_price) }}</p>
+                                            @endif
                                         </div>
                                         @else
                                         <p class="mt-auto text-sm font-semibold text-indigo-700">{{ col_money($product->sale_price) }}</p>
                                         @endif
                                     </div>
                                 </button>
-                                <div class="flex items-center gap-1.5 border-t border-slate-100 p-2">
+                                <div class="flex flex-col gap-1.5 border-t border-slate-100 p-2">
+                                    @if($product->hasDiscount())
+                                    <label class="flex cursor-pointer items-center gap-1.5 rounded-lg bg-amber-50 px-2 py-1">
+                                        <input type="checkbox" wire:model.live="catalog_apply_discount.{{ $product->id }}"
+                                            class="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                                        <span class="text-[11px] font-medium text-amber-800">Aplicar descuento ({{ $product->discountLabel() }})</span>
+                                    </label>
+                                    @endif
+                                    <div class="flex items-center gap-1.5">
                                     <div class="flex shrink-0 items-center rounded-lg border border-slate-200">
                                         <button type="button" tabindex="-1"
                                             x-on:click="const input = $el.nextElementSibling; input.value = Math.max(1, (parseInt(input.value, 10) || 1) - 1); input.dispatchEvent(new Event('input'))"
@@ -343,6 +382,7 @@
                                         class="btn btn-primary btn-sm min-w-0 flex-1 justify-center !px-2 !py-1.5 !text-xs">
                                         Agregar
                                     </button>
+                                    </div>
                                 </div>
                             </div>
                             @endforeach
@@ -362,26 +402,30 @@
                 <section class="mt-4 overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
                     <div class="border-b border-slate-100 bg-slate-50/80 px-4 py-3 sm:px-5">
                         <h2 class="font-semibold text-slate-800">Ítems de la OT</h2>
-                        <p class="mt-0.5 text-xs text-slate-500">Ajusta la cantidad y el equipo asignado. El precio y el descuento los define el catálogo.</p>
+                        <p class="mt-0.5 text-xs text-slate-500">Ajusta la cantidad, el equipo y si aplica el descuento del catálogo.</p>
                     </div>
                     <div class="space-y-3 p-4 sm:p-6">
                         @error('items') <p class="text-sm text-rose-600">{{ $message }}</p> @enderror
                         @forelse($items as $index => $row)
                         @php $cart_product = ! empty($row['product_id']) ? $cart_products->get((int) $row['product_id']) : null; @endphp
-                        <div wire:key="wo-item-{{ $row['uid'] ?? $index }}" class="flex flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50/50 p-3 sm:flex-row sm:items-center">
+                        <div wire:key="wo-item-{{ $row['uid'] ?? $index }}" class="flex min-w-0 flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50/50 p-3 sm:flex-row sm:items-center">
                             @if($cart_product)
-                            <div class="flex flex-1 items-center gap-3">
-                                <x-ui.product-image :product="$cart_product" size="sm" />
-                                <div class="min-w-0">
-                                    <p class="truncate text-sm font-medium text-slate-800">{{ $row['description'] }}</p>
+                            <div class="flex min-w-0 flex-1 items-center gap-3 overflow-hidden">
+                                <x-ui.product-image :product="$cart_product" size="sm" class="shrink-0" />
+                                <div class="min-w-0 flex-1 overflow-hidden">
+                                    <p class="truncate text-sm font-medium text-slate-800" title="{{ $row['description'] }}">{{ $row['description'] }}</p>
                                     <div class="mt-0.5 flex flex-wrap items-center gap-1">
                                         <span class="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-600">Catálogo</span>
-                                        @if((float) ($row['discount_percentage'] ?? 0) > 0)
-                                        <span class="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800"
-                                            title="Descuento definido en el producto">
-                                            −{{ rtrim(rtrim(number_format((float) $row['discount_percentage'], 2, '.', ''), '0'), '.') }}% descuento
+                                        @if($cart_product->hasDiscount())
+                                        <label class="inline-flex cursor-pointer items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">
+                                            <input type="checkbox"
+                                                wire:model.live="items.{{ $index }}.apply_discount"
+                                                class="h-3 w-3 rounded border-amber-300 text-indigo-600 focus:ring-indigo-500">
+                                            Aplicar {{ $cart_product->discountLabel() }}
+                                            @if((float) ($row['discount_percentage'] ?? 0) > 0)
                                             <span class="font-normal">({{ col_money($item_line_discounts[$index] ?? 0) }})</span>
-                                        </span>
+                                            @endif
+                                        </label>
                                         @endif
                                     </div>
                                 </div>
@@ -395,7 +439,7 @@
                             </div>
                             @endif
 
-                            <div class="grid grid-cols-2 gap-2 sm:flex sm:shrink-0 sm:items-end">
+                            <div class="grid min-w-0 grid-cols-2 gap-2 sm:flex sm:shrink-0 sm:items-end">
                                 <div class="w-full sm:w-36">
                                     <label class="mb-1 block text-[10px] font-medium uppercase tracking-wide text-slate-500">Equipo</label>
                                     <select wire:model="items.{{ $index }}.equipment_id" @disabled($selected_equipments->isEmpty())
@@ -484,10 +528,17 @@
                             <dt>Anticipo ({{ $form->advance_percentage }}%)</dt>
                             <dd class="tabular-nums font-medium text-amber-700">{{ col_money($preview_advance_amount) }}</dd>
                         </div>
+                        @forelse($applied_tax_lines as $tax)
                         <div class="flex justify-between text-slate-600">
-                            <dt>IVA ({{ $form->tax_percentage }}%)</dt>
-                            <dd class="tabular-nums font-medium text-slate-900">{{ col_money($preview_tax) }}</dd>
+                            <dt>{{ $tax['name'] }} ({{ $tax['percentage_label'] }}%)</dt>
+                            <dd class="tabular-nums font-medium text-slate-900">{{ col_money($tax['amount']) }}</dd>
                         </div>
+                        @empty
+                        <div class="flex justify-between text-slate-600">
+                            <dt>Impuestos</dt>
+                            <dd class="tabular-nums font-medium text-slate-900">{{ col_money(0) }}</dd>
+                        </div>
+                        @endforelse
                         <div class="flex justify-between border-t border-slate-100 pt-2 text-base font-semibold text-slate-900">
                             <dt>Total</dt>
                             <dd class="tabular-nums text-indigo-700">{{ col_money($preview_total) }}</dd>
@@ -634,9 +685,24 @@
                             @endif
                             <div class="flex justify-between border-t border-slate-100 pt-2 text-base font-semibold">
                                 <dt class="text-slate-700">Precio</dt>
+                                @if($preview_product->hasDiscount() && ($catalog_apply_discount[$preview_product->id] ?? true))
+                                <dd class="text-right">
+                                    <span class="block text-xs font-normal text-slate-400 line-through">{{ col_money($preview_product->sale_price) }}</span>
+                                    <span class="text-emerald-700">{{ col_money($preview_product->finalPrice()) }}</span>
+                                </dd>
+                                @else
                                 <dd class="text-indigo-700">{{ col_money($preview_product->sale_price) }}</dd>
+                                @endif
                             </div>
                         </dl>
+
+                        @if($preview_product->hasDiscount())
+                        <label class="flex cursor-pointer items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
+                            <input type="checkbox" wire:model.live="catalog_apply_discount.{{ $preview_product->id }}"
+                                class="h-4 w-4 rounded border-amber-300 text-indigo-600 focus:ring-indigo-500">
+                            <span class="text-sm font-medium text-amber-800">Aplicar descuento ({{ $preview_product->discountLabel() }})</span>
+                        </label>
+                        @endif
 
                         <div>
                             <h4 class="mb-1 text-xs font-semibold uppercase tracking-wider text-slate-500">Descripción</h4>

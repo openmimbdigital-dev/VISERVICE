@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\QuotationStatus;
+use App\Models\Concerns\HasAppliedTaxes;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,6 +15,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Quotation extends Model
 {
+    use HasAppliedTaxes;
     use SoftDeletes;
 
     public const DEFAULT_FINAL_STEP = 3;
@@ -30,7 +32,7 @@ class Quotation extends Model
         'business_payment_method_id', 'business_bank_account_id',
         'reference', 'status', 'diagnosis', 'hours_entry',
         'validity_days', 'valid_until', 'execution_time',
-        'subtotal', 'custom_tax_id', 'custom_tax_name', 'tax_percentage', 'tax_amount', 'total',
+        'subtotal', 'tax_amount', 'total',
         'advance_percentage', 'advance_amount',
         'notes', 'observations', 'reject_reason',
         'approved_by_name', 'approved_by_position', 'approved_signature',
@@ -49,7 +51,6 @@ class Quotation extends Model
             'accepted_at'     => 'datetime',
             'rejected_at'     => 'datetime',
             'subtotal'        => 'decimal:2',
-            'tax_percentage'  => 'decimal:2',
             'tax_amount'      => 'decimal:2',
             'total'           => 'decimal:2',
             'advance_percentage' => 'decimal:2',
@@ -87,11 +88,6 @@ class Quotation extends Model
     public function bankAccount(): BelongsTo
     {
         return $this->belongsTo(BusinessBankAccount::class, 'business_bank_account_id');
-    }
-
-    public function customTax(): BelongsTo
-    {
-        return $this->belongsTo(CustomTax::class);
     }
 
     public function createdBy(): BelongsTo
@@ -176,8 +172,9 @@ class Quotation extends Model
 
     public function recalculateTotals(): void
     {
-        $subtotal = $this->items()->sum('subtotal');
-        $tax      = round($subtotal * ($this->tax_percentage / 100), 2);
+        $subtotal = round((float) $this->items()->sum('subtotal'), 2);
+        $tax      = $this->refreshAppliedTaxAmounts($subtotal);
+
         $this->update([
             'subtotal'   => $subtotal,
             'tax_amount' => $tax,

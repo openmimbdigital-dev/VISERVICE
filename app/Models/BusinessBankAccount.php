@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\BusinessBankAccountType;
 use App\Models\Concerns\BelongsToBusinessTenant;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -48,6 +49,11 @@ class BusinessBankAccount extends Model
     public function accountTypeLabel(): string
     {
         return $this->account_type?->label() ?? '—';
+    }
+
+    protected function selectLabel(): Attribute
+    {
+        return Attribute::get(fn (): string => trim($this->bank_name.' — '.$this->account_number, ' —'));
     }
 
     public function canDelete(?User $user = null): bool
