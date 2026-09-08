@@ -90,7 +90,9 @@
     <tr><td>Subtotal Lubricantes</td><td class="text-right">{{ col_money($subtotals['lubricantes']) }}</td></tr>
     <tr><td>Subtotal Otros materiales</td><td class="text-right">{{ col_money($subtotals['otros']) }}</td></tr>
     <tr><td>Subtotal</td><td class="text-right">{{ col_money($quotation->subtotal) }}</td></tr>
-    <tr><td>{{ $quotation->custom_tax_name ?? 'Impuesto' }} ({{ $quotation->tax_percentage }}%)</td><td class="text-right">{{ col_money($quotation->tax_amount) }}</td></tr>
+    @foreach($quotation->appliedTaxes as $tax)
+    <tr><td>{{ $tax->custom_tax_name }} ({{ $tax->percentageLabel() }}%)</td><td class="text-right">{{ col_money($tax->tax_amount) }}</td></tr>
+    @endforeach
     <tr class="total"><td>TOTAL</td><td class="text-right">{{ col_money($quotation->total) }}</td></tr>
 </table>
 

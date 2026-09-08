@@ -6,14 +6,15 @@ use App\Actions\Workshop\CreateOrUpdateQuotationAction;
 use App\Actions\Workshop\DeleteQuotationAction;
 use App\Enums\QuotationStatus;
 use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
+use App\Livewire\Concerns\ManagesPendingCustomTaxes;
 use App\Livewire\Forms\Admin\Workshop\QuotationForm;
-use App\Models\CustomTax;
 use App\Models\Equipment;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\ProductType;
 use App\Models\Quotation;
 use App\Models\Status;
+use App\Support\AppliedTaxesPreview;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
@@ -25,6 +26,7 @@ use Livewire\Component;
 class Form extends Component
 {
     use ConfirmsDeletionWithLivewireAlert;
+    use ManagesPendingCustomTaxes;
 
     public QuotationForm $form;
 
@@ -98,25 +100,6 @@ class Form extends Component
     {
         $this->form->equipment_ids = [];
         $this->clearItemEquipmentAssignments();
-    }
-
-    public function updatedFormCustomTaxId(mixed $value): void
-    {
-        if (! $value) {
-            $this->form->tax_percentage = '0';
-
-            return;
-        }
-
-        $custom_tax = CustomTax::query()
-            ->forAuthUser()
-            ->where('business_id', $this->form->resolvedBusinessId())
-            ->whereKey($value)
-            ->first();
-
-        if ($custom_tax) {
-            $this->form->tax_percentage = (string) $custom_tax->percentage;
-        }
     }
 
     public function updatedFormEquipmentIds(): void
@@ -518,13 +501,6 @@ class Form extends Component
     {
         $business_id = $this->form->resolvedBusinessId();
 
-        $selected_custom_tax = $this->form->custom_tax_id
-            ? CustomTax::query()
-                ->forAuthUser()
-                ->where('business_id', $business_id)
-                ->whereKey($this->form->custom_tax_id)
-                ->first()
-            : null;
         $product_types = ProductType::query()->visibleToUser()->where('active', true)->orderBy('name')->get();
         $selected_product_ids = collect($this->items)->pluck('product_id')->filter()->map(fn ($id) => (int) $id)->unique()->values()->all();
         $catalog_products = Product::query()
@@ -567,8 +543,8 @@ class Form extends Component
 
         $category_subtotals = $this->previewSubtotals($catalog_by_id);
         $subtotal = array_sum($category_subtotals);
-        $tax_pct  = $selected_custom_tax ? (float) $selected_custom_tax->percentage : 0;
-        $tax      = round($subtotal * ($tax_pct / 100), 2);
+        $applied_tax_lines = AppliedTaxesPreview::lines($this->form->custom_tax_ids, $business_id, $subtotal);
+        $tax      = AppliedTaxesPreview::totalAmount($applied_tax_lines);
         $total    = $subtotal + $tax;
         $advance_pct = (float) ($this->form->advance_percentage ?: 0);
         $advance_amount = round($subtotal * ($advance_pct / 100), 2);
@@ -618,14 +594,14 @@ class Form extends Component
                 ],
                 QuotationForm::STEP_CONDITIONS => [
                     'title'       => 'Condiciones',
-                    'description' => 'Vigencia, impuesto y pago',
+                    'description' => 'Vigencia, impuestos y pago',
                 ],
                 QuotationForm::STEP_ITEMS => [
                     'title'       => 'Ítems',
                     'description' => 'Productos y servicios',
                 ],
             ],
-            'selected_custom_tax'  => $selected_custom_tax,
+            'applied_tax_lines'    => $applied_tax_lines,
             'product_types'        => $product_types,
             'catalog_products'     => $catalog_products,
             'catalog_by_id'        => $catalog_by_id,

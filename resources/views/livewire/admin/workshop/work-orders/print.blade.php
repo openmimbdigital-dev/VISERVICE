@@ -118,7 +118,9 @@
         @if((float) $workOrder->discount_amount > 0)
         <div class="flex justify-between"><span>Descuento{{ $workOrder->coupon_code ? ' ('.$workOrder->coupon_code.')' : '' }}</span><span class="font-medium">−{{ col_money($workOrder->discount_amount) }}</span></div>
         @endif
-        <div class="flex justify-between"><span>IVA ({{ $workOrder->tax_percentage }}%)</span><span class="font-medium">{{ col_money($workOrder->tax_amount) }}</span></div>
+        @foreach($workOrder->appliedTaxes as $tax)
+        <div class="flex justify-between"><span>{{ $tax->custom_tax_name }} ({{ $tax->percentageLabel() }}%)</span><span class="font-medium">{{ col_money($tax->tax_amount) }}</span></div>
+        @endforeach
         <div class="flex justify-between border-t border-slate-200 pt-1 text-base font-bold text-indigo-700">
             <span>TOTAL</span><span>{{ col_money($workOrder->total) }}</span>
         </div>

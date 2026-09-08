@@ -32,6 +32,7 @@ class PrintView extends Component
             'items.catalogProduct',
             'items.equipment',
             'associatedDocuments',
+            'appliedTaxes',
         ]);
     }
 

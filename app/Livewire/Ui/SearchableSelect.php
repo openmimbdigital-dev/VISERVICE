@@ -254,6 +254,19 @@ class SearchableSelect extends Component
         $query = $this->tenantQuery();
 
         foreach ($this->filters as $column => $value) {
+            if ($column === 'exclude_ids') {
+                $ids = array_values(array_filter(
+                    array_map(fn ($id) => (int) $id, (array) $value),
+                    fn (int $id) => $id > 0
+                ));
+
+                if ($ids !== []) {
+                    $query->whereNotIn($this->qualify($this->valueField), $ids);
+                }
+
+                continue;
+            }
+
             $query->where($this->qualify($this->assertField((string) $column)), $value);
         }
 

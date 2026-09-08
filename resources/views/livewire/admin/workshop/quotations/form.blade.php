@@ -235,33 +235,37 @@
                             <label class="mb-1.5 block text-xs font-medium text-slate-700">Tiempo de ejecución</label>
                             <input type="text" wire:model="form.execution_time" placeholder="Ej. 2 días hábiles" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm">
                         </div>
-                        <div>
-                            <label class="mb-1.5 block text-xs font-medium text-slate-700">Impuesto</label>
+                        <div class="sm:col-span-2">
+                            <label class="mb-1.5 block text-xs font-medium text-slate-700">Impuestos</label>
                             <livewire:ui.searchable-select
-                                wire:model.live="form.custom_tax_id"
+                                wire:model.live="pending_custom_tax_id"
                                 model-class="App\Models\CustomTax"
                                 :search-by="['name']"
                                 label-field="select_label"
                                 order-by="name"
-                                :filters="['active' => true, 'business_id' => $form->resolvedBusinessId()]"
-                                placeholder="Seleccionar impuesto"
+                                :filters="['active' => true, 'business_id' => $form->resolvedBusinessId(), 'exclude_ids' => $form->custom_tax_ids]"
+                                placeholder="Agregar impuesto"
                                 search-placeholder="Buscar impuesto..."
-                                :invalid="$errors->has('form.custom_tax_id')"
-                                :key="'quotation-custom-tax-select-'.$form->resolvedBusinessId()"
+                                :invalid="$errors->has('form.custom_tax_ids') || $errors->has('form.custom_tax_ids.*')"
+                                :key="'quotation-custom-tax-select-'.$form->resolvedBusinessId().'-'.implode('-', $form->custom_tax_ids)"
                             />
-                            @error('form.custom_tax_id') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
-                        </div>
-                        <div>
-                            <label class="mb-1.5 block text-xs font-medium text-slate-700">
-                                {{ $selected_custom_tax?->name ?? 'Porcentaje' }} (%)
-                            </label>
-                            <p class="flex min-h-[42px] items-center rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm tabular-nums font-medium text-slate-800">
-                                @if($selected_custom_tax)
-                                    {{ rtrim(rtrim(number_format((float) $selected_custom_tax->percentage, 2, '.', ''), '0'), '.') }}
-                                @else
-                                    —
-                                @endif
-                            </p>
+                            @error('form.custom_tax_ids') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                            @error('form.custom_tax_ids.*') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                            <div class="mt-2 space-y-2">
+                                @forelse($applied_tax_lines as $tax)
+                                <div class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5">
+                                    <div class="min-w-0">
+                                        <p class="truncate text-sm font-medium text-slate-800">{{ $tax['name'] }} ({{ $tax['percentage_label'] }}%)</p>
+                                        <p class="text-xs text-slate-500">{{ col_money($tax['amount']) }}</p>
+                                    </div>
+                                    <button type="button" wire:click="removeCustomTax({{ $tax['id'] }})" class="shrink-0 rounded-lg p-1 text-slate-400 transition hover:bg-white hover:text-rose-600" title="Quitar impuesto">
+                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                    </button>
+                                </div>
+                                @empty
+                                <p class="text-xs text-slate-400">Sin impuestos. Busca y selecciona uno o más.</p>
+                                @endforelse
+                            </div>
                         </div>
                         <div>
                             <label class="mb-1.5 block text-xs font-medium text-slate-700">Anticipo (%)</label>
@@ -396,7 +400,11 @@
                         <div class="flex justify-between text-xs text-slate-500"><dt>Otros</dt><dd>{{ col_money($category_subtotals['otros']) }}</dd></div>
                         <div class="flex justify-between border-t border-slate-100 pt-2"><dt class="text-slate-500">Subtotal</dt><dd class="font-medium">{{ col_money($preview_subtotal) }}</dd></div>
                         <div class="flex justify-between"><dt class="text-slate-500">Anticipo ({{ $form->advance_percentage }}%)</dt><dd class="font-medium text-amber-700">{{ col_money($preview_advance_amount) }}</dd></div>
-                        <div class="flex justify-between"><dt class="text-slate-500">{{ $selected_custom_tax?->name ?? 'Impuesto' }} ({{ $selected_custom_tax ? rtrim(rtrim(number_format((float) $selected_custom_tax->percentage, 2, '.', ''), '0'), '.') : '0' }}%)</dt><dd class="font-medium">{{ col_money($preview_tax) }}</dd></div>
+                        @forelse($applied_tax_lines as $tax)
+                        <div class="flex justify-between"><dt class="text-slate-500">{{ $tax['name'] }} ({{ $tax['percentage_label'] }}%)</dt><dd class="font-medium">{{ col_money($tax['amount']) }}</dd></div>
+                        @empty
+                        <div class="flex justify-between"><dt class="text-slate-500">Impuestos</dt><dd class="font-medium">{{ col_money(0) }}</dd></div>
+                        @endforelse
                         <div class="flex justify-between border-t border-slate-100 pt-2 text-base font-bold"><dt>Total</dt><dd class="text-indigo-700">{{ col_money($preview_total) }}</dd></div>
                     </dl>
                 </section>

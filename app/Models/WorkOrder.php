@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\WorkOrderStatus;
+use App\Models\Concerns\HasAppliedTaxes;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,6 +15,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class WorkOrder extends Model
 {
+    use HasAppliedTaxes;
     use SoftDeletes;
 
     public const DEFAULT_FINAL_STEP = 3;
@@ -23,8 +25,7 @@ class WorkOrder extends Model
         'reference', 'status', 'status_comments',
         'diagnosis', 'work_description', 'observations', 'notes',
         'estimated_delivery', 'subtotal', 'coupon_id', 'coupon_code',
-        'discount_amount', 'tax_percentage',
-        'tax_amount', 'total', 'advance_percentage', 'advance_amount',
+        'discount_amount', 'tax_amount', 'total', 'advance_percentage', 'advance_amount',
         'created_by', 'finalized_at',
     ];
 
@@ -39,7 +40,6 @@ class WorkOrder extends Model
             'finalized_at'       => 'datetime',
             'subtotal'           => 'decimal:2',
             'discount_amount'    => 'decimal:2',
-            'tax_percentage'     => 'decimal:2',
             'tax_amount'         => 'decimal:2',
             'total'              => 'decimal:2',
             'advance_percentage' => 'decimal:2',
@@ -223,6 +223,11 @@ class WorkOrder extends Model
         return max(0, round((float) $this->subtotal - (float) $this->discount_amount, 2));
     }
 
+    public function appliedTaxableBase(): float
+    {
+        return $this->taxableBase();
+    }
+
     /** Suma de lo que se ahorró el cliente por descuentos de producto. */
     public function itemsDiscountAmount(): float
     {
@@ -251,7 +256,7 @@ class WorkOrder extends Model
         };
 
         $base = max(0, round($subtotal - $discount, 2));
-        $tax  = round($base * ($this->tax_percentage / 100), 2);
+        $tax  = $this->refreshAppliedTaxAmounts($base);
 
         $this->update([
             'subtotal'        => $subtotal,

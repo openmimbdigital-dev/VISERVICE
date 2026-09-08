@@ -67,7 +67,7 @@ class LogEquipmentHistoricalAction
                 ? $subject->status->value
                 : (string) $subject->status;
             $subtotal = $subject->subtotal;
-            $tax_percentage = $subject->tax_percentage;
+            $tax_percentage = $subject->effectiveTaxPercentage();
             $tax_amount = $subject->tax_amount;
             $total = $subject->total;
             $items ??= $this->serializeItems($subject->items);
@@ -80,7 +80,7 @@ class LogEquipmentHistoricalAction
                 ? $subject->status->value
                 : (string) $subject->status;
             $subtotal = $subject->subtotal;
-            $tax_percentage = $subject->tax_percentage;
+            $tax_percentage = $subject->effectiveTaxPercentage();
             $tax_amount = $subject->tax_amount;
             $total = $subject->total;
             $items ??= $this->serializeItems($subject->items);

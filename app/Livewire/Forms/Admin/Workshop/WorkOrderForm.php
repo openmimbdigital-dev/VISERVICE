@@ -4,9 +4,11 @@ namespace App\Livewire\Forms\Admin\Workshop;
 
 use App\Enums\QuotationStatus;
 use App\Models\Client;
+use App\Models\CustomTax;
 use App\Models\Equipment;
 use App\Models\Quotation;
 use App\Models\WorkOrder;
+use App\Support\AppliedTaxesPreview;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Livewire\Form;
@@ -39,7 +41,8 @@ class WorkOrderForm extends Form
 
     public string $estimated_delivery = '';
 
-    public string $tax_percentage = '0';
+    /** @var list<int> */
+    public array $custom_tax_ids = [];
 
     public string $advance_percentage = '0';
 
@@ -51,7 +54,7 @@ class WorkOrderForm extends Form
 
     public function setWorkOrder(WorkOrder $work_order): void
     {
-        $work_order->loadMissing('equipments:id');
+        $work_order->loadMissing(['equipments:id', 'appliedTaxes']);
 
         $this->work_order_id       = $work_order->id;
         $this->quotation_id        = $work_order->quotation_id;
@@ -61,7 +64,7 @@ class WorkOrderForm extends Form
         $this->equipment_ids       = $work_order->equipments->pluck('id')->map(fn ($id) => (int) $id)->values()->all();
         $this->diagnosis           = $work_order->diagnosis ?? '';
         $this->estimated_delivery  = $work_order->estimated_delivery?->format('Y-m-d') ?? '';
-        $this->tax_percentage      = (string) $work_order->tax_percentage;
+        $this->custom_tax_ids      = $work_order->appliedCustomTaxIds();
         $this->advance_percentage  = (string) ($work_order->advance_percentage ?? 0);
         $this->advance_amount      = (string) ($work_order->advance_amount ?? 0);
         $this->notes               = $work_order->notes ?? '';
@@ -70,13 +73,13 @@ class WorkOrderForm extends Form
 
     public function applyQuotation(Quotation $quotation): void
     {
-        $quotation->loadMissing('equipments:id');
+        $quotation->loadMissing(['equipments:id', 'appliedTaxes']);
 
         $this->quotation_id = $quotation->id;
         $this->client_id    = $quotation->client_id;
         $this->equipment_ids = $quotation->equipments->pluck('id')->map(fn ($id) => (int) $id)->values()->all();
         $this->diagnosis    = $quotation->diagnosis ?? '';
-        $this->tax_percentage = (string) ($quotation->tax_percentage ?? 0);
+        $this->custom_tax_ids = $quotation->appliedCustomTaxIds();
         $this->advance_percentage = (string) ($quotation->advance_percentage ?? 0);
         $this->advance_amount = (string) ($quotation->advance_amount ?? 0);
         $this->notes          = $quotation->notes ?? '';
@@ -100,6 +103,12 @@ class WorkOrderForm extends Form
             array_map(fn ($id) => (int) $id, $this->equipment_ids),
             fn (int $id) => $id > 0
         )));
+    }
+
+    /** @return list<int> */
+    public function resolvedCustomTaxIds(): array
+    {
+        return AppliedTaxesPreview::normalizeIds($this->custom_tax_ids);
     }
 
     public function rules(): array
@@ -146,7 +155,13 @@ class WorkOrderForm extends Form
             self::STEP_CONDITIONS => [
                 'diagnosis'          => ['nullable', 'string'],
                 'estimated_delivery' => ['nullable', 'date'],
-                'tax_percentage'     => ['nullable', 'numeric', 'min:0', 'max:100'],
+                'custom_tax_ids'     => ['nullable', 'array'],
+                'custom_tax_ids.*'   => [
+                    'integer',
+                    Rule::exists('custom_taxes', 'id')->where(fn ($q) => $q
+                        ->where('business_id', $business_id)
+                        ->whereNull('deleted_at')),
+                ],
                 'advance_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
                 'notes'              => ['nullable', 'string'],
                 'observations'       => ['nullable', 'string'],
@@ -160,7 +175,7 @@ class WorkOrderForm extends Form
         $step_fields = [
             self::STEP_GENERAL => ['quotation_id', 'client_id', 'equipment_ids'],
             self::STEP_CONDITIONS => [
-                'diagnosis', 'estimated_delivery', 'tax_percentage',
+                'diagnosis', 'estimated_delivery', 'custom_tax_ids',
                 'advance_percentage', 'notes', 'observations',
             ],
             self::STEP_ITEMS => ['items', 'coupon_code', 'coupon_id'],
@@ -192,7 +207,7 @@ class WorkOrderForm extends Form
             'equipment_ids.min'           => 'Selecciona al menos un equipo.',
             'equipment_ids.*.exists'      => 'Uno o más equipos no son válidos para el cliente.',
             'quotation_id.exists'         => 'La cotización debe existir, pertenecer al negocio y estar aceptada.',
-            'tax_percentage.numeric'      => 'El porcentaje de IVA debe ser un número.',
+            'custom_tax_ids.*.exists'     => 'Uno o más impuestos no son válidos.',
             'advance_percentage.numeric'  => 'El anticipo debe ser un número.',
             'advance_percentage.min'      => 'El anticipo no puede ser negativo.',
             'advance_percentage.max'      => 'El anticipo no puede superar el 100%.',
@@ -208,7 +223,7 @@ class WorkOrderForm extends Form
         $this->coupon_id = null;
         $this->coupon_code = '';
         $this->equipment_ids = [];
-        $this->tax_percentage = '0';
+        $this->custom_tax_ids = [];
         $this->advance_percentage = '0';
         $this->advance_amount = '0';
     }
@@ -234,6 +249,18 @@ class WorkOrderForm extends Form
 
         abort_unless($count === count($equipment_ids), 422);
 
+        $custom_tax_ids = $this->resolvedCustomTaxIds();
+
+        if ($custom_tax_ids !== []) {
+            $tax_count = CustomTax::query()
+                ->forAuthUser()
+                ->where('business_id', $this->resolvedBusinessId())
+                ->whereIn('id', $custom_tax_ids)
+                ->count();
+
+            abort_unless($tax_count === count($custom_tax_ids), 422);
+        }
+
         $data = $this->payload(self::TOTAL_STEPS);
 
         if (! $this->isEditing()) {
@@ -253,7 +280,7 @@ class WorkOrderForm extends Form
             'coupon_id'           => $this->coupon_id ?: null,
             'diagnosis'           => $this->diagnosis ?: null,
             'estimated_delivery'  => $this->estimated_delivery ?: null,
-            'tax_percentage'      => $this->tax_percentage !== '' ? $this->tax_percentage : 0,
+            'custom_tax_ids'      => $this->resolvedCustomTaxIds(),
             'advance_percentage'  => (float) ($this->advance_percentage ?: 0),
             'advance_amount'      => (float) ($this->advance_amount ?: 0),
             'notes'               => $this->notes ?: null,
@@ -297,9 +324,7 @@ class WorkOrderForm extends Form
             $this->quotation_id = null;
         }
 
-        if ($this->tax_percentage === '') {
-            $this->tax_percentage = '0';
-        }
+        $this->custom_tax_ids = $this->resolvedCustomTaxIds();
 
         if ($this->advance_percentage === '') {
             $this->advance_percentage = '0';

@@ -44,9 +44,9 @@ class CustomTax extends Model
         });
     }
 
-    public function quotations(): HasMany
+    public function appliedTaxes(): HasMany
     {
-        return $this->hasMany(Quotation::class);
+        return $this->hasMany(AppliedTax::class);
     }
 
     public function canDelete(?User $user = null): bool

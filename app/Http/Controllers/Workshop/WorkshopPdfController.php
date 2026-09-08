@@ -20,6 +20,7 @@ class WorkshopPdfController extends Controller
             'business', 'client', 'equipments', 'quotationServiceType',
             'paymentMethod', 'bankAccount', 'createdBy',
             'items.productType', 'items.productCategory', 'items.catalogProduct', 'items.equipment',
+            'appliedTaxes',
         ]);
 
         return Pdf::loadView('pdf.quotation', [
@@ -78,6 +79,7 @@ class WorkshopPdfController extends Controller
             'items.catalogProduct',
             'items.equipment',
             'associatedDocuments',
+            'appliedTaxes',
         ]);
 
         return Pdf::loadView('pdf.work-order', [
