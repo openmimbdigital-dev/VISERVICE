@@ -1,6 +1,33 @@
 <?php
 
+/*
+| Raíz del volumen de datos, resuelta aquí y no en un helper.
+|
+| Los archivos de config se cargan en orden alfabético, así que este es el
+| primer sitio donde la ruta se necesita y no puede depender de config() de
+| otro archivo. Y tiene que salir de env() aquí dentro: en produccción la
+| configuración se cachea y env() devuelve null fuera de los config, con lo que
+| los archivos acabarían dentro del proyecto sin previo aviso.
+*/
+$media_environment = env('APP_ENV', 'production') === 'production' ? 'production' : 'test';
+$media_root = rtrim((string) env('MEDIA_ROOT', storage_path('app/media')), '/\\')
+    .DIRECTORY_SEPARATOR.$media_environment;
+
 return [
+
+    /*
+    |--------------------------------------------------------------------------
+    | Volumen de datos
+    |--------------------------------------------------------------------------
+    |
+    | Se exponen para que media_root() y media_environment() los lean sin
+    | volver a tocar env(). Ambos incluyen ya la carpeta del entorno.
+    |
+    */
+
+    'media_root' => $media_root,
+
+    'media_environment' => $media_environment,
 
     /*
     |--------------------------------------------------------------------------
@@ -60,7 +87,7 @@ return [
 
         'media' => [
             'driver' => 'local',
-            'root' => media_root('public'),
+            'root' => $media_root.DIRECTORY_SEPARATOR.'public',
             'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/media',
             'visibility' => 'public',
             'throw' => false,
@@ -69,7 +96,7 @@ return [
 
         'documents' => [
             'driver' => 'local',
-            'root' => media_root('private'),
+            'root' => $media_root.DIRECTORY_SEPARATOR.'private',
             'throw' => false,
             'report' => false,
         ],
@@ -102,7 +129,7 @@ return [
 
     'links' => [
         public_path('storage') => storage_path('app/public'),
-        public_path('media') => media_root('public'),
+        public_path('media') => $media_root.DIRECTORY_SEPARATOR.'public',
     ],
 
 ];

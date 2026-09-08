@@ -107,7 +107,7 @@ class MediaMigrateFiles extends Command
      */
     private function moveLegacyEnvironmentFolders(bool $dry_run): int
     {
-        $volume = rtrim((string) env('MEDIA_ROOT', storage_path('app/media')), '/\\');
+        $volume = rtrim((string) config('media.root', storage_path('app/media')), '/\\');
         $moved = 0;
 
         foreach (['public', 'private'] as $folder) {

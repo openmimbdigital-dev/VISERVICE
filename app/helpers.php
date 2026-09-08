@@ -9,7 +9,7 @@ if (! function_exists('media_environment')) {
      */
     function media_environment(): string
     {
-        return env('APP_ENV', 'production') === 'production' ? 'production' : 'test';
+        return (string) config('filesystems.media_environment', 'production');
     }
 }
 
@@ -17,13 +17,17 @@ if (! function_exists('media_root')) {
     /**
      * Ruta absoluta dentro del volumen de datos, fuera del proyecto.
      *
-     * En producción MEDIA_ROOT apunta al volumen montado; si no está definida
-     * (entornos locales) se usa storage/app/media. Dentro, cada entorno tiene
-     * su propia carpeta.
+     * La raíz —que ya incluye la carpeta del entorno— sale de
+     * config/filesystems.php y no de env(): con la configuración cacheada
+     * env() devuelve null fuera de los archivos de config, y los archivos
+     * acabarían dentro del proyecto sin que nadie se entere.
      */
     function media_root(string $path = ''): string
     {
-        $root = rtrim((string) env('MEDIA_ROOT', storage_path('app/media')), '/\\').'/'.media_environment();
+        $root = rtrim(
+            (string) config('filesystems.media_root', storage_path('app/media')),
+            '/\\'
+        );
 
         // Se usa siempre «/»: Flysystem lo entiende en Linux y en Windows.
         return $path === '' ? $root : $root.'/'.ltrim($path, '/\\');
