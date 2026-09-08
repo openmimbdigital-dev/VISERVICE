@@ -240,7 +240,7 @@
                     <div class="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
                         <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Descuento</p>
                         <p class="mt-0.5 text-xs text-slate-500">
-                            Opcional. Se aplica solo al agregar el producto a una orden de trabajo, y ahí se puede ajustar.
+                            Opcional. Al agregar el producto a una cotización u orden de trabajo se aplica este descuento; si no hay descuento, la línea queda al precio de venta.
                         </p>
 
                         <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">

@@ -77,6 +77,11 @@ class QuotationForm extends Form
         return (bool) $this->quotation_id;
     }
 
+    public function defaultHoursEntry(): string
+    {
+        return now()->format('H:i');
+    }
+
     public function resolvedBusinessId(): int
     {
         return (int) auth()->user()->business_id;
@@ -216,7 +221,7 @@ class QuotationForm extends Form
         $this->quotation_id = null;
         $this->equipment_ids = [];
         $this->custom_tax_id = null;
-        $this->hours_entry  = '';
+        $this->hours_entry = $this->defaultHoursEntry();
         $this->validity_days = '15';
         $this->tax_percentage = '0';
         $this->advance_percentage = '0';
