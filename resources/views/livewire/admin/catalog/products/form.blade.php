@@ -221,13 +221,17 @@
 
                 <div class="relative">
                     <label class="label-up">Margen de ganancia</label>
-                    <input type="text" value="{{ $form->profitMarginAmount() !== null ? '$ ' . number_format($form->profitMarginAmount(), 2, ',', '.') : '—' }}" readonly class="form-input w-full border bg-slate-50 px-3 py-2 text-sm tabular-nums text-slate-700" />
+                    <p class="flex min-h-[42px] items-center rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm tabular-nums font-medium text-slate-800">
+                        {{ $form->profitMarginAmount() !== null ? '$ ' . number_format($form->profitMarginAmount(), 2, ',', '.') : '—' }}
+                    </p>
                     <p class="mt-1 text-xs text-slate-500">Se calcula como costo × porcentaje.</p>
                 </div>
 
                 <div class="relative">
-                    <label class="label-up">Precio de venta <span class="text-rose-500">*</span></label>
-                    <input type="number" step="0.01" min="0" wire:model="form.sale_price" readonly class="form-input w-full border bg-slate-50 px-3 py-2 text-sm tabular-nums" />
+                    <label class="label-up">Precio de venta</label>
+                    <p class="flex min-h-[42px] items-center rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm tabular-nums font-medium text-slate-800">
+                        {{ $form->sale_price !== '' ? '$ ' . number_format((float) $form->sale_price, 2, ',', '.') : '—' }}
+                    </p>
                     <p class="mt-1 text-xs text-slate-500">Se calcula como costo + margen.</p>
                     @error('form.sale_price')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
                 </div>
