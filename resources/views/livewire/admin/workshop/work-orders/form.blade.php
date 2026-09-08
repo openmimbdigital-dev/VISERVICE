@@ -70,7 +70,7 @@
                 <ol class="flex min-w-0 flex-1 items-start">
                     @foreach($steps as $number => $meta)
                     @php
-                        $is_done = $step > $number;
+                        $is_done = $completed_steps >= $number;
                         $is_current = $step === $number;
                         $is_last = $number === $total_steps;
                     @endphp

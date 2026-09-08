@@ -7,6 +7,7 @@ use App\Actions\Workshop\DeleteWorkOrderAction;
 use App\Enums\QuotationStatus;
 use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
 use App\Livewire\Concerns\ManagesPendingCustomTaxes;
+use App\Livewire\Concerns\TracksWizardProgress;
 use App\Livewire\Forms\Admin\Workshop\WorkOrderForm;
 use App\Models\Client;
 use App\Models\Coupon;
@@ -29,6 +30,7 @@ class Form extends Component
 {
     use ConfirmsDeletionWithLivewireAlert;
     use ManagesPendingCustomTaxes;
+    use TracksWizardProgress;
 
     public WorkOrderForm $form;
 
@@ -80,6 +82,7 @@ class Form extends Component
                 : max(WorkOrderForm::STEP_GENERAL, min((int) $workOrder->step, WorkOrderForm::TOTAL_STEPS));
             $this->reference = $workOrder->reference;
             $this->quotation_locked = (bool) $workOrder->quotation_id;
+            $this->syncWizardProgress($workOrder);
             $this->items = $workOrder->items->map(fn ($item) => [
                 'uid'                 => 'woi-'.$item->id,
                 'id'                  => $item->id,
@@ -679,6 +682,7 @@ class Form extends Component
 
         $this->form->work_order_id = $work_order->id;
         $this->reference           = $work_order->reference;
+        $this->syncWizardProgress($work_order);
 
         return $work_order;
     }
@@ -829,19 +833,14 @@ class Form extends Component
                 && ! $linked_remission;
         }
 
-        $total_steps   = WorkOrderForm::TOTAL_STEPS;
-        $progress      = (int) round(($this->step / $total_steps) * 100);
-        $radius        = 30;
-        $circumference = round(2 * M_PI * $radius, 2);
+        $total_steps = WorkOrderForm::TOTAL_STEPS;
 
         return view('livewire.admin.workshop.work-orders.form', [
             'is_editing'             => $this->form->isEditing(),
             'from_quotation'         => $from_quotation,
             'step'                   => $this->step,
             'total_steps'            => $total_steps,
-            'progress'               => $progress,
-            'progress_circumference' => $circumference,
-            'progress_offset'        => round($circumference * (1 - $progress / 100), 2),
+            ...$this->wizardProgressViewData($total_steps),
             'steps'                  => [
                 WorkOrderForm::STEP_GENERAL => [
                     'title'       => 'Datos',

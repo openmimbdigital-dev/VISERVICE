@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\QuotationStatus;
 use App\Models\Concerns\HasAppliedTaxes;
+use App\Models\Concerns\HasWizardProgress;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -16,6 +17,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Quotation extends Model
 {
     use HasAppliedTaxes;
+    use HasWizardProgress;
     use SoftDeletes;
 
     public const DEFAULT_FINAL_STEP = 3;
@@ -150,13 +152,6 @@ class Quotation extends Model
         }
 
         return $this->items()->exists();
-    }
-
-    public function progressPercent(): int
-    {
-        $final = max(1, (int) $this->final_step);
-
-        return (int) min(100, round(((int) $this->step / $final) * 100));
     }
 
     public function getHoursEntryFormattedAttribute(): ?string

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasWizardProgress;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,6 +13,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Equipment extends Model
 {
+    use HasWizardProgress;
     use SoftDeletes;
 
     public const DEFAULT_FINAL_STEP = 3;
@@ -126,13 +128,6 @@ class Equipment extends Model
         return $this->brand_id !== null
             && $this->model_id !== null
             && $this->year !== null;
-    }
-
-    public function progressPercent(): int
-    {
-        $final = max(1, (int) $this->final_step);
-
-        return (int) min(100, round(((int) $this->step / $final) * 100));
     }
 
     public function scopeForAuthUser($query)
