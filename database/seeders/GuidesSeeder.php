@@ -124,11 +124,24 @@ class GuidesSeeder extends Seeder
 
         Con la resolución cargada, el botón **«Registrar ante el proveedor»** crea
         la empresa emisora en la plataforma de TITANIO y guarda el identificador de
-        perfil (`tr_tipo_id`) que devuelve. Es el único paso automático.
+        perfil (`tr_tipo_id`) que devuelve.
 
-        > Este botón todavía no se ha usado con un cliente real: a nosotros Delcop
-        > nos creó la empresa a mano. Conviene estrenarlo con un NIT de prueba
-        > antes de ofrecérselo a un negocio.
+        > **Hoy este botón no funciona.** El proveedor responde HTTP 500 en todos
+        > los intentos, incluso replicando el ejemplo de su propio manual. Está
+        > reportado. Mientras tanto, el perfil lo crea Delcop a mano y hay que
+        > pedirles el `tr_tipo_id` por correo.
+
+        ## 5b. Traer la resolución sin copiarla a mano
+
+        El botón **«Traer resolución»** le pregunta al proveedor por el NIT del
+        negocio y llena solo el prefijo, el rango, la vigencia y la clave técnica.
+        Ahorra los seis campos del paso 3, y sobre todo evita equivocarse al
+        transcribir la clave técnica.
+
+        Solo devuelve resoluciones **de producción**: durante la habilitación
+        responde que no encontró rangos, y en ese caso hay que copiarlos del portal
+        como dice el paso 3. Si ya hay un prefijo configurado, respeta ese rango,
+        porque un negocio puede tener varias resoluciones.
 
         ## 6. Probar antes de pasar a producción
 
