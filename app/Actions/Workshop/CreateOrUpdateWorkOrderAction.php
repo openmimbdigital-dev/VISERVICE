@@ -68,7 +68,6 @@ class CreateOrUpdateWorkOrderAction
                 'final_step'         => (int) ($data['final_step'] ?? WorkOrder::DEFAULT_FINAL_STEP),
                 'diagnosis'          => $data['diagnosis'] ?? null,
                 'estimated_delivery' => $data['estimated_delivery'] ?? null,
-                'tax_percentage'     => $data['tax_percentage'] ?? 0,
                 'notes'              => $data['notes'] ?? null,
                 'observations'       => $data['observations'] ?? null,
             ];
@@ -98,6 +97,14 @@ class CreateOrUpdateWorkOrderAction
             // depende del subtotal (monto mínimo) y del descuento resultante.
             $this->applyCoupon($work_order, $data, $business_id);
 
+            $custom_tax_ids = $data['custom_tax_ids'] ?? null;
+
+            if ($custom_tax_ids === null && $quotation && ! $work_order_id) {
+                $quotation->loadMissing('appliedTaxes');
+                $custom_tax_ids = $quotation->appliedCustomTaxIds();
+            }
+
+            SyncAppliedTaxesAction::run($work_order, $custom_tax_ids ?? [], $business_id, 0);
             $work_order->recalculateTotals();
 
             $advance_percentage = $quotation && ! $work_order_id
@@ -246,10 +253,30 @@ class CreateOrUpdateWorkOrderAction
         $kept_ids = [];
         $allowed = array_flip($equipment_ids);
         $default_equipment_id = $equipment_ids[0] ?? null;
+        $product_ids = [];
+
+        foreach ($items as $row) {
+            $product_id = (int) ($row['product_id'] ?? 0);
+            if ($product_id > 0) {
+                $product_ids[] = $product_id;
+            }
+        }
+
+        $catalog = $product_ids === []
+            ? collect()
+            : Product::query()
+                ->forAuthUser()
+                ->complete()
+                ->where('business_id', $work_order->business_id)
+                ->whereIn('id', array_unique($product_ids))
+                ->get()
+                ->keyBy('id');
 
         foreach ($items as $row) {
             $description = trim((string) ($row['description'] ?? ''));
-            if ($description === '') {
+            $product_id = (int) ($row['product_id'] ?? 0);
+
+            if ($product_id <= 0 && $description === '') {
                 continue;
             }
 
@@ -257,17 +284,8 @@ class CreateOrUpdateWorkOrderAction
                 abort_unless(ProductType::query()->visibleToUser()->whereKey($row['product_type_id'])->exists(), 422);
             }
 
-            if (! empty($row['product_id'])) {
-                abort_unless(
-                    Product::query()
-                        ->forAuthUser()
-                        ->complete()
-                        ->where('business_id', $work_order->business_id)
-                        ->whereKey($row['product_id'])
-                        ->exists(),
-                    422
-                );
-            }
+            $product = $product_id > 0 ? $catalog->get($product_id) : null;
+            abort_unless($product_id <= 0 || $product !== null, 422, 'Uno o más productos no están disponibles en el catálogo.');
 
             $equipment_id = ! empty($row['equipment_id'])
                 ? (int) $row['equipment_id']
@@ -279,14 +297,24 @@ class CreateOrUpdateWorkOrderAction
                 'Cada ítem debe asociarse a un equipo de la OT.'
             );
 
-            $qty      = (float) ($row['quantity'] ?? 1);
-            $price    = (float) ($row['unit_price'] ?? 0);
-            $discount = (float) ($row['discount_percentage'] ?? 0);
+            $qty = (float) ($row['quantity'] ?? 1);
+
+            if ($product) {
+                $price = (float) $product->sale_price;
+                $apply_discount = $product->hasDiscount() && filter_var($row['apply_discount'] ?? false, FILTER_VALIDATE_BOOLEAN);
+                $discount = $apply_discount ? $product->discountPercentage() : 0.0;
+                $description = $product->name;
+                $row['product_type_id'] = $product->product_type_id;
+            } else {
+                $price = (float) ($row['unit_price'] ?? 0);
+                $discount = (float) ($row['discount_percentage'] ?? 0);
+            }
+
             $subtotal = WorkOrderItem::lineSubtotal($qty, $price, $discount);
 
             $payload = [
                 'equipment_id'        => $equipment_id,
-                'product_id'          => $row['product_id'] ?: null,
+                'product_id'          => $product?->id,
                 'product_type_id'     => $row['product_type_id'] ?: null,
                 'description'         => $description,
                 'quantity'            => $qty,

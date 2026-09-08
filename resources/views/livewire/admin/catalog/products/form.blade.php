@@ -221,13 +221,17 @@
 
                 <div class="relative">
                     <label class="label-up">Margen de ganancia</label>
-                    <input type="text" value="{{ $form->profitMarginAmount() !== null ? '$ ' . number_format($form->profitMarginAmount(), 2, ',', '.') : '—' }}" readonly class="form-input w-full border bg-slate-50 px-3 py-2 text-sm tabular-nums text-slate-700" />
+                    <p class="flex min-h-[42px] items-center rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm tabular-nums font-medium text-slate-800">
+                        {{ $form->profitMarginAmount() !== null ? '$ ' . number_format($form->profitMarginAmount(), 2, ',', '.') : '—' }}
+                    </p>
                     <p class="mt-1 text-xs text-slate-500">Se calcula como costo × porcentaje.</p>
                 </div>
 
                 <div class="relative">
-                    <label class="label-up">Precio de venta <span class="text-rose-500">*</span></label>
-                    <input type="number" step="0.01" min="0" wire:model="form.sale_price" readonly class="form-input w-full border bg-slate-50 px-3 py-2 text-sm tabular-nums" />
+                    <label class="label-up">Precio de venta</label>
+                    <p class="flex min-h-[42px] items-center rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm tabular-nums font-medium text-slate-800">
+                        {{ $form->sale_price !== '' ? '$ ' . number_format((float) $form->sale_price, 2, ',', '.') : '—' }}
+                    </p>
                     <p class="mt-1 text-xs text-slate-500">Se calcula como costo + margen.</p>
                     @error('form.sale_price')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
                 </div>
@@ -236,7 +240,7 @@
                     <div class="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
                         <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Descuento</p>
                         <p class="mt-0.5 text-xs text-slate-500">
-                            Opcional. Se aplica solo al agregar el producto a una orden de trabajo, y ahí se puede ajustar.
+                            Opcional. Al agregar el producto a una cotización u orden de trabajo se aplica este descuento; si no hay descuento, la línea queda al precio de venta.
                         </p>
 
                         <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">

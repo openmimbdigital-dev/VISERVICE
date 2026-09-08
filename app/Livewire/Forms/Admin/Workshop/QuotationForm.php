@@ -7,6 +7,7 @@ use App\Models\CustomTax;
 use App\Models\Equipment;
 use App\Models\Quotation;
 use App\Models\QuotationServiceType;
+use App\Support\AppliedTaxesPreview;
 use Illuminate\Validation\Rule;
 use Livewire\Form;
 
@@ -33,7 +34,8 @@ class QuotationForm extends Form
 
     public ?int $business_bank_account_id = null;
 
-    public ?int $custom_tax_id = null;
+    /** @var list<int> */
+    public array $custom_tax_ids = [];
 
     public string $hours_entry = '';
 
@@ -43,8 +45,6 @@ class QuotationForm extends Form
 
     public string $execution_time = '';
 
-    public string $tax_percentage = '0';
-
     public string $advance_percentage = '0';
 
     public string $notes = '';
@@ -53,7 +53,7 @@ class QuotationForm extends Form
 
     public function setQuotation(Quotation $quotation): void
     {
-        $quotation->loadMissing('equipments:id');
+        $quotation->loadMissing(['equipments:id', 'appliedTaxes']);
 
         $this->quotation_id              = $quotation->id;
         $this->client_id                 = $quotation->client_id;
@@ -61,12 +61,11 @@ class QuotationForm extends Form
         $this->quotation_service_type_id = $quotation->quotation_service_type_id;
         $this->business_payment_method_id = $quotation->business_payment_method_id;
         $this->business_bank_account_id   = $quotation->business_bank_account_id;
-        $this->custom_tax_id              = $quotation->custom_tax_id;
+        $this->custom_tax_ids             = $quotation->appliedCustomTaxIds();
         $this->hours_entry               = $quotation->hours_entry_formatted ?? '';
         $this->diagnosis                 = $quotation->diagnosis ?? '';
         $this->validity_days             = (string) ($quotation->validity_days ?? 15);
         $this->execution_time            = $quotation->execution_time ?? '';
-        $this->tax_percentage            = (string) $quotation->tax_percentage;
         $this->advance_percentage        = (string) ($quotation->advance_percentage ?? 0);
         $this->notes                     = $quotation->notes ?? '';
         $this->observations              = $quotation->observations ?? '';
@@ -77,9 +76,20 @@ class QuotationForm extends Form
         return (bool) $this->quotation_id;
     }
 
+    public function defaultHoursEntry(): string
+    {
+        return now()->format('H:i');
+    }
+
     public function resolvedBusinessId(): int
     {
         return (int) auth()->user()->business_id;
+    }
+
+    /** @return list<int> */
+    public function resolvedCustomTaxIds(): array
+    {
+        return AppliedTaxesPreview::normalizeIds($this->custom_tax_ids);
     }
 
     /** @return list<int> */
@@ -144,8 +154,8 @@ class QuotationForm extends Form
                         ->where('business_id', $business_id)
                         ->whereNull('deleted_at')),
                 ],
-                'custom_tax_id' => [
-                    'nullable',
+                'custom_tax_ids' => ['nullable', 'array'],
+                'custom_tax_ids.*' => [
                     'integer',
                     Rule::exists('custom_taxes', 'id')->where(fn ($q) => $q
                         ->where('business_id', $business_id)
@@ -153,7 +163,6 @@ class QuotationForm extends Form
                 ],
                 'validity_days'      => ['required', 'integer', 'min:1', 'max:365'],
                 'execution_time'     => ['nullable', 'string', 'max:120'],
-                'tax_percentage'     => ['nullable', 'numeric', 'min:0', 'max:100'],
                 'advance_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
                 'diagnosis'          => ['nullable', 'string'],
                 'observations'       => ['nullable', 'string'],
@@ -168,7 +177,7 @@ class QuotationForm extends Form
             self::STEP_GENERAL => ['client_id', 'equipment_ids', 'hours_entry', 'notes'],
             self::STEP_CONDITIONS => [
                 'quotation_service_type_id', 'business_payment_method_id', 'business_bank_account_id',
-                'custom_tax_id', 'validity_days', 'execution_time', 'tax_percentage',
+                'custom_tax_ids', 'validity_days', 'execution_time',
                 'advance_percentage', 'diagnosis', 'observations',
             ],
             self::STEP_ITEMS => ['items'],
@@ -202,8 +211,7 @@ class QuotationForm extends Form
             'hours_entry.date_format' => 'Las horas al ingreso deben tener formato HH:MM.',
             'validity_days.required'  => 'Indica los días de vigencia.',
             'validity_days.min'       => 'La vigencia debe ser al menos 1 día.',
-            'custom_tax_id.exists'    => 'El impuesto seleccionado no es válido.',
-            'tax_percentage.numeric'  => 'El porcentaje del impuesto debe ser un número.',
+            'custom_tax_ids.*.exists' => 'Uno o más impuestos no son válidos.',
             'advance_percentage.numeric' => 'El anticipo debe ser un número.',
             'advance_percentage.min' => 'El anticipo no puede ser negativo.',
             'advance_percentage.max' => 'El anticipo no puede superar el 100%.',
@@ -215,10 +223,9 @@ class QuotationForm extends Form
         parent::reset(...$properties);
         $this->quotation_id = null;
         $this->equipment_ids = [];
-        $this->custom_tax_id = null;
-        $this->hours_entry  = '';
+        $this->custom_tax_ids = [];
+        $this->hours_entry = $this->defaultHoursEntry();
         $this->validity_days = '15';
-        $this->tax_percentage = '0';
         $this->advance_percentage = '0';
     }
 
@@ -235,15 +242,16 @@ class QuotationForm extends Form
             );
         }
 
-        if ($this->custom_tax_id) {
-            abort_unless(
-                CustomTax::query()
-                    ->forAuthUser()
-                    ->where('business_id', $this->resolvedBusinessId())
-                    ->whereKey($this->custom_tax_id)
-                    ->exists(),
-                422
-            );
+        $custom_tax_ids = $this->resolvedCustomTaxIds();
+
+        if ($custom_tax_ids !== []) {
+            $count = CustomTax::query()
+                ->forAuthUser()
+                ->where('business_id', $this->resolvedBusinessId())
+                ->whereIn('id', $custom_tax_ids)
+                ->count();
+
+            abort_unless($count === count($custom_tax_ids), 422);
         }
 
         abort_unless(
@@ -274,27 +282,15 @@ class QuotationForm extends Form
     {
         $this->normalizeOptionalFields();
 
-        $custom_tax = null;
-
-        if ($this->custom_tax_id) {
-            $custom_tax = CustomTax::query()
-                ->forAuthUser()
-                ->where('business_id', $this->resolvedBusinessId())
-                ->whereKey($this->custom_tax_id)
-                ->first();
-        }
-
         $data = [
             'quotation_service_type_id'  => $this->quotation_service_type_id,
             'business_payment_method_id' => $this->business_payment_method_id,
             'business_bank_account_id'   => $this->business_bank_account_id,
-            'custom_tax_id'              => $custom_tax?->id,
-            'custom_tax_name'            => $custom_tax?->name,
+            'custom_tax_ids'             => $this->resolvedCustomTaxIds(),
             'hours_entry'                => $this->hours_entry !== '' ? $this->hours_entry : null,
             'diagnosis'                  => $this->diagnosis ?: null,
             'validity_days'              => (int) ($this->validity_days ?: 15),
             'execution_time'             => $this->execution_time ?: null,
-            'tax_percentage'             => $this->tax_percentage !== '' ? $this->tax_percentage : ($custom_tax?->percentage ?? 0),
             'advance_percentage'         => $this->advance_percentage !== '' ? $this->advance_percentage : 0,
             'notes'                      => $this->notes ?: null,
             'observations'               => $this->observations ?: null,
@@ -311,15 +307,13 @@ class QuotationForm extends Form
 
     private function normalizeOptionalFields(): void
     {
-        foreach (['quotation_service_type_id', 'business_payment_method_id', 'business_bank_account_id', 'custom_tax_id'] as $field) {
+        foreach (['quotation_service_type_id', 'business_payment_method_id', 'business_bank_account_id'] as $field) {
             if ($this->{$field} === '' || $this->{$field} === 0) {
                 $this->{$field} = null;
             }
         }
 
-        if ($this->tax_percentage === '') {
-            $this->tax_percentage = '0';
-        }
+        $this->custom_tax_ids = $this->resolvedCustomTaxIds();
 
         if ($this->advance_percentage === '') {
             $this->advance_percentage = '0';

@@ -632,6 +632,7 @@ class Show extends Component
             'associatedDocuments',
             'latestInvoice',
             'invoices',
+            'appliedTaxes',
         ]);
 
         $product_types = ProductType::query()

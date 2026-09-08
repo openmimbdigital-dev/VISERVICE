@@ -125,10 +125,17 @@
                     <div class="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 sm:p-6">
                         <div class="sm:col-span-2">
                             <label class="mb-1.5 block text-xs font-medium text-slate-700">Cliente <span class="text-rose-500">*</span></label>
-                            <select wire:model.live="form.client_id" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm @error('form.client_id') border-rose-400 bg-rose-50 @enderror">
-                                <option value="">Seleccionar cliente</option>
-                                @foreach($clients as $client)<option value="{{ $client->id }}">{{ $client->name }}</option>@endforeach
-                            </select>
+                            <livewire:ui.searchable-select
+                                wire:model.live="form.client_id"
+                                model-class="App\Models\Client"
+                                :search-by="['document_number']"
+                                label-field="name"
+                                :filters="['status' => true]"
+                                placeholder="Seleccionar cliente"
+                                search-placeholder="Buscar por documento..."
+                                :invalid="$errors->has('form.client_id')"
+                                :key="'quotation-client-select'"
+                            />
                             @error('form.client_id') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                         </div>
                         <div class="sm:col-span-2">
@@ -177,10 +184,17 @@
                     <div class="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 sm:p-6">
                         <div>
                             <label class="mb-1.5 block text-xs font-medium text-slate-700">Tipo de servicio</label>
-                            <select wire:model="form.quotation_service_type_id" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm">
-                                <option value="">— Seleccionar —</option>
-                                @foreach($service_types as $type)<option value="{{ $type->id }}">{{ $type->name }}</option>@endforeach
-                            </select>
+                            <livewire:ui.searchable-select
+                                wire:model="form.quotation_service_type_id"
+                                model-class="App\Models\QuotationServiceType"
+                                :search-by="['name']"
+                                label-field="name"
+                                :filters="['active' => true]"
+                                placeholder="Seleccionar tipo de servicio"
+                                search-placeholder="Buscar tipo de servicio..."
+                                :invalid="false"
+                                :key="'quotation-service-type-select'"
+                            />
                         </div>
                         <div>
                             <label class="mb-1.5 block text-xs font-medium text-slate-700">Vigencia (días) <span class="text-rose-500">*</span></label>
@@ -189,38 +203,69 @@
                         </div>
                         <div>
                             <label class="mb-1.5 block text-xs font-medium text-slate-700">Forma de pago</label>
-                            <select wire:model="form.business_payment_method_id" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm">
-                                <option value="">— Seleccionar —</option>
-                                @foreach($payment_methods as $method)<option value="{{ $method->id }}">{{ $method->name }}</option>@endforeach
-                            </select>
+                            <livewire:ui.searchable-select
+                                wire:model="form.business_payment_method_id"
+                                model-class="App\Models\BusinessPaymentMethod"
+                                :search-by="['name']"
+                                label-field="name"
+                                order-by="sort_order"
+                                :filters="['active' => true]"
+                                placeholder="Seleccionar forma de pago"
+                                search-placeholder="Buscar forma de pago..."
+                                :invalid="false"
+                                :key="'quotation-payment-method-select'"
+                            />
                         </div>
                         <div>
                             <label class="mb-1.5 block text-xs font-medium text-slate-700">Cuenta bancaria</label>
-                            <select wire:model="form.business_bank_account_id" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm">
-                                <option value="">— Seleccionar —</option>
-                                @foreach($bank_accounts as $account)<option value="{{ $account->id }}">{{ $account->bank_name }} — {{ $account->account_number }}</option>@endforeach
-                            </select>
+                            <livewire:ui.searchable-select
+                                wire:model="form.business_bank_account_id"
+                                model-class="App\Models\BusinessBankAccount"
+                                :search-by="['bank_name', 'account_number']"
+                                label-field="select_label"
+                                order-by="bank_name"
+                                :filters="['active' => true, 'business_id' => $form->resolvedBusinessId()]"
+                                placeholder="Seleccionar cuenta bancaria"
+                                search-placeholder="Buscar por banco o número..."
+                                :invalid="false"
+                                :key="'quotation-bank-account-select-'.$form->resolvedBusinessId()"
+                            />
                         </div>
                         <div>
                             <label class="mb-1.5 block text-xs font-medium text-slate-700">Tiempo de ejecución</label>
                             <input type="text" wire:model="form.execution_time" placeholder="Ej. 2 días hábiles" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm">
                         </div>
-                        <div>
-                            <label class="mb-1.5 block text-xs font-medium text-slate-700">Impuesto</label>
-                            <select wire:model.live="form.custom_tax_id" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm @error('form.custom_tax_id') border-rose-400 @enderror">
-                                <option value="">— Seleccionar —</option>
-                                @foreach($custom_taxes as $tax)
-                                    <option value="{{ $tax->id }}">{{ $tax->name }} ({{ rtrim(rtrim(number_format((float) $tax->percentage, 2, '.', ''), '0'), '.') }}%)</option>
-                                @endforeach
-                            </select>
-                            @error('form.custom_tax_id') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
-                        </div>
-                        <div>
-                            <label class="mb-1.5 block text-xs font-medium text-slate-700">
-                                {{ $selected_custom_tax?->name ?? 'Porcentaje' }} (%)
-                            </label>
-                            <input type="number" wire:model.live="form.tax_percentage" min="0" max="100" step="0.01" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm @error('form.tax_percentage') border-rose-400 @enderror">
-                            @error('form.tax_percentage') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                        <div class="sm:col-span-2">
+                            <label class="mb-1.5 block text-xs font-medium text-slate-700">Impuestos</label>
+                            <livewire:ui.searchable-select
+                                wire:model.live="pending_custom_tax_id"
+                                model-class="App\Models\CustomTax"
+                                :search-by="['name']"
+                                label-field="select_label"
+                                order-by="name"
+                                :filters="['active' => true, 'business_id' => $form->resolvedBusinessId(), 'exclude_ids' => $form->custom_tax_ids]"
+                                placeholder="Agregar impuesto"
+                                search-placeholder="Buscar impuesto..."
+                                :invalid="$errors->has('form.custom_tax_ids') || $errors->has('form.custom_tax_ids.*')"
+                                :key="'quotation-custom-tax-select-'.$form->resolvedBusinessId().'-'.implode('-', $form->custom_tax_ids)"
+                            />
+                            @error('form.custom_tax_ids') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                            @error('form.custom_tax_ids.*') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                            <div class="mt-2 space-y-2">
+                                @forelse($applied_tax_lines as $tax)
+                                <div class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5">
+                                    <div class="min-w-0">
+                                        <p class="truncate text-sm font-medium text-slate-800">{{ $tax['name'] }} ({{ $tax['percentage_label'] }}%)</p>
+                                        <p class="text-xs text-slate-500">{{ col_money($tax['amount']) }}</p>
+                                    </div>
+                                    <button type="button" wire:click="removeCustomTax({{ $tax['id'] }})" class="shrink-0 rounded-lg p-1 text-slate-400 transition hover:bg-white hover:text-rose-600" title="Quitar impuesto">
+                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                    </button>
+                                </div>
+                                @empty
+                                <p class="text-xs text-slate-400">Sin impuestos. Busca y selecciona uno o más.</p>
+                                @endforelse
+                            </div>
                         </div>
                         <div>
                             <label class="mb-1.5 block text-xs font-medium text-slate-700">Anticipo (%)</label>
@@ -255,6 +300,7 @@
                     <div class="space-y-4 p-4 sm:p-6">
                         @error('items') <p class="text-sm text-rose-600">{{ $message }}</p> @enderror
                         @forelse($items as $index => $row)
+                        @php $item_product = $catalog_by_id->get((int) ($row['product_id'] ?? 0)); @endphp
                         <div wire:key="item-row-{{ $index }}" class="rounded-xl border border-slate-200 bg-slate-50/50 p-4">
                             <div class="mb-3 flex items-center justify-between">
                                 <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Ítem {{ $index + 1 }}</p>
@@ -274,38 +320,62 @@
                                     @error('items.'.$index.'.equipment_id') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                                 </div>
                                 <div>
-                                    <label class="mb-1 block text-xs font-medium text-slate-700">Tipo</label>
-                                    <select wire:model.live="items.{{ $index }}.product_type_id" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">
+                                    <label class="mb-1 block text-xs font-medium text-slate-700">Tipo <span class="text-rose-500">*</span></label>
+                                    <select wire:model.live="items.{{ $index }}.product_type_id" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm @error('items.'.$index.'.product_type_id') border-rose-400 @enderror">
                                         <option value="">—</option>
                                         @foreach($product_types as $type)<option value="{{ $type->id }}">{{ $type->name }}</option>@endforeach
                                     </select>
+                                    @error('items.'.$index.'.product_type_id') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                                 </div>
                                 <div>
-                                    <label class="mb-1 block text-xs font-medium text-slate-700">Catálogo</label>
-                                    <select wire:model.live="items.{{ $index }}.product_id" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm" @disabled(empty($row['product_type_id']))>
-                                        <option value="">— Manual —</option>
+                                    <label class="mb-1 block text-xs font-medium text-slate-700">Producto <span class="text-rose-500">*</span></label>
+                                    <select wire:model.live="items.{{ $index }}.product_id" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm @error('items.'.$index.'.product_id') border-rose-400 @enderror" @disabled(empty($row['product_type_id']))>
+                                        <option value="">Seleccionar producto</option>
                                         @foreach($catalog_products->where('product_type_id', (int) ($row['product_type_id'] ?? 0)) as $ci)
                                         <option value="{{ $ci->id }}">{{ $ci->name }} ({{ col_money($ci->sale_price) }})</option>
                                         @endforeach
                                     </select>
+                                    @error('items.'.$index.'.product_id') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                                 </div>
                                 <div class="sm:col-span-2">
-                                    <label class="mb-1 block text-xs font-medium text-slate-700">Descripción <span class="text-rose-500">*</span></label>
-                                    <input type="text" wire:model="items.{{ $index }}.description" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm @error('items.'.$index.'.description') border-rose-400 @enderror">
-                                    @error('items.'.$index.'.description') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                                    <label class="mb-1 block text-xs font-medium text-slate-700">Descripción</label>
+                                    <p class="flex min-h-[42px] items-center rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800">
+                                        {{ $item_product?->name ?? 'Selecciona un producto' }}
+                                    </p>
                                 </div>
                                 <div>
-                                    <label class="mb-1 block text-xs font-medium text-slate-700">Cantidad</label>
-                                    <input type="number" wire:model.live="items.{{ $index }}.quantity" min="0.01" step="0.01" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">
+                                    <label class="mb-1 block text-xs font-medium text-slate-700">Cantidad <span class="text-rose-500">*</span></label>
+                                    <input type="number" wire:model.live="items.{{ $index }}.quantity" min="0.01" step="0.01" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm @error('items.'.$index.'.quantity') border-rose-400 @enderror">
                                     @error('items.'.$index.'.quantity') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                                 </div>
                                 <div>
                                     <label class="mb-1 block text-xs font-medium text-slate-700">Precio unitario</label>
-                                    <input type="number" wire:model.live="items.{{ $index }}.unit_price" min="0" step="0.01" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">
+                                    <p class="flex min-h-[42px] items-center rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm tabular-nums font-medium text-slate-800">
+                                        @if($item_product)
+                                            {{ col_money($item_product->sale_price) }}
+                                        @else
+                                            —
+                                        @endif
+                                    </p>
                                 </div>
                                 <div>
-                                    <label class="mb-1 block text-xs font-medium text-slate-700">Descuento (%)</label>
-                                    <input type="number" wire:model.live="items.{{ $index }}.discount_percentage" min="0" max="100" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">
+                                    <label class="mb-1 block text-xs font-medium text-slate-700">Descuento</label>
+                                    <div class="flex min-h-[42px] items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                                        <label class="flex shrink-0 items-center gap-2 {{ $item_product?->hasDiscount() ? 'cursor-pointer' : 'cursor-not-allowed opacity-50' }}">
+                                            <input type="checkbox"
+                                                wire:model.live="items.{{ $index }}.apply_discount"
+                                                @disabled(! $item_product?->hasDiscount())
+                                                class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 disabled:cursor-not-allowed">
+                                            <span class="text-xs font-medium text-slate-700">Aplicar</span>
+                                        </label>
+                                        <span class="min-w-0 text-sm text-slate-800">
+                                            @if($item_product?->hasDiscount())
+                                                {{ $item_product->discountLabel() }}
+                                            @else
+                                                Sin descuento
+                                            @endif
+                                        </span>
+                                    </div>
                                 </div>
                                 <div class="flex items-end">
                                     <p class="w-full rounded-xl bg-indigo-50 px-3 py-2 text-right text-sm font-semibold text-indigo-700">{{ col_money($item_line_totals[$index] ?? 0) }}</p>
@@ -330,7 +400,11 @@
                         <div class="flex justify-between text-xs text-slate-500"><dt>Otros</dt><dd>{{ col_money($category_subtotals['otros']) }}</dd></div>
                         <div class="flex justify-between border-t border-slate-100 pt-2"><dt class="text-slate-500">Subtotal</dt><dd class="font-medium">{{ col_money($preview_subtotal) }}</dd></div>
                         <div class="flex justify-between"><dt class="text-slate-500">Anticipo ({{ $form->advance_percentage }}%)</dt><dd class="font-medium text-amber-700">{{ col_money($preview_advance_amount) }}</dd></div>
-                        <div class="flex justify-between"><dt class="text-slate-500">{{ $selected_custom_tax?->name ?? 'Impuesto' }} ({{ $form->tax_percentage }}%)</dt><dd class="font-medium">{{ col_money($preview_tax) }}</dd></div>
+                        @forelse($applied_tax_lines as $tax)
+                        <div class="flex justify-between"><dt class="text-slate-500">{{ $tax['name'] }} ({{ $tax['percentage_label'] }}%)</dt><dd class="font-medium">{{ col_money($tax['amount']) }}</dd></div>
+                        @empty
+                        <div class="flex justify-between"><dt class="text-slate-500">Impuestos</dt><dd class="font-medium">{{ col_money(0) }}</dd></div>
+                        @endforelse
                         <div class="flex justify-between border-t border-slate-100 pt-2 text-base font-bold"><dt>Total</dt><dd class="text-indigo-700">{{ col_money($preview_total) }}</dd></div>
                     </dl>
                 </section>

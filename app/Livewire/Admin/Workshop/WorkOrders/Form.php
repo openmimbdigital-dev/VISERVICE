@@ -6,6 +6,7 @@ use App\Actions\Workshop\CreateOrUpdateWorkOrderAction;
 use App\Actions\Workshop\DeleteWorkOrderAction;
 use App\Enums\QuotationStatus;
 use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
+use App\Livewire\Concerns\ManagesPendingCustomTaxes;
 use App\Livewire\Forms\Admin\Workshop\WorkOrderForm;
 use App\Models\Client;
 use App\Models\Coupon;
@@ -15,6 +16,7 @@ use App\Models\ProductType;
 use App\Models\Quotation;
 use App\Models\WorkOrder;
 use App\Models\WorkOrderItem;
+use App\Support\AppliedTaxesPreview;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
@@ -26,6 +28,7 @@ use Livewire\Component;
 class Form extends Component
 {
     use ConfirmsDeletionWithLivewireAlert;
+    use ManagesPendingCustomTaxes;
 
     public WorkOrderForm $form;
 
@@ -49,6 +52,9 @@ class Form extends Component
 
     /** @var array<int, string> */
     public array $catalog_quantities = [];
+
+    /** @var array<int, bool> */
+    public array $catalog_apply_discount = [];
 
     public ?int $active_equipment_id = null;
 
@@ -84,6 +90,7 @@ class Form extends Component
                 'quantity'            => (string) $item->quantity,
                 'unit_price'          => (string) $item->unit_price,
                 'discount_percentage' => (string) $item->discount_percentage,
+                'apply_discount'      => $item->catalogProduct?->hasDiscount() && (float) $item->discount_percentage > 0,
             ])->values()->all();
 
             $this->syncActiveEquipment();
@@ -177,7 +184,7 @@ class Form extends Component
                     $query->orWhereHas('workOrder', fn ($q) => $q->whereKey($this->form->work_order_id));
                 }
             })
-            ->with(['items', 'equipments:id'])
+            ->with(['items', 'equipments:id', 'appliedTaxes'])
             ->find($quotation_id);
 
         if (! $quotation) {
@@ -199,6 +206,7 @@ class Form extends Component
             'quantity'            => (string) $item->quantity,
             'unit_price'          => (string) $item->unit_price,
             'discount_percentage' => (string) $item->discount_percentage,
+            'apply_discount'      => (float) $item->discount_percentage > 0,
         ])->values()->all();
 
         $this->syncActiveEquipment();
@@ -253,6 +261,7 @@ class Form extends Component
             'quantity'            => '1',
             'unit_price'          => '0',
             'discount_percentage' => '0',
+            'apply_discount'      => false,
         ];
     }
 
@@ -296,6 +305,8 @@ class Form extends Component
             }
         }
 
+        $apply_discount = $catalog->hasDiscount() && $this->catalogAppliesDiscount($catalog->id);
+
         $this->items[] = [
             'uid'                 => uniqid('wo-item-', true),
             'id'                  => null,
@@ -305,8 +316,8 @@ class Form extends Component
             'description'         => $catalog->name,
             'quantity'            => (string) $quantity,
             'unit_price'          => (string) $catalog->sale_price,
-            // El descuento del catálogo llega como sugerencia y se puede ajustar en la línea.
-            'discount_percentage' => (string) $catalog->discountPercentage(),
+            'discount_percentage' => $apply_discount ? (string) $catalog->discountPercentage() : '0',
+            'apply_discount'      => $apply_discount,
         ];
 
         $this->catalog_quantities[$product_id] = '1';
@@ -326,6 +337,65 @@ class Form extends Component
 
         // No baja de uno: para dejar la línea en cero está el botón de quitar.
         $this->items[$index]['quantity'] = $this->formatQuantity(max(1, $quantity));
+    }
+
+    public function updatedItems(mixed $value, string $key): void
+    {
+        $parts = explode('.', (string) $key);
+        $index = (int) ($parts[0] ?? -1);
+        $field = $parts[1] ?? null;
+
+        if ($index < 0 || ! isset($this->items[$index]) || $field !== 'apply_discount') {
+            return;
+        }
+
+        $this->syncItemCatalogDiscount($index);
+    }
+
+    /** @param  array<string, mixed>  $row */
+    protected function itemAppliesDiscount(array $row): bool
+    {
+        $value = $row['apply_discount'] ?? false;
+
+        return $value === true || $value === 1 || $value === '1';
+    }
+
+    protected function catalogAppliesDiscount(int $product_id): bool
+    {
+        $value = $this->catalog_apply_discount[$product_id] ?? true;
+
+        return $value === true || $value === 1 || $value === '1';
+    }
+
+    protected function syncItemCatalogDiscount(int $index): void
+    {
+        $product_id = (int) ($this->items[$index]['product_id'] ?? 0);
+
+        if ($product_id <= 0) {
+            $this->items[$index]['apply_discount'] = false;
+            $this->items[$index]['discount_percentage'] = '0';
+
+            return;
+        }
+
+        $product = Product::query()
+            ->forAuthUser()
+            ->where('business_id', $this->form->resolvedBusinessId())
+            ->whereKey($product_id)
+            ->first();
+
+        if (! $product?->hasDiscount()) {
+            $this->items[$index]['apply_discount'] = false;
+            $this->items[$index]['discount_percentage'] = '0';
+
+            return;
+        }
+
+        $apply = $this->itemAppliesDiscount($this->items[$index]);
+        $this->items[$index]['apply_discount'] = $apply;
+        $this->items[$index]['discount_percentage'] = $apply ? (string) $product->discountPercentage() : '0';
+        $this->items[$index]['unit_price'] = (string) $product->sale_price;
+        $this->items[$index]['description'] = $product->name;
     }
 
     private function formatQuantity(float $quantity): string
@@ -651,6 +721,10 @@ class Form extends Component
 
         foreach ($catalog_products as $catalog_product) {
             $this->catalog_quantities[$catalog_product->id] ??= '1';
+
+            if ($catalog_product->hasDiscount()) {
+                $this->catalog_apply_discount[$catalog_product->id] ??= true;
+            }
         }
 
         $preview_product = null;
@@ -662,6 +736,10 @@ class Form extends Component
                 ->where('business_id', $business_id)
                 ->with(['images', 'product_type', 'product_category', 'unit', 'brand'])
                 ->find($this->preview_product_id);
+
+            if ($preview_product?->hasDiscount()) {
+                $this->catalog_apply_discount[$preview_product->id] ??= true;
+            }
         }
 
         $cart_quantities = collect($this->items)
@@ -713,9 +791,9 @@ class Form extends Component
         $coupon_discount = $applied_coupon ? $applied_coupon->discountOn($subtotal) : 0.0;
         $taxable_base    = max(0, round($subtotal - $coupon_discount, 2));
 
-        $tax_pct = (float) ($this->form->tax_percentage ?: 0);
-        $tax     = round($taxable_base * ($tax_pct / 100), 2);
-        $total   = $taxable_base + $tax;
+        $applied_tax_lines = AppliedTaxesPreview::lines($this->form->custom_tax_ids, $business_id, $taxable_base);
+        $tax     = AppliedTaxesPreview::totalAmount($applied_tax_lines);
+        $preview_total = $taxable_base + $tax;
         $advance_pct = (float) ($this->form->advance_percentage ?: 0);
         $advance_amount = round($taxable_base * ($advance_pct / 100), 2);
         $this->form->advance_amount = (string) $advance_amount;
@@ -771,7 +849,7 @@ class Form extends Component
                 ],
                 WorkOrderForm::STEP_CONDITIONS => [
                     'title'       => 'Condiciones',
-                    'description' => 'Entrega, IVA y anticipo',
+                    'description' => 'Entrega, impuestos y anticipo',
                 ],
                 WorkOrderForm::STEP_ITEMS => [
                     'title'       => 'Ítems',
@@ -790,7 +868,8 @@ class Form extends Component
             'selected_equipments'  => $selected_equipments,
             'preview_subtotal'     => $subtotal,
             'preview_tax'          => $tax,
-            'preview_total'        => $total,
+            'preview_total'        => $preview_total,
+            'applied_tax_lines'    => $applied_tax_lines,
             'preview_advance_amount' => $advance_amount,
             'applied_coupon'       => $applied_coupon,
             'coupon_discount'      => $coupon_discount,

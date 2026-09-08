@@ -8,11 +8,8 @@ use App\Enums\QuotationStatus;
 use App\Models\BusinessBankAccount;
 use App\Models\BusinessPaymentMethod;
 use App\Models\Client;
-use App\Models\CustomTax;
 use App\Models\Equipment;
 use App\Models\Product;
-use App\Models\ProductCategory;
-use App\Models\ProductType;
 use App\Models\Quotation;
 use App\Models\QuotationItem;
 use App\Models\QuotationServiceType;
@@ -75,19 +72,9 @@ class CreateOrUpdateQuotationAction
             );
         }
 
-        $custom_tax = null;
+        $custom_tax_ids = $data['custom_tax_ids'] ?? [];
 
-        if (! empty($data['custom_tax_id'])) {
-            $custom_tax = CustomTax::query()
-                ->forAuthUser()
-                ->where('business_id', $business_id)
-                ->whereKey($data['custom_tax_id'])
-                ->first();
-
-            abort_unless($custom_tax !== null, 422, 'El impuesto seleccionado no es válido.');
-        }
-
-        return DB::transaction(function () use ($business_id, $quotation_id, $client_id, $equipment_ids, $data, $items, $custom_tax) {
+        return DB::transaction(function () use ($business_id, $quotation_id, $client_id, $equipment_ids, $data, $items, $custom_tax_ids) {
             $payload = [
                 'client_id'                  => $client_id,
                 'step'                       => (int) ($data['step'] ?? 1),
@@ -95,13 +82,10 @@ class CreateOrUpdateQuotationAction
                 'quotation_service_type_id'  => $data['quotation_service_type_id'] ?? null,
                 'business_payment_method_id' => $data['business_payment_method_id'] ?? null,
                 'business_bank_account_id'   => $data['business_bank_account_id'] ?? null,
-                'custom_tax_id'              => $custom_tax?->id,
-                'custom_tax_name'            => $data['custom_tax_name'] ?? $custom_tax?->name,
                 'diagnosis'                  => $data['diagnosis'] ?? null,
                 'hours_entry'                => $data['hours_entry'] ?? null,
                 'validity_days'              => (int) ($data['validity_days'] ?? 15),
                 'execution_time'             => $data['execution_time'] ?? null,
-                'tax_percentage'             => $data['tax_percentage'] ?? $custom_tax?->percentage ?? 0,
                 'advance_percentage'         => $data['advance_percentage'] ?? 0,
                 'notes'                      => $data['notes'] ?? null,
                 'observations'               => $data['observations'] ?? null,
@@ -134,6 +118,7 @@ class CreateOrUpdateQuotationAction
             $quotation->syncValidUntil();
             $quotation->save();
             $this->syncItems($quotation, $items, $equipment_ids);
+            SyncAppliedTaxesAction::run($quotation, $custom_tax_ids, $business_id, 0);
             $quotation->recalculateTotals();
 
             $advance_percentage = (float) ($data['advance_percentage'] ?? 0);
@@ -220,30 +205,43 @@ class CreateOrUpdateQuotationAction
         $kept_ids = [];
         $allowed = array_flip($equipment_ids);
         $default_equipment_id = $equipment_ids[0] ?? null;
+        $product_ids = [];
 
         foreach ($items as $row) {
-            $description = trim((string) ($row['description'] ?? ''));
-            if ($description === '') {
+            $product_id = (int) ($row['product_id'] ?? 0);
+            if ($product_id <= 0) {
                 continue;
             }
 
+            $product_ids[] = $product_id;
+        }
+
+        if ($product_ids === []) {
+            $quotation->items()->delete();
+
+            return;
+        }
+
+        $catalog = Product::query()
+            ->forAuthUser()
+            ->complete()
+            ->where('business_id', $quotation->business_id)
+            ->whereIn('id', array_unique($product_ids))
+            ->get()
+            ->keyBy('id');
+
+        foreach ($items as $row) {
+            $product_id = (int) ($row['product_id'] ?? 0);
+            if ($product_id <= 0) {
+                continue;
+            }
+
+            /** @var Product|null $product */
+            $product = $catalog->get($product_id);
+            abort_unless($product !== null, 422, 'Uno o más productos no están disponibles en el catálogo.');
+
             if (! empty($row['product_type_id'])) {
-                abort_unless(ProductType::query()->visibleToUser()->whereKey($row['product_type_id'])->exists(), 422);
-            }
-
-            if (! empty($row['product_category_id'])) {
-                abort_unless(ProductCategory::query()->visibleToUser()->whereKey($row['product_category_id'])->exists(), 422);
-            }
-
-            if (! empty($row['product_id'])) {
-                abort_unless(
-                    Product::query()->forAuthUser()
-                        ->complete()
-                        ->where('business_id', $quotation->business_id)
-                        ->whereKey($row['product_id'])
-                        ->exists(),
-                    422
-                );
+                abort_unless((int) $product->product_type_id === (int) $row['product_type_id'], 422);
             }
 
             $equipment_id = ! empty($row['equipment_id'])
@@ -256,17 +254,18 @@ class CreateOrUpdateQuotationAction
                 'Cada ítem debe asociarse a un equipo de la cotización.'
             );
 
-            $qty      = (float) ($row['quantity'] ?? 1);
-            $price    = (float) ($row['unit_price'] ?? 0);
-            $discount = (float) ($row['discount_percentage'] ?? 0);
+            $qty      = max(0.01, (float) ($row['quantity'] ?? 1));
+            $price    = (float) $product->sale_price;
+            $apply_discount = $product->hasDiscount() && filter_var($row['apply_discount'] ?? false, FILTER_VALIDATE_BOOLEAN);
+            $discount = $apply_discount ? $product->discountPercentage() : 0.0;
             $subtotal = round($qty * $price * (1 - $discount / 100), 2);
 
             $payload = [
                 'equipment_id'        => $equipment_id,
-                'product_id'          => $row['product_id'] ?: null,
-                'product_type_id'     => $row['product_type_id'] ?: null,
-                'product_category_id' => $row['product_category_id'] ?: null,
-                'description'         => $description,
+                'product_id'          => $product->id,
+                'product_type_id'     => $product->product_type_id,
+                'product_category_id' => $product->product_category_id,
+                'description'         => $product->name,
                 'quantity'            => $qty,
                 'unit_price'          => $price,
                 'discount_percentage' => $discount,

@@ -25,8 +25,7 @@ return new class extends Migration
             $table->text('notes')->nullable();
             $table->date('estimated_delivery')->nullable();
             $table->decimal('subtotal', 12, 2)->default(0);
-            $table->decimal('tax_percentage', 5, 2)->default(0);
-            $table->decimal('tax_amount', 12, 2)->default(0);
+            $table->decimal('tax_amount', 12, 2)->default(0)->comment('Suma de applied_taxes.tax_amount');
             $table->decimal('total', 12, 2)->default(0);
             $table->decimal('advance_percentage', 5, 2)->default(0);
             $table->decimal('advance_amount', 12, 2)->default(0);

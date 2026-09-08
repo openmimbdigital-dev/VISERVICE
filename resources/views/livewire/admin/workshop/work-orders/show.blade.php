@@ -305,12 +305,21 @@
                         <td colspan="{{ $can_manage ? 4 : 2 }}"></td>
                     </tr>
                     @endif
+                    @forelse($workOrder->appliedTaxes as $tax)
                     <tr>
-                        <td colspan="5" class="hidden px-4 py-1 text-right text-xs font-semibold uppercase text-slate-500 md:table-cell">IVA {{ $workOrder->tax_percentage }}%</td>
-                        <td colspan="3" class="px-4 py-1 text-right text-xs font-semibold uppercase text-slate-500 md:hidden">IVA {{ $workOrder->tax_percentage }}%</td>
-                        <td class="px-4 py-1 text-right font-semibold text-slate-700">{{ col_money($workOrder->tax_amount) }}</td>
+                        <td colspan="5" class="hidden px-4 py-1 text-right text-xs font-semibold uppercase text-slate-500 md:table-cell">{{ $tax->custom_tax_name }} {{ $tax->percentageLabel() }}%</td>
+                        <td colspan="3" class="px-4 py-1 text-right text-xs font-semibold uppercase text-slate-500 md:hidden">{{ $tax->custom_tax_name }} {{ $tax->percentageLabel() }}%</td>
+                        <td class="px-4 py-1 text-right font-semibold text-slate-700">{{ col_money($tax->tax_amount) }}</td>
                         <td colspan="{{ $can_manage ? 4 : 2 }}"></td>
                     </tr>
+                    @empty
+                    <tr>
+                        <td colspan="5" class="hidden px-4 py-1 text-right text-xs font-semibold uppercase text-slate-500 md:table-cell">Impuestos</td>
+                        <td colspan="3" class="px-4 py-1 text-right text-xs font-semibold uppercase text-slate-500 md:hidden">Impuestos</td>
+                        <td class="px-4 py-1 text-right font-semibold text-slate-700">{{ col_money(0) }}</td>
+                        <td colspan="{{ $can_manage ? 4 : 2 }}"></td>
+                    </tr>
+                    @endforelse
                     <tr>
                         <td colspan="5" class="hidden px-4 py-2 text-right text-sm font-bold uppercase text-slate-900 md:table-cell">Total</td>
                         <td colspan="3" class="px-4 py-2 text-right text-sm font-bold uppercase text-slate-900 md:hidden">Total</td>

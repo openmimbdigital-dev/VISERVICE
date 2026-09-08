@@ -6,18 +6,15 @@ use App\Actions\Workshop\CreateOrUpdateQuotationAction;
 use App\Actions\Workshop\DeleteQuotationAction;
 use App\Enums\QuotationStatus;
 use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
+use App\Livewire\Concerns\ManagesPendingCustomTaxes;
 use App\Livewire\Forms\Admin\Workshop\QuotationForm;
-use App\Models\BusinessBankAccount;
-use App\Models\BusinessPaymentMethod;
-use App\Models\Client;
-use App\Models\CustomTax;
 use App\Models\Equipment;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\ProductType;
 use App\Models\Quotation;
-use App\Models\QuotationServiceType;
 use App\Models\Status;
+use App\Support\AppliedTaxesPreview;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
@@ -29,6 +26,7 @@ use Livewire\Component;
 class Form extends Component
 {
     use ConfirmsDeletionWithLivewireAlert;
+    use ManagesPendingCustomTaxes;
 
     public QuotationForm $form;
 
@@ -55,7 +53,7 @@ class Form extends Component
                 404
             );
 
-            $quotation->load(['items.productType', 'items.productCategory', 'equipments:id', 'workOrder']);
+            $quotation->load(['items.catalogProduct', 'items.productType', 'items.productCategory', 'equipments:id', 'workOrder']);
 
             if (! $quotation->isEditable()) {
                 $this->redirectRoute('admin.workshop.quotations.show', $quotation, navigate: true);
@@ -73,47 +71,35 @@ class Form extends Component
                 : (string) $quotation->status;
             $this->linked_work_order_id = $quotation->workOrder?->id;
             $this->linked_work_order_reference = $quotation->workOrder?->reference;
-            $this->items = $quotation->items->map(fn ($item) => [
-                'id'                  => $item->id,
-                'equipment_id'        => $item->equipment_id,
-                'product_type_id'     => $item->product_type_id,
-                'product_category_id' => $item->product_category_id,
-                'product_id'          => $item->product_id,
-                'description'         => $item->description,
-                'quantity'            => (string) $item->quantity,
-                'unit_price'          => (string) $item->unit_price,
-                'discount_percentage' => (string) $item->discount_percentage,
-            ])->values()->all();
+            $this->items = $quotation->items->map(function ($item) {
+                $catalog = $item->catalogProduct;
+
+                return [
+                    'id'                  => $item->id,
+                    'equipment_id'        => $item->equipment_id,
+                    'product_type_id'     => $catalog?->product_type_id ?? $item->product_type_id,
+                    'product_category_id' => $catalog?->product_category_id ?? $item->product_category_id,
+                    'product_id'          => $item->product_id,
+                    'description'         => $catalog?->name ?? $item->description,
+                    'quantity'            => (string) $item->quantity,
+                    'unit_price'          => $catalog ? (string) $catalog->sale_price : (string) $item->unit_price,
+                    'discount_percentage' => $catalog ? (string) $catalog->discountPercentage() : '0',
+                    'apply_discount'      => $catalog?->hasDiscount() && (float) $item->discount_percentage > 0,
+                ];
+            })->values()->all();
 
             return;
         }
 
         abort_unless(auth()->user()?->can('workshop.quotations.create'), 403);
+
+        $this->form->hours_entry = $this->form->defaultHoursEntry();
     }
 
     public function updatedFormClientId(): void
     {
         $this->form->equipment_ids = [];
         $this->clearItemEquipmentAssignments();
-    }
-
-    public function updatedFormCustomTaxId(mixed $value): void
-    {
-        if (! $value) {
-            $this->form->tax_percentage = '0';
-
-            return;
-        }
-
-        $custom_tax = CustomTax::query()
-            ->forAuthUser()
-            ->where('business_id', $this->form->resolvedBusinessId())
-            ->whereKey($value)
-            ->first();
-
-        if ($custom_tax) {
-            $this->form->tax_percentage = (string) $custom_tax->percentage;
-        }
     }
 
     public function updatedFormEquipmentIds(): void
@@ -140,37 +126,22 @@ class Form extends Component
         }
 
         if ($field === 'product_type_id') {
-            $this->items[$index]['product_id'] = null;
+            $this->resetItemCatalogSelection($index);
 
             return;
         }
 
-        if ($field !== 'product_id' || ! $value) {
+        if ($field !== 'product_id') {
             return;
         }
 
-        $catalog = Product::query()
-            ->forAuthUser()
-            ->complete()
-            ->where('business_id', $this->form->resolvedBusinessId())
-            ->whereKey($value)
-            ->first();
-
-        if (! $catalog) {
-            return;
-        }
-
-        $selected_type = $this->items[$index]['product_type_id'] ?? null;
-        if ($selected_type && (int) $catalog->product_type_id !== (int) $selected_type) {
-            $this->items[$index]['product_id'] = null;
+        if (! $value) {
+            $this->resetItemCatalogPricing($index);
 
             return;
         }
 
-        $this->items[$index]['product_type_id']     = $catalog->product_type_id;
-        $this->items[$index]['product_category_id'] = $catalog->product_category_id;
-        $this->items[$index]['description']         = $catalog->name;
-        $this->items[$index]['unit_price']          = (string) $catalog->sale_price;
+        $this->applyCatalogProduct($index, (int) $value);
     }
 
     public function addItem(): void
@@ -187,6 +158,7 @@ class Form extends Component
             'quantity'            => '1',
             'unit_price'          => '0',
             'discount_percentage' => '0',
+            'apply_discount'      => false,
         ];
     }
 
@@ -198,6 +170,89 @@ class Form extends Component
 
         unset($this->items[$index]);
         $this->items = array_values($this->items);
+    }
+
+    protected function applyCatalogProduct(int $index, int $product_id): void
+    {
+        $catalog = Product::query()
+            ->forAuthUser()
+            ->complete()
+            ->where('business_id', $this->form->resolvedBusinessId())
+            ->whereKey($product_id)
+            ->first();
+
+        if (! $catalog) {
+            $this->resetItemCatalogSelection($index);
+
+            return;
+        }
+
+        $selected_type = $this->items[$index]['product_type_id'] ?? null;
+        if ($selected_type && (int) $catalog->product_type_id !== (int) $selected_type) {
+            $this->resetItemCatalogSelection($index);
+
+            return;
+        }
+
+        $this->items[$index]['product_id']          = $catalog->id;
+        $this->items[$index]['product_type_id']     = $catalog->product_type_id;
+        $this->items[$index]['product_category_id'] = $catalog->product_category_id;
+        $this->items[$index]['description']         = $catalog->name;
+        $this->items[$index]['unit_price']          = (string) $catalog->sale_price;
+        $this->items[$index]['discount_percentage'] = (string) $catalog->discountPercentage();
+        $this->items[$index]['apply_discount']      = $catalog->hasDiscount();
+    }
+
+    protected function resetItemCatalogSelection(int $index): void
+    {
+        $this->items[$index]['product_id'] = null;
+        $this->resetItemCatalogPricing($index);
+    }
+
+    protected function resetItemCatalogPricing(int $index): void
+    {
+        $this->items[$index]['product_category_id'] = null;
+        $this->items[$index]['description']         = '';
+        $this->items[$index]['unit_price']          = '0';
+        $this->items[$index]['discount_percentage'] = '0';
+        $this->items[$index]['apply_discount']      = false;
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    protected function filledItems(): array
+    {
+        return array_values(array_filter(
+            $this->items,
+            fn ($row) => (int) ($row['product_id'] ?? 0) > 0
+        ));
+    }
+
+    /**
+     * Precio y descuento siempre salen del catálogo; el cliente solo decide si aplica el descuento.
+     *
+     * @param  array<string, mixed>  $row
+     * @param  \Illuminate\Support\Collection<int, Product>  $catalog_by_id
+     * @return array{quantity: float, unit_price: float, discount_percentage: float, product_category_id: int|null}
+     */
+    protected function catalogLinePricing(array $row, $catalog_by_id): array
+    {
+        $product = $catalog_by_id->get((int) ($row['product_id'] ?? 0));
+        $apply_discount = $product && $product->hasDiscount() && $this->itemAppliesDiscount($row);
+
+        return [
+            'quantity'            => (float) ($row['quantity'] ?? 0),
+            'unit_price'          => $product ? (float) $product->sale_price : 0.0,
+            'discount_percentage' => $apply_discount ? $product->discountPercentage() : 0.0,
+            'product_category_id' => $product?->product_category_id,
+        ];
+    }
+
+    /** @param  array<string, mixed>  $row */
+    protected function itemAppliesDiscount(array $row): bool
+    {
+        $value = $row['apply_discount'] ?? false;
+
+        return $value === true || $value === 1 || $value === '1';
     }
 
     public function nextStep(): void
@@ -240,10 +295,7 @@ class Form extends Component
         $business_id = $this->form->resolvedBusinessId();
         abort_unless($business_id, 403, 'No tienes un negocio asociado.');
 
-        $this->items = array_values(array_filter(
-            $this->items,
-            fn ($row) => trim((string) ($row['description'] ?? '')) !== ''
-        ));
+        $this->items = $this->filledItems();
 
         try {
             if ($this->items !== []) {
@@ -305,13 +357,9 @@ class Form extends Component
         return [
             'items'                       => ['array'],
             'items.*.equipment_id'        => ['required', 'integer', Rule::in($equipment_ids)],
-            'items.*.description'         => ['required', 'string', 'max:200'],
+            'items.*.product_type_id'     => ['required', 'integer', 'exists:product_types,id'],
+            'items.*.product_id'          => ['required', 'integer', 'exists:products,id'],
             'items.*.quantity'            => ['required', 'numeric', 'min:0.01'],
-            'items.*.unit_price'          => ['required', 'numeric', 'min:0'],
-            'items.*.discount_percentage' => ['required', 'numeric', 'min:0', 'max:100'],
-            'items.*.product_type_id'     => ['nullable', 'integer', 'exists:product_types,id'],
-            'items.*.product_category_id' => ['nullable', 'integer', 'exists:product_categories,id'],
-            'items.*.product_id'          => ['nullable', 'integer', 'exists:products,id'],
         ];
     }
 
@@ -319,11 +367,11 @@ class Form extends Component
     protected function validationAttributes(): array
     {
         return [
-            'items.*.equipment_id' => 'equipo del ítem',
-            'items.*.description'  => 'descripción del ítem',
-            'items.*.quantity'     => 'cantidad',
-            'items.*.unit_price'   => 'precio unitario',
-            'items'                => 'ítems',
+            'items.*.equipment_id'    => 'equipo del ítem',
+            'items.*.product_type_id' => 'tipo de producto',
+            'items.*.product_id'      => 'producto',
+            'items.*.quantity'        => 'cantidad',
+            'items'                   => 'ítems',
         ];
     }
 
@@ -331,8 +379,9 @@ class Form extends Component
     protected function messages(): array
     {
         return [
-            'items.required' => 'Agrega al menos un ítem a la cotización.',
-            'items.min'      => 'Agrega al menos un ítem a la cotización.',
+            'items.required'              => 'Agrega al menos un ítem a la cotización.',
+            'items.min'                   => 'Agrega al menos un ítem a la cotización.',
+            'items.*.product_id.required' => 'Selecciona un producto del catálogo.',
         ];
     }
 
@@ -349,10 +398,7 @@ class Form extends Component
 
     protected function validateItemsStep(): void
     {
-        $this->items = array_values(array_filter(
-            $this->items,
-            fn ($row) => trim((string) ($row['description'] ?? '')) !== ''
-        ));
+        $this->items = $this->filledItems();
 
         if ($this->items === []) {
             $this->validate(['items' => ['required', 'array', 'min:1']]);
@@ -366,7 +412,7 @@ class Form extends Component
     protected function isFlowComplete(): bool
     {
         return $this->form->quotation_id
-            && collect($this->items)->contains(fn ($row) => trim((string) ($row['description'] ?? '')) !== '');
+            && collect($this->items)->contains(fn ($row) => (int) ($row['product_id'] ?? 0) > 0);
     }
 
     protected function advanceToStep(int $step): void
@@ -413,7 +459,10 @@ class Form extends Component
     }
 
     /** @return array<string, float> */
-    protected function previewSubtotals(): array
+    /** @param  \Illuminate\Support\Collection<int, Product>  $catalog_by_id
+     *  @return array<string, float>
+     */
+    protected function previewSubtotals($catalog_by_id): array
     {
         $groups = [
             'mano_obra'   => 0.0,
@@ -422,18 +471,17 @@ class Form extends Component
             'otros'       => 0.0,
         ];
 
+        $category_ids = $catalog_by_id->pluck('product_category_id')->filter()->unique()->values();
+
         $category_map = ProductCategory::query()
             ->visibleToUser()
-            ->whereIn('id', collect($this->items)->pluck('product_category_id')->filter())
+            ->whereIn('id', $category_ids)
             ->pluck('name', 'id');
 
         foreach ($this->items as $row) {
-            $qty      = (float) ($row['quantity'] ?? 0);
-            $price    = (float) ($row['unit_price'] ?? 0);
-            $discount = (float) ($row['discount_percentage'] ?? 0);
-            $amount   = round($qty * $price * (1 - $discount / 100), 2);
-
-            $category_name = $category_map[$row['product_category_id'] ?? ''] ?? '';
+            $line     = $this->catalogLinePricing($row, $catalog_by_id);
+            $amount   = round($line['quantity'] * $line['unit_price'] * (1 - $line['discount_percentage'] / 100), 2);
+            $category_name = $category_map[$line['product_category_id'] ?? ''] ?? '';
 
             if ($category_name === 'Mano de Obra') {
                 $groups['mano_obra'] += $amount;
@@ -453,24 +501,21 @@ class Form extends Component
     {
         $business_id = $this->form->resolvedBusinessId();
 
-        $clients = Client::query()->forAuthUser()->where('status', true)->orderBy('name')->get();
-        $service_types = QuotationServiceType::query()->visibleToUser()->where('active', true)->orderBy('name')->get();
-        $payment_methods = BusinessPaymentMethod::query()->visibleToUser()->where('active', true)->orderBy('sort_order')->get();
-        $bank_accounts = BusinessBankAccount::query()->forAuthUser()->where('business_id', $business_id)->where('active', true)->get();
-        $custom_taxes = CustomTax::query()
+        $product_types = ProductType::query()->visibleToUser()->where('active', true)->orderBy('name')->get();
+        $selected_product_ids = collect($this->items)->pluck('product_id')->filter()->map(fn ($id) => (int) $id)->unique()->values()->all();
+        $catalog_products = Product::query()
             ->forAuthUser()
+            ->complete()
             ->where('business_id', $business_id)
-            ->where(function ($q) {
-                $q->where('active', true);
-                if ($this->form->custom_tax_id) {
-                    $q->orWhere('custom_taxes.id', $this->form->custom_tax_id);
+            ->where(function ($query) use ($selected_product_ids) {
+                $query->active();
+                if ($selected_product_ids !== []) {
+                    $query->orWhereIn('products.id', $selected_product_ids);
                 }
             })
             ->orderBy('name')
             ->get();
-        $selected_custom_tax = $custom_taxes->firstWhere('id', $this->form->custom_tax_id);
-        $product_types = ProductType::query()->visibleToUser()->where('active', true)->orderBy('name')->get();
-        $catalog_products = Product::query()->forAuthUser()->complete()->where('business_id', $business_id)->active()->orderBy('name')->get();
+        $catalog_by_id = $catalog_products->keyBy('id');
 
         $selected_equipment_ids = $this->form->resolvedEquipmentIds();
 
@@ -496,10 +541,10 @@ class Form extends Component
             ->whereIn('id', $selected_equipment_ids)
             ->values();
 
-        $category_subtotals = $this->previewSubtotals();
+        $category_subtotals = $this->previewSubtotals($catalog_by_id);
         $subtotal = array_sum($category_subtotals);
-        $tax_pct  = (float) ($this->form->tax_percentage ?: 0);
-        $tax      = round($subtotal * ($tax_pct / 100), 2);
+        $applied_tax_lines = AppliedTaxesPreview::lines($this->form->custom_tax_ids, $business_id, $subtotal);
+        $tax      = AppliedTaxesPreview::totalAmount($applied_tax_lines);
         $total    = $subtotal + $tax;
         $advance_pct = (float) ($this->form->advance_percentage ?: 0);
         $advance_amount = round($subtotal * ($advance_pct / 100), 2);
@@ -523,10 +568,9 @@ class Form extends Component
 
         $item_line_totals = [];
         foreach ($this->items as $index => $row) {
+            $line = $this->catalogLinePricing($row, $catalog_by_id);
             $item_line_totals[$index] = round(
-                (float) ($row['quantity'] ?? 0)
-                * (float) ($row['unit_price'] ?? 0)
-                * (1 - (float) ($row['discount_percentage'] ?? 0) / 100),
+                $line['quantity'] * $line['unit_price'] * (1 - $line['discount_percentage'] / 100),
                 2
             );
         }
@@ -550,21 +594,17 @@ class Form extends Component
                 ],
                 QuotationForm::STEP_CONDITIONS => [
                     'title'       => 'Condiciones',
-                    'description' => 'Vigencia, impuesto y pago',
+                    'description' => 'Vigencia, impuestos y pago',
                 ],
                 QuotationForm::STEP_ITEMS => [
                     'title'       => 'Ítems',
                     'description' => 'Productos y servicios',
                 ],
             ],
-            'clients'              => $clients,
-            'service_types'        => $service_types,
-            'payment_methods'      => $payment_methods,
-            'bank_accounts'        => $bank_accounts,
-            'custom_taxes'         => $custom_taxes,
-            'selected_custom_tax'  => $selected_custom_tax,
+            'applied_tax_lines'    => $applied_tax_lines,
             'product_types'        => $product_types,
             'catalog_products'     => $catalog_products,
+            'catalog_by_id'        => $catalog_by_id,
             'equipment_for_client' => $equipment_for_client,
             'selected_equipments'  => $selected_equipments,
             'category_subtotals'   => $category_subtotals,

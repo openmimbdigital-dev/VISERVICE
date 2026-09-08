@@ -6,6 +6,7 @@ use App\Enums\QuotationStatus;
 use App\Models\AssociatedDocumentType;
 use App\Models\Business;
 use App\Models\Client;
+use App\Models\CustomTax;
 use App\Models\Equipment;
 use App\Models\Product;
 use App\Models\Quotation;
@@ -92,7 +93,6 @@ class WorkOrdersSeeder extends Seeder
                     'observations'       => 'OT de demostración.',
                     'notes'              => 'Generada por WorkOrdersSeeder.',
                     'estimated_delivery' => now()->addDays(2 + ($sequence % 5))->toDateString(),
-                    'tax_percentage'     => $quotation?->tax_percentage ?? 19,
                     'step'               => 3,
                     'final_step'         => 3,
                     'created_by'         => $created_by,
@@ -120,6 +120,7 @@ class WorkOrdersSeeder extends Seeder
 
             $this->syncItems($work_order, $bundle['equipments'], $products, $quotation, $sequence);
             $this->syncAssociatedDocuments($work_order, $business, $sequence, $bundle['client']);
+            $this->syncTaxes($work_order, $business, $quotation);
             $work_order->recalculateTotals();
 
             $created++;
@@ -138,7 +139,7 @@ class WorkOrdersSeeder extends Seeder
             ->where('business_id', $business->id)
             ->where('reference', $reference)
             ->where('status', QuotationStatus::Accepted)
-            ->with(['client', 'equipments', 'items'])
+            ->with(['client', 'equipments', 'items', 'appliedTaxes'])
             ->first();
 
         if (! $quotation) {
@@ -386,5 +387,44 @@ class WorkOrdersSeeder extends Seeder
                 'discount_percentage' => 0,
             ],
         ];
+    }
+
+    private function syncTaxes(WorkOrder $work_order, Business $business, ?Quotation $quotation): void
+    {
+        if ($quotation && $quotation->appliedTaxes->isNotEmpty()) {
+            foreach ($quotation->appliedTaxes as $tax) {
+                $work_order->appliedTaxes()->updateOrCreate(
+                    ['custom_tax_id' => $tax->custom_tax_id],
+                    [
+                        'custom_tax_name' => $tax->custom_tax_name,
+                        'tax_percentage'  => $tax->tax_percentage,
+                        'tax_amount'      => 0,
+                    ]
+                );
+            }
+
+            return;
+        }
+
+        $tax = CustomTax::query()->firstOrCreate(
+            [
+                'business_id' => $business->id,
+                'name'        => 'IVA',
+            ],
+            [
+                'percentage'  => 19,
+                'active'      => true,
+                'description' => 'Impuesto al valor agregado',
+            ]
+        );
+
+        $work_order->appliedTaxes()->updateOrCreate(
+            ['custom_tax_id' => $tax->id],
+            [
+                'custom_tax_name' => $tax->name,
+                'tax_percentage'  => $tax->percentage,
+                'tax_amount'      => 0,
+            ]
+        );
     }
 }
