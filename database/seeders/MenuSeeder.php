@@ -147,7 +147,9 @@ class MenuSeeder extends Seeder
                 'icon_color_class' => 'text-sky-400',
                 'route_name' => 'admin.guides.index',
                 'route_patterns' => ['admin.guides.*'],
-                'behavior' => 'link',
+                // Sin ítems hijos: el constructor solo dibuja secciones vacías
+                // cuando son «single_link».
+                'behavior' => 'single_link',
                 'role' => 'superAdmin',
                 'sort_order' => 90,
                 'items' => [],
