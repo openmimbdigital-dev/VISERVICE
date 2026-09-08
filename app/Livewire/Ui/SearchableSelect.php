@@ -60,7 +60,7 @@ class SearchableSelect extends Component
     public bool $showCreateModal = false;
 
     #[Reactive]
-    public bool $invalid = false;
+    public mixed $invalid = false;
 
     /**
      * @param  list<string>|string  $searchBy
@@ -78,7 +78,7 @@ class SearchableSelect extends Component
         array $filters = [],
         int $limit = 25,
         bool $disabled = false,
-        bool $invalid = false,
+        mixed $invalid = false,
         bool $allowCreate = true,
     ): void {
         abort_unless(
@@ -98,8 +98,13 @@ class SearchableSelect extends Component
         $this->filters = $filters;
         $this->limit = max(1, min(50, $limit));
         $this->disabled = $disabled;
-        $this->invalid = $invalid;
+        $this->invalid = (bool) $invalid;
         $this->allowCreate = $allowCreate;
+    }
+
+    public function updatedInvalid(mixed $value): void
+    {
+        $this->invalid = (bool) $value;
     }
 
     public function select(mixed $id): void
@@ -131,15 +136,23 @@ class SearchableSelect extends Component
     }
 
     #[On('searchable-created')]
-    public function onRecordCreated(int $id): void
+    public function onRecordCreated(int $id, ?string $modelClass = null): void
     {
+        if ($modelClass !== null && $modelClass !== $this->modelClass) {
+            return;
+        }
+
         $this->select($id);
         $this->showCreateModal = false;
     }
 
     #[On('searchable-create-closed')]
-    public function onCreateClosed(): void
+    public function onCreateClosed(?string $modelClass = null): void
     {
+        if ($modelClass !== null && $modelClass !== $this->modelClass) {
+            return;
+        }
+
         $this->showCreateModal = false;
     }
 
@@ -154,6 +167,7 @@ class SearchableSelect extends Component
             'create_component' => $create['component'] ?? null,
             'create_button'    => $create['button'] ?? 'Crear registro',
             'is_searching'     => trim($this->search) !== '',
+            'invalid'          => (bool) $this->invalid,
         ]);
     }
 
@@ -217,10 +231,10 @@ class SearchableSelect extends Component
             return null;
         }
 
-        return $this->baseQuery()->whereKey($this->value)->first();
+        return $this->tenantQuery()->whereKey($this->value)->first();
     }
 
-    protected function baseQuery(): Builder
+    protected function tenantQuery(): Builder
     {
         /** @var Model $model */
         $model = new $this->modelClass;
@@ -228,7 +242,16 @@ class SearchableSelect extends Component
 
         if (method_exists($model, 'scopeForAuthUser')) {
             $query->forAuthUser();
+        } elseif (method_exists($model, 'scopeVisibleToUser')) {
+            $query->visibleToUser();
         }
+
+        return $query;
+    }
+
+    protected function baseQuery(): Builder
+    {
+        $query = $this->tenantQuery();
 
         foreach ($this->filters as $column => $value) {
             $query->where($this->qualify($this->assertField((string) $column)), $value);
@@ -240,6 +263,7 @@ class SearchableSelect extends Component
     /** @return array{value: string, label: string, hint: string} */
     protected function mapOption(Model $row): array
     {
+        $label = (string) data_get($row, $this->labelField);
         $hints = [];
 
         foreach ($this->searchBy as $field) {
@@ -249,14 +273,14 @@ class SearchableSelect extends Component
 
             $hint = data_get($row, $field);
 
-            if ($hint !== null && $hint !== '') {
+            if ($hint !== null && $hint !== '' && ! str_contains($label, (string) $hint)) {
                 $hints[] = (string) $hint;
             }
         }
 
         return [
             'value' => (string) data_get($row, $this->valueField),
-            'label' => (string) data_get($row, $this->labelField),
+            'label' => $label,
             'hint'  => implode(' · ', $hints),
         ];
     }

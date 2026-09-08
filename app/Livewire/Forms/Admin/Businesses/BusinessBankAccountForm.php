@@ -107,6 +107,8 @@ class BusinessBankAccountForm extends Form
     public function updatedBankId($value): void
     {
         if (! $value) {
+            $this->bank_name = '';
+
             return;
         }
 

@@ -99,7 +99,7 @@ class CreateOrUpdateQuotationAction
                 'hours_entry'                => $data['hours_entry'] ?? null,
                 'validity_days'              => (int) ($data['validity_days'] ?? 15),
                 'execution_time'             => $data['execution_time'] ?? null,
-                'tax_percentage'             => $data['tax_percentage'] ?? $custom_tax?->percentage ?? 0,
+                'tax_percentage'             => $custom_tax?->percentage ?? 0,
                 'advance_percentage'         => $data['advance_percentage'] ?? 0,
                 'notes'                      => $data['notes'] ?? null,
                 'observations'               => $data['observations'] ?? null,

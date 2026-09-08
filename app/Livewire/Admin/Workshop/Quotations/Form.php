@@ -7,15 +7,12 @@ use App\Actions\Workshop\DeleteQuotationAction;
 use App\Enums\QuotationStatus;
 use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
 use App\Livewire\Forms\Admin\Workshop\QuotationForm;
-use App\Models\BusinessBankAccount;
-use App\Models\BusinessPaymentMethod;
 use App\Models\CustomTax;
 use App\Models\Equipment;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\ProductType;
 use App\Models\Quotation;
-use App\Models\QuotationServiceType;
 use App\Models\Status;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -521,21 +518,13 @@ class Form extends Component
     {
         $business_id = $this->form->resolvedBusinessId();
 
-        $service_types = QuotationServiceType::query()->visibleToUser()->where('active', true)->orderBy('name')->get();
-        $payment_methods = BusinessPaymentMethod::query()->visibleToUser()->where('active', true)->orderBy('sort_order')->get();
-        $bank_accounts = BusinessBankAccount::query()->forAuthUser()->where('business_id', $business_id)->where('active', true)->get();
-        $custom_taxes = CustomTax::query()
-            ->forAuthUser()
-            ->where('business_id', $business_id)
-            ->where(function ($q) {
-                $q->where('active', true);
-                if ($this->form->custom_tax_id) {
-                    $q->orWhere('custom_taxes.id', $this->form->custom_tax_id);
-                }
-            })
-            ->orderBy('name')
-            ->get();
-        $selected_custom_tax = $custom_taxes->firstWhere('id', $this->form->custom_tax_id);
+        $selected_custom_tax = $this->form->custom_tax_id
+            ? CustomTax::query()
+                ->forAuthUser()
+                ->where('business_id', $business_id)
+                ->whereKey($this->form->custom_tax_id)
+                ->first()
+            : null;
         $product_types = ProductType::query()->visibleToUser()->where('active', true)->orderBy('name')->get();
         $selected_product_ids = collect($this->items)->pluck('product_id')->filter()->map(fn ($id) => (int) $id)->unique()->values()->all();
         $catalog_products = Product::query()
@@ -578,7 +567,7 @@ class Form extends Component
 
         $category_subtotals = $this->previewSubtotals($catalog_by_id);
         $subtotal = array_sum($category_subtotals);
-        $tax_pct  = (float) ($this->form->tax_percentage ?: 0);
+        $tax_pct  = $selected_custom_tax ? (float) $selected_custom_tax->percentage : 0;
         $tax      = round($subtotal * ($tax_pct / 100), 2);
         $total    = $subtotal + $tax;
         $advance_pct = (float) ($this->form->advance_percentage ?: 0);
@@ -636,10 +625,6 @@ class Form extends Component
                     'description' => 'Productos y servicios',
                 ],
             ],
-            'service_types'        => $service_types,
-            'payment_methods'      => $payment_methods,
-            'bank_accounts'        => $bank_accounts,
-            'custom_taxes'         => $custom_taxes,
             'selected_custom_tax'  => $selected_custom_tax,
             'product_types'        => $product_types,
             'catalog_products'     => $catalog_products,

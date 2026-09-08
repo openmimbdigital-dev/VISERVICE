@@ -299,7 +299,7 @@ class QuotationForm extends Form
             'diagnosis'                  => $this->diagnosis ?: null,
             'validity_days'              => (int) ($this->validity_days ?: 15),
             'execution_time'             => $this->execution_time ?: null,
-            'tax_percentage'             => $this->tax_percentage !== '' ? $this->tax_percentage : ($custom_tax?->percentage ?? 0),
+            'tax_percentage'             => $custom_tax?->percentage ?? 0,
             'advance_percentage'         => $this->advance_percentage !== '' ? $this->advance_percentage : 0,
             'notes'                      => $this->notes ?: null,
             'observations'               => $this->observations ?: null,

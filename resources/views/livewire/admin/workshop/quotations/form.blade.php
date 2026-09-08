@@ -184,10 +184,17 @@
                     <div class="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 sm:p-6">
                         <div>
                             <label class="mb-1.5 block text-xs font-medium text-slate-700">Tipo de servicio</label>
-                            <select wire:model="form.quotation_service_type_id" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm">
-                                <option value="">— Seleccionar —</option>
-                                @foreach($service_types as $type)<option value="{{ $type->id }}">{{ $type->name }}</option>@endforeach
-                            </select>
+                            <livewire:ui.searchable-select
+                                wire:model="form.quotation_service_type_id"
+                                model-class="App\Models\QuotationServiceType"
+                                :search-by="['name']"
+                                label-field="name"
+                                :filters="['active' => true]"
+                                placeholder="Seleccionar tipo de servicio"
+                                search-placeholder="Buscar tipo de servicio..."
+                                :invalid="false"
+                                :key="'quotation-service-type-select'"
+                            />
                         </div>
                         <div>
                             <label class="mb-1.5 block text-xs font-medium text-slate-700">Vigencia (días) <span class="text-rose-500">*</span></label>
@@ -196,17 +203,33 @@
                         </div>
                         <div>
                             <label class="mb-1.5 block text-xs font-medium text-slate-700">Forma de pago</label>
-                            <select wire:model="form.business_payment_method_id" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm">
-                                <option value="">— Seleccionar —</option>
-                                @foreach($payment_methods as $method)<option value="{{ $method->id }}">{{ $method->name }}</option>@endforeach
-                            </select>
+                            <livewire:ui.searchable-select
+                                wire:model="form.business_payment_method_id"
+                                model-class="App\Models\BusinessPaymentMethod"
+                                :search-by="['name']"
+                                label-field="name"
+                                order-by="sort_order"
+                                :filters="['active' => true]"
+                                placeholder="Seleccionar forma de pago"
+                                search-placeholder="Buscar forma de pago..."
+                                :invalid="false"
+                                :key="'quotation-payment-method-select'"
+                            />
                         </div>
                         <div>
                             <label class="mb-1.5 block text-xs font-medium text-slate-700">Cuenta bancaria</label>
-                            <select wire:model="form.business_bank_account_id" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm">
-                                <option value="">— Seleccionar —</option>
-                                @foreach($bank_accounts as $account)<option value="{{ $account->id }}">{{ $account->bank_name }} — {{ $account->account_number }}</option>@endforeach
-                            </select>
+                            <livewire:ui.searchable-select
+                                wire:model="form.business_bank_account_id"
+                                model-class="App\Models\BusinessBankAccount"
+                                :search-by="['bank_name', 'account_number']"
+                                label-field="select_label"
+                                order-by="bank_name"
+                                :filters="['active' => true, 'business_id' => $form->resolvedBusinessId()]"
+                                placeholder="Seleccionar cuenta bancaria"
+                                search-placeholder="Buscar por banco o número..."
+                                :invalid="false"
+                                :key="'quotation-bank-account-select-'.$form->resolvedBusinessId()"
+                            />
                         </div>
                         <div>
                             <label class="mb-1.5 block text-xs font-medium text-slate-700">Tiempo de ejecución</label>
@@ -214,20 +237,31 @@
                         </div>
                         <div>
                             <label class="mb-1.5 block text-xs font-medium text-slate-700">Impuesto</label>
-                            <select wire:model.live="form.custom_tax_id" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm @error('form.custom_tax_id') border-rose-400 @enderror">
-                                <option value="">— Seleccionar —</option>
-                                @foreach($custom_taxes as $tax)
-                                    <option value="{{ $tax->id }}">{{ $tax->name }} ({{ rtrim(rtrim(number_format((float) $tax->percentage, 2, '.', ''), '0'), '.') }}%)</option>
-                                @endforeach
-                            </select>
+                            <livewire:ui.searchable-select
+                                wire:model.live="form.custom_tax_id"
+                                model-class="App\Models\CustomTax"
+                                :search-by="['name']"
+                                label-field="select_label"
+                                order-by="name"
+                                :filters="['active' => true, 'business_id' => $form->resolvedBusinessId()]"
+                                placeholder="Seleccionar impuesto"
+                                search-placeholder="Buscar impuesto..."
+                                :invalid="$errors->has('form.custom_tax_id')"
+                                :key="'quotation-custom-tax-select-'.$form->resolvedBusinessId()"
+                            />
                             @error('form.custom_tax_id') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                         </div>
                         <div>
                             <label class="mb-1.5 block text-xs font-medium text-slate-700">
                                 {{ $selected_custom_tax?->name ?? 'Porcentaje' }} (%)
                             </label>
-                            <input type="number" wire:model.live="form.tax_percentage" min="0" max="100" step="0.01" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm @error('form.tax_percentage') border-rose-400 @enderror">
-                            @error('form.tax_percentage') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                            <p class="flex min-h-[42px] items-center rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm tabular-nums font-medium text-slate-800">
+                                @if($selected_custom_tax)
+                                    {{ rtrim(rtrim(number_format((float) $selected_custom_tax->percentage, 2, '.', ''), '0'), '.') }}
+                                @else
+                                    —
+                                @endif
+                            </p>
                         </div>
                         <div>
                             <label class="mb-1.5 block text-xs font-medium text-slate-700">Anticipo (%)</label>
@@ -362,7 +396,7 @@
                         <div class="flex justify-between text-xs text-slate-500"><dt>Otros</dt><dd>{{ col_money($category_subtotals['otros']) }}</dd></div>
                         <div class="flex justify-between border-t border-slate-100 pt-2"><dt class="text-slate-500">Subtotal</dt><dd class="font-medium">{{ col_money($preview_subtotal) }}</dd></div>
                         <div class="flex justify-between"><dt class="text-slate-500">Anticipo ({{ $form->advance_percentage }}%)</dt><dd class="font-medium text-amber-700">{{ col_money($preview_advance_amount) }}</dd></div>
-                        <div class="flex justify-between"><dt class="text-slate-500">{{ $selected_custom_tax?->name ?? 'Impuesto' }} ({{ $form->tax_percentage }}%)</dt><dd class="font-medium">{{ col_money($preview_tax) }}</dd></div>
+                        <div class="flex justify-between"><dt class="text-slate-500">{{ $selected_custom_tax?->name ?? 'Impuesto' }} ({{ $selected_custom_tax ? rtrim(rtrim(number_format((float) $selected_custom_tax->percentage, 2, '.', ''), '0'), '.') : '0' }}%)</dt><dd class="font-medium">{{ col_money($preview_tax) }}</dd></div>
                         <div class="flex justify-between border-t border-slate-100 pt-2 text-base font-bold"><dt>Total</dt><dd class="text-indigo-700">{{ col_money($preview_total) }}</dd></div>
                     </dl>
                 </section>

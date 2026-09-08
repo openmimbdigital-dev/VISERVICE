@@ -6,6 +6,7 @@ use App\Actions\Workshop\Clients\CreateOrUpdateClientAction;
 use App\Livewire\Forms\Admin\Workshop\ClientForm;
 use App\Models\Business;
 use App\Models\City;
+use App\Models\Client;
 use Livewire\Component;
 
 class ClientModal extends Component
@@ -37,7 +38,7 @@ class ClientModal extends Component
 
     public function close(): void
     {
-        $this->dispatch('searchable-create-closed');
+        $this->dispatch('searchable-create-closed', modelClass: Client::class);
     }
 
     public function save(): void
@@ -55,7 +56,7 @@ class ClientModal extends Component
             'icon'  => 'success',
         ]);
 
-        $this->dispatch('searchable-created', id: $client->id);
+        $this->dispatch('searchable-created', id: $client->id, modelClass: Client::class);
     }
 
     public function render()

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToBusinessTenant;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -32,6 +33,15 @@ class CustomTax extends Model
     public function business(): BelongsTo
     {
         return $this->belongsTo(Business::class);
+    }
+
+    protected function selectLabel(): Attribute
+    {
+        return Attribute::get(function (): string {
+            $percentage = rtrim(rtrim(number_format((float) $this->percentage, 2, '.', ''), '0'), '.');
+
+            return $this->name.' ('.$percentage.'%)';
+        });
     }
 
     public function quotations(): HasMany

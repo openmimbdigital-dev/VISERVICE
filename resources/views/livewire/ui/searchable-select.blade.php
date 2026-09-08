@@ -55,7 +55,7 @@
                 </button>
             </li>
             @empty
-            @if($is_searching && $can_create)
+            @if($can_create)
             <li class="p-2">
                 <button
                     type="button"
