@@ -24,6 +24,8 @@ class GuideForm extends Form
 
     public bool $published = true;
 
+    public bool $visible_to_businesses = false;
+
     public function setGuide(Guide $guide): void
     {
         $this->guide_id   = $guide->id;
@@ -34,6 +36,7 @@ class GuideForm extends Form
         $this->content    = $guide->content ?? '';
         $this->sort_order = (string) $guide->sort_order;
         $this->published  = (bool) $guide->published;
+        $this->visible_to_businesses = (bool) $guide->visible_to_businesses;
     }
 
     public function reset(...$properties): void
@@ -48,6 +51,7 @@ class GuideForm extends Form
         $this->content    = '';
         $this->sort_order = '0';
         $this->published  = true;
+        $this->visible_to_businesses = false;
     }
 
     public function isEditing(): bool
@@ -65,6 +69,7 @@ class GuideForm extends Form
             'content'    => ['required', 'string'],
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:9999'],
             'published'  => ['boolean'],
+            'visible_to_businesses' => ['boolean'],
         ];
     }
 
@@ -91,6 +96,7 @@ class GuideForm extends Form
             'content'    => $this->content,
             'sort_order' => $this->sort_order !== '' ? (int) $this->sort_order : 0,
             'published'  => $this->published,
+            'visible_to_businesses' => $this->visible_to_businesses,
         ];
     }
 }

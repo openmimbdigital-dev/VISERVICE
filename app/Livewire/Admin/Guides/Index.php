@@ -26,12 +26,12 @@ class Index extends Component
 
     public function mount(): void
     {
-        abort_unless(auth()->user()?->hasRole('superAdmin'), 403);
+        abort_unless(auth()->user()?->can('guides.view'), 403);
     }
 
     public function openCreate(): void
     {
-        abort_unless(auth()->user()?->hasRole('superAdmin'), 403);
+        abort_unless(auth()->user()?->can('guides.manage'), 403);
 
         $this->form->reset();
 
@@ -44,7 +44,7 @@ class Index extends Component
 
     public function openEdit(int $id): void
     {
-        abort_unless(auth()->user()?->hasRole('superAdmin'), 403);
+        abort_unless(auth()->user()?->can('guides.manage'), 403);
 
         $this->form->setGuide(Guide::query()->findOrFail($id));
         $this->showModal = true;
@@ -60,7 +60,7 @@ class Index extends Component
 
     public function save(): void
     {
-        abort_unless(auth()->user()?->hasRole('superAdmin'), 403);
+        abort_unless(auth()->user()?->can('guides.manage'), 403);
 
         $was_editing = $this->form->isEditing();
 
@@ -76,7 +76,7 @@ class Index extends Component
 
     public function deleteGuide(int $id): void
     {
-        abort_unless(auth()->user()?->hasRole('superAdmin'), 403);
+        abort_unless(auth()->user()?->can('guides.manage'), 403);
         abort_unless(Guide::query()->whereKey($id)->exists(), 404);
 
         $this->askDeleteConfirmation($id, '¿Eliminar esta guía?');
@@ -97,6 +97,7 @@ class Index extends Component
         $term = trim($this->search);
 
         $guides = Guide::query()
+            ->readableBy()
             ->when($this->module_filter !== '', fn ($query) => $query->where('module', $this->module_filter))
             ->when($term !== '', function ($query) use ($term) {
                 $query->where(function ($sub) use ($term) {
@@ -113,9 +114,10 @@ class Index extends Component
 
         return view('livewire.admin.guides.index', [
             'grouped_guides' => $guides,
-            'modules'        => Guide::query()->distinct()->orderBy('module')->pluck('module'),
+            'modules'        => Guide::query()->readableBy()->distinct()->orderBy('module')->pluck('module'),
             'types'          => Guide::types(),
-            'total'          => Guide::query()->count(),
+            'total'          => Guide::query()->readableBy()->count(),
+            'can_manage'     => (bool) auth()->user()?->can('guides.manage'),
         ]);
     }
 }

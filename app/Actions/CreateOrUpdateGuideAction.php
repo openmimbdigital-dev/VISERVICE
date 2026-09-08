@@ -12,7 +12,7 @@ class CreateOrUpdateGuideAction
     /** @param  array<string, mixed>  $data */
     public function handle(?int $guide_id, array $data): Guide
     {
-        abort_unless(auth()->user()?->hasRole('superAdmin'), 403);
+        abort_unless(auth()->user()?->can('guides.manage'), 403);
 
         if ($guide_id) {
             $guide = Guide::query()->findOrFail($guide_id);

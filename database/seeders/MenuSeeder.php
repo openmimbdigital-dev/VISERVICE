@@ -150,7 +150,10 @@ class MenuSeeder extends Seeder
                 // Sin ítems hijos: el constructor solo dibuja secciones vacías
                 // cuando son «single_link».
                 'behavior' => 'single_link',
-                'role' => 'superAdmin',
+                'permission' => 'guides.view',
+                // Explícito: la sección nació restringida por rol y updateOrCreate
+                // conservaría el valor anterior si no se limpia.
+                'role' => null,
                 'sort_order' => 90,
                 'items' => [],
             ],

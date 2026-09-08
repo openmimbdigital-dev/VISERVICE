@@ -161,7 +161,11 @@ Route::middleware(['auth', 'ensure.business', 'business.module'])->group(functio
         Route::get('/finance', AdminFinanceIndex::class)->name('finance.index');
         Route::get('/bank-accounts', AdminBankAccountsIndex::class)->name('bank-accounts.index');
         Route::get('/banks', AdminBanksIndex::class)->name('banks.index');
+    });
 
+    // Guías: las escribe el superAdmin, pero los negocios leen las que se
+    // marcan como visibles para ellos, así que van por permiso y no por rol.
+    Route::middleware('permission:guides.view')->prefix('admin')->name('admin.')->group(function () {
         Route::get('/guides', AdminGuidesIndex::class)->name('guides.index');
         Route::get('/guides/{guide}', AdminGuidesShow::class)->name('guides.show');
     });

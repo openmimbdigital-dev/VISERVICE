@@ -13,7 +13,10 @@ class Show extends Component
 
     public function mount(Guide $guide): void
     {
-        abort_unless(auth()->user()?->hasRole('superAdmin'), 403);
+        abort_unless(auth()->user()?->can('guides.view'), 403);
+
+        // 404 y no 403: para quien no puede verla, la guía no existe.
+        abort_unless($guide->isReadableBy(), 404);
 
         $this->guide = $guide;
     }
@@ -21,6 +24,7 @@ class Show extends Component
     public function render()
     {
         $siblings = Guide::query()
+            ->readableBy()
             ->where('module', $this->guide->module)
             ->whereKeyNot($this->guide->id)
             ->orderBy('sort_order')

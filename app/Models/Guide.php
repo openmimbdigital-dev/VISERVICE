@@ -25,14 +25,15 @@ class Guide extends Model
 
     protected $fillable = [
         'title', 'slug', 'module', 'type', 'summary',
-        'content', 'sort_order', 'published', 'created_by',
+        'content', 'sort_order', 'published', 'visible_to_businesses', 'created_by',
     ];
 
     protected function casts(): array
     {
         return [
-            'sort_order' => 'integer',
-            'published'  => 'boolean',
+            'sort_order'            => 'integer',
+            'published'             => 'boolean',
+            'visible_to_businesses' => 'boolean',
         ];
     }
 
@@ -63,6 +64,34 @@ class Guide extends Model
     public function scopePublished(Builder $query): Builder
     {
         return $query->where('published', true);
+    }
+
+    /**
+     * Lo que puede leer un usuario.
+     *
+     * Quien administra las guías las ve todas, borradores incluidos. El resto
+     * solo ve las publicadas y marcadas como visibles para los negocios.
+     */
+    public function scopeReadableBy(Builder $query, ?User $user = null): Builder
+    {
+        $user ??= auth()->user();
+
+        if ($user?->can('guides.manage')) {
+            return $query;
+        }
+
+        return $query->published()->where('visible_to_businesses', true);
+    }
+
+    public function isReadableBy(?User $user = null): bool
+    {
+        $user ??= auth()->user();
+
+        if ($user?->can('guides.manage')) {
+            return true;
+        }
+
+        return $this->published && $this->visible_to_businesses;
     }
 
     /**

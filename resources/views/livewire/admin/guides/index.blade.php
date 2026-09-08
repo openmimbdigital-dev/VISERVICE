@@ -11,7 +11,11 @@
                 <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-indigo-600/90">Plataforma</p>
                 <h1 class="mt-2 text-2xl font-bold tracking-tight text-slate-900">Guías y documentación</h1>
                 <p class="mt-2 max-w-xl text-sm text-slate-600">
-                    Puestas en marcha y documentación interna de cada módulo. Solo las ve el superAdmin.
+                    @if($can_manage)
+                        Puestas en marcha y documentación interna de cada módulo. Marca una guía como visible para que la lean los negocios.
+                    @else
+                        Guías para poner en marcha y usar los módulos del sistema.
+                    @endif
                 </p>
             </div>
             <div class="grid shrink-0 grid-cols-2 gap-3 sm:max-w-xs">
@@ -38,7 +42,9 @@
                 @endforeach
             </select>
         </div>
+        @if($can_manage)
         <button type="button" wire:click="openCreate" class="btn btn-primary btn-sm shrink-0">Nueva guía</button>
+        @endif
     </section>
 
     @forelse($grouped_guides as $module => $guides)
@@ -61,9 +67,14 @@
                 <div class="min-w-0 flex-1">
                     <a href="{{ route('admin.guides.show', $guide) }}" wire:navigate class="group flex items-center gap-2">
                         <span class="truncate text-sm font-semibold text-slate-800 group-hover:text-indigo-700">{{ $guide->title }}</span>
-                        @unless($guide->published)
-                        <span class="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700 ring-1 ring-amber-600/20">Borrador</span>
-                        @endunless
+                        @if($can_manage)
+                            @unless($guide->published)
+                            <span class="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700 ring-1 ring-amber-600/20">Borrador</span>
+                            @endunless
+                            @if($guide->visible_to_businesses)
+                            <span class="shrink-0 rounded-full bg-sky-50 px-2 py-0.5 text-[10px] font-semibold text-sky-700 ring-1 ring-sky-600/20" title="Los negocios pueden leerla">Visible para negocios</span>
+                            @endif
+                        @endif
                     </a>
                     @if($guide->summary)
                     <p class="mt-0.5 line-clamp-2 text-xs text-slate-500">{{ $guide->summary }}</p>
@@ -76,6 +87,7 @@
                         class="rounded-lg p-1.5 text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-600">
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                     </a>
+                    @if($can_manage)
                     <button type="button" wire:click="openEdit({{ $guide->id }})" title="Editar"
                         class="rounded-lg p-1.5 text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-600">
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
@@ -84,6 +96,7 @@
                         class="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600">
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                     </button>
+                    @endif
                 </div>
             </li>
             @endforeach
@@ -94,7 +107,9 @@
         <p class="text-sm text-slate-500">
             {{ $search !== '' || $module_filter !== '' ? 'Ninguna guía coincide con la búsqueda.' : 'Todavía no hay guías.' }}
         </p>
+        @if($can_manage)
         <button type="button" wire:click="openCreate" class="btn btn-primary btn-sm mt-4">Crear la primera</button>
+        @endif
     </section>
     @endforelse
 
@@ -163,10 +178,21 @@
                     @error('form.content') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                 </div>
 
-                <label class="flex items-center gap-2 text-sm text-slate-700">
-                    <input type="checkbox" wire:model="form.published" class="custom-checkbox">
-                    Publicada (si no, queda como borrador)
-                </label>
+                <div class="space-y-2 rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+                    <label class="flex items-center gap-2 text-sm text-slate-700">
+                        <input type="checkbox" wire:model="form.published" class="custom-checkbox">
+                        Publicada (si no, queda como borrador)
+                    </label>
+                    <label class="flex items-start gap-2 text-sm text-slate-700">
+                        <input type="checkbox" wire:model="form.visible_to_businesses" class="custom-checkbox mt-0.5">
+                        <span>
+                            Visible para los negocios
+                            <span class="mt-0.5 block text-xs text-slate-500">
+                                La leerán los usuarios de cada negocio. Sin marcar, la guía es solo interna.
+                            </span>
+                        </span>
+                    </label>
+                </div>
             </div>
 
             <div class="flex shrink-0 items-center justify-end gap-2 border-t border-slate-100 bg-slate-50/80 px-4 py-3 sm:px-6">

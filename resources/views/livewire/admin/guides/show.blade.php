@@ -15,9 +15,14 @@
                         {{ $guide->typeLabel() }}
                     </span>
                     <span class="text-xs font-medium text-slate-500">{{ $guide->module }}</span>
-                    @unless($guide->published)
-                    <span class="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700 ring-1 ring-amber-600/20">Borrador</span>
-                    @endunless
+                    @can('guides.manage')
+                        @unless($guide->published)
+                        <span class="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700 ring-1 ring-amber-600/20">Borrador</span>
+                        @endunless
+                        @if($guide->visible_to_businesses)
+                        <span class="inline-flex items-center rounded-full bg-sky-50 px-2.5 py-1 text-[11px] font-semibold text-sky-700 ring-1 ring-sky-600/20">Visible para negocios</span>
+                        @endif
+                    @endcan
                 </div>
                 <h1 class="mt-3 text-2xl font-bold tracking-tight text-slate-900">{{ $guide->title }}</h1>
                 @if($guide->summary)

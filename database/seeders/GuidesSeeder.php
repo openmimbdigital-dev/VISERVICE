@@ -36,6 +36,8 @@ class GuidesSeeder extends Seeder
                 'summary'    => 'Qué debe traer el negocio del portal de la DIAN y qué se configura en el sistema para poder emitir.',
                 'sort_order' => 10,
                 'published'  => true,
+                // La lee el dueño del negocio: es su trámite ante la DIAN.
+                'visible_to_businesses' => true,
                 'content'    => $this->dianOnboarding(),
             ],
         ];
