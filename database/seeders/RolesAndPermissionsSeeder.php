@@ -263,6 +263,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'reports.view', 'reports.export',
             // Configuración
             'settings.view', 'settings.edit',
+            // Guías y documentación internas
+            'guides.view', 'guides.manage',
             // Configuración — Eventos
             ...$this->churchEventsSettingsPermissions(),
             // Gestión de eventos — Eventos y agenda
@@ -359,6 +361,9 @@ class RolesAndPermissionsSeeder extends Seeder
         // Administrador: todo menos suscripciones (las gestiona solo el superAdmin).
         // OT CRUD: workshop.work-orders.* vía workOrderPermissions().
         $admin->syncPermissions($perms->only([
+            // Solo lectura: las guías las escribe el superAdmin, los negocios
+            // leen las que se marcaron como visibles para ellos.
+            'guides.view',
             'users.view', 'users.create', 'users.edit',
             'businesses.view', 'businesses.create', 'businesses.edit',
             'reports.view', 'reports.export',
@@ -387,6 +392,7 @@ class RolesAndPermissionsSeeder extends Seeder
         // Comercio: propietario del negocio registrado vía onboarding.
         // OT CRUD: mismos workshop.work-orders.* que Administrador.
         $comercio->syncPermissions($perms->only([
+            'guides.view',
             'users.view', 'users.create', 'users.edit', 'users.delete',
             'businesses.view', 'businesses.edit',
             'reports.view', 'reports.export',
@@ -415,11 +421,13 @@ class RolesAndPermissionsSeeder extends Seeder
 
         // Supervisor / Operador: sin permisos de órdenes de trabajo (solo Admin, Comercio y superAdmin).
         $supervisor->syncPermissions($perms->only([
+            'guides.view',
             'users.view', 'businesses.view', 'reports.view', 'roles.view', 'permissions.view',
             'team_positions.view',
         ])->values());
 
         $operador->syncPermissions($perms->only([
+            'guides.view',
             'users.view', 'businesses.view', 'reports.view',
         ])->values());
 
