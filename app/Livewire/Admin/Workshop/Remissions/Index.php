@@ -26,6 +26,7 @@ class Index extends Component
         $base = Remission::query()->forAuthUser();
 
         $stats = [
+            'borrador' => (clone $base)->where('status', WorkOrderStatus::Draft)->count(),
             'creada' => (clone $base)->where('status', WorkOrderStatus::Created)->count(),
             'en_proceso' => (clone $base)->where('status', WorkOrderStatus::InProgress)->count(),
             'finalizada' => (clone $base)->where('status', WorkOrderStatus::Completed)->count(),

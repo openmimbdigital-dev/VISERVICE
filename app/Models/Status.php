@@ -48,6 +48,17 @@ class Status extends Model
             ->all();
     }
 
+    /** Opciones para cambiar estado (excluye borrador, que solo se asigna en el alta). */
+    /** @return array<string, string> */
+    public static function mutableOptionsForModule(string $module): array
+    {
+        return array_filter(
+            static::optionsForModule($module),
+            fn (string $name) => $name !== 'draft',
+            ARRAY_FILTER_USE_KEY
+        );
+    }
+
     public function isInUse(): bool
     {
         return static::isNameInUse($this->name);

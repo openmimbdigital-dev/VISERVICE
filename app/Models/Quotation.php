@@ -138,20 +138,32 @@ class Quotation extends Model
     {
         $table = $query->getModel()->getTable();
 
-        return $query->whereExists(function ($sub) use ($table) {
-            $sub->selectRaw('1')
-                ->from('quotation_items')
-                ->whereColumn('quotation_items.quotation_id', "{$table}.id");
-        });
+        return $query->whereColumn("{$table}.step", '>=', "{$table}.final_step")
+            ->whereExists(function ($sub) use ($table) {
+                $sub->selectRaw('1')
+                    ->from('quotation_items')
+                    ->whereColumn('quotation_items.quotation_id', "{$table}.id");
+            });
     }
 
     public function isComplete(): bool
     {
+        $reached_end = (int) $this->step >= max(1, (int) $this->final_step);
+
+        if (! $reached_end) {
+            return false;
+        }
+
         if ($this->relationLoaded('items')) {
             return $this->items->isNotEmpty();
         }
 
         return $this->items()->exists();
+    }
+
+    public function isDraft(): bool
+    {
+        return $this->status === QuotationStatus::Draft;
     }
 
     public function getHoursEntryFormattedAttribute(): ?string
@@ -250,12 +262,13 @@ class Quotation extends Model
 
     public function canChangeStatus(): bool
     {
-        return ! $this->isRejected();
+        return ! $this->isRejected() && ! $this->isDraft();
     }
 
     public function getStatusColorAttribute(): string
     {
         return match ($this->status) {
+            QuotationStatus::Draft => 'amber',
             QuotationStatus::Created => 'gray',
             QuotationStatus::Sent => 'blue',
             QuotationStatus::Accepted => 'green',

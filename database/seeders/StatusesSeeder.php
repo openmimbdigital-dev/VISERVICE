@@ -11,6 +11,11 @@ class StatusesSeeder extends Seeder
     {
         $statuses = [
             [
+                'name'  => 'draft',
+                'label' => 'Borrador',
+                'type'  => ['quotations', 'work_orders', 'remissions'],
+            ],
+            [
                 'name'  => 'created',
                 'label' => 'Creada',
                 'type'  => ['quotations', 'work_orders', 'remissions'],

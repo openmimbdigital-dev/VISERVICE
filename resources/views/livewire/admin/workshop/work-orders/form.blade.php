@@ -18,11 +18,17 @@
                 <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-900">
                     {{ $is_editing ? 'OT ' . ($reference ?? '') : 'Nueva orden de trabajo' }}
                 </h1>
+                @if($is_editing && $status_label)
+                <p class="mt-1">
+                    <span class="inline-flex items-center rounded-full px-3 py-1 text-sm font-medium {{ $status_badge_class }}">{{ $status_label }}</span>
+                </p>
+                @else
                 <p class="mt-1 max-w-xl text-sm text-slate-600">
                     Completa la OT por pasos. El resumen permanece visible.
                 </p>
+                @endif
             </div>
-            @if($is_editing)
+            @if($is_editing && $saved_complete)
             <div class="flex w-full shrink-0 flex-wrap gap-2 sm:w-auto">
                 <a href="{{ route('admin.workshop.work-orders.show', $form->work_order_id) }}" wire:navigate class="btn btn-outline-secondary btn-sm flex-1 sm:flex-none justify-center">Ver detalle</a>
                 <a href="{{ route('admin.workshop.work-orders.print', $form->work_order_id) }}" target="_blank" class="btn btn-outline-secondary btn-sm flex-1 sm:flex-none justify-center">Imprimir / PDF</a>
@@ -269,13 +275,109 @@
 
                 @if($step === 3)
                 <section class="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
-                    <div class="flex flex-col gap-3 border-b border-slate-100 bg-slate-50/80 px-4 py-3 sm:px-5">
-                        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                            <div>
-                                <p class="text-[11px] font-semibold uppercase tracking-wider text-indigo-600">Paso 3 de {{ $total_steps }}</p>
-                                <h2 class="font-semibold text-slate-800">Catálogo de productos</h2>
+                    <div class="border-b border-slate-100 bg-slate-50/80 px-4 py-3 sm:px-5">
+                        <p class="text-[11px] font-semibold uppercase tracking-wider text-indigo-600">Paso 3 de {{ $total_steps }}</p>
+                        <h2 class="font-semibold text-slate-800">Ítems de la OT</h2>
+                        <p class="mt-0.5 text-xs text-slate-500">Ajusta la cantidad, el equipo y si aplica el descuento del catálogo.</p>
+                    </div>
+                    <div class="space-y-3 p-4 sm:p-6">
+                        @error('items') <p class="text-sm text-rose-600">{{ $message }}</p> @enderror
+                        @forelse($items as $index => $row)
+                        @php $cart_product = ! empty($row['product_id']) ? $cart_products->get((int) $row['product_id']) : null; @endphp
+                        <div wire:key="wo-item-{{ $row['uid'] ?? $index }}" class="flex min-w-0 flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50/50 p-3 sm:flex-row sm:items-center">
+                            @if($cart_product)
+                            <div class="flex min-w-0 flex-1 items-center gap-3 overflow-hidden">
+                                <x-ui.product-image :product="$cart_product" size="sm" class="shrink-0" />
+                                <div class="min-w-0 flex-1 overflow-hidden">
+                                    <p class="truncate text-sm font-medium text-slate-800" title="{{ $row['description'] }}">{{ $row['description'] }}</p>
+                                    <div class="mt-0.5 flex flex-wrap items-center gap-1">
+                                        <span class="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-600">Catálogo</span>
+                                        @if($cart_product->hasDiscount())
+                                        <label class="inline-flex cursor-pointer items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">
+                                            <input type="checkbox"
+                                                wire:model.live="items.{{ $index }}.apply_discount"
+                                                class="h-3 w-3 rounded border-amber-300 text-indigo-600 focus:ring-indigo-500">
+                                            Aplicar {{ $cart_product->discountLabel() }}
+                                            @if((float) ($row['discount_percentage'] ?? 0) > 0)
+                                            <span class="font-normal">({{ col_money($item_line_discounts[$index] ?? 0) }})</span>
+                                            @endif
+                                        </label>
+                                        @endif
+                                    </div>
+                                </div>
                             </div>
-                            <button type="button" wire:click="addItem" class="btn btn-outline-secondary btn-sm w-full justify-center sm:w-auto">+ Ítem manual / servicio</button>
+                            @else
+                            <div class="flex-1">
+                                <label class="mb-1 block text-xs font-medium text-slate-700">Descripción <span class="text-rose-500">*</span></label>
+                                <input type="text" wire:model="items.{{ $index }}.description" placeholder="Ej. Mano de obra, servicio adicional..."
+                                    class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm @error('items.'.$index.'.description') border-rose-400 @enderror">
+                                @error('items.'.$index.'.description') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                            </div>
+                            @endif
+
+                            <div class="grid min-w-0 grid-cols-2 gap-2 sm:flex sm:shrink-0 sm:items-end">
+                                <div class="w-full sm:w-36">
+                                    <label class="mb-1 block text-[10px] font-medium uppercase tracking-wide text-slate-500">Equipo</label>
+                                    <select wire:model="items.{{ $index }}.equipment_id" @disabled($selected_equipments->isEmpty())
+                                        class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs disabled:opacity-60 @error('items.'.$index.'.equipment_id') border-rose-400 @enderror">
+                                        <option value="">Sin asignar</option>
+                                        @foreach($selected_equipments as $equipment)
+                                        <option value="{{ $equipment->id }}">{{ $equipment->select_label }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('items.'.$index.'.equipment_id') <p class="mt-1 text-[11px] text-rose-600">{{ $message }}</p> @enderror
+                                </div>
+                                {{-- Contador en vez de input abierto: la cantidad se sube y baja de a uno. --}}
+                                <div class="w-full sm:w-24">
+                                    <label class="mb-1 block text-[10px] font-medium uppercase tracking-wide text-slate-500">Cant.</label>
+                                    <div class="flex items-center justify-between rounded-lg border border-slate-200 bg-white">
+                                        <button type="button" tabindex="-1" wire:click="changeItemQuantity({{ $index }}, -1)" wire:loading.attr="disabled"
+                                            class="px-2 py-1.5 text-slate-500 transition hover:bg-slate-100 disabled:opacity-40" title="Quitar uno">−</button>
+                                        <span class="px-1 text-xs font-semibold tabular-nums text-slate-700">{{ rtrim(rtrim(number_format((float) ($row['quantity'] ?? 0), 2, '.', ''), '0'), '.') }}</span>
+                                        <button type="button" tabindex="-1" wire:click="changeItemQuantity({{ $index }}, 1)" wire:loading.attr="disabled"
+                                            class="px-2 py-1.5 text-slate-500 transition hover:bg-slate-100 disabled:opacity-40" title="Agregar uno">+</button>
+                                    </div>
+                                    @error('items.'.$index.'.quantity') <p class="mt-1 text-[11px] text-rose-600">{{ $message }}</p> @enderror
+                                </div>
+                                <div class="w-full sm:w-28">
+                                    <label class="mb-1 block text-[10px] font-medium uppercase tracking-wide text-slate-500">Precio</label>
+                                    @if($cart_product)
+                                    {{-- Precio bloqueado: lo define el catálogo, no la OT. --}}
+                                    <div class="rounded-lg border border-slate-200 bg-slate-100 px-2 py-1.5 text-center text-xs text-slate-600"
+                                        title="El precio viene del catálogo. Para cambiarlo, edita el producto.">
+                                        @if((float) ($row['discount_percentage'] ?? 0) > 0)
+                                        <span class="text-[10px] text-slate-400 line-through">{{ col_money($row['unit_price'] ?? 0) }}</span>
+                                        <span class="ml-1 font-semibold text-emerald-700">{{ col_money((float) ($row['unit_price'] ?? 0) * (1 - (float) $row['discount_percentage'] / 100)) }}</span>
+                                        @else
+                                        <span class="font-medium">{{ col_money($row['unit_price'] ?? 0) }}</span>
+                                        @endif
+                                    </div>
+                                    @else
+                                    {{-- Un ítem manual (mano de obra, servicio) no tiene catálogo del cual tomar el precio. --}}
+                                    <input type="number" wire:model.live="items.{{ $index }}.unit_price" min="0" step="0.01"
+                                        class="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs">
+                                    @error('items.'.$index.'.unit_price') <p class="mt-1 text-[11px] text-rose-600">{{ $message }}</p> @enderror
+                                    @endif
+                                </div>
+                                <div class="w-full sm:w-24">
+                                    <label class="mb-1 block text-[10px] font-medium uppercase tracking-wide text-slate-500">Total</label>
+                                    <p class="rounded-lg bg-indigo-50 px-2 py-1.5 text-center text-xs font-semibold text-indigo-700">{{ col_money($item_line_totals[$index] ?? 0) }}</p>
+                                </div>
+                                <button type="button" wire:click="removeItem({{ $index }})" class="mb-0.5 shrink-0 rounded-lg p-1.5 text-rose-500 hover:bg-rose-50" title="Quitar">
+                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                        @empty
+                        <p class="py-6 text-center text-sm text-slate-400">Sin ítems. Agrega productos del catálogo abajo.</p>
+                        @endforelse
+                    </div>
+                </section>
+
+                <section class="mt-4 overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
+                    <div class="flex flex-col gap-3 border-b border-slate-100 bg-slate-50/80 px-4 py-3 sm:px-5">
+                        <div>
+                            <h2 class="font-semibold text-slate-800">Catálogo de productos</h2>
                         </div>
 
                         @if($selected_equipments->count() > 1)
@@ -396,105 +498,6 @@
                         <p class="py-3 text-center text-xs text-slate-400">Has llegado al final del catálogo.</p>
                         @endif
                         @endif
-                    </div>
-                </section>
-
-                <section class="mt-4 overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
-                    <div class="border-b border-slate-100 bg-slate-50/80 px-4 py-3 sm:px-5">
-                        <h2 class="font-semibold text-slate-800">Ítems de la OT</h2>
-                        <p class="mt-0.5 text-xs text-slate-500">Ajusta la cantidad, el equipo y si aplica el descuento del catálogo.</p>
-                    </div>
-                    <div class="space-y-3 p-4 sm:p-6">
-                        @error('items') <p class="text-sm text-rose-600">{{ $message }}</p> @enderror
-                        @forelse($items as $index => $row)
-                        @php $cart_product = ! empty($row['product_id']) ? $cart_products->get((int) $row['product_id']) : null; @endphp
-                        <div wire:key="wo-item-{{ $row['uid'] ?? $index }}" class="flex min-w-0 flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50/50 p-3 sm:flex-row sm:items-center">
-                            @if($cart_product)
-                            <div class="flex min-w-0 flex-1 items-center gap-3 overflow-hidden">
-                                <x-ui.product-image :product="$cart_product" size="sm" class="shrink-0" />
-                                <div class="min-w-0 flex-1 overflow-hidden">
-                                    <p class="truncate text-sm font-medium text-slate-800" title="{{ $row['description'] }}">{{ $row['description'] }}</p>
-                                    <div class="mt-0.5 flex flex-wrap items-center gap-1">
-                                        <span class="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-600">Catálogo</span>
-                                        @if($cart_product->hasDiscount())
-                                        <label class="inline-flex cursor-pointer items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">
-                                            <input type="checkbox"
-                                                wire:model.live="items.{{ $index }}.apply_discount"
-                                                class="h-3 w-3 rounded border-amber-300 text-indigo-600 focus:ring-indigo-500">
-                                            Aplicar {{ $cart_product->discountLabel() }}
-                                            @if((float) ($row['discount_percentage'] ?? 0) > 0)
-                                            <span class="font-normal">({{ col_money($item_line_discounts[$index] ?? 0) }})</span>
-                                            @endif
-                                        </label>
-                                        @endif
-                                    </div>
-                                </div>
-                            </div>
-                            @else
-                            <div class="flex-1">
-                                <label class="mb-1 block text-xs font-medium text-slate-700">Descripción <span class="text-rose-500">*</span></label>
-                                <input type="text" wire:model="items.{{ $index }}.description" placeholder="Ej. Mano de obra, servicio adicional..."
-                                    class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm @error('items.'.$index.'.description') border-rose-400 @enderror">
-                                @error('items.'.$index.'.description') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
-                            </div>
-                            @endif
-
-                            <div class="grid min-w-0 grid-cols-2 gap-2 sm:flex sm:shrink-0 sm:items-end">
-                                <div class="w-full sm:w-36">
-                                    <label class="mb-1 block text-[10px] font-medium uppercase tracking-wide text-slate-500">Equipo</label>
-                                    <select wire:model="items.{{ $index }}.equipment_id" @disabled($selected_equipments->isEmpty())
-                                        class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs disabled:opacity-60 @error('items.'.$index.'.equipment_id') border-rose-400 @enderror">
-                                        <option value="">Sin asignar</option>
-                                        @foreach($selected_equipments as $equipment)
-                                        <option value="{{ $equipment->id }}">{{ $equipment->select_label }}</option>
-                                        @endforeach
-                                    </select>
-                                    @error('items.'.$index.'.equipment_id') <p class="mt-1 text-[11px] text-rose-600">{{ $message }}</p> @enderror
-                                </div>
-                                {{-- Contador en vez de input abierto: la cantidad se sube y baja de a uno. --}}
-                                <div class="w-full sm:w-24">
-                                    <label class="mb-1 block text-[10px] font-medium uppercase tracking-wide text-slate-500">Cant.</label>
-                                    <div class="flex items-center justify-between rounded-lg border border-slate-200 bg-white">
-                                        <button type="button" tabindex="-1" wire:click="changeItemQuantity({{ $index }}, -1)" wire:loading.attr="disabled"
-                                            class="px-2 py-1.5 text-slate-500 transition hover:bg-slate-100 disabled:opacity-40" title="Quitar uno">−</button>
-                                        <span class="px-1 text-xs font-semibold tabular-nums text-slate-700">{{ rtrim(rtrim(number_format((float) ($row['quantity'] ?? 0), 2, '.', ''), '0'), '.') }}</span>
-                                        <button type="button" tabindex="-1" wire:click="changeItemQuantity({{ $index }}, 1)" wire:loading.attr="disabled"
-                                            class="px-2 py-1.5 text-slate-500 transition hover:bg-slate-100 disabled:opacity-40" title="Agregar uno">+</button>
-                                    </div>
-                                    @error('items.'.$index.'.quantity') <p class="mt-1 text-[11px] text-rose-600">{{ $message }}</p> @enderror
-                                </div>
-                                <div class="w-full sm:w-28">
-                                    <label class="mb-1 block text-[10px] font-medium uppercase tracking-wide text-slate-500">Precio</label>
-                                    @if($cart_product)
-                                    {{-- Precio bloqueado: lo define el catálogo, no la OT. --}}
-                                    <div class="rounded-lg border border-slate-200 bg-slate-100 px-2 py-1.5 text-center text-xs text-slate-600"
-                                        title="El precio viene del catálogo. Para cambiarlo, edita el producto.">
-                                        @if((float) ($row['discount_percentage'] ?? 0) > 0)
-                                        <span class="text-[10px] text-slate-400 line-through">{{ col_money($row['unit_price'] ?? 0) }}</span>
-                                        <span class="ml-1 font-semibold text-emerald-700">{{ col_money((float) ($row['unit_price'] ?? 0) * (1 - (float) $row['discount_percentage'] / 100)) }}</span>
-                                        @else
-                                        <span class="font-medium">{{ col_money($row['unit_price'] ?? 0) }}</span>
-                                        @endif
-                                    </div>
-                                    @else
-                                    {{-- Un ítem manual (mano de obra, servicio) no tiene catálogo del cual tomar el precio. --}}
-                                    <input type="number" wire:model.live="items.{{ $index }}.unit_price" min="0" step="0.01"
-                                        class="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-xs">
-                                    @error('items.'.$index.'.unit_price') <p class="mt-1 text-[11px] text-rose-600">{{ $message }}</p> @enderror
-                                    @endif
-                                </div>
-                                <div class="w-full sm:w-24">
-                                    <label class="mb-1 block text-[10px] font-medium uppercase tracking-wide text-slate-500">Total</label>
-                                    <p class="rounded-lg bg-indigo-50 px-2 py-1.5 text-center text-xs font-semibold text-indigo-700">{{ col_money($item_line_totals[$index] ?? 0) }}</p>
-                                </div>
-                                <button type="button" wire:click="removeItem({{ $index }})" class="mb-0.5 shrink-0 rounded-lg p-1.5 text-rose-500 hover:bg-rose-50" title="Quitar">
-                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                                </button>
-                            </div>
-                        </div>
-                        @empty
-                        <p class="py-6 text-center text-sm text-slate-400">Sin ítems. Agrega productos del catálogo arriba o usa «Ítem manual / servicio».</p>
-                        @endforelse
                     </div>
                 </section>
                 @endif

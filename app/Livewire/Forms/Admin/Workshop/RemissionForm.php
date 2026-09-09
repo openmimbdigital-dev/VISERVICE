@@ -12,6 +12,16 @@ use Livewire\Form;
 
 class RemissionForm extends Form
 {
+    public const STEP_GENERAL = 1;
+
+    public const STEP_DELIVERY = 2;
+
+    public const STEP_RESPONSIBLES = 3;
+
+    public const STEP_ITEMS = 4;
+
+    public const TOTAL_STEPS = 4;
+
     public ?int $remission_id = null;
 
     public ?int $work_order_id = null;
@@ -84,36 +94,84 @@ class RemissionForm extends Form
 
     public function rules(): array
     {
+        return array_merge(
+            $this->rulesForStep(self::STEP_GENERAL),
+            $this->rulesForStep(self::STEP_DELIVERY),
+            $this->rulesForStep(self::STEP_RESPONSIBLES),
+        );
+    }
+
+    /** @return array<string, mixed> */
+    public function rulesForStep(int $step): array
+    {
         $business_id = $this->resolvedBusinessId();
 
-        return [
-            'work_order_id' => [
-                'required',
-                'integer',
-                Rule::exists('work_orders', 'id')->where(fn ($q) => $q
-                    ->where('business_id', $business_id)
-                    ->whereIn('status', WorkOrderStatus::remissionEligibleValues())
-                    ->whereNull('deleted_at')),
-                Rule::unique('remissions', 'work_order_id')
-                    ->whereNull('deleted_at')
-                    ->ignore($this->remission_id),
+        return match ($step) {
+            self::STEP_GENERAL => [
+                'work_order_id' => [
+                    'required',
+                    'integer',
+                    Rule::exists('work_orders', 'id')->where(fn ($q) => $q
+                        ->where('business_id', $business_id)
+                        ->whereIn('status', WorkOrderStatus::remissionEligibleValues())
+                        ->whereNull('deleted_at')),
+                    Rule::unique('remissions', 'work_order_id')
+                        ->whereNull('deleted_at')
+                        ->ignore($this->remission_id),
+                ],
+                'type' => ['required', Rule::in(['entrega', 'devolucion', 'traslado'])],
+                'quotation_or_po_reference' => ['nullable', 'string', 'max:150'],
+                'issue_date' => ['nullable', 'date'],
             ],
-            'type' => ['required', Rule::in(['entrega', 'devolucion', 'traslado'])],
-            'quotation_or_po_reference' => ['nullable', 'string', 'max:150'],
-            'issue_date' => ['nullable', 'date'],
-            'delivery_address' => ['nullable', 'string', 'max:255'],
-            'delivery_city' => ['nullable', 'string', 'max:150'],
-            'delivery_contact' => ['nullable', 'string', 'max:150'],
-            'delivery_phone' => ['nullable', 'string', 'max:50'],
-            'delivery_observations' => ['nullable', 'string'],
-            'observations' => ['nullable', 'string'],
-            'delivered_by_name' => ['required', 'string', 'max:150'],
-            'delivered_by_position' => ['required', 'string', 'max:100'],
-            'delivered_by_document' => ['required', 'string', 'max:50'],
-            'received_by_name' => ['required', 'string', 'max:150'],
-            'received_by_position' => ['required', 'string', 'max:100'],
-            'received_by_document' => ['required', 'string', 'max:50'],
+            self::STEP_DELIVERY => [
+                'delivery_address' => ['nullable', 'string', 'max:255'],
+                'delivery_city' => ['nullable', 'string', 'max:150'],
+                'delivery_contact' => ['nullable', 'string', 'max:150'],
+                'delivery_phone' => ['nullable', 'string', 'max:50'],
+                'delivery_observations' => ['nullable', 'string'],
+            ],
+            self::STEP_RESPONSIBLES => [
+                'observations' => ['nullable', 'string'],
+                'delivered_by_name' => ['required', 'string', 'max:150'],
+                'delivered_by_position' => ['required', 'string', 'max:100'],
+                'delivered_by_document' => ['required', 'string', 'max:50'],
+                'received_by_name' => ['required', 'string', 'max:150'],
+                'received_by_position' => ['required', 'string', 'max:100'],
+                'received_by_document' => ['required', 'string', 'max:50'],
+            ],
+            default => [],
+        };
+    }
+
+    public function firstStepWithErrors(array $errors): int
+    {
+        $step_fields = [
+            self::STEP_GENERAL => ['work_order_id', 'type', 'quotation_or_po_reference', 'issue_date'],
+            self::STEP_DELIVERY => [
+                'delivery_address', 'delivery_city', 'delivery_contact',
+                'delivery_phone', 'delivery_observations',
+            ],
+            self::STEP_RESPONSIBLES => [
+                'observations', 'delivered_by_name', 'delivered_by_position', 'delivered_by_document',
+                'received_by_name', 'received_by_position', 'received_by_document',
+            ],
         ];
+
+        $error_keys = collect(array_keys($errors))
+            ->map(fn (string $key) => str_replace('form.', '', $key))
+            ->all();
+
+        foreach ($step_fields as $step => $fields) {
+            foreach ($error_keys as $key) {
+                foreach ($fields as $field) {
+                    if ($key === $field || str_starts_with($key, $field.'.')) {
+                        return $step;
+                    }
+                }
+            }
+        }
+
+        return self::STEP_GENERAL;
     }
 
     public function messages(): array
@@ -137,27 +195,43 @@ class RemissionForm extends Form
     /** @return array<string, mixed> */
     public function validated(): array
     {
-        $data = $this->validate();
+        $this->validate();
 
         return [
-            'work_order_id'             => (int) $data['work_order_id'],
-            'type'                      => $data['type'],
-            'quotation_or_po_reference' => $data['quotation_or_po_reference'] ?: null,
-            'issue_date'                => $data['issue_date'] ?: null,
-            'delivery_address'          => $data['delivery_address'] ?: null,
-            'delivery_city'             => $data['delivery_city'] ?: null,
-            'delivery_contact'          => $data['delivery_contact'] ?: null,
-            'delivery_phone'            => $data['delivery_phone'] ?: null,
-            'delivery_observations'     => $data['delivery_observations'] ?: null,
-            'observations'              => $data['observations'] ?: null,
-            'delivered_by_name'         => trim($data['delivered_by_name']),
-            'delivered_by_position'     => trim($data['delivered_by_position']),
-            'delivered_by_document'     => trim($data['delivered_by_document']),
-            'received_by_name'          => trim($data['received_by_name']),
-            'received_by_position'      => trim($data['received_by_position']),
-            'received_by_document'      => trim($data['received_by_document']),
-            'created_by'                => auth()->id(),
+            ...$this->payload(self::TOTAL_STEPS),
+            'finalize' => true,
         ];
+    }
+
+    /** @return array<string, mixed> */
+    public function payload(int $step): array
+    {
+        $data = [
+            'work_order_id'             => $this->work_order_id ? (int) $this->work_order_id : null,
+            'type'                      => $this->type ?: 'entrega',
+            'quotation_or_po_reference' => $this->quotation_or_po_reference ?: null,
+            'issue_date'                => $this->issue_date ?: null,
+            'delivery_address'          => $this->delivery_address ?: null,
+            'delivery_city'             => $this->delivery_city ?: null,
+            'delivery_contact'          => $this->delivery_contact ?: null,
+            'delivery_phone'            => $this->delivery_phone ?: null,
+            'delivery_observations'     => $this->delivery_observations ?: null,
+            'observations'              => $this->observations ?: null,
+            'delivered_by_name'         => trim($this->delivered_by_name) ?: null,
+            'delivered_by_position'     => trim($this->delivered_by_position) ?: null,
+            'delivered_by_document'     => trim($this->delivered_by_document) ?: null,
+            'received_by_name'          => trim($this->received_by_name) ?: null,
+            'received_by_position'      => trim($this->received_by_position) ?: null,
+            'received_by_document'      => trim($this->received_by_document) ?: null,
+            'step'                      => $step,
+            'final_step'                => self::TOTAL_STEPS,
+        ];
+
+        if (! $this->isEditing()) {
+            $data['created_by'] = auth()->id();
+        }
+
+        return $data;
     }
 
     /** @return Collection<int, WorkOrder> */

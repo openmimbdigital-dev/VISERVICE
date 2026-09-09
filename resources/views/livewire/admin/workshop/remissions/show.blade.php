@@ -42,6 +42,7 @@
             </div>
             <div class="flex w-full shrink-0 flex-wrap gap-2 sm:w-auto">
                 <a href="{{ route('admin.workshop.remissions.index') }}" wire:navigate class="btn btn-outline-secondary btn-sm flex-1 sm:flex-none justify-center">Volver</a>
+                @if($remission->isComplete())
                 <a href="{{ route('admin.workshop.remissions.print', $remission) }}" target="_blank" class="btn btn-outline-secondary btn-sm flex-1 sm:flex-none justify-center">Imprimir / PDF</a>
                 @if($can_edit)
                 <a href="{{ route('admin.workshop.remissions.form.edit', $remission) }}" wire:navigate class="btn btn-primary btn-sm flex-1 sm:flex-none justify-center">Editar</a>
@@ -49,9 +50,19 @@
                 @if($can_delete)
                 <button type="button" wire:click="deleteRemission" class="btn btn-danger btn-sm flex-1 sm:flex-none justify-center">Eliminar</button>
                 @endif
+                @endif
             </div>
         </div>
     </header>
+
+    @if(! $remission->isComplete())
+    <div class="mb-6 flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 sm:flex-row sm:items-center sm:justify-between">
+        <p>Esta remisión está incompleta (paso {{ $remission->step }} de {{ $remission->final_step }}, {{ $remission->progressPercent() }}%).</p>
+        @if($can_edit)
+        <a href="{{ route('admin.workshop.remissions.form.edit', $remission) }}" wire:navigate class="font-semibold text-amber-800 underline underline-offset-2">Continuar registro</a>
+        @endif
+    </div>
+    @endif
 
     @if($remission->workOrder?->associatedDocuments?->isNotEmpty())
     <section class="mb-6 overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">

@@ -109,7 +109,7 @@ class CreateOrUpdateQuotationAction
                     ...$payload,
                     'business_id' => $business_id,
                     'reference'   => Quotation::generateReference($business_id),
-                    'status'      => QuotationStatus::Created,
+                    'status'      => QuotationStatus::Draft,
                     'created_by'  => $data['created_by'] ?? auth()->id(),
                 ]);
             }
@@ -134,6 +134,11 @@ class CreateOrUpdateQuotationAction
                 'client:id,name',
                 'equipments',
             ]);
+
+            if ($quotation->isDraft() && $quotation->isComplete()) {
+                $quotation->update(['status' => QuotationStatus::Created]);
+                $quotation->refresh();
+            }
 
             $action = $quotation_id ? 'updated' : 'created';
             $description = ($quotation_id ? 'Actualizó' : 'Creó') . " la cotización {$quotation->reference}";

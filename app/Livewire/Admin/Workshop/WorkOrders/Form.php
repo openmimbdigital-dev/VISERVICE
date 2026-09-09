@@ -5,6 +5,7 @@ namespace App\Livewire\Admin\Workshop\WorkOrders;
 use App\Actions\Workshop\CreateOrUpdateWorkOrderAction;
 use App\Actions\Workshop\DeleteWorkOrderAction;
 use App\Enums\QuotationStatus;
+use App\Enums\WorkOrderStatus;
 use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
 use App\Livewire\Concerns\ManagesPendingCustomTaxes;
 use App\Livewire\Concerns\TracksWizardProgress;
@@ -40,6 +41,8 @@ class Form extends Component
     public array $items = [];
 
     public ?string $reference = null;
+
+    public ?string $work_order_status = null;
 
     /** Bloquea el select de cotización cuando se abre el form desde una cotización. */
     public bool $quotation_locked = false;
@@ -81,6 +84,9 @@ class Form extends Component
                 ? WorkOrderForm::STEP_GENERAL
                 : max(WorkOrderForm::STEP_GENERAL, min((int) $workOrder->step, WorkOrderForm::TOTAL_STEPS));
             $this->reference = $workOrder->reference;
+            $this->work_order_status = $workOrder->status instanceof WorkOrderStatus
+                ? $workOrder->status->value
+                : (string) $workOrder->status;
             $this->quotation_locked = (bool) $workOrder->quotation_id;
             $this->syncWizardProgress($workOrder);
             $this->items = $workOrder->items->map(fn ($item) => [
@@ -248,24 +254,6 @@ class Form extends Component
     public function closeProductPreview(): void
     {
         $this->preview_product_id = null;
-    }
-
-    public function addItem(): void
-    {
-        $equipment_ids = $this->form->resolvedEquipmentIds();
-
-        $this->items[] = [
-            'uid'                 => uniqid('wo-item-', true),
-            'id'                  => null,
-            'equipment_id'        => $this->active_equipment_id ?: (count($equipment_ids) === 1 ? $equipment_ids[0] : null),
-            'product_type_id'     => null,
-            'product_id'          => null,
-            'description'         => '',
-            'quantity'            => '1',
-            'unit_price'          => '0',
-            'discount_percentage' => '0',
-            'apply_discount'      => false,
-        ];
     }
 
     public function addCatalogItem(int $product_id): void
@@ -540,7 +528,7 @@ class Form extends Component
             'icon'  => 'success',
         ]);
 
-        $this->redirectRoute('admin.workshop.work-orders.index', navigate: true);
+        $this->redirectRoute('admin.workshop.work-orders.show', $work_order, navigate: true);
     }
 
     public function deleteWorkOrder(): void
@@ -682,6 +670,9 @@ class Form extends Component
 
         $this->form->work_order_id = $work_order->id;
         $this->reference           = $work_order->reference;
+        $this->work_order_status   = $work_order->status instanceof WorkOrderStatus
+            ? $work_order->status->value
+            : (string) $work_order->status;
         $this->syncWizardProgress($work_order);
 
         return $work_order;
@@ -828,10 +819,15 @@ class Form extends Component
                 ->find($this->form->work_order_id);
 
             $linked_remission = $work_order?->remissions->first();
-            $can_create_remission = auth()->user()->can('workshop.remissions.create')
+            $can_create_remission = $this->saved_complete
+                && auth()->user()->can('workshop.remissions.create')
                 && ($work_order?->canReceiveRemission() ?? false)
                 && ! $linked_remission;
         }
+
+        $status_enum = $this->work_order_status
+            ? WorkOrderStatus::tryFrom($this->work_order_status)
+            : null;
 
         $total_steps = WorkOrderForm::TOTAL_STEPS;
 
@@ -875,7 +871,10 @@ class Form extends Component
             'items_discount_total' => round($items_discount_total, 2),
             'item_line_totals'     => $item_line_totals,
             'item_line_discounts'  => $item_line_discounts,
-            'can_delete'           => $this->form->work_order_id
+            'status_label'         => $status_enum?->label(),
+            'status_badge_class'   => $status_enum?->badgeClass() ?? 'bg-slate-100 text-slate-600 ring-1 ring-slate-500/20',
+            'can_delete'           => $this->saved_complete
+                && $this->form->work_order_id
                 && auth()->user()->can('workshop.work-orders.delete'),
             'can_create_remission' => $can_create_remission,
             'linked_remission'     => $linked_remission,

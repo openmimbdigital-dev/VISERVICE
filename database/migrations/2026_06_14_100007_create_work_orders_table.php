@@ -16,7 +16,7 @@ return new class extends Migration
             $table->unsignedTinyInteger('step')->default(1)->comment('Paso actual del flujo de alta');
             $table->unsignedTinyInteger('final_step')->default(3)->comment('Pasos totales del flujo de alta');
             $table->string('reference')->comment('OT-YYYYMM-XXXX');
-            $table->string('status', 100)->default('created');
+            $table->string('status', 100)->default('draft');
             $table->foreign('status')->references('name')->on('statuses')->restrictOnDelete();
             $table->json('status_comments')->nullable()->comment('Historial de comentarios por cambio de estado');
             $table->text('diagnosis')->nullable()->comment('Diagnóstico registrado al ingreso');

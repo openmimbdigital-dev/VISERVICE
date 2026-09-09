@@ -441,7 +441,7 @@ class Form extends Component
 
         $this->dispatch('quotation-saved');
 
-        $this->redirectRoute('admin.workshop.quotations.index', navigate: true);
+        $this->redirectRoute('admin.workshop.quotations.show', $quotation, navigate: true);
     }
 
     public function deleteQuotation(): void
@@ -561,6 +561,9 @@ class Form extends Component
 
         $this->form->quotation_id = $quotation->id;
         $this->reference          = $quotation->reference;
+        $this->quotation_status   = $quotation->status instanceof QuotationStatus
+            ? $quotation->status->value
+            : (string) $quotation->status;
         $this->syncWizardProgress($quotation);
 
         return $quotation;
@@ -775,13 +778,15 @@ class Form extends Component
             'status_label'         => $status_label,
             'status_badge_class'   => $status_badge_class,
             'item_line_totals'     => $item_line_totals,
-            'can_delete'           => $this->form->quotation_id
+            'can_delete'           => $this->saved_complete
+                && $this->form->quotation_id
                 && auth()->user()->can('workshop.quotations.delete')
                 && ! in_array($this->quotation_status, [
                     QuotationStatus::Accepted->value,
                     QuotationStatus::Rejected->value,
                 ], true),
-            'can_create_ot'        => $this->form->quotation_id
+            'can_create_ot'        => $this->saved_complete
+                && $this->form->quotation_id
                 && auth()->user()->can('workshop.work-orders.create')
                 && $this->quotation_status === QuotationStatus::Accepted->value
                 && ! $this->linked_work_order_id,

@@ -272,6 +272,11 @@ class WorkOrder extends Model
             : (string) $this->status;
     }
 
+    public function isDraft(): bool
+    {
+        return $this->status === WorkOrderStatus::Draft;
+    }
+
     public function isEditable(): bool
     {
         return $this->status instanceof WorkOrderStatus
@@ -295,12 +300,13 @@ class WorkOrder extends Model
 
     public function canChangeStatus(): bool
     {
-        return $this->isEditable();
+        return $this->isEditable() && ! $this->isDraft();
     }
 
     public function getStatusColorAttribute(): string
     {
         return match ($this->status) {
+            WorkOrderStatus::Draft => 'amber',
             WorkOrderStatus::Created => 'blue',
             WorkOrderStatus::InProgress => 'yellow',
             WorkOrderStatus::Completed => 'green',

@@ -83,7 +83,7 @@ class CreateOrUpdateWorkOrderAction
                     ...$payload,
                     'business_id' => $business_id,
                     'reference'   => WorkOrder::generateReference($business_id),
-                    'status'      => WorkOrderStatus::Created,
+                    'status'      => WorkOrderStatus::Draft,
                     'created_by'  => $data['created_by'] ?? auth()->id(),
                     'advance_percentage' => 0,
                     'advance_amount' => 0,
@@ -120,6 +120,11 @@ class CreateOrUpdateWorkOrderAction
                 'client:id,name',
                 'equipments',
             ]);
+
+            if ($work_order->isDraft() && $work_order->isComplete()) {
+                $work_order->update(['status' => WorkOrderStatus::Created]);
+                $work_order->refresh();
+            }
 
             $action = $work_order_id ? 'updated' : 'created';
             $description = ($work_order_id ? 'Actualizó' : 'Creó') . " la orden de trabajo {$work_order->reference}";

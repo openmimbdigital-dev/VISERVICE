@@ -26,6 +26,7 @@ class Index extends Component
         $base = WorkOrder::query()->forAuthUser();
 
         $stats = [
+            'borradores' => (clone $base)->where('status', WorkOrderStatus::Draft)->count(),
             'creadas' => (clone $base)->where('status', WorkOrderStatus::Created)->count(),
             'en_proceso' => (clone $base)->where('status', WorkOrderStatus::InProgress)->count(),
             'finalizadas' => (clone $base)->where('status', WorkOrderStatus::Completed)->count(),

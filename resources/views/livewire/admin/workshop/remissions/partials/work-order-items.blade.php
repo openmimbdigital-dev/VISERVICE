@@ -54,6 +54,9 @@
 <section class="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
     <div class="flex items-center justify-between border-b border-slate-100 bg-slate-50/80 px-4 py-3 sm:px-5">
         <div>
+            @if(! empty($step_label))
+            <p class="text-[11px] font-semibold uppercase tracking-wider text-indigo-600">{{ $step_label }}</p>
+            @endif
             <h2 class="font-semibold text-slate-900">Ítems de la orden de trabajo</h2>
             <p class="mt-0.5 text-xs text-slate-500">Solo lectura — cantidades de la OT asociada</p>
         </div>

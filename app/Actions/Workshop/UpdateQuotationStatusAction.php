@@ -31,6 +31,12 @@ class UpdateQuotationStatusAction
             ]);
         }
 
+        if ($quotation->isDraft()) {
+            throw ValidationException::withMessages([
+                'status' => 'Completa todos los pasos de la cotización antes de cambiar el estado.',
+            ]);
+        }
+
         $status_record = Status::query()
             ->forModule('quotations')
             ->where('name', $status->value)
