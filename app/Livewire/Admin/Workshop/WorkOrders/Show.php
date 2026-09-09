@@ -63,6 +63,22 @@ class Show extends Component
 
     public string $item_notes = '';
 
+    public string $catalog_search = '';
+
+    public ?int $catalog_type_filter = null;
+
+    public int $catalog_visible_count = 20;
+
+    public ?int $preview_product_id = null;
+
+    /** @var array<int, string> */
+    public array $catalog_quantities = [];
+
+    /** @var array<int, bool> */
+    public array $catalog_apply_discount = [];
+
+    public ?int $active_equipment_id = null;
+
     public function mount(WorkOrder $workOrder): void
     {
         abort_unless(auth()->user()?->can('workshop.work-orders.view'), 403);
@@ -76,6 +92,9 @@ class Show extends Component
         $this->status = $workOrder->status instanceof WorkOrderStatus
             ? $workOrder->status->value
             : (string) $workOrder->status;
+
+        $equipment_ids = $this->workOrder->equipments->pluck('id')->map(fn ($id) => (int) $id)->values()->all();
+        $this->active_equipment_id = count($equipment_ids) === 1 ? $equipment_ids[0] : null;
     }
 
     public function updateStatus(): void
@@ -85,14 +104,16 @@ class Show extends Component
         if (! $this->workOrder->canChangeStatus()) {
             $this->dispatch('swal', [
                 'title' => 'OT bloqueada',
-                'text' => 'No se puede cambiar el estado de una OT finalizada o cancelada.',
+                'text' => $this->workOrder->isDraft()
+                    ? 'Completa todos los pasos de la OT antes de cambiar el estado.'
+                    : 'No se puede cambiar el estado de una OT finalizada o cancelada.',
                 'icon' => 'warning',
             ]);
 
             return;
         }
 
-        $allowed = array_keys(Status::optionsForModule('work_orders'));
+        $allowed = array_keys(Status::mutableOptionsForModule('work_orders'));
 
         $this->validate([
             'status' => ['required', 'string', Rule::in($allowed)],
@@ -149,16 +170,141 @@ class Show extends Component
         ]);
     }
 
-    public function openAddItem(): void
+    public function updatedCatalogSearch(): void
+    {
+        $this->catalog_visible_count = 20;
+    }
+
+    public function updatedCatalogTypeFilter(): void
+    {
+        $this->catalog_visible_count = 20;
+    }
+
+    public function loadMoreCatalogProducts(): void
+    {
+        $this->catalog_visible_count += 20;
+    }
+
+    public function showProductPreview(int $product_id): void
+    {
+        $exists = Product::query()
+            ->forAuthUser()
+            ->where('business_id', $this->workOrder->business_id)
+            ->whereKey($product_id)
+            ->exists();
+
+        if (! $exists) {
+            return;
+        }
+
+        $this->preview_product_id = $product_id;
+    }
+
+    public function closeProductPreview(): void
+    {
+        $this->preview_product_id = null;
+    }
+
+    public function addCatalogItem(int $product_id): void
     {
         abort_unless(auth()->user()?->can('workshop.work-orders.edit'), 403);
         $this->assertWorkOrderEditable();
 
-        $this->resetItemForm();
         $this->workOrder->loadMissing('equipments:id');
-        $equipment_ids = $this->workOrder->equipments->pluck('id')->map(fn ($id) => (int) $id)->values()->all();
-        $this->item_equipment_id = count($equipment_ids) === 1 ? $equipment_ids[0] : null;
-        $this->showItemModal = true;
+        $equipment_ids = $this->workOrder->equipments->pluck('id')->map(fn ($id) => (int) $id)->all();
+        $equipment_id = $this->active_equipment_id && in_array((int) $this->active_equipment_id, $equipment_ids, true)
+            ? (int) $this->active_equipment_id
+            : (count($equipment_ids) === 1 ? $equipment_ids[0] : null);
+
+        $catalog = Product::query()
+            ->forAuthUser()
+            ->complete()
+            ->where('business_id', $this->workOrder->business_id)
+            ->active()
+            ->whereKey($product_id)
+            ->first();
+
+        if (! $catalog) {
+            return;
+        }
+
+        $quantity = (float) ($this->catalog_quantities[$product_id] ?? 1);
+        if ($quantity <= 0) {
+            $quantity = 1;
+        }
+
+        $existing = WorkOrderItem::query()
+            ->where('work_order_id', $this->workOrder->id)
+            ->where('product_id', $catalog->id)
+            ->when(
+                $equipment_id,
+                fn ($q) => $q->where('equipment_id', $equipment_id),
+                fn ($q) => $q->whereNull('equipment_id')
+            )
+            ->first();
+
+        if ($existing) {
+            $qty = (float) $existing->quantity + $quantity;
+            $existing->update([
+                'quantity' => $qty,
+                'subtotal' => WorkOrderItem::lineSubtotal(
+                    $qty,
+                    (float) $existing->unit_price,
+                    (float) $existing->discount_percentage
+                ),
+            ]);
+            $saved_item = $existing;
+            $is_editing_item = true;
+        } else {
+            $apply_discount = $catalog->hasDiscount() && $this->catalogAppliesDiscount($catalog->id);
+            $discount = $apply_discount ? (float) $catalog->discountPercentage() : 0.0;
+            $price = (float) $catalog->sale_price;
+
+            $saved_item = $this->workOrder->items()->create([
+                'equipment_id'        => $equipment_id,
+                'product_id'          => $catalog->id,
+                'product_type_id'     => $catalog->product_type_id,
+                'description'         => $catalog->name,
+                'quantity'            => $quantity,
+                'unit_price'          => $price,
+                'discount_percentage' => $discount,
+                'subtotal'            => WorkOrderItem::lineSubtotal($quantity, $price, $discount),
+            ]);
+            $is_editing_item = false;
+        }
+
+        $this->workOrder->recalculateTotals();
+        $this->workOrder->refresh();
+        $this->catalog_quantities[$product_id] = '1';
+        $this->preview_product_id = null;
+
+        $description = ($is_editing_item ? 'Actualizó un ítem' : 'Agregó un ítem')." en la OT {$this->workOrder->reference}";
+        $properties = [
+            'item_description' => $saved_item->description,
+            'item_action'      => $is_editing_item ? 'updated' : 'created',
+            'equipment_id'     => $equipment_id,
+        ];
+
+        LogUserHistoricalAction::run(
+            action: 'updated',
+            module: 'workshop.work-orders',
+            description: $description,
+            subject: $this->workOrder,
+            subject_label: $this->workOrder->reference,
+            properties: $properties,
+            business_id: (int) $this->workOrder->business_id,
+        );
+
+        $saved_item->loadMissing('equipment');
+        LogEquipmentHistoricalAction::run(
+            action: 'updated',
+            module: 'workshop.work-orders',
+            description: $description,
+            equipment: $saved_item->equipment,
+            subject: $this->workOrder,
+            properties: $properties,
+            business_id: (int) $this->workOrder->business_id,
+        );
     }
 
     public function openEditItem(int $id): void
@@ -218,8 +364,17 @@ class Show extends Component
         $this->workOrder->loadMissing('equipments:id');
         $allowed_equipment_ids = $this->workOrder->equipments->pluck('id')->map(fn ($id) => (int) $id)->all();
 
+        if ($this->item_equipment_id === '' || $this->item_equipment_id === 0) {
+            $this->item_equipment_id = null;
+        }
+
+        $equipment_rule = ['nullable', 'integer'];
+        if ($allowed_equipment_ids !== []) {
+            $equipment_rule[] = Rule::in($allowed_equipment_ids);
+        }
+
         $this->validate([
-            'item_equipment_id' => ['required', 'integer', Rule::in($allowed_equipment_ids)],
+            'item_equipment_id' => $equipment_rule,
             'item_description' => 'required|string|max:255',
             'product_type_id'  => 'nullable|integer|exists:product_types,id',
             'product_id'       => 'nullable|integer|exists:products,id',
@@ -227,7 +382,6 @@ class Show extends Component
             'item_unit_price'  => 'required|numeric|min:0',
             'item_discount'    => 'nullable|numeric|min:0|max:100',
         ], [
-            'item_equipment_id.required' => 'Selecciona el equipo del ítem.',
             'item_equipment_id.in' => 'El equipo seleccionado no pertenece a esta OT.',
         ]);
 
@@ -237,7 +391,7 @@ class Show extends Component
         $subtotal = WorkOrderItem::lineSubtotal($qty, $price, $discount);
 
         $data = [
-            'equipment_id'        => (int) $this->item_equipment_id,
+            'equipment_id'        => $this->item_equipment_id ? (int) $this->item_equipment_id : null,
             'product_id'          => $this->product_id ?: null,
             'product_type_id'     => $this->product_type_id ?: null,
             'description'         => $this->item_description,
@@ -597,6 +751,13 @@ class Show extends Component
         $this->resetValidation();
     }
 
+    private function catalogAppliesDiscount(int $product_id): bool
+    {
+        $value = $this->catalog_apply_discount[$product_id] ?? true;
+
+        return $value === true || $value === 1 || $value === '1';
+    }
+
     private function assertWorkOrderEditable(): void
     {
         $this->workOrder->refresh();
@@ -641,7 +802,55 @@ class Show extends Component
             ->orderBy('name')
             ->get();
 
-        $catalog_products = Product::query()
+        $catalog_query = Product::query()
+            ->forAuthUser()
+            ->complete()
+            ->where('business_id', $this->workOrder->business_id)
+            ->active()
+            ->with(['images', 'product_type'])
+            ->when($this->catalog_type_filter, fn ($query) => $query->where('product_type_id', $this->catalog_type_filter))
+            ->when(trim($this->catalog_search) !== '', function ($query) {
+                $term = trim($this->catalog_search);
+                $query->where(function ($q) use ($term) {
+                    $q->where('name', 'like', "%{$term}%")
+                        ->orWhere('sku', 'like', "%{$term}%");
+                });
+            })
+            ->orderBy('name');
+
+        $catalog_products_total = (clone $catalog_query)->count();
+        $catalog_products = $catalog_query->take($this->catalog_visible_count)->get();
+        $catalog_has_more = $catalog_products_total > $catalog_products->count();
+
+        foreach ($catalog_products as $catalog_product) {
+            $this->catalog_quantities[$catalog_product->id] ??= '1';
+
+            if ($catalog_product->hasDiscount()) {
+                $this->catalog_apply_discount[$catalog_product->id] ??= true;
+            }
+        }
+
+        $preview_product = null;
+        if ($this->preview_product_id) {
+            $this->catalog_quantities[$this->preview_product_id] ??= '1';
+
+            $preview_product = Product::query()
+                ->forAuthUser()
+                ->where('business_id', $this->workOrder->business_id)
+                ->with(['images', 'product_type', 'product_category', 'unit', 'brand'])
+                ->find($this->preview_product_id);
+
+            if ($preview_product?->hasDiscount()) {
+                $this->catalog_apply_discount[$preview_product->id] ??= true;
+            }
+        }
+
+        $cart_quantities = $this->workOrder->items
+            ->filter(fn ($item) => $item->product_id)
+            ->groupBy('product_id')
+            ->map(fn ($rows) => $rows->sum(fn ($row) => (float) $row->quantity));
+
+        $edit_catalog_products = Product::query()
             ->forAuthUser()
             ->complete()
             ->where('business_id', $this->workOrder->business_id)
@@ -714,6 +923,10 @@ class Show extends Component
         return view('livewire.admin.workshop.work-orders.show', [
             'product_types' => $product_types,
             'catalog_products' => $catalog_products,
+            'catalog_has_more' => $catalog_has_more,
+            'preview_product' => $preview_product,
+            'cart_quantities' => $cart_quantities,
+            'edit_catalog_products' => $edit_catalog_products,
             'available_associated_documents' => $available_associated_documents,
             'can_edit' => $can_edit,
             'can_manage_documents' => $can_edit && $this->workOrder->canManageAssociatedDocuments(),
@@ -722,9 +935,9 @@ class Show extends Component
             'can_manage' => $can_edit && ! $is_locked,
             'edit_disabled' => $is_locked,
             'edit_disabled_title' => 'La OT está finalizada o cancelada',
-            'can_change_status' => $can_edit,
-            'status_change_disabled' => $is_locked,
-            'status_options' => Status::optionsForModule('work_orders'),
+            'can_change_status' => $can_edit && $this->workOrder->canChangeStatus(),
+            'status_change_disabled' => $is_locked || $this->workOrder->isDraft(),
+            'status_options' => Status::mutableOptionsForModule('work_orders'),
             'status_badge_class' => $status_badge_class,
             'show_cancel_comment_required' => $this->status === WorkOrderStatus::Cancelled->value,
             'status_comment_placeholder' => $this->status === WorkOrderStatus::Cancelled->value

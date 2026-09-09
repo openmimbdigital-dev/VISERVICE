@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\WorkOrderStatus;
+use App\Models\Concerns\HasWizardProgress;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -11,12 +12,17 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Remission extends Model
 {
+    use HasWizardProgress;
     use SoftDeletes;
+
+    public const DEFAULT_FINAL_STEP = 4;
 
     protected $fillable = [
         'business_id',
         'work_order_id',
         'client_id',
+        'step',
+        'final_step',
         'reference',
         'type',
         'status',
@@ -47,6 +53,8 @@ class Remission extends Model
     {
         return [
             'status'       => WorkOrderStatus::class,
+            'step'         => 'integer',
+            'final_step'   => 'integer',
             'issue_date'   => 'date',
             'issued_at'    => 'datetime',
             'delivered_at' => 'datetime',
@@ -129,8 +137,30 @@ class Remission extends Model
             : (string) $this->status;
     }
 
+    public function isComplete(): bool
+    {
+        if ($this->isDraft()) {
+            return false;
+        }
+
+        $reached_end = (int) $this->step >= max(1, (int) $this->final_step);
+
+        return $reached_end
+            && filled($this->delivered_by_name)
+            && filled($this->received_by_name);
+    }
+
+    public function isDraft(): bool
+    {
+        return $this->status === WorkOrderStatus::Draft;
+    }
+
     public function isEditable(): bool
     {
+        if ($this->isDraft()) {
+            return true;
+        }
+
         return $this->status instanceof WorkOrderStatus
             ? ! $this->status->isTerminal()
             : true;

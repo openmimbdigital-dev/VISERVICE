@@ -24,8 +24,9 @@
         </div>
     </header>
 
-    <div class="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <div class="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         @foreach([
+            ['label' => 'Borrador', 'value' => $stats['borrador']],
             ['label' => 'Creadas', 'value' => $stats['creada']],
             ['label' => 'En proceso', 'value' => $stats['en_proceso']],
             ['label' => 'Finalizadas', 'value' => $stats['finalizada']],

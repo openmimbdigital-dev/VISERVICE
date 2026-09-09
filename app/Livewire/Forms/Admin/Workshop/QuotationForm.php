@@ -125,7 +125,7 @@ class QuotationForm extends Form
                         ->where('business_id', $business_id)
                         ->whereNull('deleted_at')),
                 ],
-                'equipment_ids' => ['required', 'array', 'min:1'],
+                'equipment_ids' => ['nullable', 'array'],
                 'equipment_ids.*' => [
                     'integer',
                     Rule::exists('equipment', 'id')->where(fn ($q) => $q
@@ -205,8 +205,6 @@ class QuotationForm extends Form
         return [
             'client_id.required'      => 'Selecciona un cliente.',
             'client_id.exists'        => 'El cliente seleccionado no es válido.',
-            'equipment_ids.required'  => 'Selecciona al menos un equipo.',
-            'equipment_ids.min'       => 'Selecciona al menos un equipo.',
             'equipment_ids.*.exists'  => 'Uno o más equipos no son válidos para el cliente.',
             'hours_entry.date_format' => 'Las horas al ingreso deben tener formato HH:MM.',
             'validity_days.required'  => 'Indica los días de vigencia.',
@@ -260,13 +258,16 @@ class QuotationForm extends Form
         );
 
         $equipment_ids = $this->resolvedEquipmentIds();
-        $count = Equipment::query()
-            ->forAuthUser()
-            ->where('client_id', $this->client_id)
-            ->whereIn('id', $equipment_ids)
-            ->count();
 
-        abort_unless($count === count($equipment_ids), 422);
+        if ($equipment_ids !== []) {
+            $count = Equipment::query()
+                ->forAuthUser()
+                ->where('client_id', $this->client_id)
+                ->whereIn('id', $equipment_ids)
+                ->count();
+
+            abort_unless($count === count($equipment_ids), 422);
+        }
 
         $data = $this->payload(self::TOTAL_STEPS);
 

@@ -7,6 +7,7 @@ use App\Enums\WorkOrderStatus;
 use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
 use App\Models\Remission;
 use App\Models\Status;
+use App\Support\WizardProgress;
 use Arm092\LivewireDatatables\Column;
 use Arm092\LivewireDatatables\DateColumn;
 use Arm092\LivewireDatatables\Livewire\LivewireDatatable;
@@ -48,6 +49,13 @@ class DatatableRemissions extends LivewireDatatable
                 ->searchable()
                 ->sortable(),
 
+            Column::callback(['remissions.step', 'remissions.final_step'], function ($step, $final_step) {
+                $final    = max(1, (int) $final_step);
+                $complete = (int) $step >= $final;
+
+                return WizardProgress::datatableBadge((int) $step, $final, $complete);
+            })->label('Progreso')->unsortable(),
+
             Column::callback(['remissions.type'], function ($type) {
                 $map = [
                     'entrega'    => 'Entrega',
@@ -76,12 +84,15 @@ class DatatableRemissions extends LivewireDatatable
                 ->label('Fecha')
                 ->sortable(),
 
-            Column::callback(['remissions.id', 'remissions.status'], function ($id, $status) {
+            Column::callback(['remissions.id', 'remissions.status', 'remissions.step', 'remissions.final_step'], function ($id, $status, $step, $final_step) {
                 $status_enum = WorkOrderStatus::tryFrom((string) $status);
+                $is_draft = $status_enum === WorkOrderStatus::Draft;
+                $is_complete = ! $is_draft && (int) $step >= max(1, (int) $final_step);
 
                 return view('livewire.admin.workshop.remissions.actions', [
-                    'id'         => $id,
-                    'can_mutate' => $status_enum?->isTerminal() !== true,
+                    'id'          => $id,
+                    'can_mutate'  => $is_draft || $status_enum?->isTerminal() !== true,
+                    'is_complete' => $is_complete,
                 ]);
             })->label('Acciones')->unsortable(),
         ];

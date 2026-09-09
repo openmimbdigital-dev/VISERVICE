@@ -28,15 +28,12 @@ class CreateOrUpdateRemissionAction
         $this->assertWorkOrderHasNoRemission($work_order, $remission_id);
 
         return DB::transaction(function () use ($business_id, $remission_id, $data, $work_order) {
-            $status = $work_order->status instanceof WorkOrderStatus
-                ? $work_order->status
-                : (WorkOrderStatus::tryFrom((string) $work_order->status) ?? WorkOrderStatus::Created);
-
             $payload = [
                 'work_order_id'             => $work_order->id,
                 'client_id'                 => $work_order->client_id,
+                'step'                      => (int) ($data['step'] ?? 1),
+                'final_step'                => (int) ($data['final_step'] ?? Remission::DEFAULT_FINAL_STEP),
                 'type'                      => $data['type'],
-                'status'                    => $status->value,
                 'quotation_or_po_reference' => $data['quotation_or_po_reference'] ?? null,
                 'issue_date'                => $data['issue_date'] ?? null,
                 'delivery_address'          => $data['delivery_address'] ?? null,
@@ -53,23 +50,17 @@ class CreateOrUpdateRemissionAction
                 'received_by_document'      => $data['received_by_document'] ?? null,
             ];
 
-            if ($status === WorkOrderStatus::InProgress && empty($data['issue_date'])) {
-                $payload['issue_date'] = now()->toDateString();
-                $payload['issued_at'] = now();
-            }
-
-            if ($status === WorkOrderStatus::Completed) {
-                $payload['delivered_at'] = $payload['delivered_at'] ?? now();
-                $payload['issued_at'] = $payload['issued_at'] ?? now();
-                $payload['issue_date'] = $payload['issue_date'] ?? now()->toDateString();
-            }
-
             $work_order_changed = false;
 
             if ($remission_id) {
                 $remission = Remission::query()->forAuthUser()->findOrFail($remission_id);
                 abort_unless((int) $remission->business_id === $business_id, 403);
-                abort_unless($remission->isEditable(), 422, 'No se puede editar una remisión finalizada o cancelada.');
+
+                $finalize = (bool) ($data['finalize'] ?? false);
+                if ($finalize && ! $remission->isDraft() && $remission->status?->isTerminal()) {
+                    abort(422, 'No se puede editar una remisión finalizada o cancelada.');
+                }
+
                 $work_order_changed = (int) $remission->work_order_id !== (int) $work_order->id;
                 $remission->update($payload);
             } else {
@@ -77,6 +68,7 @@ class CreateOrUpdateRemissionAction
                     ...$payload,
                     'business_id' => $business_id,
                     'reference'   => Remission::generateReference($business_id),
+                    'status'      => WorkOrderStatus::Draft,
                     'created_by'  => $data['created_by'] ?? auth()->id(),
                 ]);
                 $work_order_changed = true;
@@ -91,6 +83,10 @@ class CreateOrUpdateRemissionAction
             $remission->equipments()->sync($equipment_ids);
 
             $remission->recalculateTotalItems();
+
+            $remission = $remission->fresh(['items', 'client:id,name', 'equipments', 'workOrder']);
+
+            $this->syncStatusFromProgress($remission, $work_order, $data, (bool) ($data['finalize'] ?? false));
 
             $remission = $remission->fresh(['items', 'client:id,name', 'equipments', 'workOrder']);
 
@@ -115,6 +111,39 @@ class CreateOrUpdateRemissionAction
 
             return $remission;
         });
+    }
+
+    private function syncStatusFromProgress(Remission $remission, WorkOrder $work_order, array $data, bool $finalize): void
+    {
+        if (! $finalize) {
+            $remission->update([
+                'status'    => WorkOrderStatus::Draft,
+                'issued_at' => null,
+            ]);
+
+            return;
+        }
+
+        $work_order_status = $work_order->status instanceof WorkOrderStatus
+            ? $work_order->status
+            : (WorkOrderStatus::tryFrom((string) $work_order->status) ?? WorkOrderStatus::Created);
+
+        $payload = [
+            'status'    => $work_order_status->value,
+            'issued_at' => $remission->issued_at ?? now(),
+        ];
+
+        if ($work_order_status === WorkOrderStatus::InProgress && empty($data['issue_date'])) {
+            $payload['issue_date'] = $remission->issue_date?->toDateString() ?: now()->toDateString();
+        }
+
+        if ($work_order_status === WorkOrderStatus::Completed) {
+            $payload['delivered_at'] = $remission->delivered_at ?? now();
+            $payload['issue_date'] = $remission->issue_date?->toDateString()
+                ?: ($data['issue_date'] ?? now()->toDateString());
+        }
+
+        $remission->update($payload);
     }
 
     private function assertEligibleWorkOrder(int $business_id, int $work_order_id): WorkOrder

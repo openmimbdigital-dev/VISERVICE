@@ -30,8 +30,9 @@
                     </x-ui.create-button>
                     @endcan
                 </div>
-                <div class="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:max-w-md">
+                <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5 sm:max-w-xl">
                     @foreach([
+                        ['label'=>'Borrador','value'=>$stats['borradores'],'color'=>'text-amber-700'],
                         ['label'=>'Creadas','value'=>$stats['creadas'],'color'=>'text-blue-600'],
                         ['label'=>'En proceso','value'=>$stats['en_proceso'],'color'=>'text-yellow-600'],
                         ['label'=>'Finalizadas','value'=>$stats['finalizadas'],'color'=>'text-emerald-600'],

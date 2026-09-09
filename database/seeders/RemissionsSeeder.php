@@ -113,6 +113,8 @@ class RemissionsSeeder extends Seeder
                     'received_by_position'      => 'Encargado de flota',
                     'received_by_document'      => $client?->document_number ?? '90000000',
                     'received_at'               => $is_delivered ? now()->subDays($index) : null,
+                    'step'                      => 4,
+                    'final_step'                => 4,
                     'created_by'                => $created_by,
                     'deleted_at'                => null,
                 ]

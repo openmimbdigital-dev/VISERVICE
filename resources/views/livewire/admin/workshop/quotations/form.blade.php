@@ -26,7 +26,7 @@
                 <p class="mt-1 max-w-xl text-sm text-slate-600">Completa la cotización por pasos. El resumen permanece visible.</p>
                 @endif
             </div>
-            @if($is_editing)
+            @if($is_editing && $saved_complete)
             <div class="flex w-full shrink-0 flex-wrap gap-2 sm:w-auto">
                 <a href="{{ route('admin.workshop.quotations.print', $form->quotation_id) }}" target="_blank" class="btn btn-outline-secondary btn-sm flex-1 sm:flex-none justify-center">Imprimir / PDF</a>
                 @if($can_create_ot)
@@ -73,7 +73,7 @@
             <ol class="flex min-w-0 flex-1 items-start">
                 @foreach($steps as $number => $meta)
                 @php
-                    $is_done = $step > $number;
+                    $is_done = $completed_steps >= $number;
                     $is_current = $step === $number;
                     $is_last = $number === $total_steps;
                 @endphp
@@ -139,7 +139,7 @@
                             @error('form.client_id') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                         </div>
                         <div class="sm:col-span-2">
-                            <label class="mb-1.5 block text-xs font-medium text-slate-700">Equipos <span class="text-rose-500">*</span></label>
+                            <label class="mb-1.5 block text-xs font-medium text-slate-700">Equipos</label>
                             @if(! $form->client_id)
                                 <p class="rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-400">Primero selecciona un cliente</p>
                             @elseif($equipment_for_client->isEmpty())
@@ -159,7 +159,7 @@
                             @endif
                             @error('form.equipment_ids') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                             @error('form.equipment_ids.*') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
-                            <p class="mt-1 text-xs text-slate-500">Puedes seleccionar varios equipos. Luego asigna cada ítem a uno de ellos.</p>
+                            <p class="mt-1 text-xs text-slate-500">Opcional. Si seleccionas equipos, puedes asignar cada ítem a uno de ellos.</p>
                         </div>
                         <div>
                             <label class="mb-1.5 block text-xs font-medium text-slate-700">Horas al ingreso</label>
@@ -290,101 +290,215 @@
 
                 @if($step === 3)
                 <section class="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
-                    <div class="flex flex-col gap-2 border-b border-slate-100 bg-slate-50/80 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-                        <div>
-                            <p class="text-[11px] font-semibold uppercase tracking-wider text-indigo-600">Paso 3 de {{ $total_steps }}</p>
-                            <h2 class="font-semibold text-slate-800">Ítems</h2>
-                        </div>
-                        <button type="button" wire:click="addItem" class="btn btn-primary btn-sm w-full justify-center sm:w-auto">+ Agregar ítem</button>
+                    <div class="border-b border-slate-100 bg-slate-50/80 px-4 py-3 sm:px-5">
+                        <p class="text-[11px] font-semibold uppercase tracking-wider text-indigo-600">Paso 3 de {{ $total_steps }}</p>
+                        <h2 class="font-semibold text-slate-800">Ítems de la cotización</h2>
+                        <p class="mt-0.5 text-xs text-slate-500">Ajusta la cantidad, el equipo y si aplica el descuento del catálogo.</p>
                     </div>
-                    <div class="space-y-4 p-4 sm:p-6">
+                    <div class="space-y-3 p-4 sm:p-6">
                         @error('items') <p class="text-sm text-rose-600">{{ $message }}</p> @enderror
                         @forelse($items as $index => $row)
-                        @php $item_product = $catalog_by_id->get((int) ($row['product_id'] ?? 0)); @endphp
-                        <div wire:key="item-row-{{ $index }}" class="rounded-xl border border-slate-200 bg-slate-50/50 p-4">
-                            <div class="mb-3 flex items-center justify-between">
-                                <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Ítem {{ $index + 1 }}</p>
-                                <button type="button" wire:click="removeItem({{ $index }})" class="text-xs font-medium text-rose-600 hover:text-rose-700">Quitar</button>
-                            </div>
-                            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                                <div class="sm:col-span-2">
-                                    <label class="mb-1 block text-xs font-medium text-slate-700">Equipo <span class="text-rose-500">*</span></label>
-                                    <select wire:model="items.{{ $index }}.equipment_id"
-                                        @disabled($selected_equipments->isEmpty())
-                                        class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm disabled:opacity-60 @error('items.'.$index.'.equipment_id') border-rose-400 @enderror">
-                                        <option value="">{{ $selected_equipments->isEmpty() ? 'Selecciona equipos arriba' : 'Asignar a equipo' }}</option>
-                                        @foreach($selected_equipments as $equipment)
-                                            <option value="{{ $equipment->id }}">{{ $equipment->select_label }}</option>
-                                        @endforeach
-                                    </select>
-                                    @error('items.'.$index.'.equipment_id') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
-                                </div>
-                                <div>
-                                    <label class="mb-1 block text-xs font-medium text-slate-700">Tipo <span class="text-rose-500">*</span></label>
-                                    <select wire:model.live="items.{{ $index }}.product_type_id" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm @error('items.'.$index.'.product_type_id') border-rose-400 @enderror">
-                                        <option value="">—</option>
-                                        @foreach($product_types as $type)<option value="{{ $type->id }}">{{ $type->name }}</option>@endforeach
-                                    </select>
-                                    @error('items.'.$index.'.product_type_id') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
-                                </div>
-                                <div>
-                                    <label class="mb-1 block text-xs font-medium text-slate-700">Producto <span class="text-rose-500">*</span></label>
-                                    <select wire:model.live="items.{{ $index }}.product_id" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm @error('items.'.$index.'.product_id') border-rose-400 @enderror" @disabled(empty($row['product_type_id']))>
-                                        <option value="">Seleccionar producto</option>
-                                        @foreach($catalog_products->where('product_type_id', (int) ($row['product_type_id'] ?? 0)) as $ci)
-                                        <option value="{{ $ci->id }}">{{ $ci->name }} ({{ col_money($ci->sale_price) }})</option>
-                                        @endforeach
-                                    </select>
-                                    @error('items.'.$index.'.product_id') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
-                                </div>
-                                <div class="sm:col-span-2">
-                                    <label class="mb-1 block text-xs font-medium text-slate-700">Descripción</label>
-                                    <p class="flex min-h-[42px] items-center rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800">
-                                        {{ $item_product?->name ?? 'Selecciona un producto' }}
-                                    </p>
-                                </div>
-                                <div>
-                                    <label class="mb-1 block text-xs font-medium text-slate-700">Cantidad <span class="text-rose-500">*</span></label>
-                                    <input type="number" wire:model.live="items.{{ $index }}.quantity" min="0.01" step="0.01" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm @error('items.'.$index.'.quantity') border-rose-400 @enderror">
-                                    @error('items.'.$index.'.quantity') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
-                                </div>
-                                <div>
-                                    <label class="mb-1 block text-xs font-medium text-slate-700">Precio unitario</label>
-                                    <p class="flex min-h-[42px] items-center rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm tabular-nums font-medium text-slate-800">
-                                        @if($item_product)
-                                            {{ col_money($item_product->sale_price) }}
-                                        @else
-                                            —
-                                        @endif
-                                    </p>
-                                </div>
-                                <div>
-                                    <label class="mb-1 block text-xs font-medium text-slate-700">Descuento</label>
-                                    <div class="flex min-h-[42px] items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                                        <label class="flex shrink-0 items-center gap-2 {{ $item_product?->hasDiscount() ? 'cursor-pointer' : 'cursor-not-allowed opacity-50' }}">
+                        @php $cart_product = ! empty($row['product_id']) ? $cart_products->get((int) $row['product_id']) : null; @endphp
+                        <div wire:key="qi-item-{{ $row['uid'] ?? $index }}" class="flex min-w-0 flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50/50 p-3 sm:flex-row sm:items-center">
+                            @if($cart_product)
+                            <div class="flex min-w-0 flex-1 items-center gap-3 overflow-hidden">
+                                <x-ui.product-image :product="$cart_product" size="sm" class="shrink-0" />
+                                <div class="min-w-0 flex-1 overflow-hidden">
+                                    <p class="truncate text-sm font-medium text-slate-800" title="{{ $row['description'] }}">{{ $row['description'] }}</p>
+                                    <div class="mt-0.5 flex flex-wrap items-center gap-1">
+                                        <span class="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-600">Catálogo</span>
+                                        @if($cart_product->hasDiscount())
+                                        <label class="inline-flex cursor-pointer items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">
                                             <input type="checkbox"
                                                 wire:model.live="items.{{ $index }}.apply_discount"
-                                                @disabled(! $item_product?->hasDiscount())
-                                                class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 disabled:cursor-not-allowed">
-                                            <span class="text-xs font-medium text-slate-700">Aplicar</span>
-                                        </label>
-                                        <span class="min-w-0 text-sm text-slate-800">
-                                            @if($item_product?->hasDiscount())
-                                                {{ $item_product->discountLabel() }}
-                                            @else
-                                                Sin descuento
+                                                class="h-3 w-3 rounded border-amber-300 text-indigo-600 focus:ring-indigo-500">
+                                            Aplicar {{ $cart_product->discountLabel() }}
+                                            @if((float) ($row['discount_percentage'] ?? 0) > 0)
+                                            <span class="font-normal">({{ col_money($item_line_discounts[$index] ?? 0) }})</span>
                                             @endif
-                                        </span>
+                                        </label>
+                                        @endif
                                     </div>
                                 </div>
-                                <div class="flex items-end">
-                                    <p class="w-full rounded-xl bg-indigo-50 px-3 py-2 text-right text-sm font-semibold text-indigo-700">{{ col_money($item_line_totals[$index] ?? 0) }}</p>
+                            </div>
+                            @else
+                            <div class="min-w-0 flex-1">
+                                <p class="truncate text-sm font-medium text-slate-800">{{ $row['description'] ?: 'Producto' }}</p>
+                            </div>
+                            @endif
+
+                            <div class="grid min-w-0 grid-cols-2 gap-2 sm:flex sm:shrink-0 sm:items-end">
+                                <div class="w-full sm:w-36">
+                                    <label class="mb-1 block text-[10px] font-medium uppercase tracking-wide text-slate-500">Equipo</label>
+                                    <select wire:model="items.{{ $index }}.equipment_id" @disabled($selected_equipments->isEmpty())
+                                        class="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs disabled:opacity-60 @error('items.'.$index.'.equipment_id') border-rose-400 @enderror">
+                                        <option value="">Sin asignar</option>
+                                        @foreach($selected_equipments as $equipment)
+                                        <option value="{{ $equipment->id }}">{{ $equipment->select_label }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('items.'.$index.'.equipment_id') <p class="mt-1 text-[11px] text-rose-600">{{ $message }}</p> @enderror
                                 </div>
+                                <div class="w-full sm:w-24">
+                                    <label class="mb-1 block text-[10px] font-medium uppercase tracking-wide text-slate-500">Cant.</label>
+                                    <div class="flex items-center justify-between rounded-lg border border-slate-200 bg-white">
+                                        <button type="button" tabindex="-1" wire:click="changeItemQuantity({{ $index }}, -1)" wire:loading.attr="disabled"
+                                            class="px-2 py-1.5 text-slate-500 transition hover:bg-slate-100 disabled:opacity-40" title="Quitar uno">−</button>
+                                        <span class="px-1 text-xs font-semibold tabular-nums text-slate-700">{{ rtrim(rtrim(number_format((float) ($row['quantity'] ?? 0), 2, '.', ''), '0'), '.') }}</span>
+                                        <button type="button" tabindex="-1" wire:click="changeItemQuantity({{ $index }}, 1)" wire:loading.attr="disabled"
+                                            class="px-2 py-1.5 text-slate-500 transition hover:bg-slate-100 disabled:opacity-40" title="Agregar uno">+</button>
+                                    </div>
+                                    @error('items.'.$index.'.quantity') <p class="mt-1 text-[11px] text-rose-600">{{ $message }}</p> @enderror
+                                </div>
+                                <div class="w-full sm:w-28">
+                                    <label class="mb-1 block text-[10px] font-medium uppercase tracking-wide text-slate-500">Precio</label>
+                                    <div class="rounded-lg border border-slate-200 bg-slate-100 px-2 py-1.5 text-center text-xs text-slate-600"
+                                        title="El precio viene del catálogo. Para cambiarlo, edita el producto.">
+                                        @if((float) ($row['discount_percentage'] ?? 0) > 0)
+                                        <span class="text-[10px] text-slate-400 line-through">{{ col_money($row['unit_price'] ?? 0) }}</span>
+                                        <span class="ml-1 font-semibold text-emerald-700">{{ col_money((float) ($row['unit_price'] ?? 0) * (1 - (float) $row['discount_percentage'] / 100)) }}</span>
+                                        @else
+                                        <span class="font-medium">{{ col_money($row['unit_price'] ?? 0) }}</span>
+                                        @endif
+                                    </div>
+                                </div>
+                                <div class="w-full sm:w-24">
+                                    <label class="mb-1 block text-[10px] font-medium uppercase tracking-wide text-slate-500">Total</label>
+                                    <p class="rounded-lg bg-indigo-50 px-2 py-1.5 text-center text-xs font-semibold text-indigo-700">{{ col_money($item_line_totals[$index] ?? 0) }}</p>
+                                </div>
+                                <button type="button" wire:click="removeItem({{ $index }})" class="mb-0.5 shrink-0 rounded-lg p-1.5 text-rose-500 hover:bg-rose-50" title="Quitar">
+                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                </button>
                             </div>
                         </div>
                         @empty
-                        <p class="py-6 text-center text-sm text-slate-400">Sin ítems. Usa «Agregar ítem» para incluir productos o servicios.</p>
+                        <p class="py-6 text-center text-sm text-slate-400">Sin ítems. Agrega productos del catálogo abajo.</p>
                         @endforelse
+                    </div>
+                </section>
+
+                <section class="mt-4 overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
+                    <div class="flex flex-col gap-3 border-b border-slate-100 bg-slate-50/80 px-4 py-3 sm:px-5">
+                        <div>
+                            <h2 class="font-semibold text-slate-800">Catálogo de productos</h2>
+                        </div>
+
+                        @if($selected_equipments->count() > 1)
+                        <div>
+                            <label class="mb-1.5 block text-xs font-medium text-slate-700">Equipo activo para nuevos productos</label>
+                            <select wire:model.live="active_equipment_id" class="w-full max-w-sm rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm @error('active_equipment_id') border-rose-400 @enderror">
+                                <option value="">Sin asignar</option>
+                                @foreach($selected_equipments as $equipment)
+                                <option value="{{ $equipment->id }}">{{ $equipment->select_label }}</option>
+                                @endforeach
+                            </select>
+                            @error('active_equipment_id') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                            <p class="mt-1 text-xs text-slate-500">Los productos que agregues del catálogo se asignarán a este equipo. Déjalo vacío para no asociarlos.</p>
+                        </div>
+                        @endif
+                    </div>
+
+                    <div class="border-b border-slate-100 p-4 sm:p-5">
+                        <div class="relative">
+                            <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 10a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                            <input type="search" wire:model.live.debounce.300ms="catalog_search" placeholder="Buscar producto por nombre o SKU..." class="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-9 pr-3.5 text-sm">
+                        </div>
+                        <div class="mt-3 flex flex-wrap gap-2">
+                            <button type="button" wire:click="$set('catalog_type_filter', null)"
+                                class="rounded-full px-3 py-1.5 text-xs font-semibold transition {{ ! $catalog_type_filter ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}">
+                                Todos
+                            </button>
+                            @foreach($product_types as $type)
+                            <button type="button" wire:click="$set('catalog_type_filter', {{ $type->id }})"
+                                class="rounded-full px-3 py-1.5 text-xs font-semibold transition {{ (int) $catalog_type_filter === $type->id ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}">
+                                {{ $type->name }}
+                            </button>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    <div
+                        x-on:scroll.throttle.200ms="if ($el.scrollTop + $el.clientHeight >= $el.scrollHeight - 150 && @js($catalog_has_more)) { $wire.loadMoreCatalogProducts() }"
+                        wire:loading.class="opacity-50" wire:target="catalog_search,catalog_type_filter"
+                        class="max-h-[34rem] overflow-y-auto p-4 transition sm:p-5">
+                        @if($catalog_products->isEmpty())
+                        <p class="py-10 text-center text-sm text-slate-400">No hay productos que coincidan con la búsqueda.</p>
+                        @else
+                        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+                            @foreach($catalog_products as $product)
+                            @php $in_cart = (float) ($cart_quantities[$product->id] ?? 0); @endphp
+                            <div wire:key="catalog-product-{{ $product->id }}" class="group relative flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white transition hover:border-indigo-300 hover:shadow-md">
+                                @if($product->product_type)
+                                <span class="absolute left-2 top-2 z-10 inline-flex items-center rounded-full bg-slate-900/70 px-2 py-0.5 text-[10px] font-semibold text-white shadow backdrop-blur-sm">
+                                    {{ $product->product_type->name }}
+                                </span>
+                                @endif
+                                @if($product->hasDiscount())
+                                <span class="absolute {{ $in_cart > 0 ? 'right-2 top-9' : 'right-2 top-2' }} z-10 inline-flex items-center rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-bold text-white shadow">
+                                    −{{ $product->discountLabel() }}
+                                </span>
+                                @endif
+                                @if($in_cart > 0)
+                                <span class="absolute right-2 top-2 z-10 inline-flex items-center rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white shadow">
+                                    En cotización: {{ rtrim(rtrim(number_format($in_cart, 2, '.', ''), '0'), '.') }}
+                                </span>
+                                @endif
+                                <button type="button" wire:click="showProductPreview({{ $product->id }})" class="flex flex-1 flex-col text-left">
+                                    <x-ui.product-image :product="$product" size="xl" class="border-b border-slate-100" />
+                                    <div class="flex flex-1 flex-col gap-1 p-3">
+                                        <p class="line-clamp-2 text-sm font-medium leading-snug text-slate-800" title="{{ $product->name }}">{{ $product->name }}</p>
+                                        <p class="font-mono text-[11px] text-slate-400">{{ $product->sku }}</p>
+                                        @if($product->hasDiscount())
+                                        <div class="mt-auto">
+                                            @if($catalog_apply_discount[$product->id] ?? true)
+                                            <p class="text-[11px] text-slate-400 line-through">{{ col_money($product->sale_price) }}</p>
+                                            <p class="text-sm font-semibold text-emerald-700">{{ col_money($product->finalPrice()) }}</p>
+                                            @else
+                                            <p class="text-sm font-semibold text-indigo-700">{{ col_money($product->sale_price) }}</p>
+                                            @endif
+                                        </div>
+                                        @else
+                                        <p class="mt-auto text-sm font-semibold text-indigo-700">{{ col_money($product->sale_price) }}</p>
+                                        @endif
+                                    </div>
+                                </button>
+                                <div class="flex flex-col gap-1.5 border-t border-slate-100 p-2">
+                                    @if($product->hasDiscount())
+                                    <label class="flex cursor-pointer items-center gap-1.5 rounded-lg bg-amber-50 px-2 py-1">
+                                        <input type="checkbox" wire:model.live="catalog_apply_discount.{{ $product->id }}"
+                                            class="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                                        <span class="text-[11px] font-medium text-amber-800">Aplicar descuento ({{ $product->discountLabel() }})</span>
+                                    </label>
+                                    @endif
+                                    <div class="flex items-center gap-1.5">
+                                    <div class="flex shrink-0 items-center rounded-lg border border-slate-200">
+                                        <button type="button" tabindex="-1"
+                                            x-on:click="const input = $el.nextElementSibling; input.value = Math.max(1, (parseInt(input.value, 10) || 1) - 1); input.dispatchEvent(new Event('input'))"
+                                            class="px-2 py-1.5 text-slate-500 hover:bg-slate-100">−</button>
+                                        <input type="number" readonly wire:model="catalog_quantities.{{ $product->id }}" min="1" step="1"
+                                            class="w-8 border-0 bg-transparent p-0 text-center text-xs focus:outline-none focus:ring-0">
+                                        <button type="button" tabindex="-1"
+                                            x-on:click="const input = $el.previousElementSibling; input.value = (parseInt(input.value, 10) || 1) + 1; input.dispatchEvent(new Event('input'))"
+                                            class="px-2 py-1.5 text-slate-500 hover:bg-slate-100">+</button>
+                                    </div>
+                                    <button type="button" wire:click="addCatalogItem({{ $product->id }})" wire:loading.attr="disabled"
+                                        class="btn btn-primary btn-sm min-w-0 flex-1 justify-center !px-2 !py-1.5 !text-xs">
+                                        Agregar
+                                    </button>
+                                    </div>
+                                </div>
+                            </div>
+                            @endforeach
+                        </div>
+
+                        <div wire:loading.flex wire:target="loadMoreCatalogProducts" class="hidden items-center justify-center gap-2 py-4 text-xs font-medium text-slate-500">
+                            <svg class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                            Cargando más productos...
+                        </div>
+                        @if(! $catalog_has_more && $catalog_products->count() > 20)
+                        <p class="py-3 text-center text-xs text-slate-400">Has llegado al final del catálogo.</p>
+                        @endif
+                        @endif
                     </div>
                 </section>
                 @endif
@@ -394,6 +508,16 @@
                 <section class="sticky top-2 z-10 rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm ring-1 ring-slate-900/[0.035] lg:top-4">
                     <h3 class="font-semibold text-slate-900">Resumen</h3>
                     <dl class="mt-4 space-y-2 text-sm">
+                        @if($items_discount_total > 0)
+                        <div class="flex justify-between text-slate-500">
+                            <dt class="text-xs">Precio de lista</dt>
+                            <dd class="tabular-nums text-xs">{{ col_money($preview_subtotal + $items_discount_total) }}</dd>
+                        </div>
+                        <div class="flex justify-between text-amber-700">
+                            <dt class="text-xs">Descuentos de productos</dt>
+                            <dd class="tabular-nums text-xs font-medium">−{{ col_money($items_discount_total) }}</dd>
+                        </div>
+                        @endif
                         <div class="flex justify-between text-xs text-slate-500"><dt>Mano de obra</dt><dd>{{ col_money($category_subtotals['mano_obra']) }}</dd></div>
                         <div class="flex justify-between text-xs text-slate-500"><dt>Repuestos</dt><dd>{{ col_money($category_subtotals['repuestos']) }}</dd></div>
                         <div class="flex justify-between text-xs text-slate-500"><dt>Lubricantes</dt><dd>{{ col_money($category_subtotals['lubricantes']) }}</dd></div>
@@ -407,8 +531,160 @@
                         @endforelse
                         <div class="flex justify-between border-t border-slate-100 pt-2 text-base font-bold"><dt>Total</dt><dd class="text-indigo-700">{{ col_money($preview_total) }}</dd></div>
                     </dl>
+
+                    @if($step === 3)
+                    <div class="mt-4 border-t border-slate-100 pt-4">
+                        <div class="flex items-center justify-between">
+                            <h4 class="text-xs font-semibold uppercase tracking-wider text-slate-500">Ítems agregados</h4>
+                            <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">{{ count($items) }}</span>
+                        </div>
+
+                        @if(empty($items))
+                        <p class="mt-2 text-xs text-slate-400">Aún no has agregado productos.</p>
+                        @else
+                        <div class="mt-2 max-h-64 space-y-1.5 overflow-y-auto pr-1">
+                            @foreach($items as $index => $row)
+                            @php $summary_product = ! empty($row['product_id']) ? $cart_products->get((int) $row['product_id']) : null; @endphp
+                            <div wire:key="summary-item-{{ $row['uid'] ?? $index }}" class="flex items-center gap-2 rounded-lg bg-slate-50 px-2 py-1.5">
+                                @if($summary_product)
+                                <x-ui.product-image :product="$summary_product" size="sm" class="!h-8 !w-8" />
+                                @endif
+                                <div class="min-w-0 flex-1">
+                                    <p class="truncate text-xs font-medium text-slate-700">{{ $row['description'] ?: 'Ítem' }}</p>
+                                    <p class="flex items-center gap-1 text-[11px] text-slate-400">
+                                        x{{ rtrim(rtrim(number_format((float) ($row['quantity'] ?? 0), 2, '.', ''), '0'), '.') }}
+                                        @if((float) ($row['discount_percentage'] ?? 0) > 0)
+                                        <span class="rounded bg-amber-100 px-1 font-semibold text-amber-800">−{{ rtrim(rtrim(number_format((float) $row['discount_percentage'], 2, '.', ''), '0'), '.') }}%</span>
+                                        @endif
+                                    </p>
+                                </div>
+                                <p class="shrink-0 text-xs font-semibold text-slate-700">{{ col_money($item_line_totals[$index] ?? 0) }}</p>
+                                <button type="button" wire:click="removeItem({{ $index }})" class="shrink-0 rounded p-1 text-slate-400 hover:bg-rose-50 hover:text-rose-600" title="Quitar">
+                                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                </button>
+                            </div>
+                            @endforeach
+                        </div>
+                        @endif
+                    </div>
+                    @endif
                 </section>
             </div>
         </div>
     </form>
+
+    @if($preview_product)
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 px-4 py-6"
+        x-data="{ active: 0 }" x-on:keydown.escape.window="$wire.closeProductPreview()">
+        <div class="flex max-h-full w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl" @click.outside="$wire.closeProductPreview()">
+            <div class="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+                <h3 class="text-lg font-semibold text-slate-900">{{ $preview_product->name }}</h3>
+                <button type="button" wire:click="closeProductPreview" class="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <div class="overflow-y-auto p-5">
+                <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                    <div>
+                        <div class="relative aspect-square overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
+                            @forelse($preview_product->images as $i => $image)
+                            <img x-show="active === {{ $i }}" x-cloak src="{{ $image->url }}" alt="Imagen {{ $i + 1 }} de {{ $preview_product->name }}" class="h-full w-full object-cover">
+                            @empty
+                            <div class="flex h-full w-full items-center justify-center text-slate-300">
+                                <svg class="h-16 w-16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14M4 6h16a1 1 0 011 1v10a1 1 0 01-1 1H4a1 1 0 01-1-1V7a1 1 0 011-1z"/></svg>
+                            </div>
+                            @endforelse
+                        </div>
+
+                        @if($preview_product->images->count() > 1)
+                        <div class="mt-2 flex flex-wrap gap-2">
+                            @foreach($preview_product->images as $i => $image)
+                            <button type="button" x-on:click="active = {{ $i }}"
+                                :class="active === {{ $i }} ? 'ring-2 ring-indigo-500' : 'ring-1 ring-slate-200'"
+                                class="h-14 w-14 shrink-0 overflow-hidden rounded-lg">
+                                <img src="{{ $image->url }}" alt="Miniatura {{ $i + 1 }} de {{ $preview_product->name }}" class="h-full w-full object-cover">
+                            </button>
+                            @endforeach
+                        </div>
+                        @endif
+                    </div>
+
+                    <div class="space-y-3">
+                        <div class="flex flex-wrap gap-1.5">
+                            @if($preview_product->product_type)
+                            <span class="inline-flex items-center rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700">{{ $preview_product->product_type->name }}</span>
+                            @endif
+                            @if($preview_product->product_category)
+                            <span class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">{{ $preview_product->product_category->name }}</span>
+                            @endif
+                            @if($preview_product->brand)
+                            <span class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">{{ $preview_product->brand->name }}</span>
+                            @endif
+                        </div>
+
+                        <dl class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <dt class="text-slate-500">SKU</dt>
+                                <dd class="font-mono text-slate-800">{{ $preview_product->sku }}</dd>
+                            </div>
+                            @if($preview_product->barcode)
+                            <div class="flex justify-between">
+                                <dt class="text-slate-500">Código de barras</dt>
+                                <dd class="font-mono text-slate-800">{{ $preview_product->barcode }}</dd>
+                            </div>
+                            @endif
+                            @if($preview_product->unit)
+                            <div class="flex justify-between">
+                                <dt class="text-slate-500">Unidad</dt>
+                                <dd class="text-slate-800">{{ $preview_product->unit->name }} ({{ $preview_product->unit->symbol }})</dd>
+                            </div>
+                            @endif
+                            <div class="flex justify-between border-t border-slate-100 pt-2 text-base font-semibold">
+                                <dt class="text-slate-700">Precio</dt>
+                                @if($preview_product->hasDiscount() && ($catalog_apply_discount[$preview_product->id] ?? true))
+                                <dd class="text-right">
+                                    <span class="block text-xs font-normal text-slate-400 line-through">{{ col_money($preview_product->sale_price) }}</span>
+                                    <span class="text-emerald-700">{{ col_money($preview_product->finalPrice()) }}</span>
+                                </dd>
+                                @else
+                                <dd class="text-indigo-700">{{ col_money($preview_product->sale_price) }}</dd>
+                                @endif
+                            </div>
+                        </dl>
+
+                        @if($preview_product->hasDiscount())
+                        <label class="flex cursor-pointer items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
+                            <input type="checkbox" wire:model.live="catalog_apply_discount.{{ $preview_product->id }}"
+                                class="h-4 w-4 rounded border-amber-300 text-indigo-600 focus:ring-indigo-500">
+                            <span class="text-sm font-medium text-amber-800">Aplicar descuento ({{ $preview_product->discountLabel() }})</span>
+                        </label>
+                        @endif
+
+                        <div>
+                            <h4 class="mb-1 text-xs font-semibold uppercase tracking-wider text-slate-500">Descripción</h4>
+                            <p class="whitespace-pre-line text-sm text-slate-700">{{ $preview_product->description ?: 'Sin descripción registrada.' }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between gap-3 border-t border-slate-100 px-5 py-4">
+                <div class="flex shrink-0 items-center rounded-lg border border-slate-200">
+                    <button type="button" tabindex="-1"
+                        x-on:click="const input = $el.nextElementSibling; input.value = Math.max(1, (parseInt(input.value, 10) || 1) - 1); input.dispatchEvent(new Event('input'))"
+                        class="px-3 py-2 text-slate-500 hover:bg-slate-100">−</button>
+                    <input type="number" readonly wire:model="catalog_quantities.{{ $preview_product->id }}" min="1" step="1"
+                        class="w-10 border-0 bg-transparent p-0 text-center text-sm focus:outline-none focus:ring-0">
+                    <button type="button" tabindex="-1"
+                        x-on:click="const input = $el.previousElementSibling; input.value = (parseInt(input.value, 10) || 1) + 1; input.dispatchEvent(new Event('input'))"
+                        class="px-3 py-2 text-slate-500 hover:bg-slate-100">+</button>
+                </div>
+                <button type="button" wire:click="addCatalogItem({{ $preview_product->id }})" class="btn btn-primary btn-sm flex-1 justify-center">
+                    Agregar a la cotización
+                </button>
+            </div>
+        </div>
+    </div>
+    @endif
 </div>

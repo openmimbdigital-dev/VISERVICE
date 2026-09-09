@@ -71,7 +71,17 @@ class Show extends Component
             return;
         }
 
-        $allowed = array_keys(Status::optionsForModule('quotations'));
+        if ($this->quotation->isDraft()) {
+            $this->dispatch('swal', [
+                'title' => 'Cotización incompleta',
+                'text'  => 'Completa todos los pasos antes de cambiar el estado.',
+                'icon'  => 'warning',
+            ]);
+
+            return;
+        }
+
+        $allowed = array_keys(Status::mutableOptionsForModule('quotations'));
 
         $this->validate([
             'status'        => ['required', 'string', Rule::in($allowed)],
@@ -181,9 +191,9 @@ class Show extends Component
             'can_delete' => $can_delete,
             'edit_disabled' => $edit_disabled,
             'edit_disabled_title' => $edit_disabled_title,
-            'can_change_status' => $can_edit,
-            'status_change_disabled' => $this->quotation->isRejected(),
-            'status_options' => Status::optionsForModule('quotations'),
+            'can_change_status' => $can_edit && $this->quotation->canChangeStatus(),
+            'status_change_disabled' => $this->quotation->isRejected() || $this->quotation->isDraft(),
+            'status_options' => Status::mutableOptionsForModule('quotations'),
             'show_reject_reason' => $this->status === QuotationStatus::Rejected->value,
             'status_badge_class' => $status_badge_class,
             'can_create_ot' => $can_create_ot,

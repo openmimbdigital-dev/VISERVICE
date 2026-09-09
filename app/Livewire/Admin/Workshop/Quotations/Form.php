@@ -7,6 +7,7 @@ use App\Actions\Workshop\DeleteQuotationAction;
 use App\Enums\QuotationStatus;
 use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
 use App\Livewire\Concerns\ManagesPendingCustomTaxes;
+use App\Livewire\Concerns\TracksWizardProgress;
 use App\Livewire\Forms\Admin\Workshop\QuotationForm;
 use App\Models\Equipment;
 use App\Models\Product;
@@ -27,6 +28,7 @@ class Form extends Component
 {
     use ConfirmsDeletionWithLivewireAlert;
     use ManagesPendingCustomTaxes;
+    use TracksWizardProgress;
 
     public QuotationForm $form;
 
@@ -42,6 +44,22 @@ class Form extends Component
     public ?int $linked_work_order_id = null;
 
     public ?string $linked_work_order_reference = null;
+
+    public string $catalog_search = '';
+
+    public ?int $catalog_type_filter = null;
+
+    public int $catalog_visible_count = 20;
+
+    public ?int $preview_product_id = null;
+
+    /** @var array<int, string> */
+    public array $catalog_quantities = [];
+
+    /** @var array<int, bool> */
+    public array $catalog_apply_discount = [];
+
+    public ?int $active_equipment_id = null;
 
     public function mount(?Quotation $quotation = null): void
     {
@@ -62,6 +80,7 @@ class Form extends Component
             }
 
             $this->form->setQuotation($quotation);
+            $this->syncWizardProgress($quotation);
             $this->step = $quotation->isComplete()
                 ? QuotationForm::STEP_GENERAL
                 : max(QuotationForm::STEP_GENERAL, min((int) $quotation->step, QuotationForm::TOTAL_STEPS));
@@ -75,6 +94,7 @@ class Form extends Component
                 $catalog = $item->catalogProduct;
 
                 return [
+                    'uid'                 => 'qi-'.$item->id,
                     'id'                  => $item->id,
                     'equipment_id'        => $item->equipment_id,
                     'product_type_id'     => $catalog?->product_type_id ?? $item->product_type_id,
@@ -83,10 +103,13 @@ class Form extends Component
                     'description'         => $catalog?->name ?? $item->description,
                     'quantity'            => (string) $item->quantity,
                     'unit_price'          => $catalog ? (string) $catalog->sale_price : (string) $item->unit_price,
-                    'discount_percentage' => $catalog ? (string) $catalog->discountPercentage() : '0',
+                    'discount_percentage' => $catalog && (float) $item->discount_percentage > 0
+                        ? (string) $catalog->discountPercentage()
+                        : '0',
                     'apply_discount'      => $catalog?->hasDiscount() && (float) $item->discount_percentage > 0,
                 ];
             })->values()->all();
+            $this->syncActiveEquipment();
 
             return;
         }
@@ -100,6 +123,7 @@ class Form extends Component
     {
         $this->form->equipment_ids = [];
         $this->clearItemEquipmentAssignments();
+        $this->syncActiveEquipment();
     }
 
     public function updatedFormEquipmentIds(): void
@@ -113,6 +137,162 @@ class Form extends Component
                 $this->items[$index]['equipment_id'] = null;
             }
         }
+
+        $this->syncActiveEquipment();
+    }
+
+    private function syncActiveEquipment(): void
+    {
+        $allowed = $this->form->resolvedEquipmentIds();
+
+        if ($allowed === []) {
+            $this->active_equipment_id = null;
+
+            return;
+        }
+
+        if (count($allowed) === 1) {
+            $this->active_equipment_id = $allowed[0];
+
+            return;
+        }
+
+        if (! in_array($this->active_equipment_id, $allowed, true)) {
+            $this->active_equipment_id = null;
+        }
+    }
+
+    /** @param  list<int>  $equipment_ids */
+    private function resolveCatalogEquipmentId(array $equipment_ids): ?int
+    {
+        $equipment_id = $this->active_equipment_id ? (int) $this->active_equipment_id : null;
+
+        if ($equipment_id && in_array($equipment_id, $equipment_ids, true)) {
+            return $equipment_id;
+        }
+
+        return count($equipment_ids) === 1 ? $equipment_ids[0] : null;
+    }
+
+    private function normalizeItemEquipmentIds(): void
+    {
+        foreach ($this->items as $index => $row) {
+            $id = $row['equipment_id'] ?? null;
+            $this->items[$index]['equipment_id'] = ($id === '' || $id === null || (int) $id <= 0)
+                ? null
+                : (int) $id;
+        }
+    }
+
+    /** @return list<mixed> */
+    private function itemEquipmentRule(): array
+    {
+        $equipment_ids = $this->form->resolvedEquipmentIds();
+        $rules = ['nullable', 'integer'];
+
+        if ($equipment_ids !== []) {
+            $rules[] = Rule::in($equipment_ids);
+        }
+
+        return $rules;
+    }
+
+    public function updatedCatalogSearch(): void
+    {
+        $this->catalog_visible_count = 20;
+    }
+
+    public function updatedCatalogTypeFilter(): void
+    {
+        $this->catalog_visible_count = 20;
+    }
+
+    public function loadMoreCatalogProducts(): void
+    {
+        $this->catalog_visible_count += 20;
+    }
+
+    public function showProductPreview(int $product_id): void
+    {
+        $exists = Product::query()
+            ->forAuthUser()
+            ->where('business_id', $this->form->resolvedBusinessId())
+            ->whereKey($product_id)
+            ->exists();
+
+        if (! $exists) {
+            return;
+        }
+
+        $this->preview_product_id = $product_id;
+    }
+
+    public function closeProductPreview(): void
+    {
+        $this->preview_product_id = null;
+    }
+
+    public function addCatalogItem(int $product_id): void
+    {
+        $equipment_ids = $this->form->resolvedEquipmentIds();
+        $equipment_id  = $this->resolveCatalogEquipmentId($equipment_ids);
+
+        $catalog = Product::query()
+            ->forAuthUser()
+            ->complete()
+            ->where('business_id', $this->form->resolvedBusinessId())
+            ->active()
+            ->whereKey($product_id)
+            ->first();
+
+        if (! $catalog) {
+            return;
+        }
+
+        $quantity = (float) ($this->catalog_quantities[$product_id] ?? 1);
+        if ($quantity <= 0) {
+            $quantity = 1;
+        }
+
+        foreach ($this->items as $index => $row) {
+            $same_product   = (int) ($row['product_id'] ?? 0) === (int) $catalog->id;
+            $same_equipment = (int) ($row['equipment_id'] ?? 0) === (int) ($equipment_id ?? 0);
+
+            if ($same_product && $same_equipment) {
+                $this->items[$index]['quantity'] = (string) ((float) $this->items[$index]['quantity'] + $quantity);
+                $this->catalog_quantities[$product_id] = '1';
+
+                return;
+            }
+        }
+
+        $apply_discount = $catalog->hasDiscount() && $this->catalogAppliesDiscount($catalog->id);
+
+        $this->items[] = [
+            'uid'                 => uniqid('qi-item-', true),
+            'id'                  => null,
+            'equipment_id'        => $equipment_id,
+            'product_type_id'     => $catalog->product_type_id,
+            'product_category_id' => $catalog->product_category_id,
+            'product_id'          => $catalog->id,
+            'description'         => $catalog->name,
+            'quantity'            => (string) $quantity,
+            'unit_price'          => (string) $catalog->sale_price,
+            'discount_percentage' => $apply_discount ? (string) $catalog->discountPercentage() : '0',
+            'apply_discount'      => $apply_discount,
+        ];
+
+        $this->catalog_quantities[$product_id] = '1';
+    }
+
+    public function changeItemQuantity(int $index, float $delta): void
+    {
+        if (! isset($this->items[$index])) {
+            return;
+        }
+
+        $quantity = (float) ($this->items[$index]['quantity'] ?? 1) + $delta;
+        $this->items[$index]['quantity'] = $this->formatQuantity(max(1, $quantity));
     }
 
     public function updatedItems(mixed $value, string $key): void
@@ -121,45 +301,11 @@ class Form extends Component
         $index = (int) ($parts[0] ?? -1);
         $field = $parts[1] ?? null;
 
-        if ($index < 0 || ! isset($this->items[$index]) || $field === null) {
+        if ($index < 0 || ! isset($this->items[$index]) || $field !== 'apply_discount') {
             return;
         }
 
-        if ($field === 'product_type_id') {
-            $this->resetItemCatalogSelection($index);
-
-            return;
-        }
-
-        if ($field !== 'product_id') {
-            return;
-        }
-
-        if (! $value) {
-            $this->resetItemCatalogPricing($index);
-
-            return;
-        }
-
-        $this->applyCatalogProduct($index, (int) $value);
-    }
-
-    public function addItem(): void
-    {
-        $equipment_ids = $this->form->resolvedEquipmentIds();
-
-        $this->items[] = [
-            'id'                  => null,
-            'equipment_id'        => count($equipment_ids) === 1 ? $equipment_ids[0] : null,
-            'product_type_id'     => null,
-            'product_category_id' => null,
-            'product_id'          => null,
-            'description'         => '',
-            'quantity'            => '1',
-            'unit_price'          => '0',
-            'discount_percentage' => '0',
-            'apply_discount'      => false,
-        ];
+        $this->syncItemCatalogDiscount($index);
     }
 
     public function removeItem(int $index): void
@@ -172,50 +318,47 @@ class Form extends Component
         $this->items = array_values($this->items);
     }
 
-    protected function applyCatalogProduct(int $index, int $product_id): void
+    protected function catalogAppliesDiscount(int $product_id): bool
     {
-        $catalog = Product::query()
+        $value = $this->catalog_apply_discount[$product_id] ?? true;
+
+        return $value === true || $value === 1 || $value === '1';
+    }
+
+    protected function syncItemCatalogDiscount(int $index): void
+    {
+        $product_id = (int) ($this->items[$index]['product_id'] ?? 0);
+
+        if ($product_id <= 0) {
+            $this->items[$index]['apply_discount'] = false;
+            $this->items[$index]['discount_percentage'] = '0';
+
+            return;
+        }
+
+        $product = Product::query()
             ->forAuthUser()
-            ->complete()
             ->where('business_id', $this->form->resolvedBusinessId())
             ->whereKey($product_id)
             ->first();
 
-        if (! $catalog) {
-            $this->resetItemCatalogSelection($index);
+        if (! $product?->hasDiscount()) {
+            $this->items[$index]['apply_discount'] = false;
+            $this->items[$index]['discount_percentage'] = '0';
 
             return;
         }
 
-        $selected_type = $this->items[$index]['product_type_id'] ?? null;
-        if ($selected_type && (int) $catalog->product_type_id !== (int) $selected_type) {
-            $this->resetItemCatalogSelection($index);
-
-            return;
-        }
-
-        $this->items[$index]['product_id']          = $catalog->id;
-        $this->items[$index]['product_type_id']     = $catalog->product_type_id;
-        $this->items[$index]['product_category_id'] = $catalog->product_category_id;
-        $this->items[$index]['description']         = $catalog->name;
-        $this->items[$index]['unit_price']          = (string) $catalog->sale_price;
-        $this->items[$index]['discount_percentage'] = (string) $catalog->discountPercentage();
-        $this->items[$index]['apply_discount']      = $catalog->hasDiscount();
+        $apply = $this->itemAppliesDiscount($this->items[$index]);
+        $this->items[$index]['apply_discount'] = $apply;
+        $this->items[$index]['discount_percentage'] = $apply ? (string) $product->discountPercentage() : '0';
+        $this->items[$index]['unit_price'] = (string) $product->sale_price;
+        $this->items[$index]['description'] = $product->name;
     }
 
-    protected function resetItemCatalogSelection(int $index): void
+    private function formatQuantity(float $quantity): string
     {
-        $this->items[$index]['product_id'] = null;
-        $this->resetItemCatalogPricing($index);
-    }
-
-    protected function resetItemCatalogPricing(int $index): void
-    {
-        $this->items[$index]['product_category_id'] = null;
-        $this->items[$index]['description']         = '';
-        $this->items[$index]['unit_price']          = '0';
-        $this->items[$index]['discount_percentage'] = '0';
-        $this->items[$index]['apply_discount']      = false;
+        return rtrim(rtrim(number_format($quantity, 2, '.', ''), '0'), '.') ?: '1';
     }
 
     /** @return array<int, array<string, mixed>> */
@@ -327,7 +470,7 @@ class Form extends Component
 
         $this->dispatch('quotation-saved');
 
-        $this->redirectRoute('admin.workshop.quotations.index', navigate: true);
+        $this->redirectRoute('admin.workshop.quotations.show', $quotation, navigate: true);
     }
 
     public function deleteQuotation(): void
@@ -352,11 +495,11 @@ class Form extends Component
     /** @return array<string, mixed> */
     protected function itemRules(): array
     {
-        $equipment_ids = $this->form->resolvedEquipmentIds();
+        $this->normalizeItemEquipmentIds();
 
         return [
             'items'                       => ['array'],
-            'items.*.equipment_id'        => ['required', 'integer', Rule::in($equipment_ids)],
+            'items.*.equipment_id'        => $this->itemEquipmentRule(),
             'items.*.product_type_id'     => ['required', 'integer', 'exists:product_types,id'],
             'items.*.product_id'          => ['required', 'integer', 'exists:products,id'],
             'items.*.quantity'            => ['required', 'numeric', 'min:0.01'],
@@ -447,6 +590,10 @@ class Form extends Component
 
         $this->form->quotation_id = $quotation->id;
         $this->reference          = $quotation->reference;
+        $this->quotation_status   = $quotation->status instanceof QuotationStatus
+            ? $quotation->status->value
+            : (string) $quotation->status;
+        $this->syncWizardProgress($quotation);
 
         return $quotation;
     }
@@ -502,20 +649,60 @@ class Form extends Component
         $business_id = $this->form->resolvedBusinessId();
 
         $product_types = ProductType::query()->visibleToUser()->where('active', true)->orderBy('name')->get();
-        $selected_product_ids = collect($this->items)->pluck('product_id')->filter()->map(fn ($id) => (int) $id)->unique()->values()->all();
-        $catalog_products = Product::query()
+
+        $catalog_query = Product::query()
             ->forAuthUser()
             ->complete()
             ->where('business_id', $business_id)
-            ->where(function ($query) use ($selected_product_ids) {
-                $query->active();
-                if ($selected_product_ids !== []) {
-                    $query->orWhereIn('products.id', $selected_product_ids);
-                }
+            ->active()
+            ->with(['images', 'product_type'])
+            ->when($this->catalog_type_filter, fn ($query) => $query->where('product_type_id', $this->catalog_type_filter))
+            ->when(trim($this->catalog_search) !== '', function ($query) {
+                $term = trim($this->catalog_search);
+                $query->where(function ($q) use ($term) {
+                    $q->where('name', 'like', "%{$term}%")
+                        ->orWhere('sku', 'like', "%{$term}%");
+                });
             })
-            ->orderBy('name')
-            ->get();
-        $catalog_by_id = $catalog_products->keyBy('id');
+            ->orderBy('name');
+
+        $catalog_products_total = (clone $catalog_query)->count();
+        $catalog_products = $catalog_query->take($this->catalog_visible_count)->get();
+        $catalog_has_more = $catalog_products_total > $catalog_products->count();
+
+        foreach ($catalog_products as $catalog_product) {
+            $this->catalog_quantities[$catalog_product->id] ??= '1';
+
+            if ($catalog_product->hasDiscount()) {
+                $this->catalog_apply_discount[$catalog_product->id] ??= true;
+            }
+        }
+
+        $preview_product = null;
+        if ($this->preview_product_id) {
+            $this->catalog_quantities[$this->preview_product_id] ??= '1';
+
+            $preview_product = Product::query()
+                ->forAuthUser()
+                ->where('business_id', $business_id)
+                ->with(['images', 'product_type', 'product_category', 'unit', 'brand'])
+                ->find($this->preview_product_id);
+
+            if ($preview_product?->hasDiscount()) {
+                $this->catalog_apply_discount[$preview_product->id] ??= true;
+            }
+        }
+
+        $cart_quantities = collect($this->items)
+            ->filter(fn ($row) => ! empty($row['product_id']))
+            ->groupBy('product_id')
+            ->map(fn ($rows) => $rows->sum(fn ($row) => (float) ($row['quantity'] ?? 0)));
+
+        $cart_product_ids = collect($this->items)->pluck('product_id')->filter()->unique()->values()->all();
+        $cart_products = $cart_product_ids !== []
+            ? Product::query()->forAuthUser()->whereIn('id', $cart_product_ids)->with('images')->get()->keyBy('id')
+            : collect();
+        $catalog_by_id = $cart_products;
 
         $selected_equipment_ids = $this->form->resolvedEquipmentIds();
 
@@ -566,27 +753,26 @@ class Form extends Component
             $status_badge_class = $status_enum?->badgeClass() ?? $status_badge_class;
         }
 
-        $item_line_totals = [];
+        $item_line_totals    = [];
+        $item_line_discounts = [];
+        $items_discount_total = 0.0;
         foreach ($this->items as $index => $row) {
             $line = $this->catalogLinePricing($row, $catalog_by_id);
-            $item_line_totals[$index] = round(
-                $line['quantity'] * $line['unit_price'] * (1 - $line['discount_percentage'] / 100),
-                2
-            );
+            $base = round($line['quantity'] * $line['unit_price'], 2);
+            $total_line = round($base * (1 - $line['discount_percentage'] / 100), 2);
+
+            $item_line_totals[$index]    = $total_line;
+            $item_line_discounts[$index] = round($base - $total_line, 2);
+            $items_discount_total += round($base - $total_line, 2);
         }
 
-        $total_steps   = QuotationForm::TOTAL_STEPS;
-        $progress      = (int) round(($this->step / $total_steps) * 100);
-        $radius        = 30;
-        $circumference = round(2 * M_PI * $radius, 2);
+        $total_steps = QuotationForm::TOTAL_STEPS;
 
         return view('livewire.admin.workshop.quotations.form', [
             'is_editing'             => $this->form->isEditing(),
             'step'                   => $this->step,
             'total_steps'            => $total_steps,
-            'progress'               => $progress,
-            'progress_circumference' => $circumference,
-            'progress_offset'        => round($circumference * (1 - $progress / 100), 2),
+            ...$this->wizardProgressViewData($total_steps),
             'steps'                  => [
                 QuotationForm::STEP_GENERAL => [
                     'title'       => 'Datos',
@@ -604,6 +790,10 @@ class Form extends Component
             'applied_tax_lines'    => $applied_tax_lines,
             'product_types'        => $product_types,
             'catalog_products'     => $catalog_products,
+            'catalog_has_more'     => $catalog_has_more,
+            'preview_product'      => $preview_product,
+            'cart_quantities'      => $cart_quantities,
+            'cart_products'        => $cart_products,
             'catalog_by_id'        => $catalog_by_id,
             'equipment_for_client' => $equipment_for_client,
             'selected_equipments'  => $selected_equipments,
@@ -612,16 +802,20 @@ class Form extends Component
             'preview_tax'          => $tax,
             'preview_total'        => $total,
             'preview_advance_amount' => $advance_amount,
+            'item_line_discounts'  => $item_line_discounts,
+            'items_discount_total' => $items_discount_total,
             'status_label'         => $status_label,
             'status_badge_class'   => $status_badge_class,
             'item_line_totals'     => $item_line_totals,
-            'can_delete'           => $this->form->quotation_id
+            'can_delete'           => $this->saved_complete
+                && $this->form->quotation_id
                 && auth()->user()->can('workshop.quotations.delete')
                 && ! in_array($this->quotation_status, [
                     QuotationStatus::Accepted->value,
                     QuotationStatus::Rejected->value,
                 ], true),
-            'can_create_ot'        => $this->form->quotation_id
+            'can_create_ot'        => $this->saved_complete
+                && $this->form->quotation_id
                 && auth()->user()->can('workshop.work-orders.create')
                 && $this->quotation_status === QuotationStatus::Accepted->value
                 && ! $this->linked_work_order_id,

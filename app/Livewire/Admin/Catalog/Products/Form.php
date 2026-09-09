@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin\Catalog\Products;
 
 use App\Actions\Catalog\CreateOrUpdateProductAction;
+use App\Livewire\Concerns\TracksWizardProgress;
 use App\Livewire\Forms\Admin\Catalog\ProductForm;
 use App\Models\Business;
 use App\Models\Product;
@@ -15,6 +16,8 @@ use Livewire\Component;
 #[Title('Producto')]
 class Form extends Component
 {
+    use TracksWizardProgress;
+
     public ProductForm $form;
 
     public int $step = ProductForm::STEP_GENERAL;
@@ -32,6 +35,7 @@ class Form extends Component
             abort_unless($product->isEditableBy(), 403);
 
             $this->form->setProduct($product);
+            $this->syncWizardProgress($product);
             $this->step = $product->isComplete()
                 ? ProductForm::STEP_GENERAL
                 : max(ProductForm::STEP_GENERAL, min((int) $product->step, ProductForm::TOTAL_STEPS));
@@ -136,18 +140,13 @@ class Form extends Component
     {
         $is_super_admin = auth()->user()->hasRole('superAdmin');
         $total_steps    = ProductForm::TOTAL_STEPS;
-        $progress       = (int) round(($this->step / $total_steps) * 100);
-        $radius         = 30;
-        $circumference  = round(2 * M_PI * $radius, 2);
 
         return view('livewire.admin.catalog.products.form', [
             'is_editing'              => $this->form->isEditing(),
             'is_super_admin'          => $is_super_admin,
             'step'                    => $this->step,
             'total_steps'             => $total_steps,
-            'progress'                => $progress,
-            'progress_circumference'  => $circumference,
-            'progress_offset'         => round($circumference * (1 - $progress / 100), 2),
+            ...$this->wizardProgressViewData($total_steps),
             'steps'                   => [
                 ProductForm::STEP_GENERAL => [
                     'title'       => 'Información general',
@@ -230,6 +229,7 @@ class Form extends Component
         );
 
         $this->form->product_id = $product->id;
+        $this->syncWizardProgress($product);
 
         return $product;
     }

@@ -4,6 +4,7 @@ namespace App\Enums;
 
 enum QuotationStatus: string
 {
+    case Draft = 'draft';
     case Created = 'created';
     case Sent = 'sent';
     case Accepted = 'accepted';
@@ -13,6 +14,7 @@ enum QuotationStatus: string
     public function label(): string
     {
         return match ($this) {
+            self::Draft => 'Borrador',
             self::Created => 'Creada',
             self::Sent => 'Enviada',
             self::Accepted => 'Aceptada',
@@ -24,12 +26,18 @@ enum QuotationStatus: string
     public function badgeClass(): string
     {
         return match ($this) {
+            self::Draft => 'bg-amber-50 text-amber-800 ring-1 ring-amber-600/20',
             self::Created => 'bg-slate-100 text-slate-600 ring-1 ring-slate-500/20',
             self::Sent => 'bg-blue-50 text-blue-700 ring-1 ring-blue-600/20',
             self::Accepted => 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20',
             self::Rejected => 'bg-red-50 text-red-700 ring-1 ring-red-600/20',
             self::Expired => 'bg-orange-50 text-orange-700 ring-1 ring-orange-600/20',
         };
+    }
+
+    public function isDraft(): bool
+    {
+        return $this === self::Draft;
     }
 
     /** @return array<string, string> */

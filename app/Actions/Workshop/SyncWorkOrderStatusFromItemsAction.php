@@ -14,7 +14,7 @@ class SyncWorkOrderStatusFromItemsAction
     {
         $work_order = WorkOrder::query()->forAuthUser()->findOrFail($work_order_id);
 
-        if (! $work_order->isEditable()) {
+        if (! $work_order->isEditable() || $work_order->isDraft()) {
             return null;
         }
 

@@ -46,7 +46,6 @@ class CreateOrUpdateWorkOrderAction
         abort_unless(Client::query()->forAuthUser()->whereKey($client_id)->exists(), 422);
 
         $equipment_ids = $this->normalizeEquipmentIds($equipment_ids);
-        abort_unless($equipment_ids !== [], 422, 'Selecciona al menos un equipo.');
         $this->assertEquipmentsBelongToClient($client_id, $equipment_ids);
 
         $quotation_id = ! empty($data['quotation_id']) ? (int) $data['quotation_id'] : null;
@@ -57,7 +56,6 @@ class CreateOrUpdateWorkOrderAction
             $client_id = (int) $quotation->client_id;
             $quotation->loadMissing('equipments:id');
             $equipment_ids = $quotation->equipments->pluck('id')->map(fn ($id) => (int) $id)->values()->all();
-            abort_unless($equipment_ids !== [], 422, 'La cotización no tiene equipos asociados.');
         }
 
         return DB::transaction(function () use ($business_id, $work_order_id, $client_id, $equipment_ids, $data, $items, $quotation_id, $quotation) {
@@ -83,7 +81,7 @@ class CreateOrUpdateWorkOrderAction
                     ...$payload,
                     'business_id' => $business_id,
                     'reference'   => WorkOrder::generateReference($business_id),
-                    'status'      => WorkOrderStatus::Created,
+                    'status'      => WorkOrderStatus::Draft,
                     'created_by'  => $data['created_by'] ?? auth()->id(),
                     'advance_percentage' => 0,
                     'advance_amount' => 0,
@@ -120,6 +118,11 @@ class CreateOrUpdateWorkOrderAction
                 'client:id,name',
                 'equipments',
             ]);
+
+            if ($work_order->isDraft() && $work_order->isComplete()) {
+                $work_order->update(['status' => WorkOrderStatus::Created]);
+                $work_order->refresh();
+            }
 
             $action = $work_order_id ? 'updated' : 'created';
             $description = ($work_order_id ? 'Actualizó' : 'Creó') . " la orden de trabajo {$work_order->reference}";
@@ -216,6 +219,10 @@ class CreateOrUpdateWorkOrderAction
     /** @param  list<int>  $equipment_ids */
     private function assertEquipmentsBelongToClient(int $client_id, array $equipment_ids): void
     {
+        if ($equipment_ids === []) {
+            return;
+        }
+
         $count = Equipment::query()
             ->forAuthUser()
             ->where('client_id', $client_id)
@@ -252,7 +259,6 @@ class CreateOrUpdateWorkOrderAction
     {
         $kept_ids = [];
         $allowed = array_flip($equipment_ids);
-        $default_equipment_id = $equipment_ids[0] ?? null;
         $product_ids = [];
 
         foreach ($items as $row) {
@@ -287,14 +293,12 @@ class CreateOrUpdateWorkOrderAction
             $product = $product_id > 0 ? $catalog->get($product_id) : null;
             abort_unless($product_id <= 0 || $product !== null, 422, 'Uno o más productos no están disponibles en el catálogo.');
 
-            $equipment_id = ! empty($row['equipment_id'])
-                ? (int) $row['equipment_id']
-                : $default_equipment_id;
+            $equipment_id = ! empty($row['equipment_id']) ? (int) $row['equipment_id'] : null;
 
             abort_unless(
-                $equipment_id !== null && isset($allowed[$equipment_id]),
+                $equipment_id === null || isset($allowed[$equipment_id]),
                 422,
-                'Cada ítem debe asociarse a un equipo de la OT.'
+                'El equipo del ítem no pertenece a la OT.'
             );
 
             $qty = (float) ($row['quantity'] ?? 1);

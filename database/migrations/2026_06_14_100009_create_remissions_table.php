@@ -13,9 +13,11 @@ return new class extends Migration
             $table->foreignId('business_id')->constrained()->cascadeOnDelete();
             $table->foreignId('work_order_id')->constrained()->cascadeOnDelete();
             $table->foreignId('client_id')->nullable()->constrained('clients')->nullOnDelete();
+            $table->unsignedTinyInteger('step')->default(1)->comment('Paso actual del flujo de alta');
+            $table->unsignedTinyInteger('final_step')->default(4)->comment('Pasos totales del flujo de alta');
             $table->string('reference')->comment('REM-YYYYMM-XXXX');
             $table->enum('type', ['entrega', 'devolucion', 'traslado'])->default('entrega');
-            $table->string('status', 100)->default('created');
+            $table->string('status', 100)->default('draft');
             $table->foreign('status')->references('name')->on('statuses')->restrictOnDelete();
             $table->string('quotation_or_po_reference')->nullable()->comment('Cotización / Orden de compra');
             $table->date('issue_date')->nullable()->comment('Fecha de expedición');
@@ -51,6 +53,7 @@ return new class extends Migration
             $table->softDeletes();
 
             $table->unique(['business_id', 'reference']);
+            $table->index(['business_id', 'deleted_at', 'step'], 'remissions_business_deleted_step_idx');
             $table->index(['business_id', 'deleted_at', 'created_at'], 'remissions_business_deleted_created_idx');
             $table->index(['business_id', 'deleted_at', 'status'], 'remissions_business_deleted_status_idx');
             $table->index(['business_id', 'deleted_at', 'type'], 'remissions_business_deleted_type_idx');

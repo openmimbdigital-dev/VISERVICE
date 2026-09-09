@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasWizardProgress;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,6 +11,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Product extends Model
 {
+    use HasWizardProgress;
     use SoftDeletes;
 
     public const DEFAULT_FINAL_STEP = 4;
@@ -191,13 +193,6 @@ class Product extends Model
         }
 
         return round((float) $this->cost_price * ((float) $this->profit_percentage / 100), 2);
-    }
-
-    public function progressPercent(): int
-    {
-        $final = max(1, (int) $this->final_step);
-
-        return (int) min(100, round(((int) $this->step / $final) * 100));
     }
 
     public function scopeForAuthUser(Builder $query, ?User $user = null): Builder

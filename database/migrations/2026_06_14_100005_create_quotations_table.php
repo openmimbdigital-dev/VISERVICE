@@ -32,7 +32,7 @@ return new class extends Migration
             $table->unsignedBigInteger('business_payment_method_id')->nullable();
             $table->unsignedBigInteger('business_bank_account_id')->nullable();
             $table->string('reference')->comment('COT-YYYYMM-XXXX');
-            $table->string('status', 100)->default('created');
+            $table->string('status', 100)->default('draft');
             $table->foreign('status')->references('name')->on('statuses')->restrictOnDelete();
             $table->text('diagnosis')->nullable()->comment('Diagnóstico inicial del equipo');
             $table->time('hours_entry')->nullable()->comment('Horas de uso al ingreso (formato HH:MM)');

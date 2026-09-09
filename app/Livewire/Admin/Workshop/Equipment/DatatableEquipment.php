@@ -6,6 +6,7 @@ use App\Actions\Workshop\Equipment\DeleteEquipmentAction;
 use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
 use App\Models\Equipment;
 use App\Models\EquipmentType;
+use App\Support\WizardProgress;
 use Arm092\LivewireDatatables\Column;
 use Arm092\LivewireDatatables\Livewire\LivewireDatatable;
 use Illuminate\Database\Eloquent\Builder;
@@ -130,17 +131,9 @@ class DatatableEquipment extends LivewireDatatable
                 ->sortable(),
 
             Column::callback(['equipment.step', 'equipment.final_step', 'equipment.brand_id', 'equipment.model_id', 'equipment.year'], function ($step, $final_step, $brand_id, $model_id, $year) {
-                $final   = max(1, (int) $final_step);
-                $percent = (int) min(100, round(((int) $step / $final) * 100));
                 $complete = $brand_id && $model_id && $year !== null;
-                $label   = $complete ? 'Completo' : 'Paso ' . (int) $step . '/' . $final;
-                $class   = $complete
-                    ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20'
-                    : 'bg-amber-50 text-amber-800 ring-1 ring-amber-600/20';
 
-                return '<span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ' . $class . '">'
-                    . $label
-                    . ' · ' . $percent . '%</span>';
+                return WizardProgress::datatableBadge((int) $step, (int) $final_step, (bool) $complete);
             })->label('Progreso')->unsortable(),
 
             Column::callback(['status'], function ($status) {

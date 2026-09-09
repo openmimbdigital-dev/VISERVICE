@@ -28,7 +28,9 @@ class UpdateWorkOrderStatusAction
 
         if (! $work_order->canChangeStatus()) {
             throw ValidationException::withMessages([
-                'status' => 'No se puede cambiar el estado: la OT está finalizada o cancelada.',
+                'status' => $work_order->isDraft()
+                    ? 'Completa todos los pasos de la OT antes de cambiar el estado.'
+                    : 'No se puede cambiar el estado: la OT está finalizada o cancelada.',
             ]);
         }
 

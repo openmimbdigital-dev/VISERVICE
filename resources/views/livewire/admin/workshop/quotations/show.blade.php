@@ -31,6 +31,7 @@
             </div>
             <div class="flex w-full shrink-0 flex-wrap gap-2 sm:w-auto">
                 <a href="{{ route('admin.workshop.quotations.index') }}" wire:navigate class="btn btn-outline-secondary btn-sm flex-1 sm:flex-none justify-center">Volver</a>
+                @if($quotation->isComplete())
                 @if($can_edit)
                     @if($edit_disabled)
                         <button
@@ -65,6 +66,7 @@
                     class="btn btn-danger btn-sm flex-1 justify-center opacity-50 sm:flex-none">Eliminar</button>
                 @endif
                 @endcan
+                @endif
             </div>
         </div>
     </header>

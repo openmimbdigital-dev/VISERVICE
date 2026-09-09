@@ -16,7 +16,7 @@ class DeleteRemissionAction
 
         $remission = Remission::query()->forAuthUser()->findOrFail($remission_id);
 
-        if ($remission->status?->isTerminal()) {
+        if (! $remission->isEditable()) {
             throw new \RuntimeException('No se puede eliminar una remisión finalizada o cancelada.');
         }
 

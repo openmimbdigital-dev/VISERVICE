@@ -5,8 +5,10 @@ namespace App\Livewire\Admin\Workshop\WorkOrders;
 use App\Actions\Workshop\CreateOrUpdateWorkOrderAction;
 use App\Actions\Workshop\DeleteWorkOrderAction;
 use App\Enums\QuotationStatus;
+use App\Enums\WorkOrderStatus;
 use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
 use App\Livewire\Concerns\ManagesPendingCustomTaxes;
+use App\Livewire\Concerns\TracksWizardProgress;
 use App\Livewire\Forms\Admin\Workshop\WorkOrderForm;
 use App\Models\Client;
 use App\Models\Coupon;
@@ -29,6 +31,7 @@ class Form extends Component
 {
     use ConfirmsDeletionWithLivewireAlert;
     use ManagesPendingCustomTaxes;
+    use TracksWizardProgress;
 
     public WorkOrderForm $form;
 
@@ -38,6 +41,8 @@ class Form extends Component
     public array $items = [];
 
     public ?string $reference = null;
+
+    public ?string $work_order_status = null;
 
     /** Bloquea el select de cotización cuando se abre el form desde una cotización. */
     public bool $quotation_locked = false;
@@ -79,7 +84,11 @@ class Form extends Component
                 ? WorkOrderForm::STEP_GENERAL
                 : max(WorkOrderForm::STEP_GENERAL, min((int) $workOrder->step, WorkOrderForm::TOTAL_STEPS));
             $this->reference = $workOrder->reference;
+            $this->work_order_status = $workOrder->status instanceof WorkOrderStatus
+                ? $workOrder->status->value
+                : (string) $workOrder->status;
             $this->quotation_locked = (bool) $workOrder->quotation_id;
+            $this->syncWizardProgress($workOrder);
             $this->items = $workOrder->items->map(fn ($item) => [
                 'uid'                 => 'woi-'.$item->id,
                 'id'                  => $item->id,
@@ -160,6 +169,41 @@ class Form extends Component
         if (! in_array($this->active_equipment_id, $allowed, true)) {
             $this->active_equipment_id = null;
         }
+    }
+
+    /** @param  list<int>  $equipment_ids */
+    private function resolveCatalogEquipmentId(array $equipment_ids): ?int
+    {
+        $equipment_id = $this->active_equipment_id ? (int) $this->active_equipment_id : null;
+
+        if ($equipment_id && in_array($equipment_id, $equipment_ids, true)) {
+            return $equipment_id;
+        }
+
+        return count($equipment_ids) === 1 ? $equipment_ids[0] : null;
+    }
+
+    private function normalizeItemEquipmentIds(): void
+    {
+        foreach ($this->items as $index => $row) {
+            $id = $row['equipment_id'] ?? null;
+            $this->items[$index]['equipment_id'] = ($id === '' || $id === null || (int) $id <= 0)
+                ? null
+                : (int) $id;
+        }
+    }
+
+    /** @return list<mixed> */
+    private function itemEquipmentRule(): array
+    {
+        $equipment_ids = $this->form->resolvedEquipmentIds();
+        $rules = ['nullable', 'integer'];
+
+        if ($equipment_ids !== []) {
+            $rules[] = Rule::in($equipment_ids);
+        }
+
+        return $rules;
     }
 
     public function updatedFormQuotationId(mixed $value): void
@@ -247,34 +291,10 @@ class Form extends Component
         $this->preview_product_id = null;
     }
 
-    public function addItem(): void
-    {
-        $equipment_ids = $this->form->resolvedEquipmentIds();
-
-        $this->items[] = [
-            'uid'                 => uniqid('wo-item-', true),
-            'id'                  => null,
-            'equipment_id'        => $this->active_equipment_id ?: (count($equipment_ids) === 1 ? $equipment_ids[0] : null),
-            'product_type_id'     => null,
-            'product_id'          => null,
-            'description'         => '',
-            'quantity'            => '1',
-            'unit_price'          => '0',
-            'discount_percentage' => '0',
-            'apply_discount'      => false,
-        ];
-    }
-
     public function addCatalogItem(int $product_id): void
     {
         $equipment_ids = $this->form->resolvedEquipmentIds();
-        $equipment_id  = $this->active_equipment_id ?: (count($equipment_ids) === 1 ? $equipment_ids[0] : null);
-
-        if (! $equipment_id || ! in_array($equipment_id, $equipment_ids, true)) {
-            $this->addError('active_equipment_id', 'Selecciona el equipo al que se aplicará el producto.');
-
-            return;
-        }
+        $equipment_id  = $this->resolveCatalogEquipmentId($equipment_ids);
 
         $catalog = Product::query()
             ->forAuthUser()
@@ -295,7 +315,7 @@ class Form extends Component
 
         foreach ($this->items as $index => $row) {
             $same_product   = (int) ($row['product_id'] ?? 0) === (int) $catalog->id;
-            $same_equipment = (int) ($row['equipment_id'] ?? 0) === $equipment_id;
+            $same_equipment = (int) ($row['equipment_id'] ?? 0) === (int) ($equipment_id ?? 0);
 
             if ($same_product && $same_equipment) {
                 $this->items[$index]['quantity'] = (string) ((float) $this->items[$index]['quantity'] + $quantity);
@@ -537,7 +557,7 @@ class Form extends Component
             'icon'  => 'success',
         ]);
 
-        $this->redirectRoute('admin.workshop.work-orders.index', navigate: true);
+        $this->redirectRoute('admin.workshop.work-orders.show', $work_order, navigate: true);
     }
 
     public function deleteWorkOrder(): void
@@ -578,11 +598,11 @@ class Form extends Component
     /** @return array<string, mixed> */
     protected function itemRules(): array
     {
-        $equipment_ids = $this->form->resolvedEquipmentIds();
+        $this->normalizeItemEquipmentIds();
 
         return [
             'items'                       => ['array'],
-            'items.*.equipment_id'        => ['required', 'integer', Rule::in($equipment_ids)],
+            'items.*.equipment_id'        => $this->itemEquipmentRule(),
             'items.*.description'         => ['required', 'string', 'max:200'],
             'items.*.quantity'            => ['required', 'numeric', 'min:0.01'],
             'items.*.unit_price'          => ['required', 'numeric', 'min:0'],
@@ -679,6 +699,10 @@ class Form extends Component
 
         $this->form->work_order_id = $work_order->id;
         $this->reference           = $work_order->reference;
+        $this->work_order_status   = $work_order->status instanceof WorkOrderStatus
+            ? $work_order->status->value
+            : (string) $work_order->status;
+        $this->syncWizardProgress($work_order);
 
         return $work_order;
     }
@@ -824,24 +848,24 @@ class Form extends Component
                 ->find($this->form->work_order_id);
 
             $linked_remission = $work_order?->remissions->first();
-            $can_create_remission = auth()->user()->can('workshop.remissions.create')
+            $can_create_remission = $this->saved_complete
+                && auth()->user()->can('workshop.remissions.create')
                 && ($work_order?->canReceiveRemission() ?? false)
                 && ! $linked_remission;
         }
 
-        $total_steps   = WorkOrderForm::TOTAL_STEPS;
-        $progress      = (int) round(($this->step / $total_steps) * 100);
-        $radius        = 30;
-        $circumference = round(2 * M_PI * $radius, 2);
+        $status_enum = $this->work_order_status
+            ? WorkOrderStatus::tryFrom($this->work_order_status)
+            : null;
+
+        $total_steps = WorkOrderForm::TOTAL_STEPS;
 
         return view('livewire.admin.workshop.work-orders.form', [
             'is_editing'             => $this->form->isEditing(),
             'from_quotation'         => $from_quotation,
             'step'                   => $this->step,
             'total_steps'            => $total_steps,
-            'progress'               => $progress,
-            'progress_circumference' => $circumference,
-            'progress_offset'        => round($circumference * (1 - $progress / 100), 2),
+            ...$this->wizardProgressViewData($total_steps),
             'steps'                  => [
                 WorkOrderForm::STEP_GENERAL => [
                     'title'       => 'Datos',
@@ -876,7 +900,10 @@ class Form extends Component
             'items_discount_total' => round($items_discount_total, 2),
             'item_line_totals'     => $item_line_totals,
             'item_line_discounts'  => $item_line_discounts,
-            'can_delete'           => $this->form->work_order_id
+            'status_label'         => $status_enum?->label(),
+            'status_badge_class'   => $status_enum?->badgeClass() ?? 'bg-slate-100 text-slate-600 ring-1 ring-slate-500/20',
+            'can_delete'           => $this->saved_complete
+                && $this->form->work_order_id
                 && auth()->user()->can('workshop.work-orders.delete'),
             'can_create_remission' => $can_create_remission,
             'linked_remission'     => $linked_remission,
