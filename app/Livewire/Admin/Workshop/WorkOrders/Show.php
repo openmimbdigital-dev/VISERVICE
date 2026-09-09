@@ -212,13 +212,9 @@ class Show extends Component
 
         $this->workOrder->loadMissing('equipments:id');
         $equipment_ids = $this->workOrder->equipments->pluck('id')->map(fn ($id) => (int) $id)->all();
-        $equipment_id = $this->active_equipment_id ?: (count($equipment_ids) === 1 ? $equipment_ids[0] : null);
-
-        if (! $equipment_id || ! in_array($equipment_id, $equipment_ids, true)) {
-            $this->addError('active_equipment_id', 'Selecciona el equipo al que se aplicará el producto.');
-
-            return;
-        }
+        $equipment_id = $this->active_equipment_id && in_array((int) $this->active_equipment_id, $equipment_ids, true)
+            ? (int) $this->active_equipment_id
+            : (count($equipment_ids) === 1 ? $equipment_ids[0] : null);
 
         $catalog = Product::query()
             ->forAuthUser()
@@ -240,7 +236,11 @@ class Show extends Component
         $existing = WorkOrderItem::query()
             ->where('work_order_id', $this->workOrder->id)
             ->where('product_id', $catalog->id)
-            ->where('equipment_id', $equipment_id)
+            ->when(
+                $equipment_id,
+                fn ($q) => $q->where('equipment_id', $equipment_id),
+                fn ($q) => $q->whereNull('equipment_id')
+            )
             ->first();
 
         if ($existing) {
@@ -364,8 +364,17 @@ class Show extends Component
         $this->workOrder->loadMissing('equipments:id');
         $allowed_equipment_ids = $this->workOrder->equipments->pluck('id')->map(fn ($id) => (int) $id)->all();
 
+        if ($this->item_equipment_id === '' || $this->item_equipment_id === 0) {
+            $this->item_equipment_id = null;
+        }
+
+        $equipment_rule = ['nullable', 'integer'];
+        if ($allowed_equipment_ids !== []) {
+            $equipment_rule[] = Rule::in($allowed_equipment_ids);
+        }
+
         $this->validate([
-            'item_equipment_id' => ['required', 'integer', Rule::in($allowed_equipment_ids)],
+            'item_equipment_id' => $equipment_rule,
             'item_description' => 'required|string|max:255',
             'product_type_id'  => 'nullable|integer|exists:product_types,id',
             'product_id'       => 'nullable|integer|exists:products,id',
@@ -373,7 +382,6 @@ class Show extends Component
             'item_unit_price'  => 'required|numeric|min:0',
             'item_discount'    => 'nullable|numeric|min:0|max:100',
         ], [
-            'item_equipment_id.required' => 'Selecciona el equipo del ítem.',
             'item_equipment_id.in' => 'El equipo seleccionado no pertenece a esta OT.',
         ]);
 
@@ -383,7 +391,7 @@ class Show extends Component
         $subtotal = WorkOrderItem::lineSubtotal($qty, $price, $discount);
 
         $data = [
-            'equipment_id'        => (int) $this->item_equipment_id,
+            'equipment_id'        => $this->item_equipment_id ? (int) $this->item_equipment_id : null,
             'product_id'          => $this->product_id ?: null,
             'product_type_id'     => $this->product_type_id ?: null,
             'description'         => $this->item_description,

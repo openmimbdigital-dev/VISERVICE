@@ -45,7 +45,6 @@ class CreateOrUpdateQuotationAction
         abort_unless(Client::query()->forAuthUser()->whereKey($client_id)->exists(), 422);
 
         $equipment_ids = $this->normalizeEquipmentIds($equipment_ids);
-        abort_unless($equipment_ids !== [], 422, 'Selecciona al menos un equipo.');
         $this->assertEquipmentsBelongToClient($client_id, $equipment_ids);
 
         if (! empty($data['quotation_service_type_id'])) {
@@ -192,6 +191,10 @@ class CreateOrUpdateQuotationAction
     /** @param  list<int>  $equipment_ids */
     private function assertEquipmentsBelongToClient(int $client_id, array $equipment_ids): void
     {
+        if ($equipment_ids === []) {
+            return;
+        }
+
         $count = Equipment::query()
             ->forAuthUser()
             ->where('client_id', $client_id)
@@ -209,7 +212,6 @@ class CreateOrUpdateQuotationAction
     {
         $kept_ids = [];
         $allowed = array_flip($equipment_ids);
-        $default_equipment_id = $equipment_ids[0] ?? null;
         $product_ids = [];
 
         foreach ($items as $row) {
@@ -249,14 +251,12 @@ class CreateOrUpdateQuotationAction
                 abort_unless((int) $product->product_type_id === (int) $row['product_type_id'], 422);
             }
 
-            $equipment_id = ! empty($row['equipment_id'])
-                ? (int) $row['equipment_id']
-                : $default_equipment_id;
+            $equipment_id = ! empty($row['equipment_id']) ? (int) $row['equipment_id'] : null;
 
             abort_unless(
-                $equipment_id !== null && isset($allowed[$equipment_id]),
+                $equipment_id === null || isset($allowed[$equipment_id]),
                 422,
-                'Cada ítem debe asociarse a un equipo de la cotización.'
+                'El equipo del ítem no pertenece a la cotización.'
             );
 
             $qty      = max(0.01, (float) ($row['quantity'] ?? 1));

@@ -139,7 +139,7 @@
                             @error('form.client_id') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                         </div>
                         <div class="sm:col-span-2">
-                            <label class="mb-1.5 block text-xs font-medium text-slate-700">Equipos <span class="text-rose-500">*</span></label>
+                            <label class="mb-1.5 block text-xs font-medium text-slate-700">Equipos</label>
                             @if(! $form->client_id)
                                 <p class="rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-400">Primero selecciona un cliente</p>
                             @elseif($equipment_for_client->isEmpty())
@@ -159,7 +159,7 @@
                             @endif
                             @error('form.equipment_ids') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                             @error('form.equipment_ids.*') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
-                            <p class="mt-1 text-xs text-slate-500">Puedes seleccionar varios equipos. Luego asigna cada ítem a uno de ellos.</p>
+                            <p class="mt-1 text-xs text-slate-500">Opcional. Si seleccionas equipos, puedes asignar cada ítem a uno de ellos.</p>
                         </div>
                         <div>
                             <label class="mb-1.5 block text-xs font-medium text-slate-700">Horas al ingreso</label>
@@ -385,18 +385,16 @@
 
                         @if($selected_equipments->count() > 1)
                         <div>
-                            <label class="mb-1.5 block text-xs font-medium text-slate-700">Equipo activo para nuevos productos <span class="text-rose-500">*</span></label>
+                            <label class="mb-1.5 block text-xs font-medium text-slate-700">Equipo activo para nuevos productos</label>
                             <select wire:model.live="active_equipment_id" class="w-full max-w-sm rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm @error('active_equipment_id') border-rose-400 @enderror">
-                                <option value="">Selecciona un equipo</option>
+                                <option value="">Sin asignar</option>
                                 @foreach($selected_equipments as $equipment)
                                 <option value="{{ $equipment->id }}">{{ $equipment->select_label }}</option>
                                 @endforeach
                             </select>
                             @error('active_equipment_id') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
-                            <p class="mt-1 text-xs text-slate-500">Los productos que agregues del catálogo se asignarán a este equipo.</p>
+                            <p class="mt-1 text-xs text-slate-500">Los productos que agregues del catálogo se asignarán a este equipo. Déjalo vacío para no asociarlos.</p>
                         </div>
-                        @elseif($selected_equipments->isEmpty())
-                        <p class="rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-sm text-amber-800">Selecciona el cliente y al menos un equipo en el paso 1 para poder agregar productos del catálogo.</p>
                         @endif
                     </div>
 

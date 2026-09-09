@@ -450,18 +450,16 @@
 
             @if($workOrder->equipments->count() > 1)
             <div>
-                <label class="mb-1.5 block text-xs font-medium text-slate-700">Equipo activo para nuevos productos <span class="text-rose-500">*</span></label>
+                <label class="mb-1.5 block text-xs font-medium text-slate-700">Equipo activo para nuevos productos</label>
                 <select wire:model.live="active_equipment_id" class="w-full max-w-sm rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm @error('active_equipment_id') border-rose-400 @enderror">
-                    <option value="">Selecciona un equipo</option>
+                    <option value="">Sin asignar</option>
                     @foreach($workOrder->equipments as $equipment)
                     <option value="{{ $equipment->id }}">{{ $equipment->select_label }}</option>
                     @endforeach
                 </select>
                 @error('active_equipment_id') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
-                <p class="mt-1 text-xs text-slate-500">Los productos que agregues del catálogo se asignarán a este equipo.</p>
+                <p class="mt-1 text-xs text-slate-500">Los productos que agregues del catálogo se asignarán a este equipo. Déjalo vacío para no asociarlos.</p>
             </div>
-            @elseif($workOrder->equipments->isEmpty())
-            <p class="rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-sm text-amber-800">Esta OT no tiene equipos asignados. Edita la OT para poder agregar productos.</p>
             @endif
         </div>
 
@@ -586,9 +584,9 @@
         <div class="flex-1 space-y-4 overflow-y-auto px-4 py-5 sm:px-6">
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div class="sm:col-span-2">
-                    <label class="mb-1.5 block text-xs font-medium text-slate-700">Equipo <span class="text-rose-500">*</span></label>
+                    <label class="mb-1.5 block text-xs font-medium text-slate-700">Equipo</label>
                     <select wire:model="item_equipment_id" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm @error('item_equipment_id') border-rose-400 bg-rose-50 @enderror">
-                        <option value="">Asignar a equipo</option>
+                        <option value="">Sin asignar</option>
                         @foreach($workOrder->equipments as $equipment)
                             <option value="{{ $equipment->id }}">{{ $equipment->select_label }}</option>
                         @endforeach

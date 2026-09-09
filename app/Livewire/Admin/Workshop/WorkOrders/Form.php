@@ -171,6 +171,41 @@ class Form extends Component
         }
     }
 
+    /** @param  list<int>  $equipment_ids */
+    private function resolveCatalogEquipmentId(array $equipment_ids): ?int
+    {
+        $equipment_id = $this->active_equipment_id ? (int) $this->active_equipment_id : null;
+
+        if ($equipment_id && in_array($equipment_id, $equipment_ids, true)) {
+            return $equipment_id;
+        }
+
+        return count($equipment_ids) === 1 ? $equipment_ids[0] : null;
+    }
+
+    private function normalizeItemEquipmentIds(): void
+    {
+        foreach ($this->items as $index => $row) {
+            $id = $row['equipment_id'] ?? null;
+            $this->items[$index]['equipment_id'] = ($id === '' || $id === null || (int) $id <= 0)
+                ? null
+                : (int) $id;
+        }
+    }
+
+    /** @return list<mixed> */
+    private function itemEquipmentRule(): array
+    {
+        $equipment_ids = $this->form->resolvedEquipmentIds();
+        $rules = ['nullable', 'integer'];
+
+        if ($equipment_ids !== []) {
+            $rules[] = Rule::in($equipment_ids);
+        }
+
+        return $rules;
+    }
+
     public function updatedFormQuotationId(mixed $value): void
     {
         if (! $value) {
@@ -259,13 +294,7 @@ class Form extends Component
     public function addCatalogItem(int $product_id): void
     {
         $equipment_ids = $this->form->resolvedEquipmentIds();
-        $equipment_id  = $this->active_equipment_id ?: (count($equipment_ids) === 1 ? $equipment_ids[0] : null);
-
-        if (! $equipment_id || ! in_array($equipment_id, $equipment_ids, true)) {
-            $this->addError('active_equipment_id', 'Selecciona el equipo al que se aplicará el producto.');
-
-            return;
-        }
+        $equipment_id  = $this->resolveCatalogEquipmentId($equipment_ids);
 
         $catalog = Product::query()
             ->forAuthUser()
@@ -286,7 +315,7 @@ class Form extends Component
 
         foreach ($this->items as $index => $row) {
             $same_product   = (int) ($row['product_id'] ?? 0) === (int) $catalog->id;
-            $same_equipment = (int) ($row['equipment_id'] ?? 0) === $equipment_id;
+            $same_equipment = (int) ($row['equipment_id'] ?? 0) === (int) ($equipment_id ?? 0);
 
             if ($same_product && $same_equipment) {
                 $this->items[$index]['quantity'] = (string) ((float) $this->items[$index]['quantity'] + $quantity);
@@ -569,11 +598,11 @@ class Form extends Component
     /** @return array<string, mixed> */
     protected function itemRules(): array
     {
-        $equipment_ids = $this->form->resolvedEquipmentIds();
+        $this->normalizeItemEquipmentIds();
 
         return [
             'items'                       => ['array'],
-            'items.*.equipment_id'        => ['required', 'integer', Rule::in($equipment_ids)],
+            'items.*.equipment_id'        => $this->itemEquipmentRule(),
             'items.*.description'         => ['required', 'string', 'max:200'],
             'items.*.quantity'            => ['required', 'numeric', 'min:0.01'],
             'items.*.unit_price'          => ['required', 'numeric', 'min:0'],
