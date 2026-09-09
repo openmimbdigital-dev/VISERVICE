@@ -135,6 +135,13 @@ return [
                 'settings.edit' => 'Editar configuración',
             ],
         ],
+        'guides' => [
+            'name' => 'Guías y documentación',
+            'permissions' => [
+                'guides.view'   => 'Ver guías y documentación',
+                'guides.manage' => 'Crear y editar guías',
+            ],
+        ],
         'settings_event_categories' => [
             'name' => 'Configuración — Categorías de eventos',
             'permissions' => [

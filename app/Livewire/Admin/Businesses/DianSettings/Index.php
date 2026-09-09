@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin\Businesses\DianSettings;
 
 use App\Actions\Business\CreateOrUpdateDianSettingAction;
+use App\Actions\Dian\FetchResolutionFromProviderAction;
 use App\Actions\Dian\RegisterBusinessWithProviderAction;
 use App\Livewire\Forms\Admin\Businesses\DianSettingForm;
 use App\Models\BusinessDianSetting;
@@ -86,6 +87,38 @@ class Index extends Component
 
         $this->dispatch('swal', [
             'title' => $was_editing ? 'Configuración actualizada' : 'Configuración creada',
+            'icon'  => 'success',
+        ]);
+    }
+
+    /** Trae la resolución del proveedor y llena los campos de la configuración. */
+    public function fetchResolution(int $id): void
+    {
+        abort_unless(auth()->user()?->can('dian_settings.edit'), 403);
+
+        $setting = BusinessDianSetting::query()->forAuthUser()->with('business')->findOrFail($id);
+
+        try {
+            $result = FetchResolutionFromProviderAction::run($setting);
+        } catch (DianRequestException|ValidationException $exception) {
+            $this->dispatch('swal', [
+                'title' => 'No se pudo traer la resolución',
+                'text'  => $exception instanceof ValidationException
+                    ? collect($exception->errors())->flatten()->first()
+                    : $exception->getMessage(),
+                'icon'  => 'info',
+            ]);
+
+            return;
+        }
+
+        $this->dispatch('swal', [
+            'title' => $result['fields'] === []
+                ? 'La resolución ya estaba al día'
+                : "Resolución {$result['prefix']} cargada",
+            'text'  => $result['fields'] === []
+                ? 'Los datos del proveedor coinciden con los que ya tenías.'
+                : 'Se actualizaron: '.implode(', ', $result['fields']).'.',
             'icon'  => 'success',
         ]);
     }

@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             RolesAndPermissionsSeeder::class,
             ChurchMinistryRolesSeeder::class,
             MenuSeeder::class,
+            GuidesSeeder::class,
             CountySeeder::class,
             CitySeeder::class,
             OrganizationTypeSeeder::class,
@@ -35,6 +36,10 @@ class DatabaseSeeder extends Seeder
             PublicRoutesAccessSeeder::class,
             EquipmentCatalogSeeder::class,
             ProductCatalogSeeder::class,
+            // Después del catálogo: completa los códigos DANE y UN/ECE de
+            // ciudades y unidades, que se siembran sin ellos.
+            DianCatalogCodesSeeder::class,
+            DianSettingsSeeder::class,
             ProductsSeeder::class,
             BusinessPaymentSettingsSeeder::class,
             QuotationServiceTypesSeeder::class,

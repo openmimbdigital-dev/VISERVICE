@@ -49,6 +49,13 @@
                 </span>
                 @if($can_edit)
                 <button type="button" wire:click="openEdit({{ $setting->id }})" class="btn btn-outline-secondary btn-sm">Editar</button>
+                <button type="button" wire:click="fetchResolution({{ $setting->id }})"
+                    wire:loading.attr="disabled" wire:target="fetchResolution"
+                    title="Consulta al proveedor el prefijo, el rango, la vigencia y la clave técnica de este NIT"
+                    class="btn btn-outline-secondary btn-sm">
+                    <span wire:loading.remove wire:target="fetchResolution">Traer resolución</span>
+                    <span wire:loading wire:target="fetchResolution">Consultando...</span>
+                </button>
                 @if(! $setting->tr_tipo_id)
                 <button type="button" wire:click="confirmRegistration({{ $setting->id }})"
                     wire:loading.attr="disabled" wire:target="registerWithProvider"

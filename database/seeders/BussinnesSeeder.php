@@ -54,7 +54,7 @@ class BussinnesSeeder extends Seeder
                 'logo'             => 'logos/transad-logo.png',
                 'website'          => 'https://www.transad.com.co',
                 'phone_number'     => '+57 1 234 5678',
-                'city_id'          => $bogota?->id,
+                'city_id'          => $barranquilla?->id,
                 'country_id'       => $colombia?->id,
                 'business_type_id'     => $transport_carga['business_type_id'],
                 'organization_type_id' => $transport_carga['organization_type_id'],
