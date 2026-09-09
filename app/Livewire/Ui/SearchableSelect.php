@@ -57,6 +57,10 @@ class SearchableSelect extends Component
     #[Locked]
     public bool $allowCreate = true;
 
+    /** Permite dejar el selector vacío una vez elegida una opción. */
+    #[Locked]
+    public bool $allowClear = true;
+
     public bool $showCreateModal = false;
 
     #[Reactive]
@@ -80,6 +84,7 @@ class SearchableSelect extends Component
         bool $disabled = false,
         mixed $invalid = false,
         bool $allowCreate = true,
+        bool $allowClear = true,
     ): void {
         abort_unless(
             is_subclass_of($modelClass, Model::class)
@@ -100,6 +105,7 @@ class SearchableSelect extends Component
         $this->disabled = $disabled;
         $this->invalid = (bool) $invalid;
         $this->allowCreate = $allowCreate;
+        $this->allowClear = $allowClear;
     }
 
     public function updatedInvalid(mixed $value): void
@@ -119,6 +125,16 @@ class SearchableSelect extends Component
             $this->value = is_numeric($id) ? (int) $id : $id;
         }
         $this->search = '';
+    }
+
+    /** Deshace la selección para poder dejar el campo vacío. */
+    public function clear(): void
+    {
+        if (! $this->allowClear) {
+            return;
+        }
+
+        $this->select(null);
     }
 
     public function openCreateModal(): void
@@ -168,6 +184,7 @@ class SearchableSelect extends Component
             'create_button'    => $create['button'] ?? 'Crear registro',
             'is_searching'     => trim($this->search) !== '',
             'invalid'          => (bool) $this->invalid,
+            'can_clear'        => $this->allowClear && ! $this->disabled && $this->value !== null && $this->value !== '',
         ]);
     }
 
