@@ -84,6 +84,25 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Consumidor final (adquiriente no identificado)
+    |--------------------------------------------------------------------------
+    |
+    | Valores que la DIAN define para facturar a alguien que no se identifica.
+    | El NIT 222222222222 es el reservado para este caso; el tipo de documento
+    | es 13 (cédula de ciudadanía) y la responsabilidad fiscal R-99-PN.
+    |
+    */
+
+    'final_consumer' => [
+        'name'               => 'Consumidor final',
+        'document_number'    => '222222222222',
+        'document_type_code' => '13',
+        'person_type'        => '2', // 2 = persona natural
+        'tax_level_code'     => 'R-99-PN',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Catálogos DIAN para los formularios
     |--------------------------------------------------------------------------
     */

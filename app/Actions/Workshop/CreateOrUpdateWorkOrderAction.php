@@ -61,6 +61,7 @@ class CreateOrUpdateWorkOrderAction
         return DB::transaction(function () use ($business_id, $work_order_id, $client_id, $equipment_ids, $data, $items, $quotation_id, $quotation) {
             $payload = [
                 'client_id'          => $client_id,
+                'bill_to_final_consumer' => (bool) ($data['bill_to_final_consumer'] ?? false),
                 'quotation_id'       => $quotation_id,
                 'step'               => (int) ($data['step'] ?? 1),
                 'final_step'         => (int) ($data['final_step'] ?? WorkOrder::DEFAULT_FINAL_STEP),
@@ -86,6 +87,12 @@ class CreateOrUpdateWorkOrderAction
                     'advance_percentage' => 0,
                     'advance_amount' => 0,
                 ]);
+
+                RecordWorkOrderStatusHistoryAction::run(
+                    work_order: $work_order,
+                    to_status: WorkOrderStatus::Draft,
+                    metadata: ['origin' => $quotation_id ? 'quotation' : 'manual'],
+                );
             }
 
             $work_order->equipments()->sync($equipment_ids);
@@ -122,6 +129,13 @@ class CreateOrUpdateWorkOrderAction
             if ($work_order->isDraft() && $work_order->isComplete()) {
                 $work_order->update(['status' => WorkOrderStatus::Created]);
                 $work_order->refresh();
+
+                RecordWorkOrderStatusHistoryAction::run(
+                    work_order: $work_order,
+                    to_status: WorkOrderStatus::Created,
+                    from_status: WorkOrderStatus::Draft,
+                    metadata: ['origin' => 'wizard_completed'],
+                );
             }
 
             $action = $work_order_id ? 'updated' : 'created';

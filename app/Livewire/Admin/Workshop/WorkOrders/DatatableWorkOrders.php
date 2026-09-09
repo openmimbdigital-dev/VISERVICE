@@ -22,13 +22,36 @@ class DatatableWorkOrders extends LivewireDatatable
 
     public ?int $perPage = 25;
 
+    // Filtros que llegan desde la pantalla de listado. La datatable se remonta
+    // cuando cambian, así que basta con leerlos al construir el query.
+    public string $status_filter = '';
+
+    public ?int $client_filter = null;
+
+    public string $date_from_filter = '';
+
+    public string $date_to_filter = '';
+
+    public string $delivery_filter = '';
+
+    public string $billing_filter = '';
+
     public function builder(): Builder
     {
-        return WorkOrder::query()
+        $query = WorkOrder::query()
             ->forAuthUser()
             ->leftJoin('clients', 'work_orders.client_id', '=', 'clients.id')
             ->select('work_orders.*')
             ->orderByDesc('work_orders.created_at');
+
+        return Index::applyFiltersTo($query, [
+            'status'    => $this->status_filter,
+            'client_id' => $this->client_filter,
+            'date_from' => $this->date_from_filter,
+            'date_to'   => $this->date_to_filter,
+            'delivery'  => $this->delivery_filter,
+            'billing'   => $this->billing_filter,
+        ]);
     }
 
     public function getColumns(): Model|array

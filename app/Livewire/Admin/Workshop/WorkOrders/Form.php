@@ -4,6 +4,7 @@ namespace App\Livewire\Admin\Workshop\WorkOrders;
 
 use App\Actions\Workshop\CreateOrUpdateWorkOrderAction;
 use App\Actions\Workshop\DeleteWorkOrderAction;
+use App\Actions\Workshop\ResolveFinalConsumerClientAction;
 use App\Enums\QuotationStatus;
 use App\Enums\WorkOrderStatus;
 use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
@@ -22,6 +23,7 @@ use App\Support\AppliedTaxesPreview;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
@@ -65,6 +67,8 @@ class Form extends Component
 
     /** Código que el usuario escribe para aplicar un cupón a toda la OT. */
     public string $coupon_input = '';
+
+    public bool $show_equipment_modal = false;
 
     public function mount(?WorkOrder $workOrder = null): void
     {
@@ -117,7 +121,75 @@ class Form extends Component
             }
         }
 
+        // La entrega estimada arranca en hoy para no tener que escribirla siempre.
+        // Va después de la cotización por si algún día esta trae su propia fecha.
+        if (blank($this->form->estimated_delivery)) {
+            $this->form->estimated_delivery = now()->toDateString();
+        }
+
         $this->syncActiveEquipment();
+    }
+
+    public function openEquipmentModal(): void
+    {
+        if (! auth()->user()?->can('workshop.equipment.create') || ! $this->form->client_id) {
+            return;
+        }
+
+        $this->show_equipment_modal = true;
+    }
+
+    #[On('searchable-create-closed')]
+    public function onQuickCreateClosed(?string $modelClass = null): void
+    {
+        if ($modelClass === Equipment::class) {
+            $this->show_equipment_modal = false;
+        }
+    }
+
+    /** El equipo recién creado se marca solo: es lo que el usuario venía a hacer. */
+    #[On('searchable-created')]
+    public function onQuickCreated(int $id, ?string $modelClass = null): void
+    {
+        if ($modelClass !== Equipment::class) {
+            return;
+        }
+
+        $this->show_equipment_modal = false;
+
+        if (! in_array($id, $this->form->equipment_ids, true)) {
+            $this->form->equipment_ids[] = $id;
+        }
+
+        $this->syncActiveEquipment();
+    }
+
+    /**
+     * Al marcar «consumidor final» la OT toma el cliente reservado del negocio,
+     * para no obligar a elegir uno. Al desmarcarla se suelta, salvo que el usuario
+     * hubiera elegido un cliente real, que se conserva.
+     */
+    public function updatedFormBillToFinalConsumer(): void
+    {
+        if ($this->form->quotation_id) {
+            return;
+        }
+
+        if ($this->form->bill_to_final_consumer) {
+            $this->form->applyFinalConsumerClient();
+            $this->updatedFormClientId();
+
+            return;
+        }
+
+        $current = $this->form->client_id
+            ? Client::query()->find($this->form->client_id)
+            : null;
+
+        if (ResolveFinalConsumerClientAction::isFinalConsumer($current)) {
+            $this->form->client_id = null;
+            $this->updatedFormClientId();
+        }
     }
 
     public function updatedFormClientId(): void
@@ -125,6 +197,10 @@ class Form extends Component
         if ($this->form->quotation_id) {
             return;
         }
+
+        // Si quitan el cliente con «consumidor final» marcado, vuelve el reservado:
+        // así el campo nunca queda vacío contradiciendo la casilla.
+        $this->form->applyFinalConsumerClient();
 
         $this->form->equipment_ids = [];
         $this->clearItemEquipmentAssignments();
@@ -719,7 +795,6 @@ class Form extends Component
         $business_id = $this->form->resolvedBusinessId();
         $from_quotation = (bool) $this->form->quotation_id;
 
-        $clients = Client::query()->forAuthUser()->where('status', true)->orderBy('name')->get();
         $accepted_quotations = $this->form->getAcceptedQuotations();
         $product_types = ProductType::query()->visibleToUser()->where('active', true)->orderBy('name')->get();
 
@@ -880,7 +955,6 @@ class Form extends Component
                     'description' => 'Productos y servicios',
                 ],
             ],
-            'clients'              => $clients,
             'accepted_quotations'  => $accepted_quotations,
             'product_types'        => $product_types,
             'catalog_products'     => $catalog_products,
@@ -888,6 +962,9 @@ class Form extends Component
             'preview_product'      => $preview_product,
             'cart_quantities'      => $cart_quantities,
             'cart_products'        => $cart_products,
+            'selected_client_name' => $this->form->client_id
+                ? Client::query()->whereKey($this->form->client_id)->value('name')
+                : null,
             'equipment_for_client' => $equipment_for_client,
             'selected_equipments'  => $selected_equipments,
             'preview_subtotal'     => $subtotal,

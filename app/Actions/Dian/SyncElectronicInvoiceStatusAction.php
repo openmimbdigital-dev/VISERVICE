@@ -2,7 +2,9 @@
 
 namespace App\Actions\Dian;
 
+use App\Actions\Workshop\RecordInvoiceStatusHistoryAction;
 use App\Models\ElectronicInvoice;
+use App\Models\WorkOrderInvoiceStatusHistory;
 use App\Services\Dian\TitanioClient;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -25,6 +27,8 @@ class SyncElectronicInvoiceStatusAction
             ]);
         }
 
+        $previous_status = $electronic_invoice->status;
+
         $summary = TitanioClient::for($electronic_invoice->environment)
             ->forInvoice($electronic_invoice)
             ->transactionSummary((int) $electronic_invoice->transaction_id);
@@ -34,6 +38,23 @@ class SyncElectronicInvoiceStatusAction
         // El motivo de rechazo de la DIAN solo viene en el detalle de la transacción.
         if ($summary['dian_error'] !== null) {
             $electronic_invoice->forceFill(['error_message' => $summary['dian_error']])->save();
+        }
+
+        // Solo se anota cuando la consulta movió el estado: consultar cada rato
+        // no debe llenar la línea de tiempo de pasos repetidos.
+        if ($electronic_invoice->status !== $previous_status && $electronic_invoice->invoice) {
+            RecordInvoiceStatusHistoryAction::run(
+                invoice: $electronic_invoice->invoice,
+                kind: WorkOrderInvoiceStatusHistory::KIND_EMISSION,
+                to_status: $electronic_invoice->status->value,
+                from_status: $previous_status->value,
+                comment: $summary['dian_error'],
+                metadata: [
+                    'document_number' => $electronic_invoice->document_number,
+                    'transaction_id'  => $electronic_invoice->transaction_id,
+                    'provider_timeline' => $summary['timeline'] !== '' ? $summary['timeline'] : null,
+                ],
+            );
         }
 
         return $electronic_invoice->refresh();

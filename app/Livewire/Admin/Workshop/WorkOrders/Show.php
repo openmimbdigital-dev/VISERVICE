@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin\Workshop\WorkOrders;
 
+use App\Actions\Dian\EmitElectronicInvoiceAction;
 use App\Actions\LogEquipmentHistoricalAction;
 use App\Actions\LogUserHistoricalAction;
 use App\Actions\Workshop\AdjustWorkOrderItemQuantityAction;
@@ -10,11 +11,14 @@ use App\Actions\Workshop\CreateWorkOrderInvoiceFromWorkOrderAction;
 use App\Actions\Workshop\UpdateWorkOrderStatusAction;
 use App\Enums\WorkOrderStatus;
 use App\Models\AssociatedDocumentType;
+use App\Models\BusinessDianSetting;
+use App\Models\ElectronicInvoice;
 use App\Models\Product;
 use App\Models\ProductType;
 use App\Models\Status;
 use App\Models\WorkOrder;
 use App\Models\WorkOrderItem;
+use App\Services\Dian\DianRequestException;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
@@ -34,6 +38,12 @@ class Show extends Component
     public bool $showItemModal = false;
 
     public bool $showDocumentModal = false;
+
+    public bool $showInvoiceModal = false;
+
+    public bool $send_to_dian = true;
+
+    public bool $bill_to_final_consumer = false;
 
     public ?int $selected_document_type_id = null;
 
@@ -79,6 +89,14 @@ class Show extends Component
 
     public ?int $active_equipment_id = null;
 
+    /**
+     * Cachés de solo lectura resueltas una vez por petición. No se envían al
+     * navegador: Livewire ignora las propiedades que no son públicas.
+     *
+     * @var array<string, mixed>
+     */
+    private array $resolved_cache = [];
+
     public function mount(WorkOrder $workOrder): void
     {
         abort_unless(auth()->user()?->can('workshop.work-orders.view'), 403);
@@ -92,6 +110,8 @@ class Show extends Component
         $this->status = $workOrder->status instanceof WorkOrderStatus
             ? $workOrder->status->value
             : (string) $workOrder->status;
+
+        $this->bill_to_final_consumer = (bool) $this->workOrder->bill_to_final_consumer;
 
         $equipment_ids = $this->workOrder->equipments->pluck('id')->map(fn ($id) => (int) $id)->values()->all();
         $this->active_equipment_id = count($equipment_ids) === 1 ? $equipment_ids[0] : null;
@@ -706,12 +726,60 @@ class Show extends Component
         ]);
     }
 
+    /**
+     * Facturar la OT.
+     *
+     * Cuando el negocio tiene lista la facturación electrónica se pregunta primero
+     * si además se emite ante la DIAN, para no obligar a entrar a la factura solo
+     * para enviarla. Si no la tiene, se factura de una vez como siempre.
+     */
     public function invoiceWorkOrder(): void
     {
         abort_unless(auth()->user()?->can('workshop.work-orders.edit'), 403);
 
+        if ($this->dianEmissionAvailable()) {
+            // Si al cliente le faltan datos que la DIAN exige, la opción se ofrece
+            // desmarcada: el usuario decide, pero no la activamos por él.
+            $this->send_to_dian = $this->bill_to_final_consumer
+                || EmitElectronicInvoiceAction::missingClientRequirements($this->workOrder->client) === [];
+            $this->showInvoiceModal = true;
+
+            return;
+        }
+
+        $this->createInvoice(send_to_dian: false);
+    }
+
+    public function closeInvoiceModal(): void
+    {
+        $this->showInvoiceModal = false;
+    }
+
+    public function confirmInvoice(): void
+    {
+        abort_unless(auth()->user()?->can('workshop.work-orders.edit'), 403);
+
+        $send = $this->send_to_dian && $this->dianEmissionAvailable();
+
+        $this->showInvoiceModal = false;
+
+        $this->createInvoice(send_to_dian: $send);
+    }
+
+    /**
+     * Genera la factura y, si se pidió, la emite enseguida ante la DIAN.
+     *
+     * La emisión va fuera del guardado de la factura a propósito: si la DIAN o el
+     * proveedor fallan, la factura ya creada se conserva y el envío se reintenta
+     * desde el panel, sin volver a facturar la OT.
+     */
+    private function createInvoice(bool $send_to_dian): void
+    {
         try {
-            $invoice = CreateWorkOrderInvoiceFromWorkOrderAction::run($this->workOrder);
+            $invoice = CreateWorkOrderInvoiceFromWorkOrderAction::run(
+                $this->workOrder,
+                $this->bill_to_final_consumer,
+            );
             $this->workOrder->refresh()->load(['latestInvoice', 'invoices']);
         } catch (ValidationException $exception) {
             $message = collect($exception->errors())->flatten()->first()
@@ -725,10 +793,58 @@ class Show extends Component
             return;
         }
 
+        if (! $send_to_dian) {
+            $this->dispatch('swal', [
+                'title' => "Factura {$invoice->reference} creada",
+                'icon'  => 'success',
+            ]);
+
+            return;
+        }
+
+        try {
+            $electronic_invoice = EmitElectronicInvoiceAction::run($invoice);
+        } catch (DianRequestException|ValidationException $exception) {
+            $reason = $exception instanceof ValidationException
+                ? collect($exception->errors())->flatten()->first()
+                : $exception->getMessage();
+
+            $this->dispatch('swal', [
+                'title' => "Factura {$invoice->reference} creada, pero no se envió a la DIAN",
+                'text'  => $reason.' Puedes reintentar el envío desde el panel DIAN de esta OT.',
+                'icon'  => 'warning',
+            ]);
+
+            return;
+        }
+
         $this->dispatch('swal', [
-            'title' => "Factura {$invoice->reference} creada",
+            'title' => "Factura {$invoice->reference} creada y enviada a la DIAN",
+            'text'  => 'Número autorizado: '.$electronic_invoice->document_number,
             'icon'  => 'success',
         ]);
+    }
+
+    /** ¿Se puede ofrecer el envío a la DIAN al facturar esta OT? */
+    private function dianEmissionAvailable(): bool
+    {
+        if (! auth()->user()?->can('workshop.invoices.dian.send')) {
+            return false;
+        }
+
+        return $this->dianSetting()?->isReadyToEmit() ?? false;
+    }
+
+    private function dianSetting(): ?BusinessDianSetting
+    {
+        // Se consulta varias veces por render (oferta al facturar, panel, avisos).
+        if (! array_key_exists('dian_setting', $this->resolved_cache)) {
+            $this->resolved_cache['dian_setting'] = BusinessDianSetting::query()
+                ->where('business_id', $this->workOrder->business_id)
+                ->first();
+        }
+
+        return $this->resolved_cache['dian_setting'];
     }
 
     public function closeItemModal(): void
@@ -794,6 +910,8 @@ class Show extends Component
             'latestInvoice',
             'invoices',
             'appliedTaxes',
+            'payments',
+            'statusHistories.user:id,first_name,last_name,username',
         ]);
 
         $product_types = ProductType::query()
@@ -903,22 +1021,31 @@ class Show extends Component
             ? $this->workOrder->status->badgeClass()
             : 'bg-slate-100 text-slate-600 ring-1 ring-slate-500/20';
 
-        $status_comments_history = collect($this->workOrder->status_comments ?? [])
-            ->reverse()
-            ->values()
-            ->map(function (array $entry) {
-                $status_enum = WorkOrderStatus::tryFrom($entry['status'] ?? '');
+        $status_timeline = $this->buildStatusTimeline();
+        $status_flow = $this->buildStatusFlow();
+        $items_summary = $this->buildItemsSummary();
+        $lifecycle = $this->buildLifecycle();
 
-                return [
-                    'comment' => $entry['comment'] ?? '',
-                    'status_label' => $status_enum?->label() ?? ($entry['status'] ?? ''),
-                    'user_name' => $entry['user_name'] ?? null,
-                    'changed_at' => ! empty($entry['changed_at'])
-                        ? \Illuminate\Support\Carbon::parse($entry['changed_at'])->format('d/m/Y H:i')
-                        : null,
-                ];
-            })
-            ->all();
+        $dian_setting = $this->dianSetting();
+        $latest_invoice = $this->workOrder->latestInvoice;
+
+        $electronic_invoice = $latest_invoice
+            ? ElectronicInvoice::query()
+                ->forAuthUser()
+                ->where('work_order_invoice_id', $latest_invoice->id)
+                ->first()
+            : null;
+
+        // Lo que impediría emitir, sabido antes de generar la factura: la
+        // configuración del negocio y los datos del cliente de la OT.
+        $dian_missing = $dian_setting
+            ? array_values(array_unique(array_merge(
+                $dian_setting->missingRequirements(),
+                $this->bill_to_final_consumer
+                    ? []
+                    : EmitElectronicInvoiceAction::missingClientRequirements($this->workOrder->client),
+            )))
+            : [];
 
         return view('livewire.admin.workshop.work-orders.show', [
             'product_types' => $product_types,
@@ -943,11 +1070,161 @@ class Show extends Component
             'status_comment_placeholder' => $this->status === WorkOrderStatus::Cancelled->value
                 ? 'Motivo de la cancelación…'
                 : 'Opcional: nota del cambio de estado…',
-            'status_comments_history' => $status_comments_history,
+            'status_timeline' => $status_timeline,
+            'status_flow' => $status_flow,
+            'items_summary' => $items_summary,
+            'lifecycle' => $lifecycle,
             'can_create_remission' => $can_create_remission,
             'linked_remission' => $linked_remission,
             'can_invoice' => $can_invoice,
-            'latest_invoice' => $this->workOrder->latestInvoice,
+            'latest_invoice' => $latest_invoice,
+            'dian_setting' => $dian_setting,
+            'dian_missing' => $dian_missing,
+            'electronic_invoice' => $electronic_invoice,
+            'dian_offer_on_invoice' => $this->dianEmissionAvailable(),
+            'can_view_dian_panel' => auth()->user()->can('workshop.invoices.view'),
         ]);
+    }
+
+    /**
+     * Línea de tiempo de estados, del cambio más reciente al más antiguo.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function buildStatusTimeline(): array
+    {
+        return $this->workOrder->statusHistories
+            ->reverse()
+            ->values()
+            ->map(fn ($history) => [
+                'from_label'    => $history->fromLabel(),
+                'to_label'      => $history->toLabel(),
+                'comment'       => $history->comment,
+                'user_name'     => $history->user_name
+                    ?: trim(($history->user?->first_name ?? '').' '.($history->user?->last_name ?? '')) ?: null,
+                'changed_at'    => $history->created_at?->format('d/m/Y H:i'),
+                'changed_ago'   => $history->created_at?->diffForHumans(),
+                'duration'      => $history->durationLabel(),
+                'is_opening'    => $history->isOpening(),
+                'is_backfilled' => $history->isBackfilled(),
+                'dot_class'     => $this->statusDotClass($history->to_status),
+            ])
+            ->all();
+    }
+
+    /**
+     * Pasos del ciclo de vida de la OT para el indicador de avance.
+     *
+     * Una OT cancelada se sale del ciclo, así que se marcan como alcanzados los
+     * pasos por los que sí pasó y se agrega la cancelación al final.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function buildStatusFlow(): array
+    {
+        $flow = [WorkOrderStatus::Created, WorkOrderStatus::InProgress, WorkOrderStatus::Completed];
+        $current = $this->workOrder->status;
+        $is_cancelled = $current === WorkOrderStatus::Cancelled;
+
+        $visited = $this->workOrder->statusHistories
+            ->map(fn ($history) => $history->to_status?->value)
+            ->filter()
+            ->unique()
+            ->all();
+
+        $current_index = $is_cancelled ? false : array_search($current, $flow, true);
+
+        $steps = [];
+
+        foreach ($flow as $index => $case) {
+            $reached = in_array($case->value, $visited, true)
+                || ($current_index !== false && $index <= $current_index);
+
+            $steps[] = [
+                'label'      => $case->label(),
+                'value'      => $case->value,
+                'reached'    => $reached,
+                'is_current' => ! $is_cancelled && $case === $current,
+                'dot_class'  => $this->statusDotClass($case),
+            ];
+        }
+
+        if ($is_cancelled) {
+            $steps[] = [
+                'label'      => WorkOrderStatus::Cancelled->label(),
+                'value'      => WorkOrderStatus::Cancelled->value,
+                'reached'    => true,
+                'is_current' => true,
+                'dot_class'  => $this->statusDotClass(WorkOrderStatus::Cancelled),
+            ];
+        }
+
+        return $steps;
+    }
+
+    /**
+     * Avance de los ítems: cuánto se completó, se canceló y cuánto sigue pendiente.
+     *
+     * @return array<string, float|int>
+     */
+    private function buildItemsSummary(): array
+    {
+        $items = $this->workOrder->items;
+
+        $total = (float) $items->sum(fn ($item) => (float) $item->quantity);
+        $complete = (float) $items->sum(fn ($item) => (float) $item->quantity_complete);
+        $canceled = (float) $items->sum(fn ($item) => (float) $item->quantity_canceled);
+
+        return [
+            'lines'    => $items->count(),
+            'total'    => $total,
+            'complete' => $complete,
+            'canceled' => $canceled,
+            'pending'  => max(0, $total - $complete - $canceled),
+            'percent'  => $total > 0 ? (int) round(($complete / $total) * 100) : 0,
+        ];
+    }
+
+    /**
+     * Tiempo que la OT lleva —o llevó— en el taller.
+     *
+     * @return array<string, mixed>
+     */
+    private function buildLifecycle(): array
+    {
+        $started_at = $this->workOrder->statusHistories->first()?->created_at
+            ?? $this->workOrder->created_at;
+        $finished_at = $this->workOrder->finalized_at;
+        $until = $finished_at ?? now();
+
+        $elapsed = null;
+
+        if ($started_at) {
+            $days = (int) $started_at->copy()->startOfDay()->diffInDays($until->copy()->startOfDay());
+            $elapsed = match (true) {
+                $days === 0 => 'Menos de 1 día',
+                $days === 1 => '1 día',
+                default => $days.' días',
+            };
+        }
+
+        return [
+            'started_at'  => $started_at?->format('d/m/Y'),
+            'finished_at' => $finished_at?->format('d/m/Y'),
+            'elapsed'     => $elapsed,
+            'is_open'     => $finished_at === null,
+        ];
+    }
+
+    private function statusDotClass(?WorkOrderStatus $status): string
+    {
+        return match ($status) {
+            WorkOrderStatus::Draft => 'bg-amber-400',
+            WorkOrderStatus::Created => 'bg-blue-500',
+            WorkOrderStatus::InProgress => 'bg-yellow-400',
+            WorkOrderStatus::Completed => 'bg-emerald-500',
+            WorkOrderStatus::Cancelled => 'bg-rose-500',
+            default => 'bg-slate-300',
+        };
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Forms\Admin\Workshop;
 
+use App\Actions\Workshop\ResolveFinalConsumerClientAction;
 use App\Enums\QuotationStatus;
 use App\Models\Client;
 use App\Models\CustomTax;
@@ -28,6 +29,9 @@ class WorkOrderForm extends Form
     public ?int $quotation_id = null;
 
     public ?int $client_id = null;
+
+    /** El cliente pidió que la factura no salga a su nombre. */
+    public bool $bill_to_final_consumer = false;
 
     public ?int $coupon_id = null;
 
@@ -59,6 +63,7 @@ class WorkOrderForm extends Form
         $this->work_order_id       = $work_order->id;
         $this->quotation_id        = $work_order->quotation_id;
         $this->client_id           = $work_order->client_id;
+        $this->bill_to_final_consumer = (bool) $work_order->bill_to_final_consumer;
         $this->coupon_id           = $work_order->coupon_id;
         $this->coupon_code         = $work_order->coupon_code ?? '';
         $this->equipment_ids       = $work_order->equipments->pluck('id')->map(fn ($id) => (int) $id)->values()->all();
@@ -123,6 +128,7 @@ class WorkOrderForm extends Form
     public function rulesForStep(int $step): array
     {
         $this->normalizeOptionalFields();
+        $this->applyFinalConsumerClient();
 
         $business_id = $this->resolvedBusinessId();
 
@@ -230,6 +236,7 @@ class WorkOrderForm extends Form
     public function validated(): array
     {
         $this->normalizeOptionalFields();
+        $this->applyFinalConsumerClient();
 
         $this->validate();
 
@@ -278,6 +285,7 @@ class WorkOrderForm extends Form
 
         $data = [
             'quotation_id'        => $this->quotation_id ?: null,
+            'bill_to_final_consumer' => $this->bill_to_final_consumer,
             'coupon_id'           => $this->coupon_id ?: null,
             'diagnosis'           => $this->diagnosis ?: null,
             'estimated_delivery'  => $this->estimated_delivery ?: null,
@@ -317,6 +325,30 @@ class WorkOrderForm extends Form
             ->with(['client:id,name', 'equipments:id,plate,name,brand_name'])
             ->orderByDesc('created_at')
             ->get();
+    }
+
+    /**
+     * Al facturar a consumidor final no se le pide un cliente al usuario: la OT
+     * apunta al cliente reservado del negocio, que es quien recibe el documento.
+     *
+     * Si el usuario ya había elegido un cliente antes de marcar la casilla, ese se
+     * respeta: querrá dejar constancia de quién trajo el equipo.
+     */
+    public function applyFinalConsumerClient(): void
+    {
+        if (! $this->bill_to_final_consumer || $this->client_id) {
+            return;
+        }
+
+        $business_id = $this->resolvedBusinessId();
+
+        // Sin negocio resuelto no hay a quién colgarle el cliente reservado: se
+        // deja vacío y la validación normal pedirá que elijan uno.
+        if ($business_id <= 0) {
+            return;
+        }
+
+        $this->client_id = ResolveFinalConsumerClientAction::run($business_id)->id;
     }
 
     private function normalizeOptionalFields(): void

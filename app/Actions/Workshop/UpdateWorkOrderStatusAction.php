@@ -81,6 +81,16 @@ class UpdateWorkOrderStatusAction
         SyncWorkOrderRemissionsStatusAction::run($work_order, $status);
         $work_order = $work_order->fresh(['client:id,name', 'equipments', 'items', 'statusDefinition', 'remissions']);
 
+        RecordWorkOrderStatusHistoryAction::run(
+            work_order: $work_order,
+            to_status: $status,
+            from_status: $previous_status instanceof WorkOrderStatus
+                ? $previous_status
+                : WorkOrderStatus::tryFrom((string) $previous_status),
+            comment: $comment !== '' ? $comment : null,
+            metadata: ['equipment_ids' => $work_order->equipments->pluck('id')->all()],
+        );
+
         $description = "Cambió el estado de la OT {$work_order->reference} a {$status_record->label}";
         $properties = [
             'from' => $previous_status instanceof WorkOrderStatus

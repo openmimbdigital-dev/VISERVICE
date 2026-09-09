@@ -4,21 +4,42 @@
     x-on:click.outside="open = false"
     x-on:keydown.escape.window="open = false"
 >
-    <button
-        type="button"
-        x-on:click="@if(! $disabled) open = ! open; if (open) $nextTick(() => $refs.search?.focus()) @endif"
-        @disabled($disabled)
-        class="flex w-full items-center justify-between gap-2 rounded-xl border bg-slate-50 px-3.5 py-2.5 text-left text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 disabled:cursor-not-allowed disabled:opacity-60 {{ $invalid ? 'border-rose-400 bg-rose-50' : 'border-slate-200' }}"
-        aria-haspopup="listbox"
-        x-bind:aria-expanded="open"
-    >
-        <span class="min-w-0 flex-1 truncate {{ $selected_label ? 'text-slate-800' : 'text-slate-400' }}">
-            {{ $selected_label ?: $placeholder }}
-        </span>
-        <svg class="h-4 w-4 shrink-0 text-slate-400 transition" x-bind:class="open && 'rotate-180'" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-        </svg>
-    </button>
+    {{-- El botón de limpiar va fuera del disparador: un <button> no puede anidar otro. --}}
+    <div class="relative">
+        <button
+            type="button"
+            x-on:click="@if(! $disabled) open = ! open; if (open) $nextTick(() => $refs.search?.focus()) @endif"
+            @disabled($disabled)
+            class="flex w-full items-center gap-2 rounded-xl border bg-slate-50 py-2.5 pl-3.5 {{ $can_clear ? 'pr-16' : 'pr-10' }} text-left text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 disabled:cursor-not-allowed disabled:opacity-60 {{ $invalid ? 'border-rose-400 bg-rose-50' : 'border-slate-200' }}"
+            aria-haspopup="listbox"
+            x-bind:aria-expanded="open"
+        >
+            <span class="min-w-0 flex-1 truncate {{ $selected_label ? 'text-slate-800' : 'text-slate-400' }}">
+                {{ $selected_label ?: $placeholder }}
+            </span>
+        </button>
+
+        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center gap-1 pr-3">
+            @if($can_clear)
+            <button
+                type="button"
+                wire:click="clear"
+                x-on:click="open = false"
+                title="Quitar la selección"
+                aria-label="Quitar la selección"
+                class="pointer-events-auto rounded-md p-0.5 text-slate-400 transition hover:bg-slate-200/80 hover:text-slate-700"
+            >
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+            <span class="h-4 w-px bg-slate-200" aria-hidden="true"></span>
+            @endif
+            <svg class="h-4 w-4 shrink-0 text-slate-400 transition" x-bind:class="open && 'rotate-180'" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+        </div>
+    </div>
 
     <div
         x-cloak
