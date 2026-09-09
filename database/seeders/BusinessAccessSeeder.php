@@ -103,6 +103,7 @@ class BusinessAccessSeeder extends Seeder
     {
         return [
             'workshop.invoices.view',
+            'workshop.invoices.pay',
         ];
     }
 

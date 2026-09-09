@@ -7,6 +7,7 @@ use App\Enums\WorkOrderStatus;
 use App\Models\WorkOrder;
 use App\Models\WorkOrderInvoice;
 use App\Models\WorkOrderInvoiceItem;
+use App\Models\WorkOrderInvoiceStatusHistory;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
@@ -15,7 +16,10 @@ class CreateWorkOrderInvoiceFromWorkOrderAction
 {
     use AsAction;
 
-    public function handle(WorkOrder $work_order): WorkOrderInvoice
+    /**
+     * @param  bool|null  $bill_to_final_consumer  Si se omite, se hereda de la OT.
+     */
+    public function handle(WorkOrder $work_order, ?bool $bill_to_final_consumer = null): WorkOrderInvoice
     {
         abort_unless(auth()->user()?->can('workshop.work-orders.edit'), 403);
 
@@ -40,13 +44,16 @@ class CreateWorkOrderInvoiceFromWorkOrderAction
             ]);
         }
 
-        return DB::transaction(function () use ($work_order) {
+        $to_final_consumer = $bill_to_final_consumer ?? (bool) $work_order->bill_to_final_consumer;
+
+        return DB::transaction(function () use ($work_order, $to_final_consumer) {
             $work_order->recalculateTotals();
             $work_order->refresh();
 
             $invoice = WorkOrderInvoice::query()->create([
                 'business_id'    => $work_order->business_id,
                 'work_order_id'  => $work_order->id,
+                'bill_to_final_consumer' => $to_final_consumer,
                 'reference'      => WorkOrderInvoice::generateReference($work_order->business_id),
                 'subtotal'       => $work_order->subtotal,
                 'discount_amount' => $work_order->discount_amount,
@@ -70,6 +77,13 @@ class CreateWorkOrderInvoiceFromWorkOrderAction
             }
 
             $invoice = $invoice->fresh(['items.workOrderItem']);
+
+            RecordInvoiceStatusHistoryAction::run(
+                invoice: $invoice,
+                kind: WorkOrderInvoiceStatusHistory::KIND_BILLING,
+                to_status: 'pendiente',
+                metadata: ['origin' => 'work_order', 'work_order_reference' => $work_order->reference],
+            );
 
             LogUserHistoricalAction::run(
                 action: 'created',

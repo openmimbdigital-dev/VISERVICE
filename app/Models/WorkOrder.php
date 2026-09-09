@@ -23,7 +23,7 @@ class WorkOrder extends Model
     public const DEFAULT_FINAL_STEP = 3;
 
     protected $fillable = [
-        'business_id', 'client_id', 'quotation_id', 'step', 'final_step',
+        'business_id', 'client_id', 'bill_to_final_consumer', 'quotation_id', 'step', 'final_step',
         'reference', 'status', 'status_comments',
         'diagnosis', 'work_description', 'observations', 'notes',
         'estimated_delivery', 'subtotal', 'coupon_id', 'coupon_code',
@@ -35,6 +35,7 @@ class WorkOrder extends Model
     {
         return [
             'status'             => WorkOrderStatus::class,
+            'bill_to_final_consumer' => 'boolean',
             'step'               => 'integer',
             'final_step'         => 'integer',
             'status_comments'    => 'array',
@@ -133,6 +134,14 @@ class WorkOrder extends Model
     public function invoices(): HasMany
     {
         return $this->hasMany(WorkOrderInvoice::class);
+    }
+
+    /** Línea de tiempo de estados, del más antiguo al más reciente. */
+    public function statusHistories(): HasMany
+    {
+        return $this->hasMany(WorkOrderStatusHistory::class)
+            ->orderBy('created_at')
+            ->orderBy('id');
     }
 
     public function purchaseOrders(): HasMany

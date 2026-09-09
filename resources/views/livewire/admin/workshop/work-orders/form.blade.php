@@ -156,20 +156,74 @@
                         </div>
 
                         <div class="sm:col-span-2">
-                            <label class="mb-1.5 block text-xs font-medium text-slate-700">Cliente <span class="text-rose-500">*</span></label>
-                            <select wire:model.live="form.client_id" @disabled($from_quotation) class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm disabled:opacity-60 @error('form.client_id') border-rose-400 bg-rose-50 @enderror">
-                                <option value="">Seleccionar cliente</option>
-                                @foreach($clients as $client)<option value="{{ $client->id }}">{{ $client->name }}</option>@endforeach
-                            </select>
+                            <label class="mb-1.5 block text-xs font-medium text-slate-700">
+                                Cliente
+                                @unless($form->bill_to_final_consumer)<span class="text-rose-500">*</span>@endunless
+                            </label>
+                            @if($form->bill_to_final_consumer)
+                            <p class="mb-1.5 text-xs text-slate-500">
+                                Se asignó «{{ config('dian.final_consumer.name') }}» automáticamente. Puedes
+                                cambiarlo por el cliente real si quieres dejar constancia de quién trajo el equipo:
+                                la factura seguirá saliendo a consumidor final.
+                            </p>
+                            @endif
+                            <livewire:ui.searchable-select
+                                wire:model.live="form.client_id"
+                                model-class="App\Models\Client"
+                                :search-by="['document_number']"
+                                label-field="name"
+                                :filters="['status' => true]"
+                                placeholder="Seleccionar cliente"
+                                search-placeholder="Buscar por documento..."
+                                :disabled="$from_quotation"
+                                :invalid="$errors->has('form.client_id')"
+                                :key="'work-order-client-select'"
+                            />
                             @error('form.client_id') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
                         </div>
 
+                        {{-- Facturación a consumidor final: el cliente sigue siendo el de arriba --}}
                         <div class="sm:col-span-2">
-                            <label class="mb-1.5 block text-xs font-medium text-slate-700">Equipos</label>
+                            <label class="flex cursor-pointer items-start gap-3 rounded-xl border px-3.5 py-3 transition {{ $form->bill_to_final_consumer ? 'border-indigo-200 bg-indigo-50/60' : 'border-slate-200 bg-slate-50 hover:bg-white' }}">
+                                <input type="checkbox" wire:model.live="form.bill_to_final_consumer"
+                                    class="mt-0.5 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                                <span class="min-w-0">
+                                    <span class="block text-sm font-medium {{ $form->bill_to_final_consumer ? 'text-indigo-800' : 'text-slate-800' }}">
+                                        Facturar a consumidor final
+                                    </span>
+                                    <span class="mt-0.5 block text-xs text-slate-500">
+                                        Para cuando el cliente no quiere la factura a su nombre. La OT conserva al cliente
+                                        de arriba; solo el documento electrónico sale a nombre de un adquiriente no
+                                        identificado (NIT {{ config('dian.final_consumer.document_number') }}).
+                                    </span>
+                                </span>
+                            </label>
+                        </div>
+
+                        <div class="sm:col-span-2">
+                            <div class="mb-1.5 flex flex-wrap items-center justify-between gap-2">
+                                <label class="block text-xs font-medium text-slate-700">Equipos</label>
+                                @can('workshop.equipment.create')
+                                @if($form->client_id && ! $from_quotation)
+                                <button type="button" wire:click="openEquipmentModal"
+                                    class="inline-flex items-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100">
+                                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                                    Crear equipo
+                                </button>
+                                @endif
+                                @endcan
+                            </div>
                             @if(! $form->client_id)
                                 <p class="rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-400">Primero selecciona un cliente</p>
                             @elseif($equipment_for_client->isEmpty())
-                                <p class="rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-400">Este cliente no tiene equipos activos</p>
+                                <p class="rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-400">
+                                    Este cliente no tiene equipos activos.
+                                    @can('workshop.equipment.create')
+                                    @if(! $from_quotation)
+                                    Usa «Crear equipo» para registrar uno ahora.
+                                    @endif
+                                    @endcan
+                                </p>
                             @else
                                 <div class="max-h-48 space-y-2 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-3 @error('form.equipment_ids') border-rose-400 bg-rose-50 @enderror @error('form.equipment_ids.*') border-rose-400 bg-rose-50 @enderror {{ $from_quotation ? 'opacity-60' : '' }}">
                                     @foreach($equipment_for_client as $equipment)
@@ -730,5 +784,13 @@
             </div>
         </div>
     </div>
+    @endif
+
+    @if($show_equipment_modal && $form->client_id)
+    <livewire:ui.searchable-create.equipment-modal
+        :client-id="$form->client_id"
+        :business-id="$form->resolvedBusinessId()"
+        :client-name="$selected_client_name"
+        :key="'wo-equipment-modal-'.$form->client_id" />
     @endif
 </div>

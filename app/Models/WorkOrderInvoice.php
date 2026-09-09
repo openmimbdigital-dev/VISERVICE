@@ -12,7 +12,7 @@ class WorkOrderInvoice extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'business_id', 'work_order_id', 'reference',
+        'business_id', 'work_order_id', 'bill_to_final_consumer', 'reference',
         'subtotal', 'discount_amount', 'coupon_code',
         'tax_percentage', 'tax_amount', 'total',
         'status', 'due_date', 'paid_at',
@@ -22,6 +22,7 @@ class WorkOrderInvoice extends Model
     protected function casts(): array
     {
         return [
+            'bill_to_final_consumer' => 'boolean',
             'due_date'        => 'date',
             'paid_at'         => 'datetime',
             'subtotal'        => 'decimal:2',
@@ -58,15 +59,31 @@ class WorkOrderInvoice extends Model
         return $this->hasOne(ElectronicInvoice::class);
     }
 
+    /** Línea de tiempo de cobro y emisión, del paso más antiguo al más reciente. */
+    public function statusHistories(): HasMany
+    {
+        return $this->hasMany(WorkOrderInvoiceStatusHistory::class)
+            ->orderBy('created_at')
+            ->orderBy('id');
+    }
+
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    /**
+     * Etiqueta del estado de cobro.
+     *
+     * Dice «de pago» a propósito: una factura ya emitida ante la DIAN sigue
+     * estando pendiente mientras no la paguen, y sin la aclaración se leía como
+     * si no hubiera pasado nada. El estado ante la DIAN va aparte, en
+     * ElectronicInvoiceStatus.
+     */
     public function getStatusLabelAttribute(): string
     {
         return match ($this->status) {
-            'pendiente' => 'Pendiente',
+            'pendiente' => 'Pendiente de pago',
             'pagada'    => 'Pagada',
             'vencida'   => 'Vencida',
             'anulada'   => 'Anulada',

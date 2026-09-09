@@ -10,6 +10,7 @@ use App\Models\WorkOrderItem;
 use App\Support\DianNit;
 use DOMDocument;
 use DOMElement;
+use Illuminate\Support\Collection;
 
 /**
  * Construye el documento en el formato DATASET de TITANIO a partir de una factura
@@ -73,6 +74,7 @@ class InvoiceDocumentBuilder
         $invoice->loadMissing([
             'items.workOrderItem.catalogProduct.unit',
             'workOrder.client.city.country',
+            'workOrder.associatedDocuments',
             'business.city.country',
         ]);
 
@@ -218,7 +220,33 @@ class InvoiceDocumentBuilder
             $notes[] = ['Note' => 'Orden de trabajo '.$invoice->workOrder->reference];
         }
 
+        foreach ($this->billableAssociatedDocuments($invoice) as $document) {
+            $notes[] = ['Note' => trim($document->name).': '.trim((string) $document->value)];
+        }
+
         return $notes !== [] ? $notes : [['Note' => '']];
+    }
+
+    /**
+     * Documentos asociados a la OT que el usuario marcó para facturación.
+     *
+     * Van en las notas del documento y no en el registro ADR
+     * (cac:AdditionalDocumentReference), que es el campo «propio» para referenciar
+     * documentos: el proveedor exige por cada entrada de ADR un Additional_UUID
+     * (el CUDE del documento referenciado), un Additional_IssueDate y un
+     * Additional_DocumentType de su tabla 24, y de un documento asociado solo se
+     * captura el nombre y el valor. Enviarlo incompleto haría rechazar la factura
+     * entera (errores FAI01, FAI02, FAI05 y FAI06).
+     *
+     * @return \Illuminate\Support\Collection<int, \App\Models\WorkOrderAssociatedDocument>
+     */
+    private function billableAssociatedDocuments(WorkOrderInvoice $invoice): Collection
+    {
+        return collect($invoice->workOrder?->associatedDocuments ?? [])
+            ->filter(fn ($document) => (bool) $document->send_invoice
+                && filled($document->name)
+                && filled($document->value))
+            ->values();
     }
 
     /** @return array<string, mixed> */
@@ -247,6 +275,10 @@ class InvoiceDocumentBuilder
     /** @return array<string, mixed> */
     private function customerBlock(WorkOrderInvoice $invoice): array
     {
+        if ($invoice->bill_to_final_consumer) {
+            return $this->finalConsumerBlock();
+        }
+
         $client = $invoice->workOrder?->client;
         $is_company = (int) ($client?->person_type ?: 2) === 1;
 
@@ -275,6 +307,35 @@ class InvoiceDocumentBuilder
         }
 
         return $block;
+    }
+
+    /**
+     * Adquiriente no identificado.
+     *
+     * Sin dígito de verificación: el NIT de consumidor final no lo lleva, y el
+     * esquema tributario va como «No aplica» porque no es responsable de IVA.
+     *
+     * @return array<string, mixed>
+     */
+    private function finalConsumerBlock(): array
+    {
+        $consumer = (array) config('dian.final_consumer');
+
+        return [
+            'CustomerAssignedAccountID' => (string) $consumer['document_number'],
+            'AdditionalAccountID'       => (string) $consumer['person_type'],
+            'PartyName'                 => (string) $consumer['name'],
+            'Physical_ADD_ID'           => self::ADDRESS_CUSTOMER,
+            'Tax_RegistrationName'      => (string) $consumer['name'],
+            'Tax_CompanyID'             => (string) $consumer['document_number'],
+            'Tax_CompanyID_schemeName'  => (string) $consumer['document_type_code'],
+            'Tax_LevelCode'             => (string) $consumer['tax_level_code'],
+            'Tax_LevelCode_listName'    => self::TAX_LEVEL_LIST_NAME,
+            'Tax_Scheme_ID'             => 'ZZ',
+            'Tax_Scheme_Name'           => 'No aplica',
+            'Registration_ADD_ID'       => self::ADDRESS_CUSTOMER,
+            'Contact_ID'                => self::CONTACT_CUSTOMER,
+        ];
     }
 
     /** @return list<array<string, mixed>> */
@@ -385,10 +446,12 @@ class InvoiceDocumentBuilder
     /** @return list<array<string, mixed>> */
     private function deliveryBlocks(WorkOrderInvoice $invoice, BusinessDianSetting $setting): array
     {
-        $client = $invoice->workOrder?->client;
+        // A un consumidor final no se le envía copia: la factura no sale a su nombre
+        // y su correo, si lo hay, es el del cliente que pidió no aparecer.
+        $client = $invoice->bill_to_final_consumer ? null : $invoice->workOrder?->client;
 
         return [[
-            'Nombre'         => (string) $client?->name,
+            'Nombre'         => (string) ($client?->name ?: config('dian.final_consumer.name')),
             'Email'          => (string) ($client?->email ?? ''),
             'Enviar_Email'   => $setting->notify_customer && filled($client?->email),
             'Incluir_Anexos' => $setting->include_attachments,
@@ -401,7 +464,10 @@ class InvoiceDocumentBuilder
     private function addressBlocks(WorkOrderInvoice $invoice): array
     {
         $business = $invoice->business;
-        $client = $invoice->workOrder?->client;
+
+        // El consumidor final no tiene dirección conocida: se usa la del emisor,
+        // que es lo que la DIAN espera para un adquiriente no identificado.
+        $client = $invoice->bill_to_final_consumer ? null : $invoice->workOrder?->client;
 
         return [
             ['ID' => self::ADDRESS_ISSUER] + $this->addressValues(
@@ -411,7 +477,9 @@ class InvoiceDocumentBuilder
             ),
             ['ID' => self::ADDRESS_CUSTOMER] + $this->addressValues(
                 $client?->city ?: $business?->city,
-                (string) ($client?->address ?? ''),
+                $invoice->bill_to_final_consumer
+                    ? (string) ($business?->address ?? '')
+                    : (string) ($client?->address ?? ''),
                 ''
             ),
         ];
@@ -438,9 +506,11 @@ class InvoiceDocumentBuilder
             ],
             [
                 'ID'             => self::CONTACT_CUSTOMER,
-                'Name'           => (string) ($client?->contact_name ?: $client?->name),
-                'Telephone'      => (string) ($client?->phone ?? ''),
-                'ElectronicMail' => (string) ($client?->email ?? ''),
+                'Name'           => $invoice->bill_to_final_consumer
+                    ? (string) config('dian.final_consumer.name')
+                    : (string) ($client?->contact_name ?: $client?->name),
+                'Telephone'      => $invoice->bill_to_final_consumer ? '' : (string) ($client?->phone ?? ''),
+                'ElectronicMail' => $invoice->bill_to_final_consumer ? '' : (string) ($client?->email ?? ''),
                 'Note'           => '',
             ],
         ];
