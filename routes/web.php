@@ -6,6 +6,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BoldWebhookController;
 use App\Http\Controllers\CurrentBusinessController;
 use App\Http\Controllers\ImpersonationController;
+use App\Http\Controllers\PaymentCallbackController;
 use App\Http\Controllers\PaymentProofController;
 use App\Http\Controllers\Workshop\ElectronicInvoiceFileController;
 use App\Http\Controllers\Workshop\WorkshopPdfController;
@@ -170,7 +171,8 @@ Route::get('/', function () {
 */
 Route::post('/webhooks/bold', BoldWebhookController::class)->name('webhooks.bold');
 
-Route::get('/pagos/resultado', fn () => view('payments.callback'))
+Route::get('/pagos/resultado', PaymentCallbackController::class)
+    ->middleware('throttle:60,1')
     ->name('subscriptions.payment.callback');
 
 Route::middleware('guest')->group(function () {
