@@ -85,6 +85,8 @@ class WorkOrderForm extends Form
         $this->equipment_ids = $quotation->equipments->pluck('id')->map(fn ($id) => (int) $id)->values()->all();
         $this->diagnosis    = $quotation->diagnosis ?? '';
         $this->custom_tax_ids = $quotation->appliedCustomTaxIds();
+        $this->coupon_id          = $quotation->coupon_id;
+        $this->coupon_code        = $quotation->coupon_code ?? '';
         $this->advance_percentage = (string) ($quotation->advance_percentage ?? 0);
         $this->advance_amount = (string) ($quotation->advance_amount ?? 0);
         $this->notes          = $quotation->notes ?? '';

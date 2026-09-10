@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin\Workshop\WorkOrders;
 
+use App\Actions\Catalog\ResolveUsableCouponAction;
 use App\Actions\Workshop\CreateOrUpdateWorkOrderAction;
 use App\Actions\Workshop\DeleteWorkOrderAction;
 use App\Actions\Workshop\ResolveFinalConsumerClientAction;
@@ -499,34 +500,20 @@ class Form extends Component
         return rtrim(rtrim(number_format($quantity, 2, '.', ''), '0'), '.') ?: '1';
     }
 
-    /** Busca el cupón por código y lo aplica a toda la OT. */
     public function applyCoupon(): void
     {
         $this->resetValidation('coupon_input');
 
-        $code = Coupon::normalizeCode($this->coupon_input);
-
-        if ($code === '') {
-            $this->addError('coupon_input', 'Escribe el código del cupón.');
-
-            return;
-        }
-
-        $coupon = Coupon::query()
-            ->where('business_id', $this->form->resolvedBusinessId())
-            ->where('code', $code)
-            ->first();
-
-        if (! $coupon) {
-            $this->addError('coupon_input', 'No existe un cupón con ese código.');
-
-            return;
-        }
-
-        $reason = $coupon->unavailableReason($this->previewSubtotal(), $this->form->work_order_id);
-
-        if ($reason !== null) {
-            $this->addError('coupon_input', $reason);
+        try {
+            $coupon = ResolveUsableCouponAction::run(
+                $this->form->resolvedBusinessId(),
+                $this->previewSubtotal(),
+                code: $this->coupon_input,
+                excluded_work_order_id: $this->form->work_order_id,
+                error_key: 'coupon_input',
+            );
+        } catch (ValidationException $exception) {
+            $this->addError('coupon_input', collect($exception->errors())->flatten()->first());
 
             return;
         }

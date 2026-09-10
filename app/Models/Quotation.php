@@ -34,7 +34,8 @@ class Quotation extends Model
         'business_payment_method_id', 'business_bank_account_id',
         'reference', 'status', 'diagnosis', 'hours_entry',
         'validity_days', 'valid_until', 'execution_time',
-        'subtotal', 'tax_amount', 'total',
+        'coupon_id', 'coupon_code', 'subtotal', 'discount_amount',
+        'tax_amount', 'total',
         'advance_percentage', 'advance_amount',
         'notes', 'observations', 'reject_reason',
         'approved_by_name', 'approved_by_position', 'approved_signature',
@@ -53,6 +54,7 @@ class Quotation extends Model
             'accepted_at'     => 'datetime',
             'rejected_at'     => 'datetime',
             'subtotal'        => 'decimal:2',
+            'discount_amount' => 'decimal:2',
             'tax_amount'      => 'decimal:2',
             'total'           => 'decimal:2',
             'advance_percentage' => 'decimal:2',
@@ -110,6 +112,11 @@ class Quotation extends Model
     public function workOrder(): HasOne
     {
         return $this->hasOne(WorkOrder::class);
+    }
+
+    public function coupon(): BelongsTo
+    {
+        return $this->belongsTo(Coupon::class);
     }
 
     public function equipment_historicals(): MorphMany
@@ -177,15 +184,36 @@ class Quotation extends Model
         return strlen($value) >= 5 ? substr($value, 0, 5) : $value;
     }
 
+    public function taxableBase(): float
+    {
+        return max(0, round((float) $this->subtotal - (float) $this->discount_amount, 2));
+    }
+
+    public function appliedTaxableBase(): float
+    {
+        return $this->taxableBase();
+    }
+
     public function recalculateTotals(): void
     {
         $subtotal = round((float) $this->items()->sum('subtotal'), 2);
-        $tax      = $this->refreshAppliedTaxAmounts($subtotal);
+
+        $coupon = $this->coupon_id ? Coupon::find($this->coupon_id) : null;
+
+        $discount = match (true) {
+            (bool) $coupon            => $coupon->discountOn($subtotal),
+            (bool) $this->coupon_code => min($subtotal, round((float) $this->discount_amount, 2)),
+            default                   => 0.0,
+        };
+
+        $base = max(0, round($subtotal - $discount, 2));
+        $tax  = $this->refreshAppliedTaxAmounts($base);
 
         $this->update([
-            'subtotal'   => $subtotal,
-            'tax_amount' => $tax,
-            'total'      => $subtotal + $tax,
+            'subtotal'        => $subtotal,
+            'discount_amount' => $discount,
+            'tax_amount'      => $tax,
+            'total'           => $base + $tax,
         ]);
     }
 

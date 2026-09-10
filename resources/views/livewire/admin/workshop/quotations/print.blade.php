@@ -102,6 +102,10 @@
         <p>Subtotal Otros materiales</p><p class="text-right font-medium">{{ col_money($subtotals['otros']) }}</p>
         <p class="border-t border-slate-200 pt-1">Subtotal</p>
         <p class="border-t border-slate-200 pt-1 text-right font-medium">{{ col_money($quotation->subtotal) }}</p>
+        @if((float) $quotation->discount_amount > 0)
+        <p>Descuento{{ $quotation->coupon_code ? ' ('.$quotation->coupon_code.')' : '' }}</p>
+        <p class="text-right font-medium">−{{ col_money($quotation->discount_amount) }}</p>
+        @endif
         @foreach($quotation->appliedTaxes as $tax)
         <p>{{ $tax->custom_tax_name }} ({{ $tax->percentageLabel() }}%)</p>
         <p class="text-right font-medium">{{ col_money($tax->tax_amount) }}</p>

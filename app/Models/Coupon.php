@@ -51,6 +51,11 @@ class Coupon extends Model
         return $this->hasMany(WorkOrder::class);
     }
 
+    public function quotations(): HasMany
+    {
+        return $this->hasMany(Quotation::class);
+    }
+
     /** El código siempre se guarda y se compara en mayúsculas y sin espacios. */
     public static function normalizeCode(?string $code): string
     {
