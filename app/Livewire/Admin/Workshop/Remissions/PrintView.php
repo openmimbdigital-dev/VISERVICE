@@ -30,6 +30,7 @@ class PrintView extends Component
             'workOrder.items.equipment',
             'workOrder.items.catalogProduct',
             'workOrder.associatedDocuments',
+            'workOrder.appliedTaxes',
             'createdBy',
         ]);
     }

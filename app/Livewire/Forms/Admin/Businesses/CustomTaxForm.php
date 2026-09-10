@@ -14,6 +14,8 @@ class CustomTaxForm extends Form
 
     public ?int $business_id = null;
 
+    public bool $general = false;
+
     public string $name = '';
 
     public string $description = '';
@@ -26,6 +28,7 @@ class CustomTaxForm extends Form
     {
         $this->custom_tax_id = $tax->id;
         $this->business_id   = $tax->business_id;
+        $this->general       = $tax->general;
         $this->name          = $tax->name;
         $this->description   = $tax->description ?? '';
         $this->percentage    = (string) $tax->percentage;
@@ -37,6 +40,7 @@ class CustomTaxForm extends Form
         parent::reset(...$properties);
         $this->custom_tax_id = null;
         $this->business_id   = null;
+        $this->general       = false;
         $this->name          = '';
         $this->description   = '';
         $this->percentage    = '0';
@@ -53,13 +57,25 @@ class CustomTaxForm extends Form
         return auth()->user()?->hasRole('superAdmin') ?? false;
     }
 
-    public function resolvedBusinessId(): int
+    public function resolvedBusinessId(): ?int
     {
         if ($this->isSuperAdmin()) {
-            return (int) $this->business_id;
+            return $this->resolvedGeneral() ? null : ($this->business_id ? (int) $this->business_id : null);
         }
 
-        return (int) (auth()->user()->businessIds()[0] ?? 0);
+        return auth()->user()->businessIds()[0] ?? null;
+    }
+
+    public function resolvedGeneral(): bool
+    {
+        return $this->isSuperAdmin() && $this->general;
+    }
+
+    public function updatedGeneral(bool $value): void
+    {
+        if ($value) {
+            $this->business_id = null;
+        }
     }
 
     public function getBusinesses(): Collection
@@ -77,17 +93,24 @@ class CustomTaxForm extends Form
     public function rules(): array
     {
         $business_id = $this->resolvedBusinessId();
+        $general     = $this->resolvedGeneral();
+
+        $scope = function ($query) use ($business_id, $general) {
+            $query->whereNull('deleted_at');
+
+            if ($general) {
+                $query->whereNull('business_id')->where('general', true);
+            } else {
+                $query->where('business_id', $business_id)->where('general', false);
+            }
+        };
 
         $rules = [
             'name' => [
                 'required',
                 'string',
                 'max:120',
-                Rule::unique('custom_taxes', 'name')
-                    ->where(fn ($query) => $query
-                        ->where('business_id', $business_id)
-                        ->whereNull('deleted_at'))
-                    ->ignore($this->custom_tax_id),
+                Rule::unique('custom_taxes', 'name')->where($scope)->ignore($this->custom_tax_id),
             ],
             'description' => ['nullable', 'string', 'max:500'],
             'percentage'  => ['required', 'numeric', 'min:0', 'max:100'],
@@ -95,7 +118,11 @@ class CustomTaxForm extends Form
         ];
 
         if ($this->isSuperAdmin()) {
-            $rules['business_id'] = ['required', 'integer', 'exists:businesses,id'];
+            $rules['general'] = ['boolean'];
+
+            if (! $general) {
+                $rules['business_id'] = ['required', 'integer', 'exists:businesses,id'];
+            }
         }
 
         return $rules;
@@ -106,7 +133,9 @@ class CustomTaxForm extends Form
         return [
             'business_id.required' => 'Debe seleccionar un negocio.',
             'name.required'        => 'El nombre es obligatorio.',
-            'name.unique'          => 'Ya existe un impuesto con este nombre en el negocio.',
+            'name.unique'          => $this->resolvedGeneral()
+                ? 'Ya existe un impuesto general con este nombre.'
+                : 'Ya existe un impuesto con este nombre en el negocio.',
             'percentage.required'  => 'El porcentaje es obligatorio.',
             'percentage.numeric'   => 'El porcentaje debe ser un número.',
             'percentage.min'       => 'El porcentaje no puede ser negativo.',
@@ -120,6 +149,7 @@ class CustomTaxForm extends Form
 
         return [
             'business_id' => $this->resolvedBusinessId(),
+            'general'     => $this->resolvedGeneral(),
             'name'        => trim($this->name),
             'description' => trim($this->description) !== '' ? trim($this->description) : null,
             'percentage'  => round((float) $this->percentage, 2),

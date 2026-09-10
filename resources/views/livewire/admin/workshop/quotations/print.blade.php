@@ -87,7 +87,7 @@
                 <td class="px-2 py-1">{{ $item->description }}</td>
                 <td class="px-2 py-1 text-right">{{ $item->quantity }}</td>
                 <td class="px-2 py-1 text-right">{{ col_money($item->unit_price) }}</td>
-                <td class="px-2 py-1 text-right">{{ $item->discount_percentage > 0 ? $item->discount_percentage.'%' : '—' }}</td>
+                <td class="px-2 py-1 text-right">{{ $item->discountLabel() ?? '—' }}</td>
                 <td class="px-2 py-1 text-right font-medium">{{ col_money($item->subtotal) }}</td>
             </tr>
             @endforeach
@@ -100,8 +100,16 @@
         <p>Subtotal Repuestos</p><p class="text-right font-medium">{{ col_money($subtotals['repuestos']) }}</p>
         <p>Subtotal Lubricantes</p><p class="text-right font-medium">{{ col_money($subtotals['lubricantes']) }}</p>
         <p>Subtotal Otros materiales</p><p class="text-right font-medium">{{ col_money($subtotals['otros']) }}</p>
+        @if($quotation->itemsDiscountAmount() > 0)
+        <p>Descuentos de productos</p>
+        <p class="text-right font-medium">−{{ col_money($quotation->itemsDiscountAmount()) }}</p>
+        @endif
         <p class="border-t border-slate-200 pt-1">Subtotal</p>
         <p class="border-t border-slate-200 pt-1 text-right font-medium">{{ col_money($quotation->subtotal) }}</p>
+        @if($quotation->couponDiscountAmount() > 0 || $quotation->coupon_code)
+        <p>Descuento{{ $quotation->coupon_code ? ' ('.$quotation->coupon_code.')' : '' }}{{ $quotation->coupon ? ' '.$quotation->coupon->discountLabel() : '' }}</p>
+        <p class="text-right font-medium">−{{ col_money($quotation->couponDiscountAmount()) }}</p>
+        @endif
         @foreach($quotation->appliedTaxes as $tax)
         <p>{{ $tax->custom_tax_name }} ({{ $tax->percentageLabel() }}%)</p>
         <p class="text-right font-medium">{{ col_money($tax->tax_amount) }}</p>

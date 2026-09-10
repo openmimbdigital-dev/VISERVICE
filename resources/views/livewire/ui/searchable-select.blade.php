@@ -58,6 +58,17 @@
                 x-on:keydown.enter.prevent
                 class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
             >
+            @if($can_create)
+            <button
+                type="button"
+                wire:click="openCreateModal"
+                x-on:click="open = false"
+                class="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700"
+            >
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                {{ $create_button }}
+            </button>
+            @endif
         </div>
 
         <ul class="max-h-56 overflow-y-auto py-1">
@@ -76,23 +87,7 @@
                 </button>
             </li>
             @empty
-            @if($can_create)
-            <li class="p-2">
-                <button
-                    type="button"
-                    wire:click="openCreateModal"
-                    x-on:click="open = false"
-                    class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700"
-                >
-                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                    {{ $create_button }}
-                </button>
-            </li>
-            @elseif($is_searching)
-            <li class="px-3 py-3 text-sm text-slate-400">{{ $emptyText }}</li>
-            @else
-            <li class="px-3 py-3 text-sm text-slate-400">No hay registros</li>
-            @endif
+            <li class="px-3 py-3 text-sm text-slate-400">{{ $is_searching ? $emptyText : 'No hay registros' }}</li>
             @endforelse
         </ul>
     </div>

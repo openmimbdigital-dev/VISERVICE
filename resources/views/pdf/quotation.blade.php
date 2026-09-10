@@ -77,7 +77,7 @@
             <td>{{ $item->description }}</td>
             <td class="text-right">{{ $item->quantity }}</td>
             <td class="text-right">{{ col_money($item->unit_price) }}</td>
-            <td class="text-right">{{ $item->discount_percentage > 0 ? $item->discount_percentage.'%' : '—' }}</td>
+            <td class="text-right">{{ $item->discountLabel() ?? '—' }}</td>
             <td class="text-right bold">{{ col_money($item->subtotal) }}</td>
         </tr>
         @endforeach
@@ -89,7 +89,13 @@
     <tr><td>Subtotal Repuestos</td><td class="text-right">{{ col_money($subtotals['repuestos']) }}</td></tr>
     <tr><td>Subtotal Lubricantes</td><td class="text-right">{{ col_money($subtotals['lubricantes']) }}</td></tr>
     <tr><td>Subtotal Otros materiales</td><td class="text-right">{{ col_money($subtotals['otros']) }}</td></tr>
+    @if($quotation->itemsDiscountAmount() > 0)
+    <tr><td>Descuentos de productos</td><td class="text-right">−{{ col_money($quotation->itemsDiscountAmount()) }}</td></tr>
+    @endif
     <tr><td>Subtotal</td><td class="text-right">{{ col_money($quotation->subtotal) }}</td></tr>
+    @if($quotation->couponDiscountAmount() > 0 || $quotation->coupon_code)
+    <tr><td>Descuento{{ $quotation->coupon_code ? ' ('.$quotation->coupon_code.')' : '' }}{{ $quotation->coupon ? ' '.$quotation->coupon->discountLabel() : '' }}</td><td class="text-right">−{{ col_money($quotation->couponDiscountAmount()) }}</td></tr>
+    @endif
     @foreach($quotation->appliedTaxes as $tax)
     <tr><td>{{ $tax->custom_tax_name }} ({{ $tax->percentageLabel() }}%)</td><td class="text-right">{{ col_money($tax->tax_amount) }}</td></tr>
     @endforeach

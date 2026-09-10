@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\ProductType;
 use App\Models\Unit;
+use App\Support\ProductPricing;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Livewire\Form;
@@ -47,7 +48,12 @@ class ProductForm extends Form
 
     public string $profit_percentage = '';
 
+    public string $profit_margin = '';
+
     public string $sale_price = '';
+
+    /** Last pricing field the user edited: percentage, margin or sale. */
+    public string $pricing_source = '';
 
     public string $discount_type = '';
 
@@ -70,6 +76,10 @@ class ProductForm extends Form
         $this->cost_price          = $product->cost_price !== null ? (string) $product->cost_price : '';
         $this->profit_percentage   = $product->profit_percentage !== null ? (string) $product->profit_percentage : '';
         $this->sale_price          = $product->sale_price !== null ? (string) $product->sale_price : '';
+        $this->profit_margin       = $product->profitMarginAmount() !== null
+            ? $this->formatDecimal($product->profitMarginAmount())
+            : '';
+        $this->pricing_source      = '';
         $this->discount_type       = (string) ($product->discount_type ?? '');
         $this->discount_value      = $product->discount_value !== null ? (string) $product->discount_value : '';
         $this->status              = $product->status;
@@ -90,7 +100,9 @@ class ProductForm extends Form
         $this->description         = '';
         $this->cost_price          = '';
         $this->profit_percentage   = '';
+        $this->profit_margin       = '';
         $this->sale_price          = '';
+        $this->pricing_source      = '';
         $this->discount_type       = '';
         $this->discount_value      = '';
         $this->status              = true;
@@ -176,7 +188,7 @@ class ProductForm extends Form
         $step_fields = [
             self::STEP_GENERAL         => ['business_id', 'sku', 'barcode', 'name', 'description'],
             self::STEP_CLASSIFICATION  => ['product_type_id', 'product_category_id', 'unit_id', 'brand_id'],
-            self::STEP_PRICING         => ['cost_price', 'profit_percentage', 'sale_price', 'discount_type', 'discount_value', 'status'],
+            self::STEP_PRICING         => ['cost_price', 'profit_percentage', 'profit_margin', 'sale_price', 'discount_type', 'discount_value', 'status'],
         ];
 
         $error_keys = collect(array_keys($errors))
@@ -211,12 +223,10 @@ class ProductForm extends Form
             'barcode.unique'               => 'Ya existe un producto con este SKU o código de barras en el comercio.',
             'name.required'                => 'El nombre es obligatorio.',
             'name.max'                     => 'El nombre no puede superar 200 caracteres.',
-            'cost_price.required'          => 'El precio de costo es obligatorio.',
             'cost_price.numeric'           => 'El precio de costo debe ser numérico.',
             'cost_price.min'               => 'El precio de costo no puede ser negativo.',
-            'profit_percentage.required'   => 'El porcentaje de ganancia es obligatorio.',
             'profit_percentage.numeric'    => 'El porcentaje de ganancia debe ser numérico.',
-            'profit_percentage.min'        => 'El porcentaje de ganancia no puede ser negativo.',
+            'profit_margin.numeric'        => 'El margen de ganancia debe ser numérico.',
             'discount_type.in'             => 'La forma del descuento no es válida.',
             'discount_value.required'      => 'Indica el valor del descuento o deja la opción «Sin descuento».',
             'discount_value.numeric'       => 'El descuento debe ser numérico.',
@@ -240,40 +250,116 @@ class ProductForm extends Form
             && $this->product_type_id
             && $this->product_category_id
             && $this->unit_id
-            && $this->cost_price !== ''
-            && $this->profit_percentage !== ''
             && $this->sale_price !== '';
     }
 
     public function validated(): array
     {
         $this->normalizeIdentifiers();
-        $this->recalculateSalePrice();
+        $this->syncPricingBeforeValidate();
         $this->validate();
 
         return $this->payload(self::TOTAL_STEPS);
     }
 
-    public function recalculateSalePrice(): void
+    public function applyCostChange(): void
     {
-        if ($this->cost_price === '' || $this->profit_percentage === '' || ! is_numeric($this->cost_price) || ! is_numeric($this->profit_percentage)) {
+        if ($this->forgetPricingIfCleared($this->cost_price)) {
             return;
         }
 
-        $cost    = (float) $this->cost_price;
-        $percent = (float) $this->profit_percentage;
-        $sale    = round($cost * (1 + ($percent / 100)), 2);
+        match ($this->resolvedPricingSource()) {
+            'percentage' => $this->applyFromPercentage(),
+            'margin'     => $this->applyFromMargin(),
+            'sale'       => $this->applyFromSale(),
+            default      => $this->fillMissingDerivedPricing(),
+        };
+    }
 
-        $this->sale_price = number_format($sale, 2, '.', '');
+    public function applyFromPercentage(): void
+    {
+        if ($this->forgetPricingIfCleared($this->profit_percentage)) {
+            return;
+        }
+
+        $this->pricing_source = 'percentage';
+
+        $cost    = $this->parseDecimal($this->cost_price);
+        $percent = $this->parseDecimal($this->profit_percentage);
+
+        if ($cost === null || $percent === null) {
+            return;
+        }
+
+        $pricing = ProductPricing::fromCostAndPercentage($cost, $percent);
+
+        $this->profit_margin = $this->formatDecimal($pricing['profit_margin']);
+        $this->sale_price    = $this->formatDecimal($pricing['sale_price']);
+    }
+
+    public function applyFromMargin(): void
+    {
+        if ($this->forgetPricingIfCleared($this->profit_margin)) {
+            return;
+        }
+
+        $this->pricing_source = 'margin';
+
+        $cost   = $this->parseDecimal($this->cost_price);
+        $margin = $this->parseDecimal($this->profit_margin);
+
+        if ($cost === null || $margin === null) {
+            return;
+        }
+
+        $pricing = ProductPricing::fromCostAndMargin($cost, $margin);
+
+        $this->sale_price = $this->formatDecimal($pricing['sale_price']);
+        $this->profit_percentage = $pricing['profit_percentage'] === null
+            ? ''
+            : $this->formatDecimal($pricing['profit_percentage']);
+    }
+
+    public function applyFromSale(): void
+    {
+        if ($this->forgetPricingIfCleared($this->sale_price)) {
+            return;
+        }
+
+        $this->pricing_source = 'sale';
+
+        $cost = $this->parseDecimal($this->cost_price);
+        $sale = $this->parseDecimal($this->sale_price);
+
+        if ($cost === null || $sale === null) {
+            return;
+        }
+
+        $pricing = ProductPricing::fromCostAndSale($cost, $sale);
+
+        $this->profit_margin = $this->formatDecimal($pricing['profit_margin']);
+        $this->profit_percentage = $pricing['profit_percentage'] === null
+            ? ''
+            : $this->formatDecimal($pricing['profit_percentage']);
+    }
+
+    public function syncPricingBeforeValidate(): void
+    {
+        if ($this->parseDecimal($this->cost_price) === null) {
+            return;
+        }
+
+        match ($this->pricing_source) {
+            'percentage' => $this->applyFromPercentage(),
+            'margin'     => $this->applyFromMargin(),
+            'sale'       => $this->applyFromSale(),
+            default      => $this->fillMissingDerivedPricing(),
+        };
     }
 
     public function profitMarginAmount(): ?float
     {
-        if ($this->cost_price === '' || $this->profit_percentage === '' || ! is_numeric($this->cost_price) || ! is_numeric($this->profit_percentage)) {
-            return null;
-        }
-
-        return round((float) $this->cost_price * ((float) $this->profit_percentage / 100), 2);
+        return $this->parseDecimal($this->profit_margin);
     }
 
     /** @return array<string, mixed> */
@@ -327,8 +413,9 @@ class ProductForm extends Form
     private function pricingRules(): array
     {
         $rules = [
-            'cost_price'        => ['required', 'numeric', 'min:0'],
-            'profit_percentage' => ['required', 'numeric', 'min:0'],
+            'cost_price'        => ['nullable', 'numeric', 'min:0'],
+            'profit_percentage' => ['nullable', 'numeric'],
+            'profit_margin'     => ['nullable', 'numeric'],
             'sale_price'        => ['required', 'numeric', 'min:0'],
             'discount_type'     => ['nullable', Rule::in([Product::DISCOUNT_PERCENTAGE, Product::DISCOUNT_AMOUNT])],
             'status'            => ['boolean'],
@@ -403,5 +490,85 @@ class ProductForm extends Form
             'unit_id'             => ['required', 'integer', Rule::in($unit_ids)],
             'brand_id'            => ['nullable', 'integer', Rule::in($brand_ids)],
         ];
+    }
+
+    private function fillMissingDerivedPricing(): void
+    {
+        $cost    = $this->parseDecimal($this->cost_price);
+        $percent = $this->parseDecimal($this->profit_percentage);
+        $margin  = $this->parseDecimal($this->profit_margin);
+        $sale    = $this->parseDecimal($this->sale_price);
+
+        if ($cost === null) {
+            return;
+        }
+
+        if ($percent !== null && $sale === null) {
+            $this->applyFromPercentage();
+
+            return;
+        }
+
+        if ($sale !== null && $percent === null) {
+            $this->applyFromSale();
+
+            return;
+        }
+
+        if ($margin !== null && ($sale === null || $percent === null)) {
+            $this->applyFromMargin();
+        }
+    }
+
+    private function resolvedPricingSource(): string
+    {
+        if (in_array($this->pricing_source, ['percentage', 'margin', 'sale'], true)) {
+            return $this->pricing_source;
+        }
+
+        if ($this->parseDecimal($this->profit_percentage) !== null) {
+            return 'percentage';
+        }
+
+        if ($this->parseDecimal($this->sale_price) !== null) {
+            return 'sale';
+        }
+
+        if ($this->parseDecimal($this->profit_margin) !== null) {
+            return 'margin';
+        }
+
+        return '';
+    }
+
+    private function forgetPricingIfCleared(string $value): bool
+    {
+        if (trim($value) !== '') {
+            return false;
+        }
+
+        $this->cost_price        = '';
+        $this->profit_percentage = '';
+        $this->profit_margin     = '';
+        $this->sale_price        = '';
+        $this->pricing_source    = '';
+
+        return true;
+    }
+
+    private function parseDecimal(string $value): ?float
+    {
+        $value = trim($value);
+
+        if ($value === '' || ! is_numeric($value)) {
+            return null;
+        }
+
+        return (float) $value;
+    }
+
+    private function formatDecimal(float $value): string
+    {
+        return number_format($value, 2, '.', '');
     }
 }

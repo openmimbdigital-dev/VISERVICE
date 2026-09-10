@@ -482,8 +482,12 @@
                                             class="px-2 py-1.5 text-slate-500 hover:bg-slate-100">+</button>
                                     </div>
                                     <button type="button" wire:click="addCatalogItem({{ $product->id }})" wire:loading.attr="disabled"
-                                        class="btn btn-primary btn-sm min-w-0 flex-1 justify-center !px-2 !py-1.5 !text-xs">
-                                        Agregar
+                                        title="Agregar"
+                                        class="btn btn-primary btn-sm shrink-0 justify-center !px-2 !py-1.5 sm:min-w-0 sm:flex-1">
+                                        <svg class="h-4 w-4 sm:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                        </svg>
+                                        <span class="hidden sm:inline !text-xs">Agregar</span>
                                     </button>
                                     </div>
                                 </div>
@@ -523,6 +527,12 @@
                         <div class="flex justify-between text-xs text-slate-500"><dt>Lubricantes</dt><dd>{{ col_money($category_subtotals['lubricantes']) }}</dd></div>
                         <div class="flex justify-between text-xs text-slate-500"><dt>Otros</dt><dd>{{ col_money($category_subtotals['otros']) }}</dd></div>
                         <div class="flex justify-between border-t border-slate-100 pt-2"><dt class="text-slate-500">Subtotal</dt><dd class="font-medium">{{ col_money($preview_subtotal) }}</dd></div>
+                        @if($applied_coupon)
+                        <div class="flex justify-between text-emerald-700">
+                            <dt>Cupón {{ $applied_coupon->code }}</dt>
+                            <dd class="tabular-nums font-medium">−{{ col_money($coupon_discount) }}</dd>
+                        </div>
+                        @endif
                         <div class="flex justify-between"><dt class="text-slate-500">Anticipo ({{ $form->advance_percentage }}%)</dt><dd class="font-medium text-amber-700">{{ col_money($preview_advance_amount) }}</dd></div>
                         @forelse($applied_tax_lines as $tax)
                         <div class="flex justify-between"><dt class="text-slate-500">{{ $tax['name'] }} ({{ $tax['percentage_label'] }}%)</dt><dd class="font-medium">{{ col_money($tax['amount']) }}</dd></div>
@@ -533,6 +543,35 @@
                     </dl>
 
                     @if($step === 3)
+                    <div class="mt-4 border-t border-slate-100 pt-4">
+                        <h4 class="text-xs font-semibold uppercase tracking-wider text-slate-500">Cupón de descuento</h4>
+
+                        @if($applied_coupon)
+                        <div class="mt-2 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2">
+                            <svg class="h-4 w-4 shrink-0 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <div class="min-w-0 flex-1">
+                                <p class="truncate text-xs font-semibold text-emerald-800">{{ $applied_coupon->code }}</p>
+                                <p class="truncate text-[11px] text-emerald-700">
+                                    {{ $applied_coupon->name ?: 'Descuento de '.$applied_coupon->discountLabel() }} · −{{ col_money($coupon_discount) }}
+                                </p>
+                            </div>
+                            <button type="button" wire:click="removeCoupon" class="shrink-0 rounded-lg p-1 text-emerald-700 transition hover:bg-emerald-100" title="Quitar cupón">
+                                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                            </button>
+                        </div>
+                        @else
+                        <div class="mt-2 flex gap-2">
+                            <input type="text" wire:model="coupon_input" wire:keydown.enter.prevent="applyCoupon" placeholder="Código"
+                                class="w-full rounded-lg border border-slate-200 px-3 py-1.5 text-xs uppercase placeholder:normal-case @error('coupon_input') border-rose-400 @enderror">
+                            <button type="button" wire:click="applyCoupon" wire:loading.attr="disabled" wire:target="applyCoupon"
+                                class="btn btn-secondary btn-sm shrink-0 !px-3 !py-1.5 !text-xs">Aplicar</button>
+                        </div>
+                        @endif
+
+                        @error('coupon_input') <p class="mt-1.5 text-[11px] text-rose-600">{{ $message }}</p> @enderror
+                        @error('coupon_code') <p class="mt-1.5 text-[11px] text-rose-600">{{ $message }}</p> @enderror
+                    </div>
+
                     <div class="mt-4 border-t border-slate-100 pt-4">
                         <div class="flex items-center justify-between">
                             <h4 class="text-xs font-semibold uppercase tracking-wider text-slate-500">Ítems agregados</h4>

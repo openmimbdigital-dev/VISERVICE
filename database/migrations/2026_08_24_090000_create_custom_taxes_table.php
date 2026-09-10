@@ -10,16 +10,18 @@ return new class extends Migration
     {
         Schema::create('custom_taxes', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('business_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('business_id')->nullable()->constrained()->nullOnDelete();
             $table->string('name');
             $table->text('description')->nullable();
             $table->decimal('percentage', 5, 2);
+            $table->boolean('general')->default(false);
             $table->boolean('active')->default(true);
             $table->timestamps();
             $table->softDeletes();
 
             $table->index(['business_id', 'deleted_at', 'name'], 'custom_taxes_business_deleted_name_idx');
             $table->index(['business_id', 'deleted_at', 'active'], 'custom_taxes_business_deleted_active_idx');
+            $table->index(['general', 'deleted_at', 'active'], 'custom_taxes_general_deleted_active_idx');
         });
     }
 

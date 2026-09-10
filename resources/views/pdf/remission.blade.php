@@ -75,6 +75,9 @@
             <th>Descripción</th>
             <th>Tipo</th>
             <th class="text-right">Cant.</th>
+            <th class="text-right">P. Unit.</th>
+            <th class="text-right">Desc.</th>
+            <th class="text-right">Subtotal</th>
             <th class="text-right">Completados</th>
             <th class="text-right">Cancelados</th>
         </tr>
@@ -90,19 +93,23 @@
             </td>
             <td>{{ $item->productType?->name ?? '—' }}</td>
             <td class="text-right bold">{{ $item->quantity + 0 }}</td>
+            <td class="text-right">{{ col_money($item->unit_price) }}</td>
+            <td class="text-right">{{ (float) $item->discount_percentage > 0 ? ($item->discount_percentage + 0).'%' : '—' }}</td>
+            <td class="text-right bold">{{ col_money($item->subtotal) }}</td>
             <td class="text-right">{{ $item->quantity_complete + 0 }}</td>
             <td class="text-right">{{ $item->quantity_canceled + 0 }}</td>
         </tr>
         @empty
         <tr>
-            <td colspan="7" class="muted">Sin ítems en la OT asociada.</td>
+            <td colspan="10" class="muted">Sin ítems en la OT asociada.</td>
         </tr>
         @endforelse
     </tbody>
 </table>
 
 @php
-    $wo_items = $remission->workOrder?->items ?? collect();
+    $wo = $remission->workOrder;
+    $wo_items = $wo?->items ?? collect();
 @endphp
 @if($wo_items->isNotEmpty())
 <p class="text-right bold" style="margin-top:8px;">
@@ -110,6 +117,19 @@
     · Completados: {{ $wo_items->sum(fn ($i) => (float) $i->quantity_complete) + 0 }}
     · Cancelados: {{ $wo_items->sum(fn ($i) => (float) $i->quantity_canceled) + 0 }}
 </p>
+@endif
+
+@if($wo)
+<table class="totals">
+    <tr><td>Subtotal</td><td class="text-right">{{ col_money($wo->subtotal) }}</td></tr>
+    @if((float) $wo->discount_amount > 0)
+    <tr><td>Descuento{{ $wo->coupon_code ? ' ('.$wo->coupon_code.')' : '' }}</td><td class="text-right">−{{ col_money($wo->discount_amount) }}</td></tr>
+    @endif
+    @foreach($wo->appliedTaxes as $tax)
+    <tr><td>{{ $tax->custom_tax_name }} ({{ $tax->percentageLabel() }}%)</td><td class="text-right">{{ col_money($tax->tax_amount) }}</td></tr>
+    @endforeach
+    <tr class="total"><td>TOTAL</td><td class="text-right">{{ col_money($wo->total) }}</td></tr>
+</table>
 @endif
 
 @if($remission->observations)

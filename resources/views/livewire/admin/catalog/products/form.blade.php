@@ -202,37 +202,44 @@
                 <h2 class="font-semibold text-slate-800">Precios</h2>
             </div>
             <div class="grid grid-cols-1 gap-5 p-6 md:grid-cols-2">
+                <p class="md:col-span-2 text-xs text-slate-500">
+                    Con precio de costo puedes completar cualquiera de los otros tres campos y se calculan los restantes. También puedes guardar el producto solo con el precio de venta.
+                </p>
+
                 <div class="relative">
-                    <label class="label-up">Precio de costo <span class="text-rose-500">*</span></label>
-                    <input type="number" step="0.01" min="0" inputmode="decimal" wire:model.live.debounce.400ms="form.cost_price" class="form-input w-full border px-3 py-2 text-sm [-moz-appearance:text-field] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" />
+                    <label class="label-up">Precio de costo</label>
+                    <input type="number" step="0.01" min="0" inputmode="decimal" wire:model.live.debounce.400ms="form.cost_price" class="form-input w-full border px-3 py-2 text-sm tabular-nums [-moz-appearance:text-field] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none @error('form.cost_price') border-rose-400 @enderror" />
+                    <p class="mt-1 text-xs text-slate-500">Necesario para calcular porcentaje, margen y venta.</p>
                     @error('form.cost_price')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
                 </div>
 
                 <div class="relative">
-                    <label class="label-up">Porcentaje de ganancia <span class="text-rose-500">*</span></label>
+                    <label class="label-up">Porcentaje de ganancia</label>
                     <div class="form-input-suffix @error('form.profit_percentage') border-rose-400 @enderror">
-                        <input type="number" step="0.01" min="0" inputmode="decimal"
+                        <input type="number" step="0.01" inputmode="decimal"
                             wire:model.live.debounce.400ms="form.profit_percentage"
-                            class="form-input px-3 py-2 text-sm [-moz-appearance:text-field] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" />
+                            class="form-input px-3 py-2 text-sm tabular-nums [-moz-appearance:text-field] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" />
                         <span class="form-input-suffix-addon">%</span>
                     </div>
+                    <p class="mt-1 text-xs text-slate-500">Con costo: calcula margen y precio de venta.</p>
                     @error('form.profit_percentage')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
                 </div>
 
                 <div class="relative">
                     <label class="label-up">Margen de ganancia</label>
-                    <p class="flex min-h-[42px] items-center rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm tabular-nums font-medium text-slate-800">
-                        {{ $form->profitMarginAmount() !== null ? '$ ' . number_format($form->profitMarginAmount(), 2, ',', '.') : '—' }}
-                    </p>
-                    <p class="mt-1 text-xs text-slate-500">Se calcula como costo × porcentaje.</p>
+                    <input type="number" step="0.01" inputmode="decimal"
+                        wire:model.live.debounce.400ms="form.profit_margin"
+                        class="form-input w-full border px-3 py-2 text-sm tabular-nums [-moz-appearance:text-field] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none @error('form.profit_margin') border-rose-400 @enderror" />
+                    <p class="mt-1 text-xs text-slate-500">Con costo: calcula porcentaje y precio de venta.</p>
+                    @error('form.profit_margin')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
                 </div>
 
                 <div class="relative">
-                    <label class="label-up">Precio de venta</label>
-                    <p class="flex min-h-[42px] items-center rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm tabular-nums font-medium text-slate-800">
-                        {{ $form->sale_price !== '' ? '$ ' . number_format((float) $form->sale_price, 2, ',', '.') : '—' }}
-                    </p>
-                    <p class="mt-1 text-xs text-slate-500">Se calcula como costo + margen.</p>
+                    <label class="label-up">Precio de venta <span class="text-rose-500">*</span></label>
+                    <input type="number" step="0.01" min="0" inputmode="decimal"
+                        wire:model.live.debounce.400ms="form.sale_price"
+                        class="form-input w-full border px-3 py-2 text-sm tabular-nums [-moz-appearance:text-field] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none @error('form.sale_price') border-rose-400 @enderror" />
+                    <p class="mt-1 text-xs text-slate-500">Con costo: calcula porcentaje y margen. Puedes guardar solo este valor.</p>
                     @error('form.sale_price')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
                 </div>
 

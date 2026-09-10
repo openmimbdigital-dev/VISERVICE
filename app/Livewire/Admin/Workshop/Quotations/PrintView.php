@@ -21,7 +21,7 @@ class PrintView extends Component
             'business', 'client', 'equipments', 'quotationServiceType',
             'paymentMethod', 'bankAccount', 'createdBy',
             'items.productType', 'items.productCategory', 'items.catalogProduct', 'items.equipment',
-            'appliedTaxes',
+            'appliedTaxes', 'coupon',
         ]);
     }
 

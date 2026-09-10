@@ -13,6 +13,9 @@
             <th class="px-2 py-1 text-left">Descripción</th>
             <th class="px-2 py-1 text-left">Tipo</th>
             <th class="px-2 py-1 text-right">Cant.</th>
+            <th class="px-2 py-1 text-right">P. Unit.</th>
+            <th class="px-2 py-1 text-right">Desc.</th>
+            <th class="px-2 py-1 text-right">Subtotal</th>
             <th class="px-2 py-1 text-right">Completados</th>
             <th class="px-2 py-1 text-right">Cancelados</th>
         </tr>
@@ -30,12 +33,15 @@
             </td>
             <td class="px-2 py-1">{{ $item->productType?->name ?? '—' }}</td>
             <td class="px-2 py-1 text-right font-medium">{{ $item->quantity + 0 }}</td>
+            <td class="px-2 py-1 text-right">{{ col_money($item->unit_price) }}</td>
+            <td class="px-2 py-1 text-right">{{ (float) $item->discount_percentage > 0 ? ($item->discount_percentage + 0).'%' : '—' }}</td>
+            <td class="px-2 py-1 text-right font-semibold">{{ col_money($item->subtotal) }}</td>
             <td class="px-2 py-1 text-right">{{ $item->quantity_complete + 0 }}</td>
             <td class="px-2 py-1 text-right">{{ $item->quantity_canceled + 0 }}</td>
         </tr>
         @empty
         <tr>
-            <td colspan="7" class="px-2 py-4 text-center text-slate-400">Sin ítems en la OT.</td>
+            <td colspan="10" class="px-2 py-4 text-center text-slate-400">Sin ítems en la OT.</td>
         </tr>
         @endforelse
     </tbody>
@@ -44,6 +50,8 @@
         <tr class="border-t border-slate-300">
             <td colspan="4" class="px-2 py-2 text-right font-semibold">Total ítems</td>
             <td class="px-2 py-2 text-right font-bold">{{ $items->sum(fn ($i) => (float) $i->quantity) + 0 }}</td>
+            <td colspan="2"></td>
+            <td class="px-2 py-2 text-right font-bold">{{ col_money($items->sum(fn ($i) => (float) $i->subtotal)) }}</td>
             <td class="px-2 py-2 text-right font-bold">{{ $items->sum(fn ($i) => (float) $i->quantity_complete) + 0 }}</td>
             <td class="px-2 py-2 text-right font-bold">{{ $items->sum(fn ($i) => (float) $i->quantity_canceled) + 0 }}</td>
         </tr>

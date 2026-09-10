@@ -13,6 +13,12 @@
     <form wire:submit="save" class="flex min-h-0 flex-1 flex-col">
         <div class="flex-1 space-y-4 overflow-y-auto px-4 py-5 sm:px-6">
             @if($is_super_admin)
+            <label class="flex items-center gap-3 rounded-xl border border-indigo-100 bg-indigo-50 px-3.5 py-2.5 text-sm text-indigo-900">
+                <input type="checkbox" wire:model.live="form.general" class="rounded border-indigo-300 text-indigo-600 focus:ring-indigo-500">
+                <span>Impuesto <strong>general</strong> (aplica a todos los negocios)</span>
+            </label>
+
+            @if(! $form->general)
             <div>
                 <label class="mb-1.5 block text-xs font-medium text-slate-700">Negocio <span class="text-rose-500">*</span></label>
                 <select wire:model="form.business_id" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm @error('form.business_id') border-rose-400 bg-rose-50 @enderror">
@@ -23,6 +29,7 @@
                 </select>
                 @error('form.business_id')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
             </div>
+            @endif
             @endif
 
             <div>

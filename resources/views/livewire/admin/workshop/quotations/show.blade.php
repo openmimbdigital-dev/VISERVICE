@@ -271,6 +271,12 @@
                     <div class="flex justify-between text-xs text-slate-500"><dt>Lubricantes</dt><dd>{{ col_money($category_subtotals['lubricantes']) }}</dd></div>
                     <div class="flex justify-between text-xs text-slate-500"><dt>Otros</dt><dd>{{ col_money($category_subtotals['otros']) }}</dd></div>
                     <div class="flex justify-between border-t border-slate-100 pt-2"><dt class="text-slate-500">Subtotal</dt><dd class="font-medium">{{ col_money($quotation->subtotal) }}</dd></div>
+                    @if((float) $quotation->discount_amount > 0)
+                    <div class="flex justify-between text-emerald-700">
+                        <dt>Cupón {{ $quotation->coupon_code }}</dt>
+                        <dd class="font-medium">−{{ col_money($quotation->discount_amount) }}</dd>
+                    </div>
+                    @endif
                     @if((float) $quotation->advance_amount > 0)
                     <div class="flex justify-between"><dt class="text-slate-500">Anticipo ({{ $quotation->advance_percentage }}%)</dt><dd class="font-medium text-amber-700">{{ col_money($quotation->advance_amount) }}</dd></div>
                     @endif

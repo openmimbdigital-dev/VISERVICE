@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin\Workshop\Quotations;
 
+use App\Actions\Catalog\ResolveUsableCouponAction;
 use App\Actions\Workshop\CreateOrUpdateQuotationAction;
 use App\Actions\Workshop\DeleteQuotationAction;
 use App\Enums\QuotationStatus;
@@ -9,6 +10,7 @@ use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
 use App\Livewire\Concerns\ManagesPendingCustomTaxes;
 use App\Livewire\Concerns\TracksWizardProgress;
 use App\Livewire\Forms\Admin\Workshop\QuotationForm;
+use App\Models\Coupon;
 use App\Models\Equipment;
 use App\Models\Product;
 use App\Models\ProductCategory;
@@ -60,6 +62,8 @@ class Form extends Component
     public array $catalog_apply_discount = [];
 
     public ?int $active_equipment_id = null;
+
+    public string $coupon_input = '';
 
     public function mount(?Quotation $quotation = null): void
     {
@@ -359,6 +363,56 @@ class Form extends Component
     private function formatQuantity(float $quantity): string
     {
         return rtrim(rtrim(number_format($quantity, 2, '.', ''), '0'), '.') ?: '1';
+    }
+
+    public function applyCoupon(): void
+    {
+        $this->resetValidation('coupon_input');
+
+        try {
+            $coupon = ResolveUsableCouponAction::run(
+                $this->form->resolvedBusinessId(),
+                $this->previewSubtotal(),
+                code: $this->coupon_input,
+                error_key: 'coupon_input',
+            );
+        } catch (ValidationException $exception) {
+            $this->addError('coupon_input', collect($exception->errors())->flatten()->first());
+
+            return;
+        }
+
+        $this->form->coupon_id   = $coupon->id;
+        $this->form->coupon_code = $coupon->code;
+        $this->coupon_input      = '';
+
+        $this->dispatch('swal', [
+            'title' => "Cupón {$coupon->code} aplicado",
+            'text'  => 'Descuento de '.$coupon->discountLabel().' sobre el subtotal.',
+            'icon'  => 'success',
+        ]);
+    }
+
+    public function removeCoupon(): void
+    {
+        $this->form->coupon_id   = null;
+        $this->form->coupon_code = '';
+        $this->coupon_input      = '';
+        $this->resetValidation('coupon_input');
+    }
+
+    private function previewSubtotal(): float
+    {
+        $subtotal = 0.0;
+
+        foreach ($this->items as $row) {
+            $quantity = (float) ($row['quantity'] ?? 0);
+            $price    = (float) ($row['unit_price'] ?? 0);
+            $discount = (float) ($row['discount_percentage'] ?? 0);
+            $subtotal += round($quantity * $price * (1 - $discount / 100), 2);
+        }
+
+        return round($subtotal, 2);
     }
 
     /** @return array<int, array<string, mixed>> */
@@ -730,11 +784,23 @@ class Form extends Component
 
         $category_subtotals = $this->previewSubtotals($catalog_by_id);
         $subtotal = array_sum($category_subtotals);
-        $applied_tax_lines = AppliedTaxesPreview::lines($this->form->custom_tax_ids, $business_id, $subtotal);
+
+        $applied_coupon = $this->form->coupon_id
+            ? Coupon::query()->where('business_id', $business_id)->find($this->form->coupon_id)
+            : null;
+
+        if ($this->form->coupon_id && ! $applied_coupon) {
+            $this->form->coupon_id   = null;
+            $this->form->coupon_code = '';
+        }
+
+        $coupon_discount = $applied_coupon ? $applied_coupon->discountOn($subtotal) : 0.0;
+        $taxable_base    = max(0, round($subtotal - $coupon_discount, 2));
+        $applied_tax_lines = AppliedTaxesPreview::lines($this->form->custom_tax_ids, $business_id, $taxable_base);
         $tax      = AppliedTaxesPreview::totalAmount($applied_tax_lines);
-        $total    = $subtotal + $tax;
+        $total    = $taxable_base + $tax;
         $advance_pct = (float) ($this->form->advance_percentage ?: 0);
-        $advance_amount = round($subtotal * ($advance_pct / 100), 2);
+        $advance_amount = round($taxable_base * ($advance_pct / 100), 2);
 
         $status_enum = $this->quotation_status
             ? QuotationStatus::tryFrom($this->quotation_status)
@@ -802,6 +868,8 @@ class Form extends Component
             'preview_tax'          => $tax,
             'preview_total'        => $total,
             'preview_advance_amount' => $advance_amount,
+            'applied_coupon'       => $applied_coupon,
+            'coupon_discount'      => $coupon_discount,
             'item_line_discounts'  => $item_line_discounts,
             'items_discount_total' => $items_discount_total,
             'status_label'         => $status_label,

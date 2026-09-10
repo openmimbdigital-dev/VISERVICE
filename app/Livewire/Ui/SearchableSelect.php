@@ -284,7 +284,20 @@ class SearchableSelect extends Component
                 continue;
             }
 
-            $query->where($this->qualify($this->assertField((string) $column)), $value);
+            $column = $this->assertField((string) $column);
+
+            if ($column === 'business_id' && $this->modelIncludesGeneral()) {
+                $business_id = (int) $value;
+
+                $query->where(function (Builder $q) use ($business_id) {
+                    $q->where($this->qualify('business_id'), $business_id)
+                        ->orWhere($this->qualify('general'), true);
+                });
+
+                continue;
+            }
+
+            $query->where($this->qualify($column), $value);
         }
 
         return $query;
@@ -313,6 +326,15 @@ class SearchableSelect extends Component
             'label' => $label,
             'hint'  => implode(' · ', $hints),
         ];
+    }
+
+    protected function modelIncludesGeneral(): bool
+    {
+        /** @var Model $model */
+        $model = new $this->modelClass;
+
+        return array_key_exists('general', $model->getCasts())
+            || in_array('general', $model->getFillable(), true);
     }
 
     protected function qualify(string $field): string

@@ -117,13 +117,14 @@ class CreateOrUpdateQuotationAction
             $quotation->syncValidUntil();
             $quotation->save();
             $this->syncItems($quotation, $items, $equipment_ids);
+            ApplyCouponToDocumentAction::run($quotation, isset($data['coupon_id']) ? (int) $data['coupon_id'] : null, $business_id);
             SyncAppliedTaxesAction::run($quotation, $custom_tax_ids, $business_id, 0);
             $quotation->recalculateTotals();
 
             $advance_percentage = (float) ($data['advance_percentage'] ?? 0);
             $quotation->update([
                 'advance_percentage' => $advance_percentage,
-                'advance_amount'     => round((float) $quotation->subtotal * ($advance_percentage / 100), 2),
+                'advance_amount'     => round($quotation->taxableBase() * ($advance_percentage / 100), 2),
             ]);
 
             $quotation = $quotation->fresh([
@@ -145,6 +146,8 @@ class CreateOrUpdateQuotationAction
                 'status'         => $quotation->status?->value ?? $quotation->status,
                 'client_id'      => $quotation->client_id,
                 'equipment_ids'  => $quotation->equipments->pluck('id')->all(),
+                'coupon_code'    => $quotation->coupon_code,
+                'discount_amount' => $quotation->discount_amount,
                 'total'          => $quotation->total,
                 'items_count'    => $quotation->items->count(),
                 'advance_percentage' => $quotation->advance_percentage,

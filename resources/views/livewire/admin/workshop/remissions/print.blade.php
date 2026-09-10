@@ -83,6 +83,31 @@
         'variant' => 'compact',
     ])
 
+    @if($remission->workOrder)
+    <section class="mt-4 ml-auto w-full max-w-sm text-xs">
+        <div class="flex justify-between border-b border-slate-100 py-1">
+            <span class="text-slate-500">Subtotal</span>
+            <span class="font-medium">{{ col_money($remission->workOrder->subtotal) }}</span>
+        </div>
+        @if((float) $remission->workOrder->discount_amount > 0)
+        <div class="flex justify-between border-b border-slate-100 py-1">
+            <span class="text-slate-500">Descuento{{ $remission->workOrder->coupon_code ? ' ('.$remission->workOrder->coupon_code.')' : '' }}</span>
+            <span class="font-medium">−{{ col_money($remission->workOrder->discount_amount) }}</span>
+        </div>
+        @endif
+        @foreach($remission->workOrder->appliedTaxes as $tax)
+        <div class="flex justify-between border-b border-slate-100 py-1">
+            <span class="text-slate-500">{{ $tax->custom_tax_name }} ({{ $tax->percentageLabel() }}%)</span>
+            <span class="font-medium">{{ col_money($tax->tax_amount) }}</span>
+        </div>
+        @endforeach
+        <div class="flex justify-between py-2 text-sm font-bold">
+            <span>TOTAL</span>
+            <span>{{ col_money($remission->workOrder->total) }}</span>
+        </div>
+    </section>
+    @endif
+
     @if($remission->observations)
     <section class="mt-4 rounded border border-slate-200 p-2 text-xs">
         <p class="font-semibold">Observaciones</p>

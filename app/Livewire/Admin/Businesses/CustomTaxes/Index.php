@@ -100,8 +100,9 @@ class Index extends Component
             'is_super_admin' => $this->form->isSuperAdmin(),
             'businesses'     => $this->form->getBusinesses(),
             'stats'          => [
-                'total'  => (clone $query)->count(),
-                'active' => (clone $query)->where('active', true)->count(),
+                'total'   => (clone $query)->count(),
+                'active'  => (clone $query)->where('active', true)->count(),
+                'general' => (clone $query)->where('general', true)->count(),
             ],
         ]);
     }

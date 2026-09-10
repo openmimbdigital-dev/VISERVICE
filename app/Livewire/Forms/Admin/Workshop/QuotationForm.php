@@ -45,6 +45,10 @@ class QuotationForm extends Form
 
     public string $execution_time = '';
 
+    public ?int $coupon_id = null;
+
+    public string $coupon_code = '';
+
     public string $advance_percentage = '0';
 
     public string $notes = '';
@@ -66,6 +70,8 @@ class QuotationForm extends Form
         $this->diagnosis                 = $quotation->diagnosis ?? '';
         $this->validity_days             = (string) ($quotation->validity_days ?? 15);
         $this->execution_time            = $quotation->execution_time ?? '';
+        $this->coupon_id                 = $quotation->coupon_id;
+        $this->coupon_code               = $quotation->coupon_code ?? '';
         $this->advance_percentage        = (string) ($quotation->advance_percentage ?? 0);
         $this->notes                     = $quotation->notes ?? '';
         $this->observations              = $quotation->observations ?? '';
@@ -158,7 +164,10 @@ class QuotationForm extends Form
                 'custom_tax_ids.*' => [
                     'integer',
                     Rule::exists('custom_taxes', 'id')->where(fn ($q) => $q
-                        ->where('business_id', $business_id)
+                        ->where(function ($inner) use ($business_id) {
+                            $inner->where('business_id', $business_id)
+                                ->orWhere('general', true);
+                        })
                         ->whereNull('deleted_at')),
                 ],
                 'validity_days'      => ['required', 'integer', 'min:1', 'max:365'],
@@ -180,7 +189,7 @@ class QuotationForm extends Form
                 'custom_tax_ids', 'validity_days', 'execution_time',
                 'advance_percentage', 'diagnosis', 'observations',
             ],
-            self::STEP_ITEMS => ['items'],
+            self::STEP_ITEMS => ['items', 'coupon_code', 'coupon_id'],
         ];
 
         $error_keys = collect(array_keys($errors))
@@ -213,6 +222,7 @@ class QuotationForm extends Form
             'advance_percentage.numeric' => 'El anticipo debe ser un número.',
             'advance_percentage.min' => 'El anticipo no puede ser negativo.',
             'advance_percentage.max' => 'El anticipo no puede superar el 100%.',
+            'coupon_code'            => 'El cupón no se puede aplicar.',
         ];
     }
 
@@ -222,6 +232,8 @@ class QuotationForm extends Form
         $this->quotation_id = null;
         $this->equipment_ids = [];
         $this->custom_tax_ids = [];
+        $this->coupon_id = null;
+        $this->coupon_code = '';
         $this->hours_entry = $this->defaultHoursEntry();
         $this->validity_days = '15';
         $this->advance_percentage = '0';
@@ -245,7 +257,7 @@ class QuotationForm extends Form
         if ($custom_tax_ids !== []) {
             $count = CustomTax::query()
                 ->forAuthUser()
-                ->where('business_id', $this->resolvedBusinessId())
+                ->availableForBusiness($this->resolvedBusinessId())
                 ->whereIn('id', $custom_tax_ids)
                 ->count();
 
@@ -292,6 +304,7 @@ class QuotationForm extends Form
             'diagnosis'                  => $this->diagnosis ?: null,
             'validity_days'              => (int) ($this->validity_days ?: 15),
             'execution_time'             => $this->execution_time ?: null,
+            'coupon_id'                  => $this->coupon_id ?: null,
             'advance_percentage'         => $this->advance_percentage !== '' ? $this->advance_percentage : 0,
             'notes'                      => $this->notes ?: null,
             'observations'               => $this->observations ?: null,
