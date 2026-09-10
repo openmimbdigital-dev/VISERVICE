@@ -97,7 +97,7 @@
             <td>{{ $item->productType?->name ?? '—' }}</td>
             <td class="text-right">{{ $item->quantity }}</td>
             <td class="text-right">{{ col_money($item->unit_price) }}</td>
-            <td class="text-right">{{ $item->discount_percentage > 0 ? $item->discount_percentage.'%' : '—' }}</td>
+            <td class="text-right">{{ $item->discountLabel() ?? '—' }}</td>
             <td class="text-right bold">{{ col_money($item->subtotal) }}</td>
         </tr>
         @endforeach
@@ -105,9 +105,12 @@
 </table>
 
 <table class="totals">
+    @if($workOrder->itemsDiscountAmount() > 0)
+    <tr><td>Descuentos de productos</td><td class="text-right">−{{ col_money($workOrder->itemsDiscountAmount()) }}</td></tr>
+    @endif
     <tr><td>Subtotal</td><td class="text-right">{{ col_money($workOrder->subtotal) }}</td></tr>
-    @if((float) $workOrder->discount_amount > 0)
-    <tr><td>Descuento{{ $workOrder->coupon_code ? ' ('.$workOrder->coupon_code.')' : '' }}</td><td class="text-right">−{{ col_money($workOrder->discount_amount) }}</td></tr>
+    @if($workOrder->couponDiscountAmount() > 0 || $workOrder->coupon_code)
+    <tr><td>Descuento{{ $workOrder->coupon_code ? ' ('.$workOrder->coupon_code.')' : '' }}{{ $workOrder->coupon ? ' '.$workOrder->coupon->discountLabel() : '' }}</td><td class="text-right">−{{ col_money($workOrder->couponDiscountAmount()) }}</td></tr>
     @endif
     @foreach($workOrder->appliedTaxes as $tax)
     <tr><td>{{ $tax->custom_tax_name }} ({{ $tax->percentageLabel() }}%)</td><td class="text-right">{{ col_money($tax->tax_amount) }}</td></tr>

@@ -106,7 +106,7 @@
                 <td class="px-2 py-1">{{ $item->productType?->name ?? '—' }}</td>
                 <td class="px-2 py-1 text-right">{{ $item->quantity }}</td>
                 <td class="px-2 py-1 text-right">{{ col_money($item->unit_price) }}</td>
-                <td class="px-2 py-1 text-right">{{ $item->discount_percentage > 0 ? $item->discount_percentage.'%' : '—' }}</td>
+                <td class="px-2 py-1 text-right">{{ $item->discountLabel() ?? '—' }}</td>
                 <td class="px-2 py-1 text-right font-medium">{{ col_money($item->subtotal) }}</td>
             </tr>
             @endforeach
@@ -114,9 +114,12 @@
     </table>
 
     <section class="mt-4 ml-auto max-w-xs space-y-1 text-xs">
+        @if($workOrder->itemsDiscountAmount() > 0)
+        <div class="flex justify-between"><span>Descuentos de productos</span><span class="font-medium">−{{ col_money($workOrder->itemsDiscountAmount()) }}</span></div>
+        @endif
         <div class="flex justify-between"><span>Subtotal</span><span class="font-medium">{{ col_money($workOrder->subtotal) }}</span></div>
-        @if((float) $workOrder->discount_amount > 0)
-        <div class="flex justify-between"><span>Descuento{{ $workOrder->coupon_code ? ' ('.$workOrder->coupon_code.')' : '' }}</span><span class="font-medium">−{{ col_money($workOrder->discount_amount) }}</span></div>
+        @if($workOrder->couponDiscountAmount() > 0 || $workOrder->coupon_code)
+        <div class="flex justify-between"><span>Descuento{{ $workOrder->coupon_code ? ' ('.$workOrder->coupon_code.')' : '' }}{{ $workOrder->coupon ? ' '.$workOrder->coupon->discountLabel() : '' }}</span><span class="font-medium">−{{ col_money($workOrder->couponDiscountAmount()) }}</span></div>
         @endif
         @foreach($workOrder->appliedTaxes as $tax)
         <div class="flex justify-between"><span>{{ $tax->custom_tax_name }} ({{ $tax->percentageLabel() }}%)</span><span class="font-medium">{{ col_money($tax->tax_amount) }}</span></div>

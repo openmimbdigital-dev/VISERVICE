@@ -414,6 +414,7 @@ class WorkOrdersSeeder extends Seeder
             [
                 'percentage'  => 19,
                 'active'      => true,
+                'general'     => false,
                 'description' => 'Impuesto al valor agregado',
             ]
         );

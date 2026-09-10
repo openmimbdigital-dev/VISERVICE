@@ -222,6 +222,23 @@ class WorkOrder extends Model
      * Subtotal ya descontado el cupón: es la base sobre la que se calculan el
      * IVA, el anticipo y el total.
      */
+    public function couponDiscountAmount(): float
+    {
+        $stored = round((float) $this->discount_amount, 2);
+
+        if ($stored > 0) {
+            return $stored;
+        }
+
+        if (! $this->coupon_id) {
+            return 0.0;
+        }
+
+        $coupon = $this->relationLoaded('coupon') ? $this->coupon : Coupon::find($this->coupon_id);
+
+        return $coupon ? $coupon->discountOn((float) $this->subtotal) : 0.0;
+    }
+
     public function taxableBase(): float
     {
         return max(0, round((float) $this->subtotal - (float) $this->discount_amount, 2));

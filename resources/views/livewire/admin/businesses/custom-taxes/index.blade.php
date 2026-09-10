@@ -14,7 +14,7 @@
             <div class="min-w-0 flex-1 border-l-4 border-indigo-600 pl-4 sm:pl-5">
                 <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-indigo-600/90">Negocios</p>
                 <h1 class="mt-2 text-2xl font-bold tracking-tight text-slate-900">Impuestos personalizados</h1>
-                <p class="mt-2 max-w-xl text-sm text-slate-600">Define impuestos propios del negocio (nombre, descripción y porcentaje) para usarlos en documentos.</p>
+                <p class="mt-2 max-w-xl text-sm text-slate-600">Define impuestos propios del negocio (nombre, descripción y porcentaje) para usarlos en documentos. Los impuestos generales aplican a todos los negocios y solo el superAdmin puede modificarlos.</p>
             </div>
             @can('custom_taxes.create')
             <x-ui.create-button wire:click="openCreate" class="w-full justify-center sm:w-auto">Nuevo impuesto</x-ui.create-button>
@@ -22,7 +22,7 @@
         </div>
     </header>
 
-    <div class="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <div class="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <div class="rounded-2xl border border-slate-200/90 bg-white px-4 py-4 shadow-sm ring-1 ring-slate-900/[0.035]">
             <p class="text-xs font-medium text-slate-500">Total</p>
             <p class="mt-1 text-2xl font-bold text-slate-900">{{ $stats['total'] }}</p>
@@ -30,6 +30,10 @@
         <div class="rounded-2xl border border-slate-200/90 bg-white px-4 py-4 shadow-sm ring-1 ring-slate-900/[0.035]">
             <p class="text-xs font-medium text-slate-500">Activos</p>
             <p class="mt-1 text-2xl font-bold text-emerald-700">{{ $stats['active'] }}</p>
+        </div>
+        <div class="rounded-2xl border border-slate-200/90 bg-white px-4 py-4 shadow-sm ring-1 ring-slate-900/[0.035]">
+            <p class="text-xs font-medium text-slate-500">Generales</p>
+            <p class="mt-1 text-2xl font-bold text-indigo-700">{{ $stats['general'] }}</p>
         </div>
     </div>
 
@@ -58,6 +62,12 @@
         <form wire:submit="save" class="flex min-h-0 flex-1 flex-col">
             <div class="flex-1 space-y-4 overflow-y-auto px-4 py-5 sm:px-6">
                 @if($is_super_admin)
+                <label class="flex items-center gap-3 rounded-xl border border-indigo-100 bg-indigo-50 px-3.5 py-2.5 text-sm text-indigo-900">
+                    <input type="checkbox" wire:model.live="form.general" class="rounded border-indigo-300 text-indigo-600 focus:ring-indigo-500">
+                    <span>Impuesto <strong>general</strong> (aplica a todos los negocios)</span>
+                </label>
+
+                @if(! $form->general)
                 <div>
                     <label class="mb-1.5 block text-xs font-medium text-slate-700">Negocio <span class="text-rose-500">*</span></label>
                     <select wire:model="form.business_id" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm @error('form.business_id') border-rose-400 bg-rose-50 @enderror">
@@ -68,6 +78,11 @@
                     </select>
                     @error('form.business_id')<p class="mt-1 text-xs text-rose-600">{{ $message }}</p>@enderror
                 </div>
+                @endif
+                @else
+                <p class="rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs text-slate-600">
+                    El impuesto quedará asociado a tu negocio.
+                </p>
                 @endif
 
                 <div>

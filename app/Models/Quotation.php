@@ -184,6 +184,30 @@ class Quotation extends Model
         return strlen($value) >= 5 ? substr($value, 0, 5) : $value;
     }
 
+    public function itemsDiscountAmount(): float
+    {
+        $items = $this->relationLoaded('items') ? $this->items : $this->items()->get();
+
+        return round($items->sum(fn (QuotationItem $item) => $item->discountAmount()), 2);
+    }
+
+    public function couponDiscountAmount(): float
+    {
+        $stored = round((float) $this->discount_amount, 2);
+
+        if ($stored > 0) {
+            return $stored;
+        }
+
+        if (! $this->coupon_id) {
+            return 0.0;
+        }
+
+        $coupon = $this->relationLoaded('coupon') ? $this->coupon : Coupon::find($this->coupon_id);
+
+        return $coupon ? $coupon->discountOn((float) $this->subtotal) : 0.0;
+    }
+
     public function taxableBase(): float
     {
         return max(0, round((float) $this->subtotal - (float) $this->discount_amount, 2));

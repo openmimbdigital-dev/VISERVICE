@@ -4,6 +4,7 @@ namespace App\Livewire\Admin\Businesses\CustomTaxes;
 
 use App\Actions\Business\DeleteCustomTaxAction;
 use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
+use App\Livewire\Concerns\ResolvesCatalogDatatableRowPermissions;
 use App\Models\CustomTax;
 use Arm092\LivewireDatatables\Column;
 use Arm092\LivewireDatatables\Livewire\LivewireDatatable;
@@ -14,6 +15,7 @@ use Livewire\Attributes\On;
 class DatatableCustomTaxes extends LivewireDatatable
 {
     use ConfirmsDeletionWithLivewireAlert;
+    use ResolvesCatalogDatatableRowPermissions;
 
     public bool $exportable = true;
 
@@ -52,6 +54,14 @@ class DatatableCustomTaxes extends LivewireDatatable
             Column::name('custom_taxes.description')
                 ->label('Descripción')
                 ->searchable(),
+
+            Column::callback(['custom_taxes.general'], function ($general) {
+                if ($general) {
+                    return '<span class="inline-flex items-center rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700 ring-1 ring-indigo-600/20">Sí</span>';
+                }
+
+                return '<span class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 ring-1 ring-slate-500/20">No</span>';
+            })->label('General')->filterable([1 => 'Sí', 0 => 'No']),
         ];
 
         if (auth()->user()->hasRole('superAdmin')) {
@@ -72,18 +82,21 @@ class DatatableCustomTaxes extends LivewireDatatable
             })->label('Estado')->filterable([1 => 'Activo', 0 => 'Inactivo']),
 
             Column::callback(
-                ['custom_taxes.id', 'custom_taxes.business_id'],
-                function ($id, $business_id) {
-                    $user = auth()->user();
-                    $can_edit = $user->can('custom_taxes.edit')
-                        && ($user->hasRole('superAdmin') || $user->belongsToBusiness($business_id));
-                    $can_delete = $user->can('custom_taxes.delete')
-                        && ($user->hasRole('superAdmin') || $user->belongsToBusiness($business_id));
+                ['custom_taxes.id', 'custom_taxes.general', 'custom_taxes.business_id'],
+                function ($id, $general, $business_id) {
+                    $permissions = $this->catalogRowPermissions(
+                        (bool) $general,
+                        $business_id,
+                        0,
+                        'custom_taxes.edit',
+                        'custom_taxes.delete',
+                    );
 
                     return view('livewire.admin.businesses.custom-taxes.actions', [
-                        'id'         => $id,
-                        'can_edit'   => $can_edit,
-                        'can_delete' => $can_delete,
+                        'id'                  => $id,
+                        'can_edit'            => $permissions['can_edit'],
+                        'can_delete'          => $permissions['can_delete'],
+                        'is_general_readonly' => $permissions['is_general_readonly'],
                     ]);
                 }
             )->label('Acciones')->unsortable(),

@@ -27,7 +27,7 @@ class SyncAppliedTaxesAction
         }
 
         $query = CustomTax::query()
-            ->where('business_id', $business_id)
+            ->availableForBusiness($business_id)
             ->whereIn('id', $ids);
 
         if (auth()->user()) {

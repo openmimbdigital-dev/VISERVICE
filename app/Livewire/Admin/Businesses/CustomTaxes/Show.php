@@ -54,10 +54,11 @@ class Show extends Component
         $user = auth()->user();
 
         return view('livewire.admin.businesses.custom-taxes.show', [
-            'can_edit'   => $user->can('custom_taxes.edit')
+            'can_edit'            => $user->can('custom_taxes.edit')
                 && $this->custom_tax->isEditableBy($user, 'custom_taxes.edit'),
-            'can_delete' => $user->can('custom_taxes.delete')
+            'can_delete'          => $user->can('custom_taxes.delete')
                 && $this->custom_tax->canDelete($user),
+            'is_general_readonly' => $this->custom_tax->isGeneralReadonly($user),
         ]);
     }
 }

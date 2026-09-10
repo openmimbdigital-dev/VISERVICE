@@ -167,7 +167,10 @@ class WorkOrderForm extends Form
                 'custom_tax_ids.*'   => [
                     'integer',
                     Rule::exists('custom_taxes', 'id')->where(fn ($q) => $q
-                        ->where('business_id', $business_id)
+                        ->where(function ($inner) use ($business_id) {
+                            $inner->where('business_id', $business_id)
+                                ->orWhere('general', true);
+                        })
                         ->whereNull('deleted_at')),
                 ],
                 'advance_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
@@ -264,7 +267,7 @@ class WorkOrderForm extends Form
         if ($custom_tax_ids !== []) {
             $tax_count = CustomTax::query()
                 ->forAuthUser()
-                ->where('business_id', $this->resolvedBusinessId())
+                ->availableForBusiness($this->resolvedBusinessId())
                 ->whereIn('id', $custom_tax_ids)
                 ->count();
 

@@ -54,4 +54,20 @@ class QuotationItem extends Model
 
         return round($base - $discount, 2);
     }
+
+    public function discountAmount(): float
+    {
+        $base = round((float) $this->quantity * (float) $this->unit_price, 2);
+
+        return round($base - $this->calculateSubtotal(), 2);
+    }
+
+    public function discountLabel(): ?string
+    {
+        if ((float) $this->discount_percentage <= 0) {
+            return null;
+        }
+
+        return rtrim(rtrim(number_format((float) $this->discount_percentage, 2, '.', ''), '0'), '.').'%';
+    }
 }

@@ -13,7 +13,8 @@ class CreateOrUpdateCustomTaxAction
 
     /**
      * @param  array{
-     *   business_id: int,
+     *   business_id: int|null,
+     *   general: bool,
      *   name: string,
      *   description: string|null,
      *   percentage: float,
@@ -27,16 +28,21 @@ class CreateOrUpdateCustomTaxAction
             403
         );
 
-        $user        = auth()->user();
-        $business_id = (int) $data['business_id'];
+        $user    = auth()->user();
+        $general = (bool) ($data['general'] ?? false);
 
         if (! $user->hasRole('superAdmin')) {
-            abort_unless($user->belongsToBusiness($business_id), 403);
+            $general     = false;
+            $business_id = $user->businessIds()[0] ?? null;
+            abort_unless($business_id !== null && $user->belongsToBusiness($business_id), 403);
+        } else {
+            $business_id = $general ? null : (int) $data['business_id'];
         }
 
-        return DB::transaction(function () use ($custom_tax_id, $data, $business_id) {
+        return DB::transaction(function () use ($custom_tax_id, $data, $business_id, $general) {
             $attributes = [
                 'business_id' => $business_id,
+                'general'     => $general,
                 'name'        => $data['name'],
                 'description' => $data['description'],
                 'percentage'  => $data['percentage'],
@@ -46,7 +52,11 @@ class CreateOrUpdateCustomTaxAction
             if ($custom_tax_id) {
                 $tax = CustomTax::query()->forAuthUser()->findOrFail($custom_tax_id);
                 abort_unless($tax->isEditableBy(auth()->user(), 'custom_taxes.edit'), 403);
-                abort_unless((int) $tax->business_id === $business_id, 403);
+
+                if (! auth()->user()->hasRole('superAdmin')) {
+                    abort_unless((int) $tax->business_id === (int) $business_id, 403);
+                    abort_unless(! $tax->general, 403);
+                }
 
                 $tax->update($attributes);
             } else {
@@ -64,8 +74,9 @@ class CreateOrUpdateCustomTaxAction
                 properties: [
                     'percentage' => $tax->percentage,
                     'active'     => $tax->active,
+                    'general'    => $tax->general,
                 ],
-                business_id: $business_id,
+                business_id: $tax->business_id ? (int) $tax->business_id : null,
             );
 
             return $tax;

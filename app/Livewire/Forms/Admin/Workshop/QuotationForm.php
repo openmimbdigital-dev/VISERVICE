@@ -164,7 +164,10 @@ class QuotationForm extends Form
                 'custom_tax_ids.*' => [
                     'integer',
                     Rule::exists('custom_taxes', 'id')->where(fn ($q) => $q
-                        ->where('business_id', $business_id)
+                        ->where(function ($inner) use ($business_id) {
+                            $inner->where('business_id', $business_id)
+                                ->orWhere('general', true);
+                        })
                         ->whereNull('deleted_at')),
                 ],
                 'validity_days'      => ['required', 'integer', 'min:1', 'max:365'],
@@ -254,7 +257,7 @@ class QuotationForm extends Form
         if ($custom_tax_ids !== []) {
             $count = CustomTax::query()
                 ->forAuthUser()
-                ->where('business_id', $this->resolvedBusinessId())
+                ->availableForBusiness($this->resolvedBusinessId())
                 ->whereIn('id', $custom_tax_ids)
                 ->count();
 
