@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Actions\Subscriptions\ConfirmSubscriptionPaymentAction;
 use App\Models\BoldWebhookEvent;
 use App\Models\SubscriptionInvoice;
+use App\Models\SubscriptionPayment;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -101,7 +102,7 @@ class BoldWebhookController extends Controller
         }
 
         try {
-            $this->confirm($invoice, $data, $payment_id, $event, $signed_with);
+            $this->confirm($invoice, $data, $payment_id, $event, $signed_with, (string) ($payload['source'] ?? '') ?: null);
         } catch (Throwable $exception) {
             report($exception);
             $event->update(['result' => 'Error al confirmar: '.$exception->getMessage()]);
@@ -123,6 +124,7 @@ class BoldWebhookController extends Controller
         string $payment_id,
         BoldWebhookEvent $event,
         ?string $signed_with = null,
+        ?string $source = null,
     ): void
     {
         $invoice->forceFill([
@@ -144,9 +146,13 @@ class BoldWebhookController extends Controller
         try {
             $work_order_invoice = ConfirmSubscriptionPaymentAction::run(
                 invoice: $invoice,
-                payment_method: 'Bold · '.((string) ($data['payment_method'] ?? 'en línea')),
+                payment_method: (string) ($data['payment_method'] ?? 'en línea'),
                 payment_reference: $payment_id ?: null,
                 paid_at: now()->toDateTimeString(),
+                channel: SubscriptionPayment::CHANNEL_ONLINE,
+                gateway_data: $data,
+                gateway: 'bold',
+                gateway_source: $source,
             );
         } finally {
             $previous_user ? Auth::setUser($previous_user) : Auth::forgetUser();

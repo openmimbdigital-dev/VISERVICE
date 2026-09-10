@@ -7,6 +7,7 @@ use App\Actions\Subscriptions\CreateBoldPaymentLinkAction;
 use App\Models\Business;
 use App\Models\Subscription;
 use App\Models\SubscriptionInvoice;
+use App\Models\SubscriptionPayment;
 use App\Models\SubscriptionPlan;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
@@ -58,6 +59,10 @@ class Index extends Component
     }
 
     public bool $showPaymentLinkModal = false;
+
+    public bool $showPaymentsModal = false;
+
+    public ?int $payments_subscription_id = null;
 
     public string $payment_link_url = '';
 
@@ -256,6 +261,19 @@ class Index extends Component
         $this->showPaymentLinkModal = true;
     }
 
+    /** Detalle de cómo pagó el comercio: medio, códigos de la pasarela y montos. */
+    public function viewPayments(int $subscriptionId): void
+    {
+        $this->payments_subscription_id = $subscriptionId;
+        $this->showPaymentsModal = true;
+    }
+
+    public function closePaymentsModal(): void
+    {
+        $this->showPaymentsModal = false;
+        $this->payments_subscription_id = null;
+    }
+
     public function closePaymentLinkModal(): void
     {
         $this->showPaymentLinkModal = false;
@@ -307,6 +325,16 @@ class Index extends Component
             'cancelled' => Subscription::where('status', 'cancelled')->count(),
         ];
 
-        return view('livewire.admin.subscriptions.index', compact('subscriptions', 'plans', 'businesses', 'stats'));
+        $payments = $this->payments_subscription_id
+            ? SubscriptionPayment::query()
+                ->with('createdBy')
+                ->where('subscription_id', $this->payments_subscription_id)
+                ->orderByDesc('paid_at')
+                ->orderByDesc('id')
+                ->get()
+            : collect();
+
+        return view('livewire.admin.subscriptions.index',
+            compact('subscriptions', 'plans', 'businesses', 'stats', 'payments'));
     }
 }
