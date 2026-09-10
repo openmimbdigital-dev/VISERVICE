@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\Reports\Events\EventAttendancePdfController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BoldWebhookController;
 use App\Http\Controllers\CurrentBusinessController;
+use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\PaymentProofController;
 use App\Http\Controllers\Workshop\ElectronicInvoiceFileController;
 use App\Http\Controllers\Workshop\WorkshopPdfController;
@@ -151,6 +152,11 @@ Route::middleware('guest')->group(function () {
 Route::middleware(['auth', 'ensure.business', 'business.module'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::post('/current-business', [CurrentBusinessController::class, 'switch'])->name('current-business.switch');
+
+    // Volver a la cuenta propia tras entrar como otro usuario. Sin permisos:
+    // quien está suplantando ya no los tiene, y siempre debe poder regresar.
+    Route::post('/impersonation/stop', [ImpersonationController::class, 'stop'])
+        ->name('impersonation.stop');
 
     Route::get('/pending-activation', fn () => view('auth.pending-activation'))->name('pending-activation');
 

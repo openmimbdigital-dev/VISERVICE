@@ -7,6 +7,7 @@ use App\Actions\LogUserHistoricalAction;
 use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
 use App\Models\Role;
 use App\Support\BusinessAccess;
+use App\Support\Impersonation;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -325,6 +326,31 @@ class Index extends Component
         }
 
         $this->showModal = false;
+    }
+
+    /**
+     * Entra como otro usuario para ver la plataforma con sus ojos.
+     *
+     * Se recarga la página completa: al cambiar de sesión, todo el estado que
+     * Livewire tenga en memoria deja de corresponder a quien la está usando.
+     */
+    public function impersonate(int $id): void
+    {
+        $target = User::query()->findOrFail($id);
+
+        if (! Impersonation::allows(auth()->user(), $target)) {
+            $this->dispatch('swal', [
+                'title' => 'No se puede entrar como este usuario',
+                'text'  => 'Solo se puede entrar como usuarios activos de un comercio.',
+                'icon'  => 'warning',
+            ]);
+
+            return;
+        }
+
+        Impersonation::start(auth()->user(), $target);
+
+        $this->redirect(route('dashboard'), navigate: false);
     }
 
     public function toggleStatus(int $id): void

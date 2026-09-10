@@ -257,6 +257,7 @@ class RolesAndPermissionsSeeder extends Seeder
             // Usuarios
             'users.view', 'users.create', 'users.edit', 'users.delete',
             'users.activate', 'users.deactivate',
+            'users.impersonate',
             // Empresas
             'businesses.view', 'businesses.create', 'businesses.edit', 'businesses.delete',
             'businesses.activate', 'businesses.deactivate', 'businesses.manage_addresses',
