@@ -2,14 +2,18 @@
 
 namespace App\Livewire\Admin\Subscriptions;
 
+use App\Actions\Subscriptions\ConfirmSubscriptionPaymentAction;
+use App\Actions\Subscriptions\CreateBoldPaymentLinkAction;
 use App\Models\Business;
 use App\Models\Subscription;
 use App\Models\SubscriptionInvoice;
 use App\Models\SubscriptionPlan;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Throwable;
 
 #[Layout('layouts.app')]
 #[Title('Gestión de Suscripciones')]
@@ -52,6 +56,12 @@ class Index extends Component
             'notes'                => 'nullable|string',
         ];
     }
+
+    public bool $showPaymentLinkModal = false;
+
+    public string $payment_link_url = '';
+
+    public string $payment_link_invoice = '';
 
     public function updatingSearch(): void
     {
@@ -161,29 +171,96 @@ class Index extends Component
         $sub = Subscription::with('invoices')->findOrFail($this->selected_subscription_id);
         $pendingInvoice = $sub->invoices()->where('status', 'pending')->latest()->first();
 
-        if ($pendingInvoice) {
-            $pendingInvoice->update([
-                'status'            => 'paid',
-                'paid_at'           => $this->paid_at,
-                'payment_method'    => $this->payment_method,
-                'payment_reference' => $this->payment_reference ?: null,
-                'notes'             => $this->invoice_notes ?: null,
-            ]);
-        }
+        // Confirmar el cobro activa la suscripción y genera la OT con su factura.
+        // Es el mismo camino que usa el webhook de Bold cuando el pago es en línea.
+        // Si la facturación falla, el pago ya quedó registrado: no se pierde.
+        $notice = null;
 
-        // Activar si estaba en trial o past_due
-        if (in_array($sub->status, ['trial', 'past_due'])) {
-            $sub->update(['status' => 'active']);
+        if ($pendingInvoice) {
+            try {
+                $invoice = ConfirmSubscriptionPaymentAction::run(
+                    invoice: $pendingInvoice,
+                    payment_method: $this->payment_method,
+                    payment_reference: $this->payment_reference ?: null,
+                    paid_at: $this->paid_at,
+                    notes: $this->invoice_notes ?: null,
+                );
+
+                $notice = $invoice ? "Se generó la factura {$invoice->reference}." : null;
+            } catch (ValidationException $exception) {
+                $notice = collect($exception->errors())->flatten()->first();
+            } catch (Throwable $exception) {
+                report($exception);
+                $notice = 'No se pudo generar la factura de este cobro.';
+            }
         }
 
         $this->closeInvoiceModal();
-        $this->dispatch('swal', ['title' => 'Pago registrado', 'icon' => 'success']);
+        $this->dispatch('swal', [
+            'title' => 'Pago registrado',
+            'text'  => $notice,
+            'icon'  => 'success',
+        ]);
     }
 
     public function closeModal(): void
     {
         $this->showModal = false;
         $this->resetForm();
+    }
+
+    /**
+     * Genera —o recupera— el link con el que el comercio paga en línea.
+     *
+     * El link se guarda en el cobro pendiente: cuando Bold avise que se pagó, el
+     * webhook lo encuentra por la referencia y confirma todo solo.
+     */
+    public function generatePaymentLink(int $subscriptionId): void
+    {
+        $subscription = Subscription::query()->findOrFail($subscriptionId);
+        $pending = $subscription->invoices()->where('status', 'pending')->latest()->first();
+
+        if (! $pending) {
+            $this->dispatch('swal', [
+                'title' => 'Sin cobro pendiente',
+                'text'  => 'Esta suscripción no tiene un cobro por el cual generar el link.',
+                'icon'  => 'info',
+            ]);
+
+            return;
+        }
+
+        try {
+            $link = CreateBoldPaymentLinkAction::run($pending);
+        } catch (ValidationException $exception) {
+            $this->dispatch('swal', [
+                'title' => 'No se pudo generar el link',
+                'text'  => collect($exception->errors())->flatten()->first(),
+                'icon'  => 'error',
+            ]);
+
+            return;
+        } catch (Throwable $exception) {
+            report($exception);
+            $this->dispatch('swal', [
+                'title' => 'No se pudo generar el link',
+                'text'  => 'Revisa la configuración de Bold e inténtalo de nuevo.',
+                'icon'  => 'error',
+            ]);
+
+            return;
+        }
+
+        $this->payment_link_url = $link['url'];
+        $this->payment_link_invoice = $pending->invoice_number;
+        $this->showPaymentLinkModal = true;
+    }
+
+    public function closePaymentLinkModal(): void
+    {
+        $this->showPaymentLinkModal = false;
+        $this->payment_link_url = '';
+        $this->payment_link_invoice = '';
     }
 
     public function closeInvoiceModal(): void

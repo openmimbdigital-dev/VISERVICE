@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\Events\ScheduleEventsFeedController;
 use App\Http\Controllers\Admin\Reports\Events\EventAttendancePdfController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BoldWebhookController;
 use App\Http\Controllers\CurrentBusinessController;
 use App\Http\Controllers\PaymentProofController;
 use App\Http\Controllers\Workshop\ElectronicInvoiceFileController;
@@ -125,6 +126,21 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return redirect()->route('login');
 });
+
+/*
+|--------------------------------------------------------------------------
+| Pagos en línea (Bold)
+|--------------------------------------------------------------------------
+|
+| Sin auth: al webhook lo llama la pasarela y al callback vuelve el pagador,
+| que puede no tener sesión. La autenticidad del webhook se verifica con la
+| firma HMAC del cuerpo, no con la sesión.
+|
+*/
+Route::post('/webhooks/bold', BoldWebhookController::class)->name('webhooks.bold');
+
+Route::get('/pagos/resultado', fn () => view('payments.callback'))
+    ->name('subscriptions.payment.callback');
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
