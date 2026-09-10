@@ -3,6 +3,8 @@
 namespace App\Livewire\Auth;
 
 use App\Actions\Business\CreateParticipantFromUserAction;
+use App\Actions\Subscriptions\CreateBoldPaymentLinkAction;
+use App\Services\Bold\BoldClient;
 use App\Actions\Business\SyncBusinessAccessFromOrganizationTypeAction;
 use App\Models\BankAccount;
 use App\Models\Business;
@@ -20,6 +22,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Throwable;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -59,6 +62,9 @@ class RegisterWizard extends Component
 
     // Paso 4 — Pago
     public string $payment_type = '';
+
+    /** Factura recién creada, para poder mandar al checkout tras registrarse. */
+    public ?int $pending_invoice_id = null;
     public $payment_proof = null;
     public string $payment_reference = '';
 
@@ -78,7 +84,7 @@ class RegisterWizard extends Component
     public function submit(): void
     {
         $rules = [
-            'payment_type' => 'required|in:transfer,cash',
+            'payment_type' => 'required|in:transfer,cash,online',
         ];
 
         if ($this->payment_type === 'transfer') {
@@ -170,7 +176,7 @@ class RegisterWizard extends Component
             ]);
 
             // 6. Crear factura pendiente
-            SubscriptionInvoice::create([
+            $this->pending_invoice_id = SubscriptionInvoice::create([
                 'subscription_id'      => $subscription->id,
                 'business_id'          => $business->id,
                 'invoice_number'       => SubscriptionInvoice::generateInvoiceNumber(),
@@ -182,13 +188,43 @@ class RegisterWizard extends Component
                 'payment_method'       => $this->payment_type,
                 'payment_proof'        => $proofPath,
                 'payment_reference'    => $this->payment_reference ?: null,
-            ]);
+            ])->id;
 
             // 7. Iniciar sesión automáticamente
             Auth::login($user);
         });
 
+        // El pago en línea sale del registro derecho al checkout de Bold. Si el
+        // link no se puede generar, la cuenta ya quedó creada: se sigue a la
+        // pantalla de activación pendiente, donde puede reintentar.
+        if ($this->payment_type === 'online' && $this->pending_invoice_id) {
+            $url = $this->boldCheckoutUrl($this->pending_invoice_id);
+
+            if ($url) {
+                $this->redirect($url, navigate: false);
+
+                return;
+            }
+
+            session()->flash('payment_notice', 'No pudimos abrir la pasarela de pago. '
+                .'Puedes intentarlo de nuevo desde aquí.');
+        }
+
         $this->redirect(route('pending-activation'), navigate: false);
+    }
+
+    /** URL del checkout de Bold para la factura recién creada, si se puede. */
+    private function boldCheckoutUrl(int $invoice_id): ?string
+    {
+        try {
+            return CreateBoldPaymentLinkAction::run(
+                SubscriptionInvoice::findOrFail($invoice_id)
+            )['url'];
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return null;
+        }
     }
 
     private function validateCurrentStep(): void
@@ -271,6 +307,8 @@ class RegisterWizard extends Component
             'bank_accounts'  => BankAccount::where('is_active', true)->get(),
             'selected_plan'  => $selectedPlan,
             'price_data'     => $priceData,
+            // El pago en línea solo se ofrece si la pasarela está configurada.
+            'bold_enabled'   => BoldClient::make()->isConfigured(),
         ]);
     }
 }

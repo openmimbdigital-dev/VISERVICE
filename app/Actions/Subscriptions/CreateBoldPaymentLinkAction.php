@@ -5,6 +5,7 @@ namespace App\Actions\Subscriptions;
 use App\Models\SubscriptionInvoice;
 use App\Services\Bold\BoldClient;
 use App\Services\Bold\BoldRequestException;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -75,12 +76,16 @@ class CreateBoldPaymentLinkAction
     }
 
     /**
-     * Referencia única del cobro. Se conserva la que ya tuviera para que un link
-     * regenerado siga apuntando al mismo cobro.
+     * Referencia con la que Bold identificará el pago.
+     *
+     * Bold la exige única a nivel global y de por vida: reutilizarla responde
+     * «The reference has been used before» (PL_000). Por eso cada link nuevo
+     * lleva un sufijo propio, conservando el número de factura como prefijo para
+     * que el cobro se siga reconociendo aunque paguen por un link viejo.
      */
     private function reference(SubscriptionInvoice $invoice): string
     {
-        return $invoice->bold_reference ?: $invoice->invoice_number;
+        return $invoice->invoice_number.'-'.Str::upper(Str::random(6));
     }
 
     private function description(SubscriptionInvoice $invoice): string

@@ -395,7 +395,23 @@
                 @error('payment_type') <p class="mb-4 text-sm text-red-600 font-medium">{{ $message }}</p> @enderror
 
                 {{-- Opciones de pago --}}
-                <div class="grid grid-cols-2 gap-4 mb-6">
+                <div class="grid grid-cols-1 gap-4 mb-6 sm:grid-cols-3">
+                    @if($bold_enabled)
+                    <button wire:click="$set('payment_type', 'online')" type="button"
+                        @class([
+                            'rounded-2xl border-2 p-5 text-left transition-all relative',
+                            'border-indigo-500 bg-indigo-50 ring-2 ring-indigo-500/20' => $payment_type === 'online',
+                            'border-slate-200 bg-white hover:border-indigo-300 hover:bg-slate-50' => $payment_type !== 'online',
+                        ])>
+                        <span class="absolute right-3 top-3 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-700">Inmediato</span>
+                        <div class="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center mb-3">
+                            <svg class="w-5 h-5 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+                        </div>
+                        <p class="font-semibold text-slate-900 text-sm">Pagar en línea</p>
+                        <p class="text-xs text-slate-500 mt-1">Tarjeta, PSE, Nequi o Bancolombia. Tu cuenta se activa al instante.</p>
+                    </button>
+                    @endif
+
                     <button wire:click="$set('payment_type', 'transfer')" type="button"
                         @class([
                             'rounded-2xl border-2 p-5 text-left transition-all',
@@ -460,6 +476,23 @@
                         <label class="block text-sm font-medium text-slate-700 mb-1.5">Número de referencia (opcional)</label>
                         <input wire:model="payment_reference" type="text" placeholder="Número de transacción o referencia del banco"
                             class="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 px-4 text-sm text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition">
+                    </div>
+                </div>
+                @endif
+
+                {{-- Sección Pago en línea --}}
+                @if($payment_type === 'online')
+                <div class="rounded-2xl border border-violet-200 bg-violet-50 px-5 py-4">
+                    <div class="flex items-start gap-3">
+                        <svg class="w-5 h-5 text-violet-600 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <div>
+                            <p class="text-sm font-semibold text-violet-900">Pago seguro con Bold</p>
+                            <p class="text-sm text-violet-700 mt-1">
+                                Al terminar el registro te llevamos al checkout para que pagues con tarjeta,
+                                PSE, Nequi o botón Bancolombia. Apenas se apruebe el pago, tu cuenta queda
+                                activa y te enviamos la factura. No guardamos los datos de tu tarjeta.
+                            </p>
+                        </div>
                     </div>
                 </div>
                 @endif
