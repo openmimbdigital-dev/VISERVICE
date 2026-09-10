@@ -19,9 +19,12 @@ use App\Models\Status;
 use App\Models\WorkOrder;
 use App\Models\WorkOrderItem;
 use App\Services\Dian\DianRequestException;
+use App\Support\DeleteConfirmationAlert;
+use Jantinnerezo\LivewireAlert\LivewireAlert;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
@@ -29,6 +32,8 @@ use Livewire\Component;
 #[Title('Orden de Trabajo')]
 class Show extends Component
 {
+    use LivewireAlert;
+
     public WorkOrder $workOrder;
 
     public string $status = '';
@@ -44,6 +49,9 @@ class Show extends Component
     public bool $send_to_dian = true;
 
     public bool $bill_to_final_consumer = false;
+
+    /** Ítem en espera de que confirmen su eliminación. */
+    public ?int $deleting_item_id = null;
 
     public ?int $selected_document_type_id = null;
 
@@ -477,8 +485,28 @@ class Show extends Component
         $this->closeItemModal();
     }
 
+    /** Pide confirmación con el diálogo del proyecto, no con el del navegador. */
     public function deleteItem(int $id): void
     {
+        abort_unless(auth()->user()?->can('workshop.work-orders.edit'), 403);
+        $this->assertWorkOrderEditable();
+
+        $this->deleting_item_id = $id;
+
+        $this->confirm('¿Eliminar este ítem?', DeleteConfirmationAlert::options('work-order-item-delete-confirmed'));
+    }
+
+    #[On('work-order-item-delete-confirmed')]
+    public function deleteItemConfirmed(): void
+    {
+        $id = $this->deleting_item_id;
+        $this->deleting_item_id = null;
+
+        if (! $id) {
+            return;
+        }
+
+        // Se revalida: entre la pregunta y la respuesta la OT pudo cerrarse.
         abort_unless(auth()->user()?->can('workshop.work-orders.edit'), 403);
         $this->assertWorkOrderEditable();
 
