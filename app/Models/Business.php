@@ -18,6 +18,30 @@ class Business extends Model
     use HasFactory;
     use SoftDeletes;
 
+    /**
+     * ¿Es el negocio dueño de la plataforma?
+     *
+     * VISERVICE le factura a los comercios suscritos desde su propio negocio: es
+     * el emisor ante la DIAN y el que guarda los productos de cada plan. Por eso
+     * no se puede eliminar.
+     */
+    public function isPlatformOwner(): bool
+    {
+        return (int) $this->id === (int) config('subscriptions.owner_business_id');
+    }
+
+    protected static function booted(): void
+    {
+        static::deleting(function (self $business) {
+            if ($business->isPlatformOwner()) {
+                throw new \RuntimeException(
+                    'El negocio dueño de la plataforma no se puede eliminar: es el emisor '
+                    .'de las facturas de suscripción y el dueño de los productos de los planes.'
+                );
+            }
+        });
+    }
+
     protected $fillable = [
         'name',
         'address',

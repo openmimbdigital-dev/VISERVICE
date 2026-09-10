@@ -43,7 +43,17 @@ class UsersSeeder extends Seeder
                 'city_id'         => $bogota?->id,
             ]
         );
-        $superAdmin->businesses()->detach();
+        // El superAdmin pertenece al negocio dueño de la plataforma: de ahí cuelgan
+        // el catálogo de planes y la configuración DIAN con la que se le factura a
+        // los comercios suscritos.
+        $owner_business_id = (int) config('subscriptions.owner_business_id');
+
+        if (Business::query()->whereKey($owner_business_id)->exists()) {
+            $superAdmin->businesses()->sync([$owner_business_id => ['is_primary' => true]]);
+        } else {
+            $superAdmin->businesses()->detach();
+        }
+
         $superAdmin->syncRoles(['superAdmin']);
 
         $admin = User::updateOrCreate(
