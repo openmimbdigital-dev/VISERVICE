@@ -57,8 +57,7 @@
                 </a>
                 @endcan
                 @canany(['businesses.activate', 'businesses.deactivate'])
-                <button type="button" wire:click="toggleStatus" wire:confirm="{{ $business->status ? '¿Desactivar este negocio?' : '¿Activar este negocio?' }}"
-                    class="btn btn-sm flex-1 justify-center sm:flex-none {{ $business->status ? 'btn-outline-secondary' : 'btn-primary' }}">
+                <button type="button" wire:click="toggleStatus"                    class="btn btn-sm flex-1 justify-center sm:flex-none {{ $business->status ? 'btn-outline-secondary' : 'btn-primary' }}">
                     {{ $business->status ? 'Desactivar' : 'Activar' }}
                 </button>
                 @endcanany
@@ -236,7 +235,6 @@
                                     @canany(['users.activate', 'users.deactivate'])
                                         @if($user->id !== $primary_user_id)
                                         <button type="button" wire:click="toggleUserStatus({{ $user->id }})"
-                                            wire:confirm="{{ $user->status ? '¿Desactivar este usuario?' : '¿Activar este usuario?' }}"
                                             class="text-xs font-medium {{ $user->status ? 'text-amber-700 hover:text-amber-800' : 'text-emerald-700 hover:text-emerald-800' }}">
                                             {{ $user->status ? 'Desactivar' : 'Activar' }}
                                         </button>

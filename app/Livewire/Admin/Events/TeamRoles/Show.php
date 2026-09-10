@@ -8,11 +8,16 @@ use App\Support\ChurchEventsAccess;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
+use App\Support\DeleteConfirmationAlert;
+use Jantinnerezo\LivewireAlert\LivewireAlert;
+use Livewire\Attributes\On;
 
 #[Layout('layouts.app')]
 #[Title('Gestión de eventos — Rol del equipo')]
 class Show extends Component
 {
+    use LivewireAlert;
+
     public EventTeamRole $event_team_role;
 
     public function mount(EventTeamRole $eventTeamRole): void
@@ -29,6 +34,13 @@ class Show extends Component
 
     public function delete(): void
     {
+        // Pregunta con el diálogo del proyecto; la acción va en deleteConfirmed().
+        $this->confirm('¿Eliminar este rol del equipo?', DeleteConfirmationAlert::options('event-team-role-delete-confirmed'));
+    }
+
+    #[On('event-team-role-delete-confirmed')]
+    public function deleteConfirmed(): void
+    {
         ChurchEventsAccess::authorize();
         abort_unless(auth()->user()?->can('events.team_roles.delete'), 403);
 
@@ -40,6 +52,7 @@ class Show extends Component
         ]);
 
         $this->redirectRoute('admin.events.team-roles.index', navigate: true);
+
     }
 
     public function render()

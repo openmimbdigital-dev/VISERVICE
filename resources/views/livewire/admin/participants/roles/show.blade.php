@@ -34,7 +34,6 @@
                     <button
                         type="button"
                         wire:click="delete"
-                        wire:confirm="¿Eliminar este rol de participante?"
                         @disabled($delete_disabled)
                         title="{{ $delete_disabled ? $disabled_title : 'Eliminar' }}"
                         class="btn btn-danger btn-sm flex-1 justify-center sm:flex-none disabled:cursor-not-allowed disabled:opacity-50"

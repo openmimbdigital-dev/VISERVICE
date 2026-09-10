@@ -9,11 +9,19 @@ use App\Support\BusinessAccess;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
+use App\Support\DeleteConfirmationAlert;
+use Jantinnerezo\LivewireAlert\LivewireAlert;
+use Livewire\Attributes\On;
 
 #[Layout('layouts.app')]
 #[Title('Roles y Permisos')]
 class Index extends Component
 {
+    use LivewireAlert;
+
+    /** Registro en espera de que confirmen la acción. */
+    public ?int $deleting_role_id = null;
+
     // Sistema: estos roles no se pueden eliminar ni renombrar
     const PROTECTED_ROLES = ['superAdmin'];
 
@@ -153,6 +161,22 @@ class Index extends Component
 
     public function delete(int $id): void
     {
+        // Pregunta con el diálogo del proyecto; la acción va en deleteConfirmed().
+        $this->deleting_role_id = $id;
+
+        $this->confirm('¿Eliminar este rol?', DeleteConfirmationAlert::options('role-delete-confirmed'));
+    }
+
+    #[On('role-delete-confirmed')]
+    public function deleteConfirmed(): void
+    {
+        $id = $this->deleting_role_id;
+        $this->deleting_role_id = null;
+
+        if (! $id) {
+            return;
+        }
+
         abort_unless(auth()->user()?->can('roles.delete'), 403);
 
         $role = $this->findManageableRole($id);
@@ -170,6 +194,7 @@ class Index extends Component
 
         $role->delete();
         $this->dispatch('swal', ['title' => 'Rol eliminado.', 'icon' => 'warning']);
+
     }
 
     public function toggleExpand(int $id): void

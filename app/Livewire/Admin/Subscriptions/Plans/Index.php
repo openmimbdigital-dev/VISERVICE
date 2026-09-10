@@ -7,11 +7,19 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithPagination;
+use App\Support\DeleteConfirmationAlert;
+use Jantinnerezo\LivewireAlert\LivewireAlert;
+use Livewire\Attributes\On;
 
 #[Layout('layouts.app')]
 #[Title('Planes de Suscripción')]
 class Index extends Component
 {
+    use LivewireAlert;
+
+    /** Registro en espera de que confirmen la acción. */
+    public ?int $deleting_plan_id = null;
+
     use WithPagination;
 
     public bool $showModal = false;
@@ -132,6 +140,22 @@ class Index extends Component
 
     public function delete(int $id): void
     {
+        // Pregunta con el diálogo del proyecto; la acción va en deleteConfirmed().
+        $this->deleting_plan_id = $id;
+
+        $this->confirm('¿Eliminar este plan?', DeleteConfirmationAlert::options('plan-delete-confirmed'));
+    }
+
+    #[On('plan-delete-confirmed')]
+    public function deleteConfirmed(): void
+    {
+        $id = $this->deleting_plan_id;
+        $this->deleting_plan_id = null;
+
+        if (! $id) {
+            return;
+        }
+
         $plan = SubscriptionPlan::findOrFail($id);
         if ($plan->activeSubscriptions()->count() > 0) {
             $this->dispatch('swal', ['title' => 'No se puede eliminar', 'text' => 'El plan tiene suscripciones activas.', 'icon' => 'error']);
@@ -139,6 +163,7 @@ class Index extends Component
         }
         $plan->delete();
         $this->dispatch('swal', ['title' => 'Plan eliminado', 'icon' => 'success']);
+
     }
 
     public function closeModal(): void

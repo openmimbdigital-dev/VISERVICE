@@ -140,7 +140,6 @@
                                         </button>
                                         @if(in_array($sub->status, ['active', 'trial']))
                                             <button wire:click="cancel({{ $sub->id }})"
-                                                wire:confirm="¿Cancelar esta suscripción?"
                                                 class="btn btn-sm btn-danger" title="Cancelar">
                                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>

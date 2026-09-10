@@ -9,11 +9,19 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Livewire\WithPagination;
+use App\Support\DeleteConfirmationAlert;
+use Jantinnerezo\LivewireAlert\LivewireAlert;
+use Livewire\Attributes\On;
 
 #[Layout('layouts.app')]
 #[Title('Bancos')]
 class Index extends Component
 {
+    use LivewireAlert;
+
+    /** Registro en espera de que confirmen la acción. */
+    public ?int $deleting_bank_id = null;
+
     use WithFileUploads, WithPagination;
 
     public string $search = '';
@@ -125,6 +133,22 @@ class Index extends Component
 
     public function delete(int $id): void
     {
+        // Pregunta con el diálogo del proyecto; la acción va en deleteConfirmed().
+        $this->deleting_bank_id = $id;
+
+        $this->confirm('¿Eliminar este banco?', DeleteConfirmationAlert::options('bank-delete-confirmed'));
+    }
+
+    #[On('bank-delete-confirmed')]
+    public function deleteConfirmed(): void
+    {
+        $id = $this->deleting_bank_id;
+        $this->deleting_bank_id = null;
+
+        if (! $id) {
+            return;
+        }
+
         $bank = Bank::withCount('bankAccounts')->findOrFail($id);
 
         if ($bank->bank_accounts_count > 0) {
@@ -142,6 +166,7 @@ class Index extends Component
 
         $bank->delete();
         $this->dispatch('swal', ['title' => 'Banco eliminado.', 'icon' => 'warning']);
+
     }
 
     public function closeModal(): void

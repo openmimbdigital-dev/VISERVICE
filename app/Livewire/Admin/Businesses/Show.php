@@ -7,11 +7,19 @@ use App\Models\User;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
+use App\Support\ConfirmationAlert;
+use Jantinnerezo\LivewireAlert\LivewireAlert;
+use Livewire\Attributes\On;
 
 #[Layout('layouts.app')]
 #[Title('Detalle del Negocio')]
 class Show extends Component
 {
+    use LivewireAlert;
+
+    /** Usuario en espera de que confirmen el cambio de estado. */
+    public ?int $toggling_user_id = null;
+
     public Business $business;
 
     public function mount(Business $business): void
@@ -21,7 +29,26 @@ class Show extends Component
         $this->business = $business;
     }
 
+    /** Pregunta con el diálogo del proyecto; el cambio va en toggleStatusConfirmed(). */
     public function toggleStatus(): void
+    {
+        $activando = ! $this->business->status;
+
+        $this->confirm(
+            $activando ? '¿Activar este negocio?' : '¿Desactivar este negocio?',
+            ConfirmationAlert::options(
+                on_confirmed: 'business-status-confirmed',
+                confirm_text: $activando ? 'Activar' : 'Desactivar',
+                icon: 'question',
+                text: $activando
+                    ? 'El negocio volverá a operar en la plataforma.'
+                    : 'El negocio dejará de operar hasta que lo actives de nuevo.',
+            ),
+        );
+    }
+
+    #[On('business-status-confirmed')]
+    public function toggleStatusConfirmed(): void
     {
         if ($this->business->status) {
             abort_unless(auth()->user()?->can('businesses.deactivate'), 403);
@@ -36,8 +63,36 @@ class Show extends Component
         $this->dispatch('swal', ['title' => "Negocio {$label}.", 'icon' => 'success']);
     }
 
+    /** Pregunta con el diálogo del proyecto; el cambio va en toggleUserStatusConfirmed(). */
     public function toggleUserStatus(int $user_id): void
     {
+        $user = $this->business->users()->findOrFail($user_id);
+        $this->toggling_user_id = $user->id;
+        $activando = ! $user->status;
+
+        $this->confirm(
+            $activando ? '¿Activar este usuario?' : '¿Desactivar este usuario?',
+            ConfirmationAlert::options(
+                on_confirmed: 'business-user-status-confirmed',
+                confirm_text: $activando ? 'Activar' : 'Desactivar',
+                icon: 'question',
+                text: $activando
+                    ? 'Podrá volver a entrar a la plataforma.'
+                    : 'No podrá entrar hasta que lo actives de nuevo.',
+            ),
+        );
+    }
+
+    #[On('business-user-status-confirmed')]
+    public function toggleUserStatusConfirmed(): void
+    {
+        $user_id = $this->toggling_user_id;
+        $this->toggling_user_id = null;
+
+        if (! $user_id) {
+            return;
+        }
+
         $user = $this->business->users()->findOrFail($user_id);
 
         if ($user->status) {

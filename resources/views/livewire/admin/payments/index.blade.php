@@ -121,7 +121,6 @@
                                     Confirmar
                                 </button>
                                 <button wire:click="rejectPayment({{ $invoice->id }})"
-                                    wire:confirm="¿Seguro que deseas rechazar este pago? La suscripción quedará cancelada."
                                     type="button"
                                     class="inline-flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 transition">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>

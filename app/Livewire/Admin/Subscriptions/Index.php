@@ -15,11 +15,19 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Throwable;
+use App\Support\ConfirmationAlert;
+use Jantinnerezo\LivewireAlert\LivewireAlert;
+use Livewire\Attributes\On;
 
 #[Layout('layouts.app')]
 #[Title('Gestión de Suscripciones')]
 class Index extends Component
 {
+    use LivewireAlert;
+
+    /** Registro en espera de que confirmen la acción. */
+    public ?int $cancelling_subscription_id = null;
+
     use WithPagination;
 
     public string $search = '';
@@ -151,11 +159,33 @@ class Index extends Component
 
     public function cancel(int $id): void
     {
+        // Pregunta con el diálogo del proyecto; la acción va en cancelConfirmed().
+        $this->cancelling_subscription_id = $id;
+
+        $this->confirm('¿Cancelar esta suscripción?', ConfirmationAlert::options(
+                on_confirmed: 'subscription-cancel-confirmed',
+                confirm_text: 'Cancelar suscripción',
+                icon: 'warning',
+                text: 'El comercio perderá el acceso al terminar el período pagado.',
+            ));
+    }
+
+    #[On('subscription-cancel-confirmed')]
+    public function cancelConfirmed(): void
+    {
+        $id = $this->cancelling_subscription_id;
+        $this->cancelling_subscription_id = null;
+
+        if (! $id) {
+            return;
+        }
+
         Subscription::findOrFail($id)->update([
             'status'       => 'cancelled',
             'cancelled_at' => now(),
         ]);
         $this->dispatch('swal', ['title' => 'Suscripción cancelada', 'icon' => 'warning']);
+
     }
 
     public function openInvoiceModal(int $subscriptionId): void

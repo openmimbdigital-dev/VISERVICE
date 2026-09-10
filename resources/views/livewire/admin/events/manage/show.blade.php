@@ -51,7 +51,6 @@
                         <button
                             type="button"
                             wire:click="delete"
-                            wire:confirm="¿Eliminar este evento?"
                             class="btn btn-danger btn-sm flex-1 justify-center sm:flex-none disabled:opacity-50"
                         >
                             Eliminar

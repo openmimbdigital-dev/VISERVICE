@@ -87,7 +87,6 @@
                         </div>
                         @if($plan->subscriptions_count === 0)
                             <button wire:click="delete({{ $plan->id }})"
-                                wire:confirm="¿Eliminar este plan?"
                                 class="btn btn-sm btn-danger">
                                 Eliminar
                             </button>
