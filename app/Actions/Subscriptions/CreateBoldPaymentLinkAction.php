@@ -55,7 +55,7 @@ class CreateBoldPaymentLinkAction
                 total_amount: $amount,
                 reference: $reference,
                 description: $this->description($invoice),
-                callback_url: $this->callbackUrl(),
+                callback_url: $this->callbackUrl($reference),
                 payer_email: $invoice->business?->email,
             );
         } catch (BoldRequestException $exception) {
@@ -97,7 +97,11 @@ class CreateBoldPaymentLinkAction
             : "Suscripción {$invoice->invoice_number}";
     }
 
-    private function callbackUrl(): ?string
+    /**
+     * A dónde vuelve el pagador al terminar. Lleva la referencia porque esa
+     * pantalla confirma el pago consultándolo, y sin ella no sabría cuál.
+     */
+    private function callbackUrl(string $reference): ?string
     {
         $route = (string) config('bold.link.callback_route');
 
@@ -105,7 +109,7 @@ class CreateBoldPaymentLinkAction
             return null;
         }
 
-        $url = route($route);
+        $url = route($route, ['ref' => $reference]);
 
         // Bold solo acepta https. En local no se manda y el pagador se queda en
         // el checkout, que es preferible a que la creación del link falle.

@@ -52,6 +52,38 @@ class SubscriptionInvoice extends Model
     // ── Relaciones ─────────────────────────────────────────────────────────
 
     /**
+     * Cobro al que corresponde una referencia de Bold.
+     *
+     * Primero por coincidencia exacta, que es el caso normal. Si no aparece se
+     * prueba con el prefijo: las referencias son «<número de factura>-XXXXXX» y
+     * un link viejo trae un sufijo distinto al último que guardamos.
+     */
+    public static function findByBoldReference(string $reference): ?self
+    {
+        $reference = trim($reference);
+
+        if ($reference === '') {
+            return null;
+        }
+
+        $invoice = static::query()->where('bold_reference', $reference)->first();
+
+        if ($invoice) {
+            return $invoice;
+        }
+
+        $separator = mb_strrpos($reference, '-');
+
+        if ($separator === false) {
+            return null;
+        }
+
+        return static::query()
+            ->where('invoice_number', mb_substr($reference, 0, $separator))
+            ->first();
+    }
+
+    /**
      * ¿Hay un link de Bold por el que todavía se pueda pagar?
      *
      * Un link pagado o vencido ya no sirve, y uno en proceso tampoco conviene
