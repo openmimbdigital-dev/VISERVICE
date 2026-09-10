@@ -60,9 +60,7 @@ class BoldWebhookController extends Controller
         $reference = (string) ($data['metadata']['reference'] ?? '');
         $payment_id = (string) ($data['payment_id'] ?? '');
 
-        $invoice = $reference !== ''
-            ? SubscriptionInvoice::query()->where('bold_reference', $reference)->first()
-            : null;
+        $invoice = $this->invoiceFor($reference);
 
         $event = BoldWebhookEvent::query()->create([
             'event_id'                => $event_id,
@@ -147,6 +145,36 @@ class BoldWebhookController extends Controller
                 ? "Cobro confirmado y facturado ({$work_order_invoice->reference})."
                 : 'Cobro confirmado; no se generó factura.',
         ]);
+    }
+
+    /**
+     * Cobro al que corresponde la referencia que envió Bold.
+     *
+     * Primero por coincidencia exacta, que es el caso normal. Si no aparece, se
+     * prueba con el prefijo: las referencias son «<número de factura>-XXXXXX» y
+     * un link viejo trae un sufijo distinto al último que guardamos.
+     */
+    private function invoiceFor(string $reference): ?SubscriptionInvoice
+    {
+        if ($reference === '') {
+            return null;
+        }
+
+        $invoice = SubscriptionInvoice::query()->where('bold_reference', $reference)->first();
+
+        if ($invoice) {
+            return $invoice;
+        }
+
+        $separator = mb_strrpos($reference, '-');
+
+        if ($separator === false) {
+            return null;
+        }
+
+        return SubscriptionInvoice::query()
+            ->where('invoice_number', mb_substr($reference, 0, $separator))
+            ->first();
     }
 
     /**

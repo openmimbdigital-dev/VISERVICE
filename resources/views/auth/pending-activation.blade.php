@@ -9,6 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @livewireStyles
     <style>
         body { font-family: 'Inter', sans-serif; }
         @keyframes pulse-slow {
@@ -72,6 +73,19 @@
         </div>
         @endauth
 
+        {{-- Pagar en línea, si quedó un cobro pendiente --}}
+        @auth
+        @if(session('payment_notice'))
+        <div class="mt-6 rounded-2xl border border-amber-400/30 bg-amber-500/10 px-5 py-4 text-left text-sm text-amber-200">
+            {{ session('payment_notice') }}
+        </div>
+        @endif
+
+        <div class="mt-6">
+            <livewire:auth.pay-pending />
+        </div>
+        @endauth
+
         {{-- Pasos de lo que pasa --}}
         <div class="mt-6 rounded-2xl border border-white/10 bg-white/5 px-6 py-5">
             <p class="text-sm font-semibold text-slate-300 text-left mb-4">¿Qué pasa ahora?</p>
@@ -113,5 +127,6 @@
         <p class="mt-10 text-xs text-slate-600">© {{ date('Y') }} SouulBi · Sistema de gestión de talleres</p>
     </div>
 
+    @livewireScripts
 </body>
 </html>
