@@ -19,6 +19,12 @@ return Application::configure(basePath: dirname(__DIR__))
         // Railway/Render terminan HTTPS delante del contenedor (HTTP interno).
         $middleware->trustProxies(at: '*');
 
+        // El webhook de Bold lo llama la pasarela, no un navegador: no hay sesión
+        // ni token CSRF. Su autenticidad se verifica con la firma HMAC del cuerpo.
+        $middleware->validateCsrfTokens(except: [
+            'webhooks/bold',
+        ]);
+
         $middleware->alias([
             'permission'          => \App\Http\Middleware\CheckPermission::class,
             'role'                => \App\Http\Middleware\CheckRole::class,

@@ -113,8 +113,17 @@
                                 </td>
                                 <td class="px-4 py-3">
                                     <div class="flex justify-end gap-2">
+                                        @if(in_array($sub->status, ['pending', 'active', 'trial', 'past_due']))
+                                            <button wire:click="generatePaymentLink({{ $sub->id }})"
+                                                wire:loading.attr="disabled" wire:target="generatePaymentLink({{ $sub->id }})"
+                                                class="btn btn-sm btn-outline-primary" title="Link de pago en línea">
+                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 010 5.656l-3 3a4 4 0 01-5.656-5.656l1.5-1.5m5.656-5.656l1.5-1.5a4 4 0 015.656 5.656l-3 3a4 4 0 01-5.656 0"/>
+                                                </svg>
+                                            </button>
+                                        @endif
                                         @if(in_array($sub->status, ['active', 'trial', 'past_due']))
-                                            <button wire:click="openInvoiceModal({{ $sub->id }})" class="btn btn-sm btn-success" title="Registrar pago">
+                                            <button wire:click="openInvoiceModal({{ $sub->id }})" class="btn btn-sm btn-success" title="Registrar pago manual">
                                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                                 </svg>
@@ -297,12 +306,57 @@
             </div>
         </div>
     @endif
-    </div>
+    
+    {{-- Link de pago en línea --}}
+    @if($showPaymentLinkModal)
+    <x-ui.modal centered maxWidth="md">
+        <x-slot:backdrop>
+            <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" wire:click="closePaymentLinkModal"></div>
+        </x-slot:backdrop>
 
-    @push('scripts')
-    <script>
-        window.addEventListener('swal', e => {
-            Swal.fire({ title: e.detail[0]?.title ?? e.detail?.title, text: e.detail[0]?.text ?? e.detail?.text, icon: e.detail[0]?.icon ?? e.detail?.icon, timer: 2000, showConfirmButton: false });
-        });
-    </script>
-    @endpush
+        <div class="flex shrink-0 items-center justify-between border-b border-slate-100 px-4 py-4 sm:px-6">
+            <div>
+                <h3 class="text-base font-semibold text-slate-900">Link de pago en línea</h3>
+                <p class="mt-0.5 text-xs text-slate-500">Cobro {{ $payment_link_invoice }}</p>
+            </div>
+            <button type="button" wire:click="closePaymentLinkModal" class="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+
+        <div class="flex-1 space-y-4 overflow-y-auto px-4 py-5 sm:px-6" x-data="{ copied: false }">
+            <p class="text-sm text-slate-600">
+                Compártele este link al comercio. Puede pagar con tarjeta, PSE, Nequi o botón
+                Bancolombia; cuando el pago se apruebe, la suscripción se activa y la factura
+                se genera sola.
+            </p>
+
+            <div class="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
+                <input type="text" readonly value="{{ $payment_link_url }}" x-ref="link"
+                    class="min-w-0 flex-1 border-0 bg-transparent p-0 font-mono text-xs text-slate-700 focus:outline-none focus:ring-0">
+                <button type="button"
+                    x-on:click="navigator.clipboard.writeText($refs.link.value); copied = true; setTimeout(() => copied = false, 2000)"
+                    class="shrink-0 rounded-lg bg-white px-2.5 py-1.5 text-xs font-semibold text-indigo-700 ring-1 ring-slate-200 transition hover:bg-indigo-50">
+                    <span x-show="! copied">Copiar</span>
+                    <span x-show="copied" x-cloak class="text-emerald-700">¡Copiado!</span>
+                </button>
+            </div>
+
+            <a href="{{ $payment_link_url }}" target="_blank" rel="noopener"
+                class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700">
+                Abrir el checkout
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+            </a>
+
+            <p class="rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs text-slate-500">
+                El link se reutiliza mientras siga vigente: volver a pulsar el botón no crea
+                uno nuevo. El cobro con transferencia y comprobante sigue disponible.
+            </p>
+        </div>
+
+        <div class="flex shrink-0 justify-end border-t border-slate-100 px-4 py-4 sm:px-6">
+            <button type="button" wire:click="closePaymentLinkModal" class="rounded-xl bg-slate-100 px-4 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-200">Cerrar</button>
+        </div>
+    </x-ui.modal>
+    @endif
+</div>
