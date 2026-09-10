@@ -93,8 +93,8 @@ class DatatableProducts extends LivewireDatatable
                 return '<span class="tabular-nums text-sm text-slate-700">$ ' . number_format((float) $sale_price, 2, ',', '.') . '</span>';
             })->label('Precio venta')->sortable(),
 
-            Column::callback(['products.step', 'products.final_step', 'products.product_type_id', 'products.product_category_id', 'products.unit_id', 'products.cost_price', 'products.profit_percentage', 'products.sale_price'], function ($step, $final_step, $product_type_id, $product_category_id, $unit_id, $cost_price, $profit_percentage, $sale_price) {
-                $complete = $product_type_id && $product_category_id && $unit_id && $cost_price !== null && $profit_percentage !== null && $sale_price !== null;
+            Column::callback(['products.step', 'products.final_step', 'products.product_type_id', 'products.product_category_id', 'products.unit_id', 'products.sale_price'], function ($step, $final_step, $product_type_id, $product_category_id, $unit_id, $sale_price) {
+                $complete = $product_type_id && $product_category_id && $unit_id && $sale_price !== null;
 
                 return WizardProgress::datatableBadge((int) $step, (int) $final_step, (bool) $complete);
             })->label('Progreso')->unsortable(),

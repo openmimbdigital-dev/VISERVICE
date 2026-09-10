@@ -137,8 +137,6 @@ class Product extends Model
             ->whereNotNull("{$table}.product_type_id")
             ->whereNotNull("{$table}.product_category_id")
             ->whereNotNull("{$table}.unit_id")
-            ->whereNotNull("{$table}.cost_price")
-            ->whereNotNull("{$table}.profit_percentage")
             ->whereNotNull("{$table}.sale_price");
     }
 
@@ -147,8 +145,6 @@ class Product extends Model
         return $this->product_type_id !== null
             && $this->product_category_id !== null
             && $this->unit_id !== null
-            && $this->cost_price !== null
-            && $this->profit_percentage !== null
             && $this->sale_price !== null;
     }
 
@@ -216,7 +212,15 @@ class Product extends Model
 
     public function profitMarginAmount(): ?float
     {
-        if ($this->cost_price === null || $this->profit_percentage === null) {
+        if ($this->cost_price === null) {
+            return null;
+        }
+
+        if ($this->sale_price !== null) {
+            return round((float) $this->sale_price - (float) $this->cost_price, 2);
+        }
+
+        if ($this->profit_percentage === null) {
             return null;
         }
 

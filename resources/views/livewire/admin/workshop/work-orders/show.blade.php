@@ -885,8 +885,12 @@
                                 class="px-2 py-1.5 text-slate-500 hover:bg-slate-100">+</button>
                         </div>
                         <button type="button" wire:click="addCatalogItem({{ $product->id }})" wire:loading.attr="disabled"
-                            class="btn btn-primary btn-sm min-w-0 flex-1 justify-center !px-2 !py-1.5 !text-xs">
-                            Agregar
+                            title="Agregar"
+                            class="btn btn-primary btn-sm shrink-0 justify-center !px-2 !py-1.5 sm:min-w-0 sm:flex-1">
+                            <svg class="h-4 w-4 sm:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                            </svg>
+                            <span class="hidden sm:inline !text-xs">Agregar</span>
                         </button>
                         </div>
                     </div>

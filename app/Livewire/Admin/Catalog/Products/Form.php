@@ -64,12 +64,22 @@ class Form extends Component
 
     public function updatedFormCostPrice(): void
     {
-        $this->form->recalculateSalePrice();
+        $this->form->applyCostChange();
     }
 
     public function updatedFormProfitPercentage(): void
     {
-        $this->form->recalculateSalePrice();
+        $this->form->applyFromPercentage();
+    }
+
+    public function updatedFormProfitMargin(): void
+    {
+        $this->form->applyFromMargin();
+    }
+
+    public function updatedFormSalePrice(): void
+    {
+        $this->form->applyFromSale();
     }
 
     public function nextStep(): void
@@ -158,7 +168,7 @@ class Form extends Component
                 ],
                 ProductForm::STEP_PRICING => [
                     'title'       => 'Precios',
-                    'description' => 'Costo, porcentaje y precio de venta',
+                    'description' => 'Costo, margen y precio de venta',
                 ],
                 ProductForm::STEP_IMAGES => [
                     'title'       => 'Imágenes',
@@ -239,7 +249,7 @@ class Form extends Component
         $this->form->normalizeIdentifiers();
 
         if ($this->step === ProductForm::STEP_PRICING) {
-            $this->form->recalculateSalePrice();
+            $this->form->syncPricingBeforeValidate();
         }
 
         $this->form->validate($this->form->rulesForStep($this->step));
