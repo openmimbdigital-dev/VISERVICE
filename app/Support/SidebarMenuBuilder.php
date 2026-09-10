@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Route;
 
 class SidebarMenuBuilder
 {
-    public function build(?User $user): Collection
+    public function build(?User $user, string $panel = 'admin'): Collection
     {
         if (! $user) {
             return collect();
@@ -22,17 +22,30 @@ class SidebarMenuBuilder
             ->with(['items' => fn ($query) => $query->where('active', true)->orderBy('sort_order')])
             ->get()
             ->filter(fn (MenuSection $section) => $section->isVisibleTo($user))
+            ->filter(fn (MenuSection $section) => $this->belongsToPanel($section, $panel))
             ->map(fn (MenuSection $section) => $this->mapSection($section, $user))
             ->filter(fn (array $section) => $this->shouldRenderSection($section))
             ->values();
     }
 
-    public function activeSectionSlugs(?User $user): array
+    public function activeSectionSlugs(?User $user, string $panel = 'admin'): array
     {
-        return $this->build($user)
+        return $this->build($user, $panel)
             ->filter(fn (array $section) => $section['is_active'])
             ->pluck('slug')
             ->all();
+    }
+
+    public static function panelFromRequest(): string
+    {
+        return request()->routeIs('admin.presentation.*') ? 'presentation' : 'admin';
+    }
+
+    private function belongsToPanel(MenuSection $section, string $panel): bool
+    {
+        $is_presentation = $section->slug === 'presentacion';
+
+        return $panel === 'presentation' ? $is_presentation : ! $is_presentation;
     }
 
     private function mapSection(MenuSection $section, User $user): array
