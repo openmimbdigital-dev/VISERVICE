@@ -67,6 +67,7 @@ use App\Livewire\Admin\Presentation\Events\Form as PresentationEventsForm;
 use App\Livewire\Admin\Presentation\Events\Index as PresentationEventsIndex;
 use App\Livewire\Admin\Presentation\Events\Schedule\Index as PresentationEventsScheduleIndex;
 use App\Livewire\Admin\Presentation\Events\Show as PresentationEventsShow;
+use App\Livewire\Admin\Presentation\ParentApp\Index as PresentationParentAppIndex;
 use App\Livewire\Admin\Presentation\Roles\Index as PresentationRolesIndex;
 use App\Livewire\Admin\Presentation\Roles\Show as PresentationRolesShow;
 use App\Livewire\Admin\Presentation\Users\Index as PresentationUsersIndex;
@@ -235,6 +236,7 @@ Route::middleware(['auth', 'ensure.business', 'business.module'])->group(functio
             Route::get('/payments', PresentationBillingPaymentsIndex::class)->name('payments.index');
             Route::get('/concepts', PresentationBillingConceptsIndex::class)->name('concepts.index');
         });
+        Route::get('/parent-app', PresentationParentAppIndex::class)->name('parent-app.index');
         Route::get('/reports', PresentationReportsIndex::class)->name('reports.index');
         Route::get('/reports/courses/pdf', [AcademicReportPdfController::class, 'courses'])->name('reports.courses.pdf');
         Route::get('/reports/courses/{course}/pdf', [AcademicReportPdfController::class, 'course'])->name('reports.courses.pdf.show');

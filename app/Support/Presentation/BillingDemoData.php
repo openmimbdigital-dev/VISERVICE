@@ -10,6 +10,8 @@ class BillingDemoData
 
     public const SESSION_PAYMENTS_KEY = 'presentation.billing.payments';
 
+    public const SESSION_INVOICE_STATUS_KEY = 'presentation.billing.invoice_status';
+
     /** @return array<string, string> */
     public static function invoiceStatuses(): array
     {
@@ -40,6 +42,8 @@ class BillingDemoData
             ['id' => 'inv-2', 'number' => 'FAC-2026-002', 'student' => 'Liam Castaño', 'guardian' => 'Andrés Castaño', 'concept' => 'Pensión', 'amount' => 850000, 'issued_at' => '2026-09-01', 'due_date' => '2026-09-10', 'status' => 'issued'],
             ['id' => 'inv-3', 'number' => 'FAC-2026-003', 'student' => 'Emma Restrepo', 'guardian' => 'Paola Restrepo', 'concept' => 'Transporte', 'amount' => 180000, 'issued_at' => '2026-09-02', 'due_date' => '2026-09-12', 'status' => 'overdue'],
             ['id' => 'inv-4', 'number' => 'FAC-2026-004', 'student' => 'Santiago Morales', 'guardian' => 'Familia Morales', 'concept' => 'Alimentación', 'amount' => 220000, 'issued_at' => '2026-09-05', 'due_date' => '2026-09-20', 'status' => 'draft'],
+            ['id' => 'inv-5', 'number' => 'FAC-2026-005', 'student' => 'Martina Mejía', 'guardian' => 'Carolina Mejía', 'concept' => 'Transporte', 'amount' => 180000, 'issued_at' => '2026-09-08', 'due_date' => '2026-09-18', 'status' => 'issued'],
+            ['id' => 'inv-6', 'number' => 'FAC-2026-006', 'student' => 'Martina Mejía', 'guardian' => 'Carolina Mejía', 'concept' => 'Alimentación', 'amount' => 220000, 'issued_at' => '2026-09-08', 'due_date' => '2026-09-22', 'status' => 'issued'],
         ];
     }
 
@@ -103,9 +107,24 @@ class BillingDemoData
     /** @param array<string, mixed> $invoice */
     public static function decorateInvoice(array $invoice): array
     {
+        $overrides = session(self::SESSION_INVOICE_STATUS_KEY, []);
+        if (is_array($overrides) && isset($overrides[$invoice['id']])) {
+            $invoice['status'] = $overrides[$invoice['id']];
+        }
+
         $invoice['status_label'] = self::invoiceStatuses()[$invoice['status']] ?? $invoice['status'];
 
         return $invoice;
+    }
+
+    public static function setInvoiceStatus(string $id, string $status): void
+    {
+        $overrides = session(self::SESSION_INVOICE_STATUS_KEY, []);
+        if (! is_array($overrides)) {
+            $overrides = [];
+        }
+        $overrides[$id] = $status;
+        session([self::SESSION_INVOICE_STATUS_KEY => $overrides]);
     }
 
     public static function nextInvoiceNumber(): string
