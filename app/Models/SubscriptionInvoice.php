@@ -13,6 +13,8 @@ class SubscriptionInvoice extends Model
     protected $fillable = [
         'subscription_id',
         'business_id',
+        'work_order_id',
+        'work_order_invoice_id',
         'invoice_number',
         'amount',
         'status',
@@ -24,6 +26,13 @@ class SubscriptionInvoice extends Model
         'payment_reference',
         'bank_account_id',
         'payment_proof',
+        'bold_payment_link',
+        'bold_link_url',
+        'bold_reference',
+        'bold_status',
+        'bold_payment_id',
+        'bold_payment_method',
+        'bold_link_created_at',
         'notes',
         'created_by',
     ];
@@ -31,6 +40,7 @@ class SubscriptionInvoice extends Model
     protected function casts(): array
     {
         return [
+            'bold_link_created_at' => 'datetime',
             'amount'               => 'decimal:2',
             'billing_period_start' => 'date',
             'billing_period_end'   => 'date',
@@ -41,6 +51,21 @@ class SubscriptionInvoice extends Model
 
     // ── Relaciones ─────────────────────────────────────────────────────────
 
+    /**
+     * ¿Hay un link de Bold por el que todavía se pueda pagar?
+     *
+     * Un link pagado o vencido ya no sirve, y uno en proceso tampoco conviene
+     * reemplazarlo: el comercio podría estar justo en el checkout.
+     */
+    public function hasUsableBoldLink(): bool
+    {
+        if (blank($this->bold_payment_link) || blank($this->bold_link_url)) {
+            return false;
+        }
+
+        return in_array($this->bold_status, ['ACTIVE', 'PROCESSING'], true);
+    }
+
     public function subscription(): BelongsTo
     {
         return $this->belongsTo(Subscription::class);
@@ -49,6 +74,18 @@ class SubscriptionInvoice extends Model
     public function business(): BelongsTo
     {
         return $this->belongsTo(Business::class);
+    }
+
+    /** OT generada al cobrar este período. */
+    public function workOrder(): BelongsTo
+    {
+        return $this->belongsTo(WorkOrder::class);
+    }
+
+    /** Factura emitida por este cobro, la que va a la DIAN. */
+    public function workOrderInvoice(): BelongsTo
+    {
+        return $this->belongsTo(WorkOrderInvoice::class);
     }
 
     public function bankAccount(): BelongsTo

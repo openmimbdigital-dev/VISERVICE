@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use App\Actions\Subscriptions\SyncSubscriptionPlanProductAction;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -12,6 +14,7 @@ class SubscriptionPlan extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
+        'product_id',
         'name',
         'description',
         'monthly_price',
@@ -30,6 +33,42 @@ class SubscriptionPlan extends Model
             'billing_cycles' => 'array',
             'is_active' => 'boolean',
         ];
+    }
+
+    /**
+     * Producto con el que se factura el plan.
+     *
+     * Se salta el ocultamiento global de Product: aquí sí queremos verlo.
+     */
+    public function product(): BelongsTo
+    {
+        return $this->belongsTo(Product::class)->withoutGlobalScope('withoutSubscriptionPlans');
+    }
+
+    /**
+     * El producto del plan se mantiene solo: crear, editar o eliminar un plan es
+     * también crear, editar o eliminar su producto. Va en eventos del modelo y no
+     * en la pantalla para que valga igual desde un seeder o desde tinker.
+     */
+    protected static function booted(): void
+    {
+        static::saved(function (self $plan) {
+            SyncSubscriptionPlanProductAction::run($plan);
+        });
+
+        static::deleted(function (self $plan) {
+            $product = $plan->product()->withTrashed()->first();
+
+            if (! $product) {
+                return;
+            }
+
+            $plan->isForceDeleting() ? $product->forceDelete() : $product->delete();
+        });
+
+        static::restored(function (self $plan) {
+            $plan->product()->withTrashed()->first()?->restore();
+        });
     }
 
     public function subscriptions(): HasMany

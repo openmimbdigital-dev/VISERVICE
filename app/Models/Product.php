@@ -35,6 +35,7 @@ class Product extends Model
         'discount_value',
         'track_inventory',
         'status',
+        'is_subscription_plan',
     ];
 
     /** Formas admitidas de expresar el descuento. */
@@ -45,6 +46,7 @@ class Product extends Model
     protected function casts(): array
     {
         return [
+            'is_subscription_plan' => 'boolean',
             'step'             => 'integer',
             'final_step'       => 'integer',
             'cost_price'         => 'decimal:2',
@@ -99,6 +101,32 @@ class Product extends Model
     public function scopeActive(Builder $query): Builder
     {
         return $query->where($query->getModel()->getTable() . '.status', true);
+    }
+
+    /**
+     * Los productos que respaldan planes de suscripción no son parte del
+     * catálogo: se ocultan siempre, para que nadie los agregue por error a una
+     * orden de trabajo o los edite por fuera del plan. Quien necesite verlos
+     * —el módulo de suscripciones— usa scopeWithSubscriptionPlans().
+     */
+    protected static function booted(): void
+    {
+        static::addGlobalScope('withoutSubscriptionPlans', function (Builder $query) {
+            $query->where($query->getModel()->getTable().'.is_subscription_plan', false);
+        });
+    }
+
+    /** Levanta el ocultamiento de los productos de plan. */
+    public function scopeWithSubscriptionPlans(Builder $query): Builder
+    {
+        return $query->withoutGlobalScope('withoutSubscriptionPlans');
+    }
+
+    /** Solo los productos de plan. */
+    public function scopeOnlySubscriptionPlans(Builder $query): Builder
+    {
+        return $query->withoutGlobalScope('withoutSubscriptionPlans')
+            ->where($query->getModel()->getTable().'.is_subscription_plan', true);
     }
 
     public function scopeComplete(Builder $query): Builder
