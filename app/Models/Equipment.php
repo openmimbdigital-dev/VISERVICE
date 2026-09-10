@@ -134,10 +134,10 @@ class Equipment extends Model
     {
         $user = auth()->user();
 
-        if ($user?->hasRole('superAdmin')) {
-            return $query;
-        }
-
+        // El superAdmin no es un comodín sobre los datos de los comercios: ve los
+        // de su propio negocio, igual que cualquiera. Para mirar los de otro entra
+        // como un usuario suyo (ver App\Support\Impersonation), y así lo hace con
+        // sus permisos y su alcance en vez de con reglas especiales.
         $business_ids = $user->businessIds();
 
         if ($business_ids === []) {

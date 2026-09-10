@@ -7,10 +7,13 @@ use App\Actions\LogUserHistoricalAction;
 use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
 use App\Models\Role;
 use App\Support\BusinessAccess;
+use App\Support\ConfirmationAlert;
+use App\Support\Impersonation;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -325,6 +328,67 @@ class Index extends Component
         }
 
         $this->showModal = false;
+    }
+
+    /** Usuario al que se va a entrar, mientras se confirma. */
+    public ?int $impersonate_id = null;
+
+    /**
+     * Pide confirmación antes de entrar como otro usuario.
+     *
+     * Con el diálogo del proyecto, no el del navegador: las confirmaciones se
+     * ven todas igual (ver App\Support\ConfirmationAlert).
+     */
+    public function impersonate(int $id): void
+    {
+        $target = User::query()->findOrFail($id);
+
+        if (! Impersonation::allows(auth()->user(), $target)) {
+            $this->dispatch('swal', [
+                'title' => 'No se puede entrar como este usuario',
+                'text'  => 'Solo se puede entrar como usuarios activos de un comercio.',
+                'icon'  => 'warning',
+            ]);
+
+            return;
+        }
+
+        $this->impersonate_id = $target->id;
+
+        $this->confirm(
+            "¿Entrar como {$target->username}?",
+            ConfirmationAlert::options(
+                on_confirmed: 'impersonation-confirmed',
+                confirm_text: 'Entrar',
+                icon: 'question',
+                text: 'Verás la plataforma con sus permisos hasta que vuelvas a tu cuenta.',
+            ),
+        );
+    }
+
+    /**
+     * Entra de verdad, ya confirmado.
+     *
+     * Se recarga la página completa: al cambiar de sesión, todo el estado que
+     * Livewire tenga en memoria deja de corresponder a quien la está usando.
+     */
+    #[On('impersonation-confirmed')]
+    public function confirmImpersonation(): void
+    {
+        if (! $this->impersonate_id) {
+            return;
+        }
+
+        $target = User::query()->find($this->impersonate_id);
+        $this->impersonate_id = null;
+
+        if (! $target || ! Impersonation::allows(auth()->user(), $target)) {
+            return;
+        }
+
+        Impersonation::start(auth()->user(), $target);
+
+        $this->redirect(route('dashboard'), navigate: false);
     }
 
     public function toggleStatus(int $id): void

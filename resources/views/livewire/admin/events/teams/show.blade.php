@@ -33,7 +33,6 @@
                     <button
                         type="button"
                         wire:click="delete"
-                        wire:confirm="¿Eliminar este equipo de evento?"
                         @disabled($delete_disabled)
                         title="{{ $delete_disabled ? $delete_disabled_title : 'Eliminar' }}"
                         class="btn btn-danger btn-sm flex-1 justify-center sm:flex-none disabled:cursor-not-allowed disabled:opacity-50"

@@ -8,11 +8,19 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithPagination;
+use App\Support\ConfirmationAlert;
+use Jantinnerezo\LivewireAlert\LivewireAlert;
+use Livewire\Attributes\On;
 
 #[Layout('layouts.app')]
 #[Title('Pagos Pendientes')]
 class Index extends Component
 {
+    use LivewireAlert;
+
+    /** Registro en espera de que confirmen la acción. */
+    public ?int $rejecting_invoice_id = null;
+
     use WithPagination;
 
     public string $search = '';
@@ -55,9 +63,30 @@ class Index extends Component
         $this->dispatch('swal', ['title' => '¡Pago confirmado! La suscripción está activa.', 'icon' => 'success']);
     }
 
-    public function rejectPayment(int $invoice_id): void
+    public function rejectPayment(int $id): void
     {
-        $invoice = SubscriptionInvoice::with('subscription')->findOrFail($invoice_id);
+        // Pregunta con el diálogo del proyecto; la acción va en rejectPaymentConfirmed().
+        $this->rejecting_invoice_id = $id;
+    
+        $this->confirm('¿Rechazar este pago?', ConfirmationAlert::options(
+                on_confirmed: 'payment-reject-confirmed',
+                confirm_text: 'Rechazar',
+                icon: 'warning',
+                text: 'La suscripción del comercio quedará cancelada.',
+            ));
+    }
+
+    #[On('payment-reject-confirmed')]
+    public function rejectPaymentConfirmed(): void
+    {
+        $id = $this->rejecting_invoice_id;
+        $this->rejecting_invoice_id = null;
+    
+        if (! $id) {
+            return;
+        }
+
+        $invoice = SubscriptionInvoice::with('subscription')->findOrFail($id);
 
         $invoice->update(['status' => 'failed']);
         $invoice->subscription->update([
@@ -67,6 +96,7 @@ class Index extends Component
         ]);
 
         $this->dispatch('swal', ['title' => 'Pago rechazado. La suscripción fue cancelada.', 'icon' => 'warning']);
+    
     }
 
     public function closeModal(): void

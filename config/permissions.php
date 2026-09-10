@@ -15,6 +15,7 @@ return [
                 'users.create' => 'Crear usuarios',
                 'users.edit' => 'Editar usuarios',
                 'users.delete' => 'Eliminar usuarios',
+                'users.impersonate' => 'Entrar como otro usuario',
                 'users.activate' => 'Activar usuarios',
                 'users.deactivate' => 'Desactivar usuarios',
             ],

@@ -7,6 +7,7 @@ use App\Actions\Subscriptions\CreateBoldPaymentLinkAction;
 use App\Models\Business;
 use App\Models\Subscription;
 use App\Models\SubscriptionInvoice;
+use App\Models\SubscriptionPayment;
 use App\Models\SubscriptionPlan;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
@@ -14,11 +15,19 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Throwable;
+use App\Support\ConfirmationAlert;
+use Jantinnerezo\LivewireAlert\LivewireAlert;
+use Livewire\Attributes\On;
 
 #[Layout('layouts.app')]
 #[Title('Gestión de Suscripciones')]
 class Index extends Component
 {
+    use LivewireAlert;
+
+    /** Registro en espera de que confirmen la acción. */
+    public ?int $cancelling_subscription_id = null;
+
     use WithPagination;
 
     public string $search = '';
@@ -58,6 +67,10 @@ class Index extends Component
     }
 
     public bool $showPaymentLinkModal = false;
+
+    public bool $showPaymentsModal = false;
+
+    public ?int $payments_subscription_id = null;
 
     public string $payment_link_url = '';
 
@@ -146,11 +159,33 @@ class Index extends Component
 
     public function cancel(int $id): void
     {
+        // Pregunta con el diálogo del proyecto; la acción va en cancelConfirmed().
+        $this->cancelling_subscription_id = $id;
+
+        $this->confirm('¿Cancelar esta suscripción?', ConfirmationAlert::options(
+                on_confirmed: 'subscription-cancel-confirmed',
+                confirm_text: 'Cancelar suscripción',
+                icon: 'warning',
+                text: 'El comercio perderá el acceso al terminar el período pagado.',
+            ));
+    }
+
+    #[On('subscription-cancel-confirmed')]
+    public function cancelConfirmed(): void
+    {
+        $id = $this->cancelling_subscription_id;
+        $this->cancelling_subscription_id = null;
+
+        if (! $id) {
+            return;
+        }
+
         Subscription::findOrFail($id)->update([
             'status'       => 'cancelled',
             'cancelled_at' => now(),
         ]);
         $this->dispatch('swal', ['title' => 'Suscripción cancelada', 'icon' => 'warning']);
+
     }
 
     public function openInvoiceModal(int $subscriptionId): void
@@ -256,6 +291,19 @@ class Index extends Component
         $this->showPaymentLinkModal = true;
     }
 
+    /** Detalle de cómo pagó el comercio: medio, códigos de la pasarela y montos. */
+    public function viewPayments(int $subscriptionId): void
+    {
+        $this->payments_subscription_id = $subscriptionId;
+        $this->showPaymentsModal = true;
+    }
+
+    public function closePaymentsModal(): void
+    {
+        $this->showPaymentsModal = false;
+        $this->payments_subscription_id = null;
+    }
+
     public function closePaymentLinkModal(): void
     {
         $this->showPaymentLinkModal = false;
@@ -307,6 +355,16 @@ class Index extends Component
             'cancelled' => Subscription::where('status', 'cancelled')->count(),
         ];
 
-        return view('livewire.admin.subscriptions.index', compact('subscriptions', 'plans', 'businesses', 'stats'));
+        $payments = $this->payments_subscription_id
+            ? SubscriptionPayment::query()
+                ->with('createdBy')
+                ->where('subscription_id', $this->payments_subscription_id)
+                ->orderByDesc('paid_at')
+                ->orderByDesc('id')
+                ->get()
+            : collect();
+
+        return view('livewire.admin.subscriptions.index',
+            compact('subscriptions', 'plans', 'businesses', 'stats', 'payments'));
     }
 }

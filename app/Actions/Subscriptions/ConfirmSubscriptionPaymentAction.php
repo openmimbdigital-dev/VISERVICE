@@ -3,6 +3,7 @@
 namespace App\Actions\Subscriptions;
 
 use App\Models\SubscriptionInvoice;
+use App\Models\SubscriptionPayment;
 use App\Models\WorkOrderInvoice;
 use Lorisleiva\Actions\Concerns\AsAction;
 
@@ -27,6 +28,10 @@ class ConfirmSubscriptionPaymentAction
         ?string $payment_reference = null,
         ?string $paid_at = null,
         ?string $notes = null,
+        string $channel = SubscriptionPayment::CHANNEL_MANUAL,
+        array $gateway_data = [],
+        ?string $gateway = null,
+        ?string $gateway_source = null,
     ): ?WorkOrderInvoice {
         if ($invoice->status === 'paid') {
             return $invoice->workOrderInvoice;
@@ -39,6 +44,19 @@ class ConfirmSubscriptionPaymentAction
             'payment_reference' => $payment_reference,
             'notes'             => $notes ?: $invoice->notes,
         ], fn ($value) => $value !== null))->save();
+
+        // El detalle del pago se guarda aparte del cobro: el cobro dice cuánto y
+        // cuándo, el pago dice cómo.
+        RecordSubscriptionPaymentAction::run(
+            invoice: $invoice->fresh(),
+            channel: $channel,
+            method: $payment_method,
+            payment_reference: $payment_reference,
+            notes: $notes,
+            gateway_data: $gateway_data,
+            gateway: $gateway,
+            gateway_source: $gateway_source,
+        );
 
         $subscription = $invoice->subscription;
 

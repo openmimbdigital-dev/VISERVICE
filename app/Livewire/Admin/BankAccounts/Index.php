@@ -9,11 +9,19 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithFileUploads;
+use App\Support\DeleteConfirmationAlert;
+use Jantinnerezo\LivewireAlert\LivewireAlert;
+use Livewire\Attributes\On;
 
 #[Layout('layouts.app')]
 #[Title('Cuentas Bancarias')]
 class Index extends Component
 {
+    use LivewireAlert;
+
+    /** Registro en espera de que confirmen la acción. */
+    public ?int $deleting_account_id = null;
+
     use WithFileUploads;
 
     public bool $showModal = false;
@@ -147,6 +155,22 @@ class Index extends Component
 
     public function delete(int $id): void
     {
+        // Pregunta con el diálogo del proyecto; la acción va en deleteConfirmed().
+        $this->deleting_account_id = $id;
+
+        $this->confirm('¿Eliminar esta cuenta bancaria?', DeleteConfirmationAlert::options('bank-account-delete-confirmed'));
+    }
+
+    #[On('bank-account-delete-confirmed')]
+    public function deleteConfirmed(): void
+    {
+        $id = $this->deleting_account_id;
+        $this->deleting_account_id = null;
+
+        if (! $id) {
+            return;
+        }
+
         $account = BankAccount::findOrFail($id);
 
         if ($account->logo) {
@@ -155,6 +179,7 @@ class Index extends Component
 
         $account->delete();
         $this->dispatch('swal', ['title' => 'Cuenta eliminada.', 'icon' => 'warning']);
+
     }
 
     public function closeModal(): void

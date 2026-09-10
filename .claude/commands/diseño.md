@@ -212,7 +212,7 @@ class Index extends Component
     <button wire:click="openEditEvent({{ $id }})" class="rounded-lg p-1.5 text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 transition">
         {{-- ícono lápiz --}}
     </button>
-    <button wire:click="deleteRecord({{ $id }})" wire:confirm="¿Eliminar este registro?" class="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 transition">
+    <button wire:click="deleteRecord({{ $id }})" class="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 transition">
         {{-- ícono basura --}}
     </button>
 </div>
@@ -242,13 +242,94 @@ En los formularios usar:
 
 ---
 
+## Confirmaciones
+
+**Nunca** usar `wire:confirm` ni el `confirm()` de JavaScript: pintan el diálogo gris del
+navegador, que no tiene nada que ver con el diseño del sistema. Todas las confirmaciones
+salen por SweetAlert con el tema del proyecto.
+
+### Para eliminar
+
+El trait ya lo resuelve. En el componente:
+
+```php
+use App\Livewire\Concerns\ConfirmsDeletionWithLivewireAlert;
+
+class Index extends Component
+{
+    use ConfirmsDeletionWithLivewireAlert;
+
+    public function deleteRecord(int $id): void
+    {
+        abort_unless(auth()->user()->can('modulo.delete'), 403);
+        $this->askDeleteConfirmation($id, '¿Eliminar este registro?');
+    }
+
+    protected function onDeleteConfirmed(): void
+    {
+        DeleteXxxAction::run($this->delete_id);
+        $this->alertDeleteSuccess('Registro eliminado correctamente.');
+    }
+}
+```
+
+En el blade, el botón va **sin** ningún atributo de confirmación: `wire:click="deleteRecord(...)"`.
+
+### Para cualquier otra acción
+
+`App\Support\ConfirmationAlert::options()` da las mismas opciones visuales. Se despacha un
+evento propio para no chocar con el `confirmed` del trait de eliminación:
+
+```php
+use App\Support\ConfirmationAlert;
+use Jantinnerezo\LivewireAlert\LivewireAlert;
+use Livewire\Attributes\On;
+
+public ?int $pending_id = null;
+
+public function accion(int $id): void
+{
+    $this->pending_id = $id;
+
+    $this->confirm('¿Título de la pregunta?', ConfirmationAlert::options(
+        on_confirmed: 'mi-accion-confirmada',
+        confirm_text: 'Sí, hacerlo',
+        icon: 'question',
+        text: 'Explicación de lo que va a pasar.',
+    ));
+}
+
+#[On('mi-accion-confirmada')]
+public function accionConfirmada(): void
+{
+    // Revalidar aquí: entre la pregunta y la respuesta pudo cambiar todo.
+}
+```
+
+Dos reglas del patrón: la acción **no hace nada** al pedir la confirmación —solo guarda el
+id y pregunta— y el manejador vuelve a validar permisos y estado antes de ejecutar.
+
+### Avisos sin pregunta
+
+```php
+$this->dispatch('swal', ['title' => 'Guardado', 'icon' => 'success']);
+```
+
+---
+
 ## Convenciones generales
 
 - Todo el texto de la UI en **español**
 - Variables en **snake_case**
 - Eventos Livewire: `$this->dispatch('swal', ['title'=>'...','icon'=>'success'])`
-- Confirmaciones: `wire:confirm="¿Eliminar?"` (nativo Livewire 3, no modal)
-- Multi-tenant: **siempre** filtrar por `auth()->user()->business_id` en los queries
+- Confirmaciones: **nunca** `wire:confirm` ni `confirm()` de JavaScript — son los diálogos
+  grises del navegador y rompen el diseño. Se usa siempre el diálogo del proyecto
+  (ver «Confirmaciones» más abajo)
+- Multi-tenant: **siempre** filtrar con el alcance del modelo (`forAuthUser()`), nunca a mano.
+  El superAdmin **no** es un comodín: ve los datos de su propio negocio como cualquiera.
+  Para mirar los de otro comercio entra como uno de sus usuarios (`App\Support\Impersonation`),
+  no se le abren excepciones en los alcances. Lo global es solo lo de plataforma:
+  negocios, suscripciones, planes y usuarios
 - Roles: `superAdmin`, `Administrador`, `Supervisor`, `Operador`
 - Permisos: definidos en `config/permissions.php`
 - Logo en `public/images/logo-initial.png`

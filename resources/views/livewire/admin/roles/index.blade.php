@@ -124,7 +124,6 @@
                     @can('roles.delete')
                     @if(!$isProtected)
                     <button wire:click="delete({{ $role->id }})"
-                        wire:confirm="¿Seguro que deseas eliminar el rol «{{ $role->name }}»?"
                         type="button"
                         @class([
                             'inline-flex items-center gap-1.5 text-xs font-medium rounded-lg px-3 py-1.5 transition',

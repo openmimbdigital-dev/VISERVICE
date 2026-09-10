@@ -96,7 +96,6 @@
                                 Editar
                             </button>
                             <button wire:click="delete({{ $bank->id }})"
-                                wire:confirm="¿Seguro que deseas eliminar este banco?"
                                 type="button"
                                 @class([
                                     'inline-flex items-center gap-1.5 text-xs font-medium rounded-lg px-3 py-1.5 transition',

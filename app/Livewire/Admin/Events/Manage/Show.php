@@ -10,11 +10,16 @@ use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
+use App\Support\DeleteConfirmationAlert;
+use Jantinnerezo\LivewireAlert\LivewireAlert;
+use Livewire\Attributes\On;
 
 #[Layout('layouts.app')]
 #[Title('Gestión de eventos — Evento')]
 class Show extends Component
 {
+    use LivewireAlert;
+
     public EventCategory $event_category;
 
     public Event $event;
@@ -55,6 +60,13 @@ class Show extends Component
 
     public function delete(): void
     {
+        // Pregunta con el diálogo del proyecto; la acción va en deleteConfirmed().
+        $this->confirm('¿Eliminar este evento?', DeleteConfirmationAlert::options('event-delete-confirmed'));
+    }
+
+    #[On('event-delete-confirmed')]
+    public function deleteConfirmed(): void
+    {
         try {
             DeleteEventAction::run($this->event->id);
         } catch (ValidationException $exception) {
@@ -75,6 +87,7 @@ class Show extends Component
         ]);
 
         $this->redirectRoute('admin.events.manage.category.index', $this->event_category, navigate: true);
+
     }
 
     public function render()

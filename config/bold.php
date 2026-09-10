@@ -62,6 +62,17 @@ return [
     'webhook' => [
         'signature_header' => 'x-bold-signature',
 
+        // Bold no siempre firma con la misma llave: depende del tipo de
+        // integración por el que entró el pago —la de «Botón de pagos» o la de
+        // «API Datáfono»—. Se prueban todas las que conozcamos y se registra
+        // cuál coincidió, para no quedar adivinando cuando una no cuadre.
+        'extra_secrets' => array_values(array_filter(
+            array_map('trim', explode(',', (string) env('BOLD_WEBHOOK_EXTRA_SECRETS', '')))
+        )),
+
+        // En modo de pruebas Bold puede firmar con llave vacía. Se acepta ADEMÁS
+        // de las llaves reales, nunca en su lugar. En producción va en false: si
+        // no, cualquiera que conozca la URL puede firmar sin llave.
         'test_mode' => (bool) env('BOLD_WEBHOOK_TEST_MODE', false),
     ],
 

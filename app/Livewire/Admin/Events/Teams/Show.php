@@ -10,11 +10,16 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
 use Livewire\Component;
+use App\Support\DeleteConfirmationAlert;
+use Jantinnerezo\LivewireAlert\LivewireAlert;
+use Livewire\Attributes\On;
 
 #[Layout('layouts.app')]
 #[Title('Gestión de eventos — Equipo de evento')]
 class Show extends Component
 {
+    use LivewireAlert;
+
     public EventTeam $event_team;
 
     #[Url(as: 'from_event')]
@@ -54,6 +59,13 @@ class Show extends Component
 
     public function delete(): void
     {
+        // Pregunta con el diálogo del proyecto; la acción va en deleteConfirmed().
+        $this->confirm('¿Eliminar este equipo de evento?', DeleteConfirmationAlert::options('event-team-delete-confirmed'));
+    }
+
+    #[On('event-team-delete-confirmed')]
+    public function deleteConfirmed(): void
+    {
         abort_if($this->from_event !== null, 403);
 
         ChurchEventsAccess::authorize();
@@ -67,6 +79,7 @@ class Show extends Component
         ]);
 
         $this->redirectRoute('admin.events.teams.index', navigate: true);
+
     }
 
     public function render()
