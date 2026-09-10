@@ -135,10 +135,10 @@
 
             <nav class="flex-1 min-h-0 space-y-1 overflow-y-auto overflow-x-visible py-4 px-2" @click="if ($event.target.closest('a[href]')) closeMobileSidebar()">
                 <a
-                    href="{{ route('dashboard') }}"
+                    href="{{ route($panelHomeRoute ?? 'dashboard') }}"
                     wire:navigate
                     class="flex items-center gap-3 rounded-lg px-2.5 py-2.5 text-sm font-medium transition
-                        {{ request()->routeIs('dashboard') ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white' }}"
+                        {{ request()->routeIs($panelHomeRoute ?? 'dashboard') ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white' }}"
                     title="Inicio"
                 >
                     <svg class="h-5 w-5 shrink-0 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -307,6 +307,29 @@
                                 </svg>
                                 <span class="text-xs text-slate-500">Rol:</span>
                                 <span class="text-xs font-medium text-slate-700">{{ $u->getRoleNames()->first() }}</span>
+                            </div>
+                            @endif
+
+                            {{-- Cambio de panel (solo superAdmin) --}}
+                            @if($u?->hasRole('superAdmin'))
+                            <div class="p-2 border-b border-slate-100">
+                                @if($presentationPanel ?? false)
+                                <a href="{{ route('dashboard') }}" wire:navigate
+                                    class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+                                    <svg class="h-4 w-4 shrink-0 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+                                    </svg>
+                                    Panel de administración
+                                </a>
+                                @else
+                                <a href="{{ route('admin.presentation.dashboard') }}" wire:navigate
+                                    class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+                                    <svg class="h-4 w-4 shrink-0 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z"/>
+                                    </svg>
+                                    Panel de presentación
+                                </a>
+                                @endif
                             </div>
                             @endif
 

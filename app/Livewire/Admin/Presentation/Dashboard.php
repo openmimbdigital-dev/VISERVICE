@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Livewire\Admin;
+namespace App\Livewire\Admin\Presentation;
 
 use App\Livewire\Concerns\BuildsDashboardModules;
 use Livewire\Attributes\Layout;
@@ -13,10 +13,15 @@ class Dashboard extends Component
 {
     use BuildsDashboardModules;
 
+    public function mount(): void
+    {
+        abort_unless(auth()->user()?->hasRole('superAdmin'), 403);
+    }
+
     public function render()
     {
         return view('livewire.dashboard', [
-            'modules' => $this->dashboardModulesForPanel('admin'),
+            'modules' => $this->dashboardModulesForPanel('presentation'),
         ]);
     }
 }

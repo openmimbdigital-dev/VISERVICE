@@ -192,10 +192,13 @@ class AppServiceProvider extends ServiceProvider
             }
 
             $builder = app(SidebarMenuBuilder::class);
+            $panel = SidebarMenuBuilder::panelFromRequest();
 
             $view->with([
-                'sidebarMenuSections'  => $builder->build($user),
-                'sidebarActiveSlugs'   => $builder->activeSectionSlugs($user),
+                'sidebarMenuSections'  => $builder->build($user, $panel),
+                'sidebarActiveSlugs'   => $builder->activeSectionSlugs($user, $panel),
+                'presentationPanel'    => $panel === 'presentation',
+                'panelHomeRoute'       => $panel === 'presentation' ? 'admin.presentation.dashboard' : 'dashboard',
                 'currentBusiness'      => $user ? (CurrentBusiness::get() ?? $user->primaryBusiness()) : null,
                 'selectableBusinesses' => $user ? CurrentBusiness::selectableBusinessesFor($user) : collect(),
             ]);
