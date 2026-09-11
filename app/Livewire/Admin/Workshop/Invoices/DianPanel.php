@@ -5,6 +5,7 @@ namespace App\Livewire\Admin\Workshop\Invoices;
 use App\Actions\Dian\DownloadElectronicInvoiceFilesAction;
 use App\Actions\Dian\EmitElectronicInvoiceAction;
 use App\Actions\Dian\SyncElectronicInvoiceStatusAction;
+use App\Enums\ElectronicInvoiceStatus;
 use App\Models\BusinessDianSetting;
 use App\Models\DianRequestLog;
 use App\Models\ElectronicInvoice;
@@ -15,7 +16,21 @@ use Livewire\Component;
 
 class DianPanel extends Component
 {
+    /** Cada cuánto se le vuelve a preguntar al proveedor mientras se espera. */
+    private const POLL_SECONDS = 10;
+
+    /**
+     * Cuántas veces seguidas antes de soltar el asunto.
+     *
+     * Cinco minutos cubren de sobra el caso normal —la DIAN suele resolver en
+     * segundos—. Pasado eso no tiene sentido seguir preguntando desde una
+     * pantalla abierta: la tarea programada sigue haciéndolo cada diez minutos.
+     */
+    private const MAX_POLLS = 30;
+
     public WorkOrderInvoice $invoice;
+
+    public int $polls = 0;
 
     public bool $show_xml = false;
 
@@ -85,6 +100,40 @@ class DianPanel extends Component
         $this->invoice->refresh();
 
         $this->dispatch('swal', ['title' => 'Estado actualizado', 'icon' => 'success']);
+    }
+
+    /**
+     * Consulta el estado sin que nadie lo pida.
+     *
+     * Es lo mismo que hace el botón, con dos diferencias: no avisa de nada
+     * —está corriendo solo, interrumpir con un cartel sería absurdo— y si el
+     * proveedor falla se calla y espera al siguiente turno.
+     */
+    public function pollStatus(): void
+    {
+        $electronic_invoice = $this->electronicInvoice();
+
+        if (! $electronic_invoice || ! $this->isAwaitingDian($electronic_invoice)) {
+            return;
+        }
+
+        $this->polls++;
+
+        try {
+            SyncElectronicInvoiceStatusAction::run($electronic_invoice);
+        } catch (DianRequestException|ValidationException $exception) {
+            return;
+        }
+
+        $this->invoice->refresh();
+    }
+
+    /** Hay transacción en el proveedor y la DIAN todavía no ha resuelto. */
+    private function isAwaitingDian(?ElectronicInvoice $electronic_invoice): bool
+    {
+        return $electronic_invoice !== null
+            && $electronic_invoice->transaction_id !== null
+            && $electronic_invoice->status === ElectronicInvoiceStatus::Sent;
     }
 
     public function downloadFiles(): void
@@ -170,6 +219,9 @@ class DianPanel extends Component
             'setting'            => $setting,
             'logs'               => $logs,
             'missing'            => EmitElectronicInvoiceAction::missingRequirements($this->invoice, $setting),
+            'auto_sync'          => $this->isAwaitingDian($electronic_invoice) && $this->polls < self::MAX_POLLS,
+            'poll_exhausted'     => $this->isAwaitingDian($electronic_invoice) && $this->polls >= self::MAX_POLLS,
+            'poll_seconds'       => self::POLL_SECONDS,
             'can_send'           => auth()->user()->can('workshop.invoices.dian.send'),
             'can_download'       => auth()->user()->can('workshop.invoices.dian.download'),
         ]);

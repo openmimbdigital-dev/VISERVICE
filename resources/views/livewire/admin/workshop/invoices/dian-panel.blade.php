@@ -12,11 +12,32 @@
             </p>
         </div>
 
-        @if($electronic_invoice)
-        <span class="inline-flex shrink-0 items-center self-start rounded-full px-3 py-1 text-xs font-semibold {{ $electronic_invoice->status->badgeClass() }}">
-            {{ $electronic_invoice->status->label() }}
-        </span>
-        @endif
+        <div class="flex shrink-0 flex-wrap items-center gap-2 self-start">
+            @if($electronic_invoice)
+            <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold {{ $electronic_invoice->status->badgeClass() }}">
+                {{ $electronic_invoice->status->label() }}
+            </span>
+            @endif
+
+            {{-- Mientras la DIAN no resuelva, la pantalla pregunta sola. Cuando el
+                 estado deja de estar en espera este bloque desaparece y con él
+                 el sondeo, sin necesidad de apagarlo desde ningún lado. --}}
+            @if($auto_sync)
+            <span wire:poll.{{ $poll_seconds }}s="pollStatus"
+                class="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700 ring-1 ring-blue-600/20">
+                <span class="relative flex h-2 w-2">
+                    <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-75"></span>
+                    <span class="relative inline-flex h-2 w-2 rounded-full bg-blue-500"></span>
+                </span>
+                Consultando a la DIAN…
+            </span>
+            @elseif($poll_exhausted)
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 ring-1 ring-slate-500/20"
+                title="Seguimos consultando en segundo plano cada diez minutos.">
+                La DIAN está demorando
+            </span>
+            @endif
+        </div>
     </div>
 
     <div class="space-y-4 p-5">
