@@ -17,6 +17,7 @@ use App\Support\DianNit;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
+use Throwable;
 
 class EmitElectronicInvoiceAction
 {
@@ -58,6 +59,7 @@ class EmitElectronicInvoiceAction
 
         $previous_status = $electronic_invoice->status;
         $retries_left = max(0, (int) config('dian.emission.duplicate_retries', 5));
+        $asked_provider = false;
 
         while (true) {
             try {
@@ -76,6 +78,15 @@ class EmitElectronicInvoiceAction
                 $retries_left--;
 
                 $this->noteBurntConsecutive($invoice, $electronic_invoice, $exception, $retries_left);
+
+                // Al primer choque se le pregunta al proveedor hasta dónde llegó,
+                // en vez de ir subiendo de uno en uno. Un contador muy atrasado
+                // —el caso típico tras rehacer la base— se agotaría los reintentos
+                // sin llegar nunca al número libre.
+                if (! $asked_provider) {
+                    $asked_provider = true;
+                    $this->catchUpWithProvider($setting);
+                }
 
                 $electronic_invoice = $this->resolveElectronicInvoice($invoice, $setting, force_new_consecutive: true);
             }
@@ -175,6 +186,22 @@ class EmitElectronicInvoiceAction
             ],
         );
 
+    }
+
+    /**
+     * Adelanta la numeración hasta donde va la del proveedor.
+     *
+     * Si la consulta falla no pasa nada grave: el reintento sigue subiendo de uno
+     * en uno, que es lento pero funciona. Lo que no puede es tumbar la emisión.
+     */
+    private function catchUpWithProvider(BusinessDianSetting $setting): void
+    {
+        try {
+            SyncConsecutiveFromProviderAction::run($setting);
+            $setting->refresh();
+        } catch (Throwable $exception) {
+            report($exception);
+        }
     }
 
     /**

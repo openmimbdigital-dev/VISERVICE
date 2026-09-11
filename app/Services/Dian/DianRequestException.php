@@ -18,14 +18,28 @@ class DianRequestException extends RuntimeException
         parent::__construct($message, 0, $previous);
     }
 
-    /** El proveedor respondió, pero reportando un error de negocio. */
+    /**
+     * El proveedor respondió, pero reportando un error de negocio.
+     *
+     * El motivo no siempre viaja en el mismo campo: los rechazos de emisión lo
+     * ponen en «mensaje» y dejan «error_msg» vacío. Hay que recorrerlos hasta dar
+     * con uno que traiga algo —no basta con el operador ??, que solo salta los
+     * nulos—, porque de ese texto depende reconocer un documento duplicado y
+     * reintentar con el siguiente número.
+     */
     public static function fromResponse(string $endpoint, array $response): self
     {
-        $message = trim((string) (
-            $response['error_msg']
-            ?? $response['mensaje']
-            ?? 'El proveedor de facturación electrónica rechazó la solicitud.'
-        ));
+        $message = '';
+
+        foreach (['error_msg', 'mensaje'] as $field) {
+            $candidate = trim((string) ($response[$field] ?? ''));
+
+            if ($candidate !== '') {
+                $message = $candidate;
+
+                break;
+            }
+        }
 
         return new self(
             message: $message !== '' ? $message : 'El proveedor de facturación electrónica rechazó la solicitud.',
@@ -43,9 +57,17 @@ class DianRequestException extends RuntimeException
      */
     public function isDuplicateDocument(): bool
     {
-        $message = mb_strtolower($this->getMessage());
+        // Se mira el mensaje y también la respuesta cruda: dar por bueno un
+        // consecutivo quemado cuesta un documento rechazado y una intervención a
+        // mano, así que no conviene depender de que el motivo haya caído en el
+        // campo que esperábamos.
+        $haystack = mb_strtolower(implode(' ', array_filter([
+            $this->getMessage(),
+            (string) ($this->response['mensaje'] ?? ''),
+            (string) ($this->response['error_msg'] ?? ''),
+        ])));
 
-        return str_contains($message, 'duplicad') || str_contains($message, 'ya existe');
+        return str_contains($haystack, 'duplicad') || str_contains($haystack, 'ya existe');
     }
 
     /** La solicitud HTTP falló (red, timeout, 5xx, 429...). */

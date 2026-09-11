@@ -38,6 +38,24 @@ class ElectronicInvoice extends Model
         'created_by',
     ];
 
+    /**
+     * ¿El último rechazo fue por número duplicado?
+     *
+     * Cambia lo que hay que decirle a quien mira: con un duplicado el número
+     * queda quemado y el reintento toma otro, aunque el proveedor no haya llegado
+     * a crear transacción.
+     */
+    public function lastErrorWasDuplicate(): bool
+    {
+        $haystack = mb_strtolower(implode(' ', array_filter([
+            (string) $this->error_message,
+            (string) (($this->response_payload['mensaje'] ?? '')),
+            (string) (($this->response_payload['error_msg'] ?? '')),
+        ])));
+
+        return str_contains($haystack, 'duplicad') || str_contains($haystack, 'ya existe');
+    }
+
     protected function casts(): array
     {
         return [
