@@ -169,6 +169,19 @@
                 Registrar pago
             </button>
             @endif
+
+            @if($can_void)
+            {{-- Si la DIAN ya validó el documento no se puede anular: el botón
+                 queda visible pero deshabilitado, explicando por qué. Esconderlo
+                 dejaría a quien lo busca preguntándose dónde está. --}}
+            <button type="button" wire:click="openVoid"
+                @disabled($void_blocked_reason !== null)
+                @if($void_blocked_reason) title="{{ $void_blocked_reason }}" @endif
+                class="btn btn-danger btn-sm flex-1 justify-center disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                Anular factura
+            </button>
+            @endif
         </div>
     </div>
 
@@ -599,6 +612,54 @@
                     class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto">
                     <span wire:loading.remove wire:target="savePayment">Registrar pago</span>
                     <span wire:loading wire:target="savePayment">Registrando…</span>
+                </button>
+            </div>
+        </form>
+    </x-ui.modal>
+    @endif
+
+    @if($showVoidModal)
+    <x-ui.modal centered maxWidth="md">
+        <x-slot:backdrop>
+            <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" wire:click="closeVoid"></div>
+        </x-slot:backdrop>
+
+        <form wire:submit="voidInvoice" class="flex min-h-0 flex-col">
+            <div class="flex shrink-0 items-center justify-between border-b border-slate-100 px-4 py-4 sm:px-6">
+                <h3 class="text-base font-semibold text-slate-900">Anular factura {{ $invoice->reference }}</h3>
+                <button type="button" wire:click="closeVoid" class="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <div class="flex-1 space-y-4 overflow-y-auto px-4 py-5 sm:px-6">
+                <div class="rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3">
+                    <p class="text-sm font-semibold text-rose-900">Esto también cancela la orden de trabajo</p>
+                    <p class="mt-1 text-xs text-rose-800">
+                        La OT {{ $invoice->workOrder?->reference }} quedará cancelada junto con la factura.
+                        @if($electronic_invoice && $electronic_invoice->transaction_id)
+                            Además se retirará el documento {{ $electronic_invoice->document_number }} del proveedor,
+                            que todavía no ha sido validado por la DIAN.
+                        @endif
+                    </p>
+                </div>
+
+                <div>
+                    <label class="mb-1.5 block text-xs font-medium text-slate-700">
+                        Motivo de la anulación <span class="text-rose-500">*</span>
+                    </label>
+                    <textarea wire:model="void_reason" rows="3" placeholder="Por qué se anula esta factura"
+                        class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('void_reason') border-rose-400 bg-rose-50 @enderror"></textarea>
+                    @error('void_reason') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                    <p class="mt-1 text-xs text-slate-500">Queda en la línea de tiempo de la factura y en la bitácora.</p>
+                </div>
+            </div>
+
+            <div class="flex shrink-0 flex-col-reverse gap-2 border-t border-slate-100 px-4 py-4 sm:flex-row sm:justify-end sm:gap-3 sm:px-6">
+                <button type="button" wire:click="closeVoid" class="btn btn-outline-secondary btn-sm">Cancelar</button>
+                <button type="submit" wire:loading.attr="disabled" class="btn btn-danger btn-sm">
+                    <span wire:loading.remove wire:target="voidInvoice">Anular factura</span>
+                    <span wire:loading wire:target="voidInvoice">Anulando...</span>
                 </button>
             </div>
         </form>

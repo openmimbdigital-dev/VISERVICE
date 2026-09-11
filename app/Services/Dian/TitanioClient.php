@@ -34,6 +34,8 @@ class TitanioClient
 
     private const PATH_LIST = '/PDE/public/api/PDE/listar';
 
+    private const PATH_DELETE = '/PDE/public/api/PDE/borrar';
+
     /** Tipos de descarga soportados por el endpoint /descargar. */
     public const DOWNLOAD_XML = 1;
     public const DOWNLOAD_PDF = 2;
@@ -139,6 +141,20 @@ class TitanioClient
             'mensaje' => (string) ($response['mensaje'] ?? $response['error_msg'] ?? ''),
             'raw'     => $response,
         ];
+    }
+
+    /**
+     * Retira una transacción del proveedor y libera su número.
+     *
+     * Según el manual, solo funciona mientras el documento no haya salido hacia
+     * la DIAN; después, el único camino es una nota crédito. Por eso quien llama
+     * tiene que haber comprobado antes en qué estado está.
+     *
+     * @return array<string, mixed>
+     */
+    public function deleteTransaction(int $transaction_id): array
+    {
+        return $this->request(self::PATH_DELETE, ['transaccion' => $transaction_id]);
     }
 
     /**

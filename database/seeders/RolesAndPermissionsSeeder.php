@@ -240,6 +240,7 @@ class RolesAndPermissionsSeeder extends Seeder
         return [
             'workshop.invoices.view',
             'workshop.invoices.pay',
+            'workshop.invoices.void',
             'workshop.invoices.dian.send',
             'workshop.invoices.dian.download',
         ];

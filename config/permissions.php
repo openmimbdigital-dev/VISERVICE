@@ -329,6 +329,7 @@ return [
             'permissions' => [
                 'workshop.invoices.view' => 'Ver facturación',
                 'workshop.invoices.pay' => 'Registrar el pago de una factura',
+                'workshop.invoices.void' => 'Anular una factura',
                 'workshop.invoices.dian.send' => 'Emitir factura electrónica ante la DIAN',
                 'workshop.invoices.dian.download' => 'Descargar XML y PDF de la factura electrónica',
             ],

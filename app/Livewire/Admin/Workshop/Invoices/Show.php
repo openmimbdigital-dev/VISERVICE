@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin\Workshop\Invoices;
 
 use App\Actions\RegisterInvoicePaymentAction;
+use App\Actions\Workshop\CancelWorkOrderInvoiceAction;
 use App\Enums\ElectronicInvoiceStatus;
 use App\Models\BusinessDianSetting;
 use App\Models\BusinessPaymentMethod;
@@ -28,6 +29,10 @@ class Show extends Component
     public string $paid_at = '';
 
     public string $payment_notes = '';
+
+    public bool $showVoidModal = false;
+
+    public string $void_reason = '';
 
     /** Caché de solo lectura por petición; Livewire ignora lo que no es público. */
     private ?bool $dian_applies = null;
@@ -132,6 +137,71 @@ class Show extends Component
         ]);
     }
 
+    public function openVoid(): void
+    {
+        abort_unless(auth()->user()?->can('workshop.invoices.void'), 403);
+
+        $this->void_reason = '';
+        $this->resetValidation();
+        $this->showVoidModal = true;
+    }
+
+    public function closeVoid(): void
+    {
+        $this->showVoidModal = false;
+    }
+
+    /**
+     * Anula la factura y, con ella, su orden de trabajo.
+     *
+     * El motivo es obligatorio: una factura anulada sin explicación deja un hueco
+     * en la contabilidad que después nadie sabe justificar.
+     */
+    public function voidInvoice(): void
+    {
+        $data = $this->validate([
+            'void_reason' => ['required', 'string', 'min:5', 'max:500'],
+        ], [
+            'void_reason.required' => 'Indica el motivo de la anulación.',
+            'void_reason.min'      => 'Explica el motivo con algo más de detalle.',
+        ]);
+
+        try {
+            $this->invoice = CancelWorkOrderInvoiceAction::run(
+                invoice: $this->invoice,
+                reason: $data['void_reason'],
+            );
+        } catch (ValidationException $exception) {
+            $this->dispatch('swal', [
+                'title' => 'No se pudo anular la factura',
+                'text'  => collect($exception->errors())->flatten()->first(),
+                'icon'  => 'warning',
+            ]);
+
+            return;
+        }
+
+        $this->showVoidModal = false;
+
+        $this->dispatch('swal', [
+            'title' => "Factura {$this->invoice->reference} anulada",
+            'text'  => 'La orden de trabajo quedó cancelada junto con ella.',
+            'icon'  => 'success',
+        ]);
+    }
+
+    /**
+     * ¿Se puede anular? Null cuando sí; si no, el motivo para mostrarlo.
+     */
+    private function voidBlockedReason(): ?string
+    {
+        if ($this->invoice->status === 'anulada') {
+            return 'Esta factura ya está anulada.';
+        }
+
+        return CancelWorkOrderInvoiceAction::blockingReason($this->invoice);
+    }
+
     /** Solo se cobra una factura que siga viva y sin pagar. */
     private function canRegisterPayment(): bool
     {
@@ -164,6 +234,8 @@ class Show extends Component
                 ->orderBy('sort_order')
                 ->get(),
             'can_register_payment' => auth()->user()->can('workshop.invoices.pay') && $this->canRegisterPayment(),
+            'can_void'             => auth()->user()->can('workshop.invoices.void') && $this->invoice->status !== 'anulada',
+            'void_blocked_reason'  => $this->voidBlockedReason(),
         ]);
     }
 
