@@ -57,7 +57,42 @@ class EmitElectronicInvoiceAction
         }
 
         $previous_status = $electronic_invoice->status;
+        $retries_left = max(0, (int) config('dian.emission.duplicate_retries', 5));
 
+        while (true) {
+            try {
+                return $this->attemptEmission($invoice, $setting, $electronic_invoice, $previous_status);
+            } catch (DianRequestException $exception) {
+                // «Documento duplicado» no dice que la factura esté mal: dice que
+                // nuestro contador viene atrasado frente a lo que el proveedor ya
+                // tiene. Reintentar con el mismo número no arregla nada, así que se
+                // toma el siguiente en vez de dejarlo en error esperando a alguien.
+                if (! $exception->isDuplicateDocument() || $retries_left <= 0) {
+                    $this->recordEmissionFailure($invoice, $electronic_invoice, $exception, $previous_status);
+
+                    throw $exception;
+                }
+
+                $retries_left--;
+
+                $this->noteBurntConsecutive($invoice, $electronic_invoice, $exception, $retries_left);
+
+                $electronic_invoice = $this->resolveElectronicInvoice($invoice, $setting, force_new_consecutive: true);
+            }
+        }
+    }
+
+    /**
+     * Un intento completo de emisión: arma el documento, lo manda y deja anotado
+     * el resultado. Si el proveedor lo rechaza, deja que la excepción salga para
+     * que quien llama decida si vale la pena volver a intentarlo.
+     */
+    private function attemptEmission(
+        WorkOrderInvoice $invoice,
+        BusinessDianSetting $setting,
+        ElectronicInvoice $electronic_invoice,
+        ElectronicInvoiceStatus $previous_status,
+    ): ElectronicInvoice {
         $document = (new InvoiceDocumentBuilder())->build($electronic_invoice, $invoice, $setting);
 
         $electronic_invoice->forceFill([
@@ -67,33 +102,9 @@ class EmitElectronicInvoiceAction
             'error_message' => null,
         ])->save();
 
-        try {
-            $result = TitanioClient::for($setting->environment)
-                ->forInvoice($electronic_invoice)
-                ->emit((int) $setting->tr_tipo_id, $document);
-        } catch (DianRequestException $exception) {
-            $electronic_invoice->forceFill([
-                'status'           => ElectronicInvoiceStatus::Error,
-                'error_id'         => $exception->errorId,
-                'error_message'    => $exception->getMessage(),
-                'response_payload' => $exception->response !== [] ? $exception->response : null,
-            ])->save();
-
-            RecordInvoiceStatusHistoryAction::run(
-                invoice: $invoice,
-                kind: WorkOrderInvoiceStatusHistory::KIND_EMISSION,
-                to_status: ElectronicInvoiceStatus::Error->value,
-                from_status: $previous_status->value,
-                comment: $exception->getMessage(),
-                metadata: [
-                    'document_number' => $electronic_invoice->document_number,
-                    'error_id'        => $exception->errorId,
-                    'attempt'         => $electronic_invoice->attempts,
-                ],
-            );
-
-            throw $exception;
-        }
+        $result = TitanioClient::for($setting->environment)
+            ->forInvoice($electronic_invoice)
+            ->emit((int) $setting->tr_tipo_id, $document);
 
         $electronic_invoice->forceFill([
             'status'           => ElectronicInvoiceStatus::Sent,
@@ -135,6 +146,60 @@ class EmitElectronicInvoiceAction
         );
 
         return $electronic_invoice->refresh();
+    }
+
+    /** Deja la factura en error, con el motivo que dio el proveedor. */
+    private function recordEmissionFailure(
+        WorkOrderInvoice $invoice,
+        ElectronicInvoice $electronic_invoice,
+        DianRequestException $exception,
+        ElectronicInvoiceStatus $previous_status,
+    ): void {
+        $electronic_invoice->forceFill([
+            'status'           => ElectronicInvoiceStatus::Error,
+            'error_id'         => $exception->errorId,
+            'error_message'    => $exception->getMessage(),
+            'response_payload' => $exception->response !== [] ? $exception->response : null,
+        ])->save();
+
+        RecordInvoiceStatusHistoryAction::run(
+            invoice: $invoice,
+            kind: WorkOrderInvoiceStatusHistory::KIND_EMISSION,
+            to_status: ElectronicInvoiceStatus::Error->value,
+            from_status: $previous_status->value,
+            comment: $exception->getMessage(),
+            metadata: [
+                'document_number' => $electronic_invoice->document_number,
+                'error_id'        => $exception->errorId,
+                'attempt'         => $electronic_invoice->attempts,
+            ],
+        );
+
+    }
+
+    /**
+     * Anota que ese número quedó ocupado en el proveedor y que se sigue con el
+     * siguiente. El salto en la numeración queda explicado en la línea de tiempo.
+     */
+    private function noteBurntConsecutive(
+        WorkOrderInvoice $invoice,
+        ElectronicInvoice $electronic_invoice,
+        DianRequestException $exception,
+        int $retries_left,
+    ): void {
+        RecordInvoiceStatusHistoryAction::run(
+            invoice: $invoice,
+            kind: WorkOrderInvoiceStatusHistory::KIND_EMISSION,
+            to_status: $electronic_invoice->status->value,
+            from_status: $electronic_invoice->status->value,
+            comment: "El proveedor ya tiene el documento {$electronic_invoice->document_number}: se reintenta con el siguiente número.",
+            metadata: [
+                'document_number' => $electronic_invoice->document_number,
+                'error_id'        => $exception->errorId,
+                'error_message'   => $exception->getMessage(),
+                'retries_left'    => $retries_left,
+            ],
+        );
     }
 
     /**
@@ -215,11 +280,15 @@ class EmitElectronicInvoiceAction
      * plataforma responde "Documento duplicado", así que el reintento toma uno nuevo.
      * El historial de cada intento queda en la bitácora de envíos.
      */
-    private function resolveElectronicInvoice(WorkOrderInvoice $invoice, BusinessDianSetting $setting): ElectronicInvoice
+    private function resolveElectronicInvoice(
+        WorkOrderInvoice $invoice,
+        BusinessDianSetting $setting,
+        bool $force_new_consecutive = false,
+    ): ElectronicInvoice
     {
         $existing = ElectronicInvoice::query()->where('work_order_invoice_id', $invoice->id)->first();
 
-        if ($existing && ! $existing->transaction_id) {
+        if ($existing && ! $existing->transaction_id && ! $force_new_consecutive) {
             return $existing;
         }
 

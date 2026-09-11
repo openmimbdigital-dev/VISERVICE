@@ -112,6 +112,29 @@ return [
         2 => 'Persona natural',
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Numeración
+    |--------------------------------------------------------------------------
+    |
+    | El consecutivo lo llevamos nosotros, pero quien sabe cuáles se usaron de
+    | verdad es el proveedor. Consultarlo permite recuperar el punto de partida
+    | cuando la base local se rehace. No acepta rangos de más de 30 días, así que
+    | se busca por ventanas hacia atrás.
+    |
+    */
+
+    'consecutive_lookup' => [
+        'windows'   => (int) env('DIAN_CONSECUTIVE_WINDOWS', 6),
+        'max_pages' => (int) env('DIAN_CONSECUTIVE_MAX_PAGES', 20),
+    ],
+
+    'emission' => [
+        // Un «documento duplicado» significa que nuestro contador viene atrasado.
+        // Se reintenta con el siguiente número, unas pocas veces.
+        'duplicate_retries' => (int) env('DIAN_DUPLICATE_RETRIES', 5),
+    ],
+
     'fiscal_responsibilities' => [
         'R-99-PN' => 'No responsable (R-99-PN)',
         'O-13'    => 'Gran contribuyente (O-13)',

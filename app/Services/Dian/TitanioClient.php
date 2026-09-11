@@ -32,6 +32,8 @@ class TitanioClient
     private const PATH_SAVE_PROFILE = '/PDE/public/api/PDE/SaveAutogestionPerfil';
     private const PATH_QUERY_RESOLUTION = '/PDE/public/api/PDE/ConsultaResolusion';
 
+    private const PATH_LIST = '/PDE/public/api/PDE/listar';
+
     /** Tipos de descarga soportados por el endpoint /descargar. */
     public const DOWNLOAD_XML = 1;
     public const DOWNLOAD_PDF = 2;
@@ -137,6 +139,37 @@ class TitanioClient
             'mensaje' => (string) ($response['mensaje'] ?? $response['error_msg'] ?? ''),
             'raw'     => $response,
         ];
+    }
+
+    /**
+     * Transacciones emitidas en una ventana de fechas, de la más reciente a la
+     * más antigua.
+     *
+     * Dos límites del proveedor condicionan cómo se usa: no acepta rangos de más
+     * de 30 días, y no deja combinar el filtro de perfil con el de fechas —pide
+     * el rango y luego lo rechaza—. Así que la ventana se recorta afuera y
+     * distinguir a qué negocio pertenece cada documento se hace por prefijo, que
+     * es lo que de todos modos separa a un emisor de otro.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function listTransactions(string $from, string $to, int $page = 1): array
+    {
+        $response = $this->request(self::PATH_LIST, [
+            'busqueda' => [
+                ['campo' => 'fd_ini', 'comparacion' => '>=', 'valor' => $from],
+                ['campo' => 'fd_end', 'comparacion' => '<=', 'valor' => $to],
+            ],
+            'page' => (string) $page,
+        ]);
+
+        $rows = $response['transaccion_id'] ?? [];
+
+        if (! is_array($rows)) {
+            return [];
+        }
+
+        return array_values(array_filter($rows, 'is_array'));
     }
 
     /**

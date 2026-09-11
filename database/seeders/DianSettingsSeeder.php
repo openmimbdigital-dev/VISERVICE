@@ -203,9 +203,13 @@ class DianSettingsSeeder extends Seeder
         $this->command?->warn('  no se borra al refrescar la base. Si este número ya se emitió alguna vez,');
         $this->command?->warn('  el envío fallará con «Documento duplicado».');
         $this->command?->warn('');
-        $this->command?->warn('  Antes de emitir, confirma que sea correcto y ajústalo si hace falta en');
-        $this->command?->warn('  DIAN_NEXT_CONSECUTIVE o desde /admin/dian-settings. Saltarse números no');
-        $this->command?->warn('  cuesta nada; repetirlos sí.');
+        $this->command?->warn('  Para averiguarlo sin adivinar:');
+        $this->command?->warn('');
+        $this->command?->warn('      php artisan dian:sync-consecutive');
+        $this->command?->warn('');
+        $this->command?->warn('  Le pregunta al proveedor cuál fue el último documento emitido y adelanta');
+        $this->command?->warn('  el contador. También puedes fijarlo a mano en DIAN_NEXT_CONSECUTIVE o');
+        $this->command?->warn('  desde /admin/dian-settings. Saltarse números no cuesta nada; repetirlos sí.');
         $this->command?->warn(str_repeat('─', 72));
     }
 }
