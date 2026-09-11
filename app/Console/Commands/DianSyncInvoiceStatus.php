@@ -17,9 +17,17 @@ class DianSyncInvoiceStatus extends Command
 
     public function handle(): int
     {
+        // No se insiste indefinidamente: lo que lleva días sin resolverse no se
+        // arregla preguntando más veces, y cada consulta es una llamada al
+        // proveedor. Queda el botón de la pantalla para revisarlo a mano.
+        $max_age_days = max(1, (int) config('dian.status_sync.max_age_days', 7));
+
         $pending = ElectronicInvoice::query()
             ->whereNotNull('transaction_id')
             ->whereIn('status', [ElectronicInvoiceStatus::Sent->value])
+            ->where(fn ($query) => $query
+                ->whereNull('sent_at')
+                ->orWhere('sent_at', '>=', now()->subDays($max_age_days)))
             ->orderBy('sent_at')
             ->limit((int) $this->option('limit'))
             ->get();

@@ -191,6 +191,22 @@ return [
 
     'default_payment_means' => '1',
 
+    /*
+    |--------------------------------------------------------------------------
+    | Consulta de estado
+    |--------------------------------------------------------------------------
+    |
+    | Un documento que lleva días sin resolverse no se va a resolver por seguir
+    | preguntando: o quedó a medias en el proveedor o hay algo que mirar a mano.
+    | Pasado este plazo la tarea deja de insistir; el botón de la pantalla sigue
+    | disponible para cuando alguien quiera revisarlo.
+    |
+    */
+
+    'status_sync' => [
+        'max_age_days' => (int) env('DIAN_STATUS_SYNC_MAX_AGE_DAYS', 7),
+    ],
+
     'consecutive_lookup' => [
         'windows'   => (int) env('DIAN_CONSECUTIVE_WINDOWS', 6),
         'max_pages' => (int) env('DIAN_CONSECUTIVE_MAX_PAGES', 20),
