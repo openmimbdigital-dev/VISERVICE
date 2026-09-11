@@ -17,13 +17,60 @@ class WorkOrderInvoice extends Model
         'tax_percentage', 'tax_amount', 'total',
         'status', 'due_date', 'paid_at',
         'payment_method', 'payment_reference', 'dian_payment_means_code',
+        'bold_payment_link', 'bold_link_url', 'bold_reference', 'bold_status',
+        'bold_payment_id', 'bold_payment_method', 'bold_account', 'bold_link_created_at',
         'notes', 'created_by',
     ];
+
+    /**
+     * ¿Hay un link de Bold por el que todavía se pueda pagar esta factura?
+     */
+    public function hasUsableBoldLink(): bool
+    {
+        if (blank($this->bold_payment_link) || blank($this->bold_link_url)) {
+            return false;
+        }
+
+        return in_array($this->bold_status, ['ACTIVE', 'PROCESSING'], true);
+    }
+
+    /**
+     * Factura a la que corresponde una referencia de Bold.
+     *
+     * Igual que en las suscripciones: primero la coincidencia exacta y, si no
+     * aparece, por el prefijo, porque un link viejo lleva un sufijo distinto al
+     * último que guardamos.
+     */
+    public static function findByBoldReference(string $reference): ?self
+    {
+        $reference = trim($reference);
+
+        if ($reference === '') {
+            return null;
+        }
+
+        $invoice = static::query()->where('bold_reference', $reference)->first();
+
+        if ($invoice) {
+            return $invoice;
+        }
+
+        $separator = mb_strrpos($reference, '-');
+
+        if ($separator === false) {
+            return null;
+        }
+
+        return static::query()
+            ->where('reference', mb_substr($reference, 0, $separator))
+            ->first();
+    }
 
     protected function casts(): array
     {
         return [
             'bill_to_final_consumer' => 'boolean',
+            'bold_link_created_at'   => 'datetime',
             'due_date'        => 'date',
             'paid_at'         => 'datetime',
             'subtotal'        => 'decimal:2',

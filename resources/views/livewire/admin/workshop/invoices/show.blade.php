@@ -170,6 +170,15 @@
             </button>
             @endif
 
+            @if($can_charge_online && ! $invoice->bold_link_url)
+            <button type="button" wire:click="createPaymentLink" wire:loading.attr="disabled" wire:target="createPaymentLink"
+                class="btn btn-outline-secondary btn-sm flex-1 justify-center sm:flex-none">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 010 5.656l-3 3a4 4 0 11-5.656-5.656l1.5-1.5m5.656-5.656l1.5-1.5a4 4 0 115.656 5.656l-3 3a4 4 0 01-5.656 0"/></svg>
+                <span wire:loading.remove wire:target="createPaymentLink">Cobrar con link</span>
+                <span wire:loading wire:target="createPaymentLink">Generando...</span>
+            </button>
+            @endif
+
             @if($can_emit_credit_note)
             <button type="button" wire:click="openCreditNote" class="btn btn-outline-secondary btn-sm flex-1 justify-center sm:flex-none">
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
@@ -191,6 +200,60 @@
             @endif
         </div>
     </div>
+
+    @if($invoice->bold_link_url && $invoice->status !== 'anulada')
+    {{-- El link vive aquí para poder copiarlo y para decir, sin que haya que
+         buscarlo, a qué cuenta entra ese dinero. --}}
+    <div class="mb-6 overflow-hidden rounded-2xl border {{ $invoice->bold_account === 'platform' ? 'border-amber-200' : 'border-slate-200/90' }} bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
+        <div class="flex flex-col gap-3 border-b border-slate-100 bg-slate-50/80 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div class="min-w-0">
+                <h2 class="font-semibold text-slate-800">Cobro en línea</h2>
+                <p class="mt-0.5 text-xs text-slate-500">
+                    @if($invoice->bold_account === 'platform')
+                        <span class="font-semibold text-amber-700">Entra a la cuenta de la plataforma</span>
+                        — este negocio no tiene cuenta de Bold propia.
+                    @else
+                        Entra a la cuenta de Bold del negocio.
+                    @endif
+                </p>
+            </div>
+
+            <span class="inline-flex shrink-0 items-center self-start rounded-full px-3 py-1 text-xs font-semibold {{ $invoice->status === 'pagada' ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20' : 'bg-slate-100 text-slate-600 ring-1 ring-slate-500/20' }}">
+                {{ $invoice->status === 'pagada' ? 'Pagada' : ($invoice->bold_status ?? 'Pendiente') }}
+            </span>
+        </div>
+
+        <div class="space-y-3 p-5">
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <input type="text" readonly value="{{ $invoice->bold_link_url }}"
+                    x-on:focus="$event.target.select()"
+                    class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 font-mono text-xs text-slate-600">
+                <a href="{{ $invoice->bold_link_url }}" target="_blank" rel="noopener"
+                    class="btn btn-primary btn-sm shrink-0 justify-center">Abrir</a>
+            </div>
+
+            @if($invoice->status !== 'pagada')
+            <div class="flex flex-wrap gap-2">
+                <button type="button" wire:click="checkPaymentLink" wire:loading.attr="disabled" wire:target="checkPaymentLink"
+                    class="btn btn-outline-secondary btn-sm">
+                    <span wire:loading.remove wire:target="checkPaymentLink">¿Ya pagaron?</span>
+                    <span wire:loading wire:target="checkPaymentLink">Consultando...</span>
+                </button>
+                <button type="button" wire:click="createPaymentLink(true)" wire:loading.attr="disabled" wire:target="createPaymentLink"
+                    class="btn btn-outline-secondary btn-sm">
+                    <span wire:loading.remove wire:target="createPaymentLink">Generar otro link</span>
+                    <span wire:loading wire:target="createPaymentLink">Generando...</span>
+                </button>
+            </div>
+            @endif
+
+            <p class="text-xs text-slate-500">
+                Referencia <span class="font-mono">{{ $invoice->bold_reference }}</span>
+                @if($invoice->bold_payment_method) · pagó con {{ $invoice->bold_payment_method }} @endif
+            </p>
+        </div>
+    </div>
+    @endif
 
     {{-- Resumen rápido --}}
     <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">

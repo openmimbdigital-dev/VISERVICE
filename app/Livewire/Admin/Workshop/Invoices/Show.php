@@ -5,6 +5,10 @@ namespace App\Livewire\Admin\Workshop\Invoices;
 use App\Actions\Dian\EmitCreditNoteAction;
 use App\Actions\RegisterInvoicePaymentAction;
 use App\Actions\Workshop\CancelWorkOrderInvoiceAction;
+use App\Actions\Workshop\CreateInvoicePaymentLinkAction;
+use App\Actions\Workshop\SyncInvoicePaymentFromBoldAction;
+use App\Models\BoldStatusCheck;
+use App\Services\Bold\BoldClient;
 use App\Enums\ElectronicInvoiceStatus;
 use App\Models\BusinessDianSetting;
 use App\Models\BusinessPaymentMethod;
@@ -159,6 +163,48 @@ class Show extends Component
     public function closeVoid(): void
     {
         $this->showVoidModal = false;
+    }
+
+    /**
+     * Genera el link con el que el cliente paga la factura por su cuenta.
+     */
+    public function createPaymentLink(bool $force_new = false): void
+    {
+        try {
+            $link = CreateInvoicePaymentLinkAction::run($this->invoice, $force_new);
+        } catch (ValidationException $exception) {
+            $this->dispatch('swal', [
+                'title' => 'No se pudo generar el link de pago',
+                'text'  => collect($exception->errors())->flatten()->first(),
+                'icon'  => 'warning',
+            ]);
+
+            return;
+        }
+
+        $this->invoice->refresh();
+
+        $this->dispatch('swal', [
+            'title' => 'Link de pago listo',
+            'text'  => $link['account'] === BoldClient::ACCOUNT_PLATFORM
+                ? 'Ojo: este negocio no tiene cuenta de Bold propia, así que el pago entra a la cuenta de la plataforma.'
+                : 'Compártelo con el cliente para que pague.',
+            'icon'  => $link['account'] === BoldClient::ACCOUNT_PLATFORM ? 'warning' : 'success',
+        ]);
+    }
+
+    /** Le pregunta a Bold si ya pagaron, sin esperar a que avise. */
+    public function checkPaymentLink(): void
+    {
+        $result = SyncInvoicePaymentFromBoldAction::run($this->invoice, BoldStatusCheck::ORIGIN_MANUAL);
+
+        $this->invoice->refresh();
+
+        $this->dispatch('swal', [
+            'title' => $result['changed'] ? 'Pago confirmado' : 'Todavía no hay pago',
+            'text'  => $result['detail'],
+            'icon'  => $result['changed'] ? 'success' : 'info',
+        ]);
     }
 
     public function openCreditNote(): void
@@ -333,6 +379,8 @@ class Show extends Component
             'can_register_payment' => auth()->user()->can('workshop.invoices.pay') && $this->canRegisterPayment(),
             'can_void'             => auth()->user()->can('workshop.invoices.void') && $this->invoice->status !== 'anulada',
             'can_emit_credit_note' => $this->canEmitCreditNote(),
+            'can_charge_online'    => auth()->user()->can('workshop.invoices.pay')
+                && ! in_array($this->invoice->status, ['pagada', 'anulada'], true),
             'remaining_quantities' => EmitCreditNoteAction::remainingQuantities($this->invoice),
             'credit_note_reasons'  => (array) config('dian.credit_note.reasons'),
             'credit_notes'         => \App\Models\ElectronicCreditNote::query()

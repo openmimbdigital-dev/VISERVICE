@@ -2,6 +2,7 @@
 
 namespace App\Services\Bold;
 
+use App\Models\BusinessBoldSetting;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
@@ -18,18 +19,54 @@ use Throwable;
  */
 class BoldClient
 {
+    public const ACCOUNT_BUSINESS = 'business';
+
+    public const ACCOUNT_PLATFORM = 'platform';
+
     private const PATH_PAYMENT_METHODS = '/online/link/v1/payment_methods';
 
     private const PATH_LINKS = '/online/link/v1';
+
+    /**
+     * @param  string|null  $identity_key  Llave del negocio; sin ella se usa la de la plataforma.
+     */
+    public function __construct(private readonly ?string $identity_key = null)
+    {
+    }
 
     public static function make(): self
     {
         return new self();
     }
 
+    /**
+     * Cliente que cobra a la cuenta del negocio, si tiene la suya.
+     *
+     * Cuando no la tiene se cae a la de la plataforma: nadie se queda sin poder
+     * cobrar, pero ese dinero entra a nuestra cuenta y hay que girárselo. Quien
+     * llama debe dejar constancia de con cuál salió —por eso existe account()—.
+     */
+    public static function forBusiness(?BusinessBoldSetting $setting): self
+    {
+        return new self($setting?->isUsable() ? $setting->identity_key : null);
+    }
+
+    /** «business» si cobra con las llaves del negocio, «platform» si con las nuestras. */
+    public function account(): string
+    {
+        return $this->identity_key !== null && $this->identity_key !== ''
+            ? self::ACCOUNT_BUSINESS
+            : self::ACCOUNT_PLATFORM;
+    }
+
     public function isConfigured(): bool
     {
-        return filled(config('bold.identity_key')) && filled(config('bold.base_url'));
+        return filled($this->identityKey()) && filled(config('bold.base_url'));
+    }
+
+    private function identityKey(): string
+    {
+        return (string) ($this->identity_key ?: config('bold.identity_key'));
     }
 
     /**
@@ -191,7 +228,7 @@ class BoldClient
                 ->acceptJson()
                 ->asJson()
                 // No es «Bearer»: Bold espera el prefijo literal x-api-key.
-                ->withHeaders(['Authorization' => 'x-api-key '.config('bold.identity_key')]);
+                ->withHeaders(['Authorization' => 'x-api-key '.$this->identityKey()]);
 
             return $method === 'get'
                 ? $request->get($path)
