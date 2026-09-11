@@ -28,25 +28,25 @@ use Illuminate\Support\Collection;
 class InvoiceDocumentBuilder
 {
     /** Identificadores de las direcciones que referencian el emisor y el adquiriente. */
-    private const ADDRESS_ISSUER = '1';
-    private const ADDRESS_CUSTOMER = '2';
+    protected const ADDRESS_ISSUER = '1';
+    protected const ADDRESS_CUSTOMER = '2';
 
     /** Identificadores de los contactos: la DIAN los exige en ambas partes. */
-    private const CONTACT_ISSUER = '1';
-    private const CONTACT_CUSTOMER = '2';
+    protected const CONTACT_ISSUER = '1';
+    protected const CONTACT_CUSTOMER = '2';
 
     /** Esquema de identificación DIAN: 31 = NIT. */
-    private const SCHEME_NAME_NIT = '31';
+    protected const SCHEME_NAME_NIT = '31';
 
     /** Versión de la lista de responsabilidades fiscales de la DIAN. */
-    private const TAX_LEVEL_LIST_NAME = '48';
+    protected const TAX_LEVEL_LIST_NAME = '48';
 
     /** Estándar de adopción del contribuyente para el código de producto. */
-    private const ITEM_SCHEME_ID = '999';
+    protected const ITEM_SCHEME_ID = '999';
 
     /** Código DIAN del IVA. */
-    private const TAX_SCHEME_ID = '01';
-    private const TAX_SCHEME_NAME = 'IVA';
+    protected const TAX_SCHEME_ID = '01';
+    protected const TAX_SCHEME_NAME = 'IVA';
 
     /** Serializa el documento en el formato configurado para el emisor. */
     public function build(
@@ -141,7 +141,7 @@ class InvoiceDocumentBuilder
      * ----------------------------------------------------------------- */
 
     /** @return array<string, mixed> */
-    private function extensionBlock(BusinessDianSetting $setting): array
+    protected function extensionBlock(BusinessDianSetting $setting): array
     {
         $defaults = (array) config('dian.defaults');
 
@@ -164,7 +164,7 @@ class InvoiceDocumentBuilder
     }
 
     /** @return array<string, mixed> */
-    private function invoiceHeaderBlock(
+    protected function invoiceHeaderBlock(
         ElectronicInvoice $electronic_invoice,
         BusinessDianSetting $setting,
         int $line_count,
@@ -193,7 +193,7 @@ class InvoiceDocumentBuilder
      *
      * @return list<array<string, string>>
      */
-    private function noteBlocks(
+    protected function noteBlocks(
         WorkOrderInvoice $invoice,
         BusinessDianSetting $setting,
         ElectronicInvoice $electronic_invoice,
@@ -240,7 +240,7 @@ class InvoiceDocumentBuilder
      *
      * @return \Illuminate\Support\Collection<int, \App\Models\WorkOrderAssociatedDocument>
      */
-    private function billableAssociatedDocuments(WorkOrderInvoice $invoice): Collection
+    protected function billableAssociatedDocuments(WorkOrderInvoice $invoice): Collection
     {
         return collect($invoice->workOrder?->associatedDocuments ?? [])
             ->filter(fn ($document) => (bool) $document->send_invoice
@@ -250,7 +250,7 @@ class InvoiceDocumentBuilder
     }
 
     /** @return array<string, mixed> */
-    private function issuerBlock(WorkOrderInvoice $invoice, BusinessDianSetting $setting): array
+    protected function issuerBlock(WorkOrderInvoice $invoice, BusinessDianSetting $setting): array
     {
         $business = $invoice->business;
 
@@ -273,7 +273,7 @@ class InvoiceDocumentBuilder
     }
 
     /** @return array<string, mixed> */
-    private function customerBlock(WorkOrderInvoice $invoice): array
+    protected function customerBlock(WorkOrderInvoice $invoice): array
     {
         if ($invoice->bill_to_final_consumer) {
             return $this->finalConsumerBlock();
@@ -317,7 +317,7 @@ class InvoiceDocumentBuilder
      *
      * @return array<string, mixed>
      */
-    private function finalConsumerBlock(): array
+    protected function finalConsumerBlock(): array
     {
         $consumer = (array) config('dian.final_consumer');
 
@@ -339,7 +339,7 @@ class InvoiceDocumentBuilder
     }
 
     /** @return list<array<string, mixed>> */
-    private function paymentBlocks(WorkOrderInvoice $invoice, ElectronicInvoice $electronic_invoice): array
+    protected function paymentBlocks(WorkOrderInvoice $invoice, ElectronicInvoice $electronic_invoice): array
     {
         $issued_at = $electronic_invoice->issued_at ?? now();
         $due_date = $invoice->due_date;
@@ -365,7 +365,7 @@ class InvoiceDocumentBuilder
      * @param  array<string, float>  $totals
      * @return list<array<string, mixed>>
      */
-    private function documentTaxBlocks(array $totals): array
+    protected function documentTaxBlocks(array $totals): array
     {
         return [[
             'TaxAmount'                  => $totals['tax_amount'],
@@ -381,7 +381,7 @@ class InvoiceDocumentBuilder
      * @param  array<string, float>  $totals
      * @return array<string, mixed>
      */
-    private function totalsBlock(array $totals): array
+    protected function totalsBlock(array $totals): array
     {
         return [
             'LineExtensionAmount'  => $totals['line_extension'],
@@ -398,7 +398,7 @@ class InvoiceDocumentBuilder
      * @param  list<array<string, mixed>>  $lines
      * @return list<array<string, mixed>>
      */
-    private function lineBlocks(array $lines): array
+    protected function lineBlocks(array $lines): array
     {
         $blocks = [];
 
@@ -428,7 +428,7 @@ class InvoiceDocumentBuilder
      * @param  list<array<string, mixed>>  $lines
      * @return list<array<string, mixed>>
      */
-    private function lineTaxBlocks(array $lines): array
+    protected function lineTaxBlocks(array $lines): array
     {
         $blocks = [];
 
@@ -448,7 +448,7 @@ class InvoiceDocumentBuilder
     }
 
     /** @return list<array<string, mixed>> */
-    private function deliveryBlocks(WorkOrderInvoice $invoice, BusinessDianSetting $setting): array
+    protected function deliveryBlocks(WorkOrderInvoice $invoice, BusinessDianSetting $setting): array
     {
         // A un consumidor final no se le envía copia: la factura no sale a su nombre
         // y su correo, si lo hay, es el del cliente que pidió no aparecer.
@@ -465,7 +465,7 @@ class InvoiceDocumentBuilder
     }
 
     /** @return list<array<string, string>> */
-    private function addressBlocks(WorkOrderInvoice $invoice): array
+    protected function addressBlocks(WorkOrderInvoice $invoice): array
     {
         $business = $invoice->business;
 
@@ -495,7 +495,7 @@ class InvoiceDocumentBuilder
      *
      * @return list<array<string, string>>
      */
-    private function contactBlocks(WorkOrderInvoice $invoice): array
+    protected function contactBlocks(WorkOrderInvoice $invoice): array
     {
         $business = $invoice->business;
         $client = $invoice->workOrder?->client;
@@ -525,7 +525,7 @@ class InvoiceDocumentBuilder
      * ----------------------------------------------------------------- */
 
     /** @return list<array<string, mixed>> */
-    private function buildLines(WorkOrderInvoice $invoice): array
+    protected function buildLines(WorkOrderInvoice $invoice): array
     {
         $tax_percentage = round((float) $invoice->tax_percentage, 2);
         $lines = [];
@@ -579,7 +579,7 @@ class InvoiceDocumentBuilder
      * @param  list<array<string, mixed>>  $lines
      * @return list<array<string, mixed>>
      */
-    private function spreadInvoiceDiscount(array $lines, float $discount, float $tax_percentage): array
+    protected function spreadInvoiceDiscount(array $lines, float $discount, float $tax_percentage): array
     {
         $total = round(array_sum(array_column($lines, 'line_amount')), 2);
 
@@ -623,7 +623,7 @@ class InvoiceDocumentBuilder
      * @param  list<array<string, mixed>>  $lines
      * @return array<string, float>
      */
-    private function calculateTotals(WorkOrderInvoice $invoice, array $lines): array
+    protected function calculateTotals(WorkOrderInvoice $invoice, array $lines): array
     {
         $line_extension = round(array_sum(array_column($lines, 'line_amount')), 2);
         $tax_amount = round(array_sum(array_column($lines, 'tax_amount')), 2);
@@ -645,7 +645,7 @@ class InvoiceDocumentBuilder
      * ----------------------------------------------------------------- */
 
     /** @return array<string, string> */
-    private function addressValues(?City $city, string $address_line, string $postal_code): array
+    protected function addressValues(?City $city, string $address_line, string $postal_code): array
     {
         $country = $city?->country;
         $department = (string) ($city?->department_name ?: $city?->state_province ?: '');
@@ -663,7 +663,7 @@ class InvoiceDocumentBuilder
     }
 
     /** Código DIAN del tipo de documento de identificación. */
-    private function documentTypeCode(?string $document_type): string
+    protected function documentTypeCode(?string $document_type): string
     {
         return match ($document_type) {
             'NIT' => '31',
@@ -677,7 +677,7 @@ class InvoiceDocumentBuilder
     }
 
     /** @param array<string, mixed> $values */
-    private function xmlBlock(DOMDocument $dom, string $block, array $values): DOMElement
+    protected function xmlBlock(DOMDocument $dom, string $block, array $values): DOMElement
     {
         $element = $dom->createElement($block);
 

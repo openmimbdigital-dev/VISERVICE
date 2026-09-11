@@ -2,9 +2,11 @@
 
 namespace App\Actions\Workshop;
 
+use App\Actions\Dian\EmitCreditNoteAction;
 use App\Actions\LogUserHistoricalAction;
 use App\Enums\ElectronicInvoiceStatus;
 use App\Enums\WorkOrderStatus;
+use App\Models\BusinessDianSetting;
 use App\Models\ElectronicInvoice;
 use App\Models\WorkOrderInvoice;
 use App\Models\WorkOrderInvoiceStatusHistory;
@@ -24,11 +26,12 @@ use Lorisleiva\Actions\Concerns\AsAction;
  *  - **Emitida pero sin validar**: el manual del proveedor permite borrar la
  *    transacción «solo si no ha sido enviada a la DIAN», y eso además libera el
  *    número para volver a usarlo. Se intenta.
- *  - **Validada por la DIAN**: no se anula. Una factura validada existe ante la
- *    DIAN para siempre y la única manera de dejarla sin efecto es una nota
- *    crédito. Permitir marcarla «anulada» aquí crearía un descuadre silencioso
- *    entre lo que dicen nuestros libros y lo que dice la DIAN, que es peor que
- *    no poder hacerlo.
+ *  - **Validada por la DIAN**: no se borra nada, se emite una nota crédito que
+ *    la acredita. Una factura validada existe ante la DIAN para siempre, así
+ *    que marcarla «anulada» por dentro sin más dejaría nuestros libros
+ *    diciendo una cosa y los de la DIAN otra. La nota es lo que hace que
+ *    vuelvan a coincidir. Si el negocio todavía no tiene configuradas las
+ *    notas crédito, no se anula: primero hay que poder acreditarla.
  *
  * La OT se cancela junto con la factura. Se pasa «cascade: false» cuando la
  * llamada viene de la propia cancelación de la OT, para que no se llamen en
@@ -67,11 +70,18 @@ class CancelWorkOrderInvoiceAction
 
         $this->guardAgainstValidatedDocument($invoice);
 
-        $withdrawn = $this->withdrawFromProvider($electronic_invoice);
+        // Si la DIAN ya la validó, primero se acredita. Si la nota falla, la
+        // factura se queda viva a propósito: anularla por dentro dejando el
+        // documento en pie ante la DIAN es justo el descuadre que se evita.
+        $credit_note = $electronic_invoice?->status->isValidatedByDian()
+            ? EmitCreditNoteAction::run($invoice)
+            : null;
+
+        $withdrawn = $credit_note ? null : $this->withdrawFromProvider($electronic_invoice);
 
         $previous_status = (string) $invoice->status;
 
-        DB::transaction(function () use ($invoice, $reason, $previous_status, $withdrawn) {
+        DB::transaction(function () use ($invoice, $reason, $previous_status, $withdrawn, $credit_note) {
             $invoice->forceFill(['status' => 'anulada'])->save();
 
             RecordInvoiceStatusHistoryAction::run(
@@ -82,6 +92,7 @@ class CancelWorkOrderInvoiceAction
                 comment: $reason,
                 metadata: array_filter([
                     'withdrawn_from_provider' => $withdrawn ?: null,
+                    'credit_note'             => $credit_note?->document_number,
                 ]),
             );
         });
@@ -96,6 +107,7 @@ class CancelWorkOrderInvoiceAction
                 'from'                    => $previous_status,
                 'reason'                  => $reason,
                 'withdrawn_from_provider' => $withdrawn,
+                'credit_note'             => $credit_note?->document_number,
             ],
             business_id: (int) $invoice->business_id,
         );
@@ -123,9 +135,18 @@ class CancelWorkOrderInvoiceAction
             return null;
         }
 
+        $setting = BusinessDianSetting::query()
+            ->where('business_id', $invoice->business_id)
+            ->first();
+
+        // Con notas crédito configuradas sí se puede: se acredita en vez de borrar.
+        if ($setting?->canEmitCreditNotes()) {
+            return null;
+        }
+
         return "La DIAN ya validó el documento {$electronic_invoice->document_number}, "
-            .'así que la factura no se puede anular: ante la DIAN sigue existiendo. '
-            .'Para dejarla sin efecto hay que emitir una nota crédito que la referencie.';
+            .'así que dejarlo sin efecto exige una nota crédito. Este negocio todavía no las tiene '
+            .'configuradas: hay que registrar su prefijo y su perfil en la configuración DIAN.';
     }
 
     /**

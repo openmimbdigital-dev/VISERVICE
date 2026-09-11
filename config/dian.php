@@ -139,6 +139,43 @@ return [
     |
     */
 
+    /*
+    |--------------------------------------------------------------------------
+    | Notas crédito
+    |--------------------------------------------------------------------------
+    |
+    | Una factura que la DIAN ya validó no se puede anular: existe ante ella para
+    | siempre. La única forma de dejarla sin efecto es una nota crédito que la
+    | referencie por su CUFE, con la razón 2 de la tabla 22.
+    |
+    | Para el proveedor es otro documento: se emite contra un perfil propio
+    | —creado con su tipo de documento 20— y lleva su propia numeración.
+    |
+    */
+
+    'credit_note' => [
+        'provider_document_type_code' => '20',
+        'profile_id'                  => 'DIAN 2.1: Nota Crédito de Factura Electrónica de Venta',
+
+        // Tabla 3 de la DIAN: 91 = nota crédito.
+        'type_code' => '91',
+
+        // Tabla 1: 20 = nota crédito que referencia una factura electrónica.
+        'customization_id' => '20',
+
+        // Tabla 22: razones por las que se emite.
+        'reasons' => [
+            '1' => 'Devolución parcial de los bienes y/o no aceptación parcial del servicio',
+            '2' => 'Anulación de factura electrónica',
+            '3' => 'Rebaja o descuento parcial o total',
+            '4' => 'Ajuste de precio',
+            '5' => 'Otros',
+        ],
+
+        // La que se usa al anular una factura completa.
+        'void_reason_code' => '2',
+    ],
+
     'payment_means' => [
         '10' => 'Efectivo',
         '48' => 'Tarjeta de crédito',

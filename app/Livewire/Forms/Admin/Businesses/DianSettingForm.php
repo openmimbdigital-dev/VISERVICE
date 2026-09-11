@@ -20,6 +20,8 @@ class DianSettingForm extends Form
 
     public string $tr_tipo_id = '';
 
+    public string $credit_note_prefix = '';
+
     public string $cfg_lote_id = '';
 
     public string $resolution_number = '';
@@ -61,6 +63,7 @@ class DianSettingForm extends Form
         $this->environment         = $setting->environment;
         $this->document_format     = $setting->document_format;
         $this->tr_tipo_id          = (string) ($setting->tr_tipo_id ?? '');
+        $this->credit_note_prefix  = (string) ($setting->credit_note_prefix ?? '');
         $this->cfg_lote_id         = (string) ($setting->cfg_lote_id ?? '');
         $this->resolution_number   = (string) ($setting->resolution_number ?? '');
         $this->prefix              = (string) ($setting->prefix ?? '');
@@ -89,6 +92,7 @@ class DianSettingForm extends Form
         $this->environment         = 'test';
         $this->document_format     = 'json';
         $this->tr_tipo_id          = '';
+        $this->credit_note_prefix  = '';
         $this->cfg_lote_id         = '';
         $this->resolution_number   = '';
         $this->prefix              = '';
@@ -148,6 +152,7 @@ class DianSettingForm extends Form
             'cfg_lote_id'         => ['nullable', 'numeric', 'min:1'],
             'resolution_number'   => ['nullable', 'string', 'max:30'],
             'prefix'              => ['nullable', 'string', 'max:10', 'regex:/^[A-Za-z0-9]+$/'],
+            'credit_note_prefix'  => ['nullable', 'string', 'max:10', 'regex:/^[A-Za-z0-9]+$/'],
             'range_from'          => ['nullable', 'numeric', 'min:1'],
             'range_to'            => ['nullable', 'numeric', 'min:1', 'gte:range_from'],
             'valid_from'          => ['nullable', 'date'],
@@ -207,6 +212,7 @@ class DianSettingForm extends Form
             'cfg_lote_id'         => $this->cfg_lote_id !== '' ? (int) $this->cfg_lote_id : null,
             'resolution_number'   => $this->nullIfBlank($this->resolution_number),
             'prefix'              => $this->prefix !== '' ? mb_strtoupper(trim($this->prefix)) : null,
+            'credit_note_prefix'  => $this->credit_note_prefix !== '' ? mb_strtoupper(trim($this->credit_note_prefix)) : null,
             'range_from'          => $this->range_from !== '' ? (int) $this->range_from : null,
             'range_to'            => $this->range_to !== '' ? (int) $this->range_to : null,
             'valid_from'          => $this->nullIfBlank($this->valid_from),

@@ -65,6 +65,16 @@
                     <span wire:loading wire:target="syncConsecutive">Consultando...</span>
                 </button>
                 @endif
+                @if($setting->tr_tipo_id && ! $setting->credit_note_tr_tipo_id)
+                <button type="button" wire:click="registerCreditNoteProfile({{ $setting->id }})"
+                    wire:loading.attr="disabled" wire:target="registerCreditNoteProfile"
+                    title="Crea en el proveedor el perfil con el que se emiten las notas credito de este negocio"
+                    class="btn btn-outline-secondary btn-sm">
+                    <span wire:loading.remove wire:target="registerCreditNoteProfile">Habilitar notas credito</span>
+                    <span wire:loading wire:target="registerCreditNoteProfile">Registrando...</span>
+                </button>
+                @endif
+
                 @if(! $setting->tr_tipo_id)
                 <button type="button" wire:click="confirmRegistration({{ $setting->id }})"
                     wire:loading.attr="disabled" wire:target="registerWithProvider"
@@ -224,6 +234,13 @@
                             <input type="text" wire:model="form.prefix" placeholder="SETP"
                                 class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-mono uppercase @error('form.prefix') border-rose-400 @enderror">
                             @error('form.prefix') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label class="mb-1.5 block text-xs font-medium text-slate-700">Prefijo de notas credito</label>
+                            <input type="text" wire:model="form.credit_note_prefix" placeholder="NC"
+                                class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-mono uppercase @error('form.credit_note_prefix') border-rose-400 @enderror">
+                            @error('form.credit_note_prefix') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                            <p class="mt-1 text-xs text-slate-500">Las notas credito llevan su propia numeracion, aparte de la de las facturas.</p>
                         </div>
                         <div>
                             <label class="mb-1.5 block text-xs font-medium text-slate-700">Rango inicial</label>
