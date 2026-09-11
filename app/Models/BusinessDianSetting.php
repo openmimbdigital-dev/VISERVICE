@@ -122,6 +122,13 @@ class BusinessDianSetting extends Model
             $missing[] = 'La resolución DIAN está vencida.';
         }
 
+        // La DIAN exige el SoftwareID en el documento. Se captura a mano, así que
+        // sin esta comprobación el documento sale con el campo vacío y lo rechazan
+        // después de haber consumido el consecutivo.
+        if (! $this->software_id) {
+            $missing[] = 'Falta el identificador del software (SoftwareID) autorizado por la DIAN.';
+        }
+
         $missing = array_merge($missing, $this->missingBusinessRequirements());
 
         return array_values($missing);
