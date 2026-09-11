@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Subscriptions\SyncBoldPaymentStatusAction;
+use App\Actions\Workshop\SyncInvoicePaymentFromBoldAction;
 use App\Models\BoldStatusCheck;
 use App\Models\SubscriptionInvoice;
+use App\Models\WorkOrderInvoice;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 
@@ -30,17 +32,38 @@ class PaymentCallbackController extends Controller
         $reference = trim((string) $request->query('ref', ''));
         $try = max(0, (int) $request->query('try', 0));
 
+        // La misma pantalla recibe los dos cobros: la suscripción que nos paga un
+        // negocio y la factura que le paga su cliente. La referencia distingue.
         $invoice = SubscriptionInvoice::findByBoldReference($reference);
+        $work_order_invoice = $invoice ? null : WorkOrderInvoice::findByBoldReference($reference);
 
-        $state = $this->state($invoice);
+        $state = $work_order_invoice
+            ? $this->workOrderInvoiceState($work_order_invoice)
+            : $this->state($invoice);
 
         return view('payments.callback', [
             'state'     => $state,
-            'invoice'   => $invoice,
+            'invoice'   => $invoice ?? $work_order_invoice,
             'retry_url' => $state === 'en_proceso' && $try < self::MAX_TRIES
                 ? route('subscriptions.payment.callback', ['ref' => $reference, 'try' => $try + 1])
                 : null,
         ]);
+    }
+
+    /** pagado | en_proceso | desconocido, para una factura de taller. */
+    private function workOrderInvoiceState(WorkOrderInvoice $invoice): string
+    {
+        if ($invoice->status === 'pagada') {
+            return 'pagado';
+        }
+
+        $result = SyncInvoicePaymentFromBoldAction::run($invoice, BoldStatusCheck::ORIGIN_CALLBACK);
+
+        if ($result['changed'] || $invoice->refresh()->status === 'pagada') {
+            return 'pagado';
+        }
+
+        return $result['status'] === 'ERROR' ? 'desconocido' : 'en_proceso';
     }
 
     /** pagado | en_proceso | desconocido */

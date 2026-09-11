@@ -113,6 +113,14 @@ return [
                 'custom_taxes.delete' => 'Eliminar impuestos personalizados',
             ],
         ],
+        'bold_settings' => [
+            'name' => 'Negocios — Pasarela de pagos',
+            'permissions' => [
+                'bold_settings.view' => 'Ver la configuración de cobros en línea',
+                'bold_settings.edit' => 'Editar las llaves de la pasarela de pagos',
+            ],
+        ],
+
         'dian_settings' => [
             'name' => 'Negocios — Facturación electrónica',
             'permissions' => [
@@ -329,6 +337,7 @@ return [
             'permissions' => [
                 'workshop.invoices.view' => 'Ver facturación',
                 'workshop.invoices.pay' => 'Registrar el pago de una factura',
+                'workshop.invoices.void' => 'Anular una factura',
                 'workshop.invoices.dian.send' => 'Emitir factura electrónica ante la DIAN',
                 'workshop.invoices.dian.download' => 'Descargar XML y PDF de la factura electrónica',
             ],

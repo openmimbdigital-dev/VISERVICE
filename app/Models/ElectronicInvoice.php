@@ -11,6 +11,25 @@ class ElectronicInvoice extends Model
 {
     use BelongsToBusinessTenant;
 
+    /** Valor de «document_type» de las filas que le pertenecen a este modelo. */
+    public const DOCUMENT_TYPE = 'invoice';
+
+    /**
+     * La tabla guarda facturas y notas crédito. Cada modelo ve solo las suyas,
+     * así que las consultas que ya existían siguen significando lo mismo aunque
+     * ahora convivan dos tipos de documento.
+     */
+    protected static function booted(): void
+    {
+        static::addGlobalScope('documentType', function ($query) {
+            $query->where($query->getModel()->getTable().'.document_type', static::DOCUMENT_TYPE);
+        });
+
+        static::creating(function (self $model) {
+            $model->document_type ??= static::DOCUMENT_TYPE;
+        });
+    }
+
     protected $fillable = [
         'business_id',
         'work_order_invoice_id',
@@ -19,6 +38,8 @@ class ElectronicInvoice extends Model
         'prefix',
         'consecutive',
         'document_number',
+        'credited_amount',
+        'credited_items',
         'status',
         'transaction_id',
         'cufe',
@@ -65,6 +86,8 @@ class ElectronicInvoice extends Model
             'error_id'          => 'integer',
             'attempts'          => 'integer',
             'response_payload'  => 'array',
+            'credited_items'    => 'array',
+            'credited_amount'   => 'decimal:2',
             'issued_at'         => 'datetime',
             'sent_at'           => 'datetime',
             'accepted_at'       => 'datetime',

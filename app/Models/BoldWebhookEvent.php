@@ -38,6 +38,7 @@ class BoldWebhookEvent extends Model
         'payment_method',
         'event_time',
         'subscription_invoice_id',
+        'work_order_invoice_id',
         'signature_valid',
         'signature',
         'signed_with',
@@ -72,6 +73,12 @@ class BoldWebhookEvent extends Model
     public function subscriptionInvoice(): BelongsTo
     {
         return $this->belongsTo(SubscriptionInvoice::class);
+    }
+
+    /** Factura de taller, cuando el aviso es de un cobro a un cliente del negocio. */
+    public function workOrderInvoice(): BelongsTo
+    {
+        return $this->belongsTo(WorkOrderInvoice::class);
     }
 
     public function isApprovedSale(): bool

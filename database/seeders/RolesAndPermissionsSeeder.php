@@ -64,6 +64,7 @@ class RolesAndPermissionsSeeder extends Seeder
     {
         return [
             'dian_settings.view', 'dian_settings.create', 'dian_settings.edit', 'dian_settings.delete',
+            'bold_settings.view', 'bold_settings.edit',
         ];
     }
 
@@ -240,6 +241,7 @@ class RolesAndPermissionsSeeder extends Seeder
         return [
             'workshop.invoices.view',
             'workshop.invoices.pay',
+            'workshop.invoices.void',
             'workshop.invoices.dian.send',
             'workshop.invoices.dian.download',
         ];

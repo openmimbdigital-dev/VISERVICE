@@ -5,7 +5,10 @@ namespace App\Http\Controllers;
 use App\Actions\Subscriptions\ConfirmSubscriptionPaymentAction;
 use App\Models\BoldWebhookEvent;
 use App\Models\SubscriptionInvoice;
+use App\Actions\RegisterInvoicePaymentAction;
+use App\Models\BusinessBoldSetting;
 use App\Models\SubscriptionPayment;
+use App\Models\WorkOrderInvoice;
 use App\Support\SystemActor;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -83,6 +86,7 @@ class BoldWebhookController extends Controller
             'payment_method'          => (string) ($data['payment_method'] ?? '') ?: null,
             'event_time'              => (string) ($payload['time'] ?? '') ?: null,
             'subscription_invoice_id' => $this->invoiceFor($reference, $payload ?? [])?->id,
+            'work_order_invoice_id'   => WorkOrderInvoice::findByBoldReference($reference)?->id,
             'signature_valid'         => $signed_with !== null,
             'signature'               => $signature ?: null,
             'signed_with'             => $signed_with,
@@ -144,6 +148,12 @@ class BoldWebhookController extends Controller
             $event->update(['result' => "Reintento de un evento ya procesado en el registro #{$processed->id}."]);
 
             return $this->ok('evento ya recibido');
+        }
+
+        // Un mismo endpoint recibe los dos cobros: la suscripción que nos paga el
+        // negocio y la factura que le paga su cliente. La referencia dice cuál es.
+        if ($event->workOrderInvoice) {
+            return $this->confirmWorkOrderInvoice($event);
         }
 
         $invoice = $event->subscriptionInvoice;
@@ -211,6 +221,51 @@ class BoldWebhookController extends Controller
                 ? "Cobro {$invoice->invoice_number} confirmado y facturado ({$work_order_invoice->reference})."
                 : "Cobro {$invoice->invoice_number} confirmado; no se generó factura.").$signature_note,
         ]);
+    }
+
+    /**
+     * Da por pagada la factura de taller que el cliente acaba de pagar.
+     *
+     * Pasa por la misma acción que el botón de la pantalla, así que el estado, la
+     * fecha y la línea de tiempo quedan igual vengan del cliente o del taller.
+     */
+    private function confirmWorkOrderInvoice(BoldWebhookEvent $event): JsonResponse
+    {
+        $invoice = $event->workOrderInvoice;
+
+        if ($event->type !== BoldWebhookEvent::TYPE_SALE_APPROVED) {
+            $invoice->forceFill(['bold_status' => $this->statusFor($event->type)])->save();
+            $event->update(['result' => "Evento «{$event->type}» sobre la factura {$invoice->reference}: anotado sin darla por pagada."]);
+
+            return $this->ok('evento sin efecto sobre la factura');
+        }
+
+        $invoice->forceFill([
+            'bold_status'         => 'PAID',
+            'bold_payment_id'     => $event->payment_id,
+            'bold_payment_method' => $event->payment_method,
+        ])->save();
+
+        if ($invoice->status === 'pagada') {
+            $event->update(['processed' => true, 'result' => "La factura {$invoice->reference} ya estaba pagada."]);
+
+            return $this->ok('factura ya pagada');
+        }
+
+        SystemActor::run(fn () => RegisterInvoicePaymentAction::run(
+            invoice: $invoice,
+            payment_method: $event->payment_method ?: 'Pago en línea',
+            payment_reference: $event->payment_id,
+            paid_at: now()->toDateString(),
+        ));
+
+        $event->update([
+            'processed' => true,
+            'result'    => "Factura {$invoice->reference} pagada en línea"
+                .($event->signed_with ? " [firmado con: {$event->signed_with}]" : '').'.',
+        ]);
+
+        return $this->ok('procesado');
     }
 
     /**
@@ -357,6 +412,14 @@ class BoldWebhookController extends Controller
 
         foreach ((array) config('bold.webhook.extra_secrets') as $index => $secret) {
             $candidates['extra #'.($index + 1)] = (string) $secret;
+        }
+
+        // Cada negocio que cobra con su propia cuenta firma con su propia llave:
+        // el endpoint es uno solo, así que hay que reconocerlas todas.
+        foreach (BusinessBoldSetting::query()->where('active', true)->get() as $setting) {
+            if (filled($setting->secret_key)) {
+                $candidates['negocio #'.$setting->business_id] = (string) $setting->secret_key;
+            }
         }
 
         // La llave vacía se suma a las reales, no las reemplaza: así un pago de

@@ -10,6 +10,9 @@ enum ElectronicInvoiceStatus: string
     case Rejected = 'rejected';
     case Error = 'error';
 
+    /** Se retiró del proveedor antes de que la DIAN la validara. */
+    case Cancelled = 'cancelled';
+
     public function label(): string
     {
         return match ($this) {
@@ -18,6 +21,7 @@ enum ElectronicInvoiceStatus: string
             self::Accepted => 'Validada por la DIAN',
             self::Rejected => 'Rechazada por la DIAN',
             self::Error    => 'Error de emisión',
+            self::Cancelled => 'Anulada antes de validar',
         };
     }
 
@@ -29,6 +33,7 @@ enum ElectronicInvoiceStatus: string
             self::Accepted => 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20',
             self::Rejected => 'bg-red-50 text-red-700 ring-1 ring-red-600/20',
             self::Error    => 'bg-amber-50 text-amber-700 ring-1 ring-amber-600/20',
+            self::Cancelled => 'bg-slate-100 text-slate-600 ring-1 ring-slate-500/20',
         };
     }
 
@@ -42,6 +47,18 @@ enum ElectronicInvoiceStatus: string
     public function canBeSent(): bool
     {
         return $this === self::Pending || $this === self::Error || $this === self::Rejected;
+    }
+
+    /**
+     * ¿La DIAN ya la validó?
+     *
+     * Es la frontera que decide si una factura todavía se puede anular: antes,
+     * el documento se retira del proveedor y el número queda libre; después, solo
+     * cabe una nota crédito.
+     */
+    public function isValidatedByDian(): bool
+    {
+        return $this === self::Accepted;
     }
 
     /** Ya tiene transacción en el proveedor: se puede consultar estado y descargar. */

@@ -2,11 +2,18 @@
 
 namespace App\Livewire\Admin\Workshop\Invoices;
 
+use App\Actions\Dian\EmitCreditNoteAction;
 use App\Actions\RegisterInvoicePaymentAction;
+use App\Actions\Workshop\CancelWorkOrderInvoiceAction;
+use App\Actions\Workshop\CreateInvoicePaymentLinkAction;
+use App\Actions\Workshop\SyncInvoicePaymentFromBoldAction;
+use App\Models\BoldStatusCheck;
+use App\Services\Bold\BoldClient;
 use App\Enums\ElectronicInvoiceStatus;
 use App\Models\BusinessDianSetting;
 use App\Models\BusinessPaymentMethod;
 use App\Models\WorkOrderInvoice;
+use App\Services\Dian\DianRequestException;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
@@ -28,6 +35,18 @@ class Show extends Component
     public string $paid_at = '';
 
     public string $payment_notes = '';
+
+    public bool $showVoidModal = false;
+
+    public string $void_reason = '';
+
+    public bool $showCreditNoteModal = false;
+
+    /** Razón de la tabla 22 de la DIAN. */
+    public string $credit_note_reason = '1';
+
+    /** Cantidad a devolver por ítem de la factura. */
+    public array $returned = [];
 
     /** Caché de solo lectura por petición; Livewire ignora lo que no es público. */
     private ?bool $dian_applies = null;
@@ -132,6 +151,200 @@ class Show extends Component
         ]);
     }
 
+    public function openVoid(): void
+    {
+        abort_unless(auth()->user()?->can('workshop.invoices.void'), 403);
+
+        $this->void_reason = '';
+        $this->resetValidation();
+        $this->showVoidModal = true;
+    }
+
+    public function closeVoid(): void
+    {
+        $this->showVoidModal = false;
+    }
+
+    /**
+     * Genera el link con el que el cliente paga la factura por su cuenta.
+     */
+    public function createPaymentLink(bool $force_new = false): void
+    {
+        try {
+            $link = CreateInvoicePaymentLinkAction::run($this->invoice, $force_new);
+        } catch (ValidationException $exception) {
+            $this->dispatch('swal', [
+                'title' => 'No se pudo generar el link de pago',
+                'text'  => collect($exception->errors())->flatten()->first(),
+                'icon'  => 'warning',
+            ]);
+
+            return;
+        }
+
+        $this->invoice->refresh();
+
+        $this->dispatch('swal', [
+            'title' => 'Link de pago listo',
+            'text'  => $link['account'] === BoldClient::ACCOUNT_PLATFORM
+                ? 'Ojo: este negocio no tiene cuenta de Bold propia, así que el pago entra a la cuenta de la plataforma.'
+                : 'Compártelo con el cliente para que pague.',
+            'icon'  => $link['account'] === BoldClient::ACCOUNT_PLATFORM ? 'warning' : 'success',
+        ]);
+    }
+
+    /** Le pregunta a Bold si ya pagaron, sin esperar a que avise. */
+    public function checkPaymentLink(): void
+    {
+        $result = SyncInvoicePaymentFromBoldAction::run($this->invoice, BoldStatusCheck::ORIGIN_MANUAL);
+
+        $this->invoice->refresh();
+
+        $this->dispatch('swal', [
+            'title' => $result['changed'] ? 'Pago confirmado' : 'Todavía no hay pago',
+            'text'  => $result['detail'],
+            'icon'  => $result['changed'] ? 'success' : 'info',
+        ]);
+    }
+
+    public function openCreditNote(): void
+    {
+        abort_unless(auth()->user()?->can('workshop.invoices.void'), 403);
+
+        $this->returned = collect(EmitCreditNoteAction::remainingQuantities($this->invoice))
+            ->map(fn () => '')
+            ->all();
+
+        $this->credit_note_reason = '1';
+        $this->resetValidation();
+        $this->showCreditNoteModal = true;
+    }
+
+    public function closeCreditNote(): void
+    {
+        $this->showCreditNoteModal = false;
+    }
+
+    /**
+     * Acredita solo lo que se devolvió. La factura sigue viva por el resto: no es
+     * una anulación, es una devolución.
+     */
+    public function emitCreditNote(): void
+    {
+        $returned = collect($this->returned)
+            ->map(fn ($quantity) => (float) str_replace(',', '.', (string) $quantity))
+            ->filter(fn ($quantity) => $quantity > 0)
+            ->all();
+
+        if ($returned === []) {
+            $this->dispatch('swal', [
+                'title' => 'Indica qué se devuelve',
+                'text'  => 'Pon la cantidad de al menos un ítem.',
+                'icon'  => 'warning',
+            ]);
+
+            return;
+        }
+
+        $reasons = (array) config('dian.credit_note.reasons');
+
+        try {
+            $note = EmitCreditNoteAction::run(
+                invoice: $this->invoice,
+                reason_code: $this->credit_note_reason,
+                reason_description: (string) ($reasons[$this->credit_note_reason] ?? 'Devolución parcial'),
+                returned: $returned,
+            );
+        } catch (DianRequestException|ValidationException $exception) {
+            $this->dispatch('swal', [
+                'title' => 'No se pudo emitir la nota crédito',
+                'text'  => $exception instanceof ValidationException
+                    ? collect($exception->errors())->flatten()->first()
+                    : $exception->getMessage(),
+                'icon'  => 'warning',
+            ]);
+
+            return;
+        }
+
+        $this->showCreditNoteModal = false;
+        $this->invoice->refresh();
+
+        $this->dispatch('swal', [
+            'title' => "Nota crédito {$note->document_number} emitida",
+            'text'  => 'Se acreditaron '.col_money($note->credited_amount).' de la factura.',
+            'icon'  => 'success',
+        ]);
+    }
+
+    /** ¿Este negocio puede emitir notas crédito sobre esta factura? */
+    private function canEmitCreditNote(): bool
+    {
+        if (! auth()->user()?->can('workshop.invoices.void')) {
+            return false;
+        }
+
+        if ($this->invoice->electronicInvoice?->status->isValidatedByDian() !== true) {
+            return false;
+        }
+
+        $setting = BusinessDianSetting::query()->where('business_id', $this->invoice->business_id)->first();
+
+        return $setting?->canEmitCreditNotes()
+            && array_sum(EmitCreditNoteAction::remainingQuantities($this->invoice)) > 0;
+    }
+
+    /**
+     * Anula la factura y, con ella, su orden de trabajo.
+     *
+     * El motivo es obligatorio: una factura anulada sin explicación deja un hueco
+     * en la contabilidad que después nadie sabe justificar.
+     */
+    public function voidInvoice(): void
+    {
+        $data = $this->validate([
+            'void_reason' => ['required', 'string', 'min:5', 'max:500'],
+        ], [
+            'void_reason.required' => 'Indica el motivo de la anulación.',
+            'void_reason.min'      => 'Explica el motivo con algo más de detalle.',
+        ]);
+
+        try {
+            $this->invoice = CancelWorkOrderInvoiceAction::run(
+                invoice: $this->invoice,
+                reason: $data['void_reason'],
+            );
+        } catch (ValidationException $exception) {
+            $this->dispatch('swal', [
+                'title' => 'No se pudo anular la factura',
+                'text'  => collect($exception->errors())->flatten()->first(),
+                'icon'  => 'warning',
+            ]);
+
+            return;
+        }
+
+        $this->showVoidModal = false;
+
+        $this->dispatch('swal', [
+            'title' => "Factura {$this->invoice->reference} anulada",
+            'text'  => 'La orden de trabajo quedó cancelada junto con ella.',
+            'icon'  => 'success',
+        ]);
+    }
+
+    /**
+     * ¿Se puede anular? Null cuando sí; si no, el motivo para mostrarlo.
+     */
+    private function voidBlockedReason(): ?string
+    {
+        if ($this->invoice->status === 'anulada') {
+            return 'Esta factura ya está anulada.';
+        }
+
+        return CancelWorkOrderInvoiceAction::blockingReason($this->invoice);
+    }
+
     /** Solo se cobra una factura que siga viva y sin pagar. */
     private function canRegisterPayment(): bool
     {
@@ -164,6 +377,17 @@ class Show extends Component
                 ->orderBy('sort_order')
                 ->get(),
             'can_register_payment' => auth()->user()->can('workshop.invoices.pay') && $this->canRegisterPayment(),
+            'can_void'             => auth()->user()->can('workshop.invoices.void') && $this->invoice->status !== 'anulada',
+            'can_emit_credit_note' => $this->canEmitCreditNote(),
+            'can_charge_online'    => auth()->user()->can('workshop.invoices.pay')
+                && ! in_array($this->invoice->status, ['pagada', 'anulada'], true),
+            'remaining_quantities' => EmitCreditNoteAction::remainingQuantities($this->invoice),
+            'credit_note_reasons'  => (array) config('dian.credit_note.reasons'),
+            'credit_notes'         => \App\Models\ElectronicCreditNote::query()
+                ->where('work_order_invoice_id', $this->invoice->id)
+                ->orderBy('id')
+                ->get(),
+            'void_blocked_reason'  => $this->voidBlockedReason(),
         ]);
     }
 

@@ -5,6 +5,7 @@ namespace App\Livewire\Admin\Businesses\DianSettings;
 use App\Actions\Business\CreateOrUpdateDianSettingAction;
 use App\Actions\Dian\FetchResolutionFromProviderAction;
 use App\Actions\Dian\RegisterBusinessWithProviderAction;
+use App\Actions\Dian\RegisterCreditNoteProfileAction;
 use App\Actions\Dian\SyncConsecutiveFromProviderAction;
 use App\Livewire\Forms\Admin\Businesses\DianSettingForm;
 use App\Models\BusinessDianSetting;
@@ -120,6 +121,38 @@ class Index extends Component
             'text'  => $result['fields'] === []
                 ? 'Los datos del proveedor coinciden con los que ya tenías.'
                 : 'Se actualizaron: '.implode(', ', $result['fields']).'.',
+            'icon'  => 'success',
+        ]);
+    }
+
+    /**
+     * Crea en el proveedor el perfil con el que este negocio emitirá notas
+     * crédito, que es otro tipo de documento y necesita el suyo.
+     */
+    public function registerCreditNoteProfile(int $id): void
+    {
+        abort_unless(auth()->user()?->can('dian_settings.edit'), 403);
+
+        $setting = BusinessDianSetting::query()->forAuthUser()->with('business')->findOrFail($id);
+
+        try {
+            $setting = RegisterCreditNoteProfileAction::run($setting);
+        } catch (DianRequestException|ValidationException $exception) {
+            $this->dispatch('swal', [
+                'title' => 'No se pudo registrar el perfil de notas crédito',
+                'text'  => $exception instanceof ValidationException
+                    ? collect($exception->errors())->flatten()->first()
+                    : $exception->getMessage(),
+                'icon'  => 'warning',
+            ]);
+
+            return;
+        }
+
+        $this->dispatch('swal', [
+            'title' => 'Notas crédito habilitadas',
+            'text'  => "Perfil {$setting->credit_note_tr_tipo_id}; la primera saldrá como "
+                ."{$setting->credit_note_prefix}{$setting->upcomingCreditNoteConsecutive()}.",
             'icon'  => 'success',
         ]);
     }

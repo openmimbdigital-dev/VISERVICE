@@ -19,16 +19,19 @@ class BusinessDianSetting extends Model
         'document_format',
         'environment',
         'tr_tipo_id',
+        'credit_note_tr_tipo_id',
         'cfg_lote_id',
         'profile_name',
         'resolution_number',
         'prefix',
+        'credit_note_prefix',
         'range_from',
         'range_to',
         'valid_from',
         'valid_to',
         'technical_key',
         'next_consecutive',
+        'credit_note_next_consecutive',
         'software_id',
         'software_pin',
         'notify_customer',
@@ -73,6 +76,23 @@ class BusinessDianSetting extends Model
     public function upcomingConsecutive(): int
     {
         return (int) ($this->next_consecutive ?: $this->range_from);
+    }
+
+    /** Siguiente número de nota crédito. */
+    public function upcomingCreditNoteConsecutive(): int
+    {
+        return (int) ($this->credit_note_next_consecutive ?: 1);
+    }
+
+    /**
+     * ¿Está listo para emitir notas crédito?
+     *
+     * Hace falta su propio perfil en el proveedor y su propio prefijo: la nota
+     * crédito es otro documento, con otra numeración.
+     */
+    public function canEmitCreditNotes(): bool
+    {
+        return filled($this->credit_note_tr_tipo_id) && filled($this->credit_note_prefix);
     }
 
     public function hasAvailableRange(): bool
