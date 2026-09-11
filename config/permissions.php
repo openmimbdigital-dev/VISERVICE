@@ -113,6 +113,14 @@ return [
                 'custom_taxes.delete' => 'Eliminar impuestos personalizados',
             ],
         ],
+        'bold_settings' => [
+            'name' => 'Negocios — Pasarela de pagos',
+            'permissions' => [
+                'bold_settings.view' => 'Ver la configuración de cobros en línea',
+                'bold_settings.edit' => 'Editar las llaves de la pasarela de pagos',
+            ],
+        ],
+
         'dian_settings' => [
             'name' => 'Negocios — Facturación electrónica',
             'permissions' => [

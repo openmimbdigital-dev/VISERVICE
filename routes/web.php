@@ -15,6 +15,7 @@ use App\Livewire\Admin\Banks\Index as AdminBanksIndex;
 use App\Livewire\Admin\Businesses\BankAccounts\Index as AdminBusinessBankAccountsIndex;
 use App\Livewire\Admin\Businesses\BankAccounts\Show as AdminBusinessBankAccountsShow;
 use App\Livewire\Admin\Businesses\CustomTaxes\Index as AdminCustomTaxesIndex;
+use App\Livewire\Admin\Businesses\BoldSettings\Index as AdminBoldSettingsIndex;
 use App\Livewire\Admin\Businesses\DianSettings\Index as AdminDianSettingsIndex;
 use App\Livewire\Admin\Businesses\CustomTaxes\Show as AdminCustomTaxesShow;
 use App\Livewire\Admin\Businesses\Form as AdminBusinessesForm;
@@ -357,6 +358,9 @@ Route::middleware(['auth', 'ensure.business', 'business.module'])->group(functio
         });
         Route::middleware('permission:dian_settings.view')->group(function () {
             Route::get('/dian-settings', AdminDianSettingsIndex::class)->name('dian-settings.index');
+        });
+        Route::middleware('permission:bold_settings.view')->group(function () {
+            Route::get('/bold-settings', AdminBoldSettingsIndex::class)->name('bold-settings.index');
         });
     });
 
