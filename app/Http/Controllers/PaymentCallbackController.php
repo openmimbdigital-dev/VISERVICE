@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Subscriptions\SyncBoldPaymentStatusAction;
+use App\Models\BoldStatusCheck;
 use App\Models\SubscriptionInvoice;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
@@ -53,7 +54,7 @@ class PaymentCallbackController extends Controller
             return 'pagado';
         }
 
-        $result = SyncBoldPaymentStatusAction::run($invoice);
+        $result = SyncBoldPaymentStatusAction::run($invoice, BoldStatusCheck::ORIGIN_CALLBACK);
 
         if ($result['changed'] || $invoice->refresh()->status === 'paid') {
             return 'pagado';

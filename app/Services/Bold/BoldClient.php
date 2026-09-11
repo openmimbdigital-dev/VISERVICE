@@ -96,6 +96,52 @@ class BoldClient
     }
 
     /**
+     * Como linkStatus(), pero devolviendo también la respuesta literal, el código
+     * HTTP y lo que tardó.
+     *
+     * Confirmar un pago a partir de una consulta exige poder demostrar después en
+     * qué nos basamos, y para eso no sirve el arreglo ya interpretado: hace falta
+     * el cuerpo tal como llegó. Por eso este método no lanza excepción — un fallo
+     * también es información que hay que guardar.
+     *
+     * @return array{ok: bool, http_status: int|null, body: array<string, mixed>, raw: string, duration_ms: int, error: string|null}
+     */
+    public function linkStatusDetailed(string $payment_link): array
+    {
+        $path = self::PATH_LINKS.'/'.$payment_link;
+        $started_at = microtime(true);
+
+        try {
+            $response = $this->send('get', $path);
+        } catch (BoldRequestException $exception) {
+            return [
+                'ok'          => false,
+                'http_status' => null,
+                'body'        => [],
+                'raw'         => '',
+                'duration_ms' => $this->elapsed($started_at),
+                'error'       => $exception->getMessage(),
+            ];
+        }
+
+        $body = $response->json();
+
+        return [
+            'ok'          => $response->successful() && is_array($body),
+            'http_status' => $response->status(),
+            'body'        => is_array($body) ? $body : [],
+            'raw'         => $response->body(),
+            'duration_ms' => $this->elapsed($started_at),
+            'error'       => $response->successful() ? null : 'Bold respondió HTTP '.$response->status(),
+        ];
+    }
+
+    private function elapsed(float $started_at): int
+    {
+        return (int) round((microtime(true) - $started_at) * 1000);
+    }
+
+    /**
      * Bold pide la vigencia en nanosegundos desde la época Unix.
      */
     private function expirationDate(): ?int
@@ -127,6 +173,14 @@ class BoldClient
      */
     private function request(string $method, string $path, array $payload = []): array
     {
+        return $this->decode($path, $this->send($method, $path, $payload));
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function send(string $method, string $path, array $payload = []): Response
+    {
         if (! $this->isConfigured()) {
             throw BoldRequestException::transport($path, 'La pasarela Bold no está configurada.');
         }
@@ -139,7 +193,7 @@ class BoldClient
                 // No es «Bearer»: Bold espera el prefijo literal x-api-key.
                 ->withHeaders(['Authorization' => 'x-api-key '.config('bold.identity_key')]);
 
-            $response = $method === 'get'
+            return $method === 'get'
                 ? $request->get($path)
                 : $request->post($path, $payload);
         } catch (ConnectionException $exception) {
@@ -147,8 +201,6 @@ class BoldClient
         } catch (Throwable $exception) {
             throw BoldRequestException::transport($path, 'Error inesperado al contactar a Bold: '.$exception->getMessage(), $exception);
         }
-
-        return $this->decode($path, $response);
     }
 
     /** @return array<string, mixed> */
