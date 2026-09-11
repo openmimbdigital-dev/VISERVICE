@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Actions\Subscriptions\SyncBoldPaymentStatusAction;
+use App\Models\BoldStatusCheck;
 use App\Models\SubscriptionInvoice;
 use App\Services\Bold\BoldClient;
 use Illuminate\Console\Command;
@@ -44,8 +45,14 @@ class BoldSyncPayments extends Command
         $rows = [];
         $confirmed = 0;
 
+        // Pedir un cobro concreto es alguien revisando un caso; sin argumentos es
+        // la tarea programada haciendo su ronda.
+        $origin = trim((string) $this->option('invoice')) !== ''
+            ? BoldStatusCheck::ORIGIN_MANUAL
+            : BoldStatusCheck::ORIGIN_SCHEDULED;
+
         foreach ($invoices as $invoice) {
-            $result = SyncBoldPaymentStatusAction::run($invoice);
+            $result = SyncBoldPaymentStatusAction::run($invoice, $origin);
 
             if ($result['changed']) {
                 $confirmed++;

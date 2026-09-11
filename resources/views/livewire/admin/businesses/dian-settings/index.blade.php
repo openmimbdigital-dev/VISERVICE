@@ -56,6 +56,15 @@
                     <span wire:loading.remove wire:target="fetchResolution">Traer resolución</span>
                     <span wire:loading wire:target="fetchResolution">Consultando...</span>
                 </button>
+                @if($setting->prefix)
+                <button type="button" wire:click="syncConsecutive({{ $setting->id }})"
+                    wire:loading.attr="disabled" wire:target="syncConsecutive"
+                    title="Busca en el proveedor el último documento emitido con este prefijo y adelanta la numeración si viene atrasada"
+                    class="btn btn-outline-secondary btn-sm">
+                    <span wire:loading.remove wire:target="syncConsecutive">Traer consecutivo</span>
+                    <span wire:loading wire:target="syncConsecutive">Consultando...</span>
+                </button>
+                @endif
                 @if(! $setting->tr_tipo_id)
                 <button type="button" wire:click="confirmRegistration({{ $setting->id }})"
                     wire:loading.attr="disabled" wire:target="registerWithProvider"

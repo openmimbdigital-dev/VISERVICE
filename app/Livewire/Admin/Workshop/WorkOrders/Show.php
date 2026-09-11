@@ -48,6 +48,16 @@ class Show extends Component
 
     public bool $send_to_dian = true;
 
+    /**
+     * Medio de pago que se le declara a la DIAN, en código de su tabla 12.
+     *
+     * Vacío significa que no se supo: el documento sale con «instrumento no
+     * definido», que es lo que la DIAN admite para ese caso. Se pregunta al
+     * facturar porque después ya es tarde —el pago se registra cuando el
+     * documento ya viajó—.
+     */
+    public string $dian_payment_means_code = '';
+
     public bool $bill_to_final_consumer = false;
 
     /** Ítem en espera de que confirmen su eliminación. */
@@ -770,6 +780,7 @@ class Show extends Component
             // desmarcada: el usuario decide, pero no la activamos por él.
             $this->send_to_dian = $this->bill_to_final_consumer
                 || EmitElectronicInvoiceAction::missingClientRequirements($this->workOrder->client) === [];
+            $this->dian_payment_means_code = '';
             $this->showInvoiceModal = true;
 
             return;
@@ -791,7 +802,10 @@ class Show extends Component
 
         $this->showInvoiceModal = false;
 
-        $this->createInvoice(send_to_dian: $send);
+        $this->createInvoice(
+            send_to_dian: $send,
+            payment_means: $send ? $this->dian_payment_means_code : '',
+        );
     }
 
     /**
@@ -801,7 +815,7 @@ class Show extends Component
      * proveedor fallan, la factura ya creada se conserva y el envío se reintenta
      * desde el panel, sin volver a facturar la OT.
      */
-    private function createInvoice(bool $send_to_dian): void
+    private function createInvoice(bool $send_to_dian, string $payment_means = ''): void
     {
         try {
             $invoice = CreateWorkOrderInvoiceFromWorkOrderAction::run(
@@ -819,6 +833,11 @@ class Show extends Component
             ]);
 
             return;
+        }
+
+        // Antes de emitir, porque es parte del documento que se va a enviar.
+        if ($payment_means !== '' && array_key_exists($payment_means, (array) config('dian.payment_means'))) {
+            $invoice->forceFill(['dian_payment_means_code' => $payment_means])->save();
         }
 
         if (! $send_to_dian) {

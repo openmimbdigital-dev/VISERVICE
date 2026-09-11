@@ -5,6 +5,7 @@ namespace App\Livewire\Admin\Businesses\DianSettings;
 use App\Actions\Business\CreateOrUpdateDianSettingAction;
 use App\Actions\Dian\FetchResolutionFromProviderAction;
 use App\Actions\Dian\RegisterBusinessWithProviderAction;
+use App\Actions\Dian\SyncConsecutiveFromProviderAction;
 use App\Livewire\Forms\Admin\Businesses\DianSettingForm;
 use App\Models\BusinessDianSetting;
 use App\Services\Dian\DianRequestException;
@@ -119,6 +120,52 @@ class Index extends Component
             'text'  => $result['fields'] === []
                 ? 'Los datos del proveedor coinciden con los que ya tenías.'
                 : 'Se actualizaron: '.implode(', ', $result['fields']).'.',
+            'icon'  => 'success',
+        ]);
+    }
+
+    /**
+     * Adelanta la numeración local hasta donde va la del proveedor.
+     *
+     * Sirve sobre todo después de rehacer la base: el contador vuelve a empezar
+     * pero los documentos emitidos siguen existiendo allá, y los siguientes
+     * envíos chocarían contra ellos.
+     */
+    public function syncConsecutive(int $id): void
+    {
+        abort_unless(auth()->user()?->can('dian_settings.edit'), 403);
+
+        $setting = BusinessDianSetting::query()->forAuthUser()->with('business')->findOrFail($id);
+
+        try {
+            $result = SyncConsecutiveFromProviderAction::run($setting);
+        } catch (DianRequestException|ValidationException $exception) {
+            $this->dispatch('swal', [
+                'title' => 'No se pudo consultar la numeración',
+                'text'  => $exception instanceof ValidationException
+                    ? collect($exception->errors())->flatten()->first()
+                    : $exception->getMessage(),
+                'icon'  => 'info',
+            ]);
+
+            return;
+        }
+
+        if ($result['found'] === null) {
+            $this->dispatch('swal', [
+                'title' => 'El proveedor no tiene documentos con este prefijo',
+                'text'  => "No apareció ninguno en los últimos meses, así que la numeración se deja como estaba: "
+                    ."la próxima saldría como {$setting->prefix}{$result['next']}.",
+                'icon'  => 'info',
+            ]);
+
+            return;
+        }
+
+        $this->dispatch('swal', [
+            'title' => $result['changed'] ? 'Numeración adelantada' : 'La numeración ya estaba al día',
+            'text'  => "El proveedor tiene hasta el {$setting->prefix}{$result['found']}. "
+                ."La próxima factura saldrá como {$setting->prefix}{$result['next']}.",
             'icon'  => 'success',
         ]);
     }

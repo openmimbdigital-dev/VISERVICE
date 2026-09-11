@@ -35,6 +35,19 @@ class DianRequestException extends RuntimeException
         );
     }
 
+    /**
+     * ¿El rechazo fue porque ese número de documento ya existe?
+     *
+     * Es el síntoma de un contador atrasado —típico tras rehacer la base—, y se
+     * resuelve tomando el siguiente número, no reintentando el mismo.
+     */
+    public function isDuplicateDocument(): bool
+    {
+        $message = mb_strtolower($this->getMessage());
+
+        return str_contains($message, 'duplicad') || str_contains($message, 'ya existe');
+    }
+
     /** La solicitud HTTP falló (red, timeout, 5xx, 429...). */
     public static function transport(string $endpoint, string $message, ?Throwable $previous = null): self
     {

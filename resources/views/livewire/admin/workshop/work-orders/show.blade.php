@@ -1234,6 +1234,32 @@
                     </div>
                 </div>
 
+                @if($send_to_dian)
+                {{-- El medio de pago viaja dentro del documento y después ya no se
+                     puede cambiar: registrar el pago más tarde no llega a la DIAN.
+                     Se pregunta aquí, sin obligar: si no se sabe, va «instrumento
+                     no definido», que es justo lo que la DIAN espera en ese caso. --}}
+                <div class="mt-3 border-t border-indigo-200/70 pt-3">
+                    <label class="mb-1.5 block text-xs font-medium text-slate-700">
+                        Medio de pago <span class="font-normal text-slate-400">· opcional</span>
+                    </label>
+                    <select wire:model="dian_payment_means_code"
+                        class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
+                        <option value="">No se sabe todavía</option>
+                        @foreach(config('dian.payment_means') as $code => $label)
+                            {{-- PHP convierte las claves numéricas del config en enteros: hay que comparar como texto. --}}
+                            @if((string) $code !== '1')
+                            <option value="{{ $code }}">{{ $label }}</option>
+                            @endif
+                        @endforeach
+                    </select>
+                    <p class="mt-1 text-xs text-slate-500">
+                        Si lo dejas sin elegir, el documento sale como «instrumento no definido».
+                        Después de emitir ya no se puede corregir.
+                    </p>
+                </div>
+                @endif
+
                 @if($dian_missing !== [])
                 <div class="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
                     <p class="text-xs font-semibold text-amber-900">La DIAN podría rechazar el documento:</p>

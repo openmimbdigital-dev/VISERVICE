@@ -347,9 +347,13 @@ class InvoiceDocumentBuilder
         // 1 = Contado, 2 = Crédito.
         $is_credit = $due_date !== null && $due_date->gt($issued_at);
 
+        // El medio de pago se pregunta al facturar y es opcional: si no se supo,
+        // va el «instrumento no definido», que es lo que la DIAN espera en ese caso.
+        $means = (string) ($invoice->dian_payment_means_code ?: config('dian.default_payment_means', '1'));
+
         return [[
             'ID'               => $is_credit ? '2' : '1',
-            'PaymentMeansCode' => '1',
+            'PaymentMeansCode' => $means,
             'PaymentDueDate'   => ($due_date ?? $issued_at)->format('Y-m-d'),
             'PaymentID'        => $is_credit ? 'CRÉDITO' : 'CONTADO',
         ]];
