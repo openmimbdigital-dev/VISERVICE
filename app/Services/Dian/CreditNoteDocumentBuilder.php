@@ -32,6 +32,7 @@ class CreditNoteDocumentBuilder extends InvoiceDocumentBuilder
         BusinessDianSetting $setting,
         string $reason_code,
         string $reason_description,
+        array $returned = [],
     ): string {
         $document = $this->buildCreditNoteArray(
             $credit_note,
@@ -40,6 +41,7 @@ class CreditNoteDocumentBuilder extends InvoiceDocumentBuilder
             $setting,
             $reason_code,
             $reason_description,
+            $returned,
         );
 
         return $setting->document_format === 'xml'
@@ -57,6 +59,7 @@ class CreditNoteDocumentBuilder extends InvoiceDocumentBuilder
         BusinessDianSetting $setting,
         string $reason_code,
         string $reason_description,
+        array $returned = [],
     ): array {
         $invoice->loadMissing([
             'items.workOrderItem.catalogProduct.unit',
@@ -66,6 +69,13 @@ class CreditNoteDocumentBuilder extends InvoiceDocumentBuilder
         ]);
 
         $lines = $this->buildLines($invoice);
+
+        // Una devolución parcial acredita solo lo devuelto. Los totales salen de
+        // las líneas, así que recortarlas basta para que todo el documento cuadre.
+        if ($returned !== []) {
+            $lines = $this->creditedLines($invoice, $lines, $returned);
+        }
+
         $totals = $this->calculateTotals($invoice, $lines);
 
         $document = [
@@ -96,6 +106,68 @@ class CreditNoteDocumentBuilder extends InvoiceDocumentBuilder
         $document['CON'] = $this->contactBlocks($invoice);
 
         return ['Document' => $document];
+    }
+
+    /** Serializa un documento ya armado, en el formato del emisor. */
+    public function serialize(array $document, BusinessDianSetting $setting): string
+    {
+        return $setting->document_format === 'xml'
+            ? $this->toXml($document)
+            : $this->toJson($document);
+    }
+
+    /**
+     * Deja solo las líneas devueltas, con la cantidad que se devuelve.
+     *
+     * Las líneas llegan ya construidas —con el descuento de la factura repartido
+     * entre ellas—, así que en vez de rehacer esa cuenta se escala cada una por la
+     * proporción devuelta. Así la parte acreditada conserva el mismo descuento y
+     * el mismo impuesto que tuvo al facturarse, que es lo que hace que las dos
+     * mitades sumen exactamente la factura.
+     *
+     * @param  list<array<string, mixed>>  $lines
+     * @param  array<int, float>  $returned  Cantidad devuelta por ítem de la factura.
+     * @return list<array<string, mixed>>
+     */
+    protected function creditedLines(WorkOrderInvoice $invoice, array $lines, array $returned): array
+    {
+        $credited = [];
+        $position = 0;
+        $index = 0;
+
+        foreach ($invoice->items as $invoice_item) {
+            if (! $invoice_item->workOrderItem) {
+                continue;
+            }
+
+            $line = $lines[$index] ?? null;
+            $index++;
+
+            if (! $line) {
+                continue;
+            }
+
+            $quantity = round((float) ($returned[$invoice_item->id] ?? 0), 2);
+
+            if ($quantity <= 0) {
+                continue;
+            }
+
+            $invoiced = round((float) $invoice_item->quantity, 2);
+            $share = $invoiced > 0 ? $quantity / $invoiced : 0.0;
+            $position++;
+
+            $line_amount = round((float) $line['line_amount'] * $share, 2);
+
+            $credited[] = array_merge($line, [
+                'id'          => $position,
+                'quantity'    => $quantity,
+                'line_amount' => $line_amount,
+                'tax_amount'  => round($line_amount * (float) $line['tax_percentage'] / 100, 2),
+            ]);
+        }
+
+        return $credited;
     }
 
     /** @return array<string, mixed> */

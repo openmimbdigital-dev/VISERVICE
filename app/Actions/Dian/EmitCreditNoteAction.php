@@ -18,24 +18,33 @@ use Illuminate\Validation\ValidationException;
 use Lorisleiva\Actions\Concerns\AsAction;
 
 /**
- * Emite la nota crédito que deja sin efecto una factura ya validada.
+ * Emite la nota crédito que acredita —del todo o en parte— una factura validada.
  *
  * Una factura validada existe ante la DIAN para siempre; no hay manera de
  * borrarla. La nota crédito es el documento con el que se la acredita, y por eso
  * se emite por su cuenta: tiene su propio perfil en el proveedor, su propia
  * numeración y su propio CUDE.
  *
- * Solo cubre la anulación completa —se acredita exactamente lo que se cobró—.
- * Una devolución parcial es otro documento y otra conversación.
+ * Sin decir qué se devuelve, acredita la factura entera. Indicando cantidades por
+ * ítem acredita solo esa parte, y la factura sigue viva por el resto: es el caso
+ * de una devolución o de un servicio que no se aceptó completo.
+ *
+ * Una factura puede recibir varias notas, así que se lleva la cuenta de lo ya
+ * acreditado por ítem: entre todas no se puede devolver más de lo facturado.
  */
 class EmitCreditNoteAction
 {
     use AsAction;
 
+    /**
+     * @param  array<int, float>  $returned  Cantidad devuelta por ítem de la factura.
+     *                                       Vacío acredita la factura completa.
+     */
     public function handle(
         WorkOrderInvoice $invoice,
         ?string $reason_code = null,
         ?string $reason_description = null,
+        array $returned = [],
     ): ElectronicCreditNote {
         abort_unless(auth()->user()?->can('workshop.invoices.void'), 403);
 
@@ -51,19 +60,28 @@ class EmitCreditNoteAction
         $reason_code ??= (string) config('dian.credit_note.void_reason_code', '2');
         $reason_description ??= (string) (config('dian.credit_note.reasons')[$reason_code] ?? 'Anulación de factura electrónica');
 
+        $returned = $this->validatedReturn($invoice, $returned);
+
         $credit_note = $this->reserveConsecutive($invoice, $setting);
 
-        $document = (new CreditNoteDocumentBuilder())->buildCreditNote(
+        $builder = new CreditNoteDocumentBuilder();
+
+        $content = $builder->buildCreditNoteArray(
             $credit_note,
             $original,
             $invoice,
             $setting,
             $reason_code,
             $reason_description,
+            $returned,
         );
+
+        $document = $builder->serialize($content, $setting);
 
         $credit_note->forceFill([
             'request_document' => $document,
+            'credited_amount'  => (float) ($content['Document']['TOT']['PayableAmount'] ?? 0),
+            'credited_items'   => $returned ?: null,
             'attempts'         => $credit_note->attempts + 1,
             'error_id'         => null,
             'error_message'    => null,
@@ -123,6 +141,100 @@ class EmitCreditNoteAction
         );
 
         return $credit_note->refresh();
+    }
+
+    /**
+     * Cuánto queda por devolver de cada ítem de la factura.
+     *
+     * Se descuenta lo que ya acreditaron las notas anteriores. Las que quedaron en
+     * error no cuentan: no llegaron a existir ante la DIAN.
+     *
+     * @return array<int, float>
+     */
+    public static function remainingQuantities(WorkOrderInvoice $invoice): array
+    {
+        $invoice->loadMissing('items');
+
+        $already = [];
+
+        $notes = ElectronicCreditNote::query()
+            ->where('work_order_invoice_id', $invoice->id)
+            ->where('status', '!=', ElectronicInvoiceStatus::Error)
+            ->get();
+
+        foreach ($notes as $note) {
+            // Una nota sin detalle acreditó la factura entera.
+            if (blank($note->credited_items)) {
+                return $invoice->items->mapWithKeys(fn ($item) => [$item->id => 0.0])->all();
+            }
+
+            foreach ((array) $note->credited_items as $item_id => $quantity) {
+                $already[(int) $item_id] = ($already[(int) $item_id] ?? 0) + (float) $quantity;
+            }
+        }
+
+        return $invoice->items
+            ->mapWithKeys(fn ($item) => [
+                $item->id => max(0, round((float) $item->quantity - ($already[$item->id] ?? 0), 2)),
+            ])
+            ->all();
+    }
+
+    /**
+     * Comprueba que lo que se quiere devolver se pueda devolver.
+     *
+     * @param  array<int, float>  $returned
+     * @return array<int, float>
+     */
+    private function validatedReturn(WorkOrderInvoice $invoice, array $returned): array
+    {
+        $remaining = self::remainingQuantities($invoice);
+
+        if ($returned === []) {
+            // Acreditar la factura entera cuando ya se devolvio una parte
+            // acreditaria dos veces lo mismo.
+            if (array_sum($remaining) < round((float) $invoice->items->sum('quantity'), 2)) {
+                throw ValidationException::withMessages([
+                    'returned' => 'Esta factura ya tiene notas credito: indica que cantidades quedan por devolver.',
+                ]);
+            }
+
+            return [];
+        }
+
+        $clean = [];
+
+        foreach ($returned as $item_id => $quantity) {
+            $quantity = round((float) $quantity, 2);
+
+            if ($quantity <= 0) {
+                continue;
+            }
+
+            $available = $remaining[(int) $item_id] ?? null;
+
+            if ($available === null) {
+                throw ValidationException::withMessages([
+                    'returned' => 'Uno de los ítems no pertenece a esta factura.',
+                ]);
+            }
+
+            if ($quantity > $available) {
+                throw ValidationException::withMessages([
+                    'returned' => "De ese ítem solo quedan {$available} por devolver.",
+                ]);
+            }
+
+            $clean[(int) $item_id] = $quantity;
+        }
+
+        if ($clean === []) {
+            throw ValidationException::withMessages([
+                'returned' => 'Indica al menos una cantidad a devolver.',
+            ]);
+        }
+
+        return $clean;
     }
 
     /**

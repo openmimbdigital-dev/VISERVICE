@@ -170,6 +170,13 @@
             </button>
             @endif
 
+            @if($can_emit_credit_note)
+            <button type="button" wire:click="openCreditNote" class="btn btn-outline-secondary btn-sm flex-1 justify-center sm:flex-none">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+                Nota crédito
+            </button>
+            @endif
+
             @if($can_void)
             {{-- Si la DIAN ya validó el documento no se puede anular: el botón
                  queda visible pero deshabilitado, explicando por qué. Esconderlo
@@ -660,6 +667,93 @@
                 <button type="submit" wire:loading.attr="disabled" class="btn btn-danger btn-sm">
                     <span wire:loading.remove wire:target="voidInvoice">Anular factura</span>
                     <span wire:loading wire:target="voidInvoice">Anulando...</span>
+                </button>
+            </div>
+        </form>
+    </x-ui.modal>
+    @endif
+
+    @if($showCreditNoteModal)
+    <x-ui.modal centered maxWidth="lg">
+        <x-slot:backdrop>
+            <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" wire:click="closeCreditNote"></div>
+        </x-slot:backdrop>
+
+        <form wire:submit="emitCreditNote" class="flex min-h-0 flex-col">
+            <div class="flex shrink-0 items-center justify-between border-b border-slate-100 px-4 py-4 sm:px-6">
+                <div>
+                    <h3 class="text-base font-semibold text-slate-900">Nota crédito de {{ $invoice->reference }}</h3>
+                    <p class="mt-0.5 text-xs text-slate-500">Acredita solo lo que se devuelve; la factura sigue viva por el resto.</p>
+                </div>
+                <button type="button" wire:click="closeCreditNote" class="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <div class="flex-1 space-y-4 overflow-y-auto px-4 py-5 sm:px-6">
+                <div>
+                    <label class="mb-1.5 block text-xs font-medium text-slate-700">Motivo <span class="text-rose-500">*</span></label>
+                    <select wire:model="credit_note_reason"
+                        class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
+                        @foreach($credit_note_reasons as $code => $label)
+                        <option value="{{ $code }}">{{ $label }}</option>
+                        @endforeach
+                    </select>
+                    <p class="mt-1 text-xs text-slate-500">Es la razón que viaja a la DIAN dentro del documento.</p>
+                </div>
+
+                <div class="overflow-hidden rounded-xl border border-slate-200">
+                    <table class="w-full text-sm">
+                        <thead class="bg-slate-50 text-xs text-slate-500">
+                            <tr>
+                                <th class="px-3 py-2 text-left font-medium">Concepto</th>
+                                <th class="px-3 py-2 text-right font-medium">Facturado</th>
+                                <th class="px-3 py-2 text-right font-medium">Por devolver</th>
+                                <th class="px-3 py-2 text-right font-medium">Se devuelve</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            @foreach($invoice->items as $item)
+                            @php($queda = $remaining_quantities[$item->id] ?? 0)
+                            <tr class="{{ $queda <= 0 ? 'bg-slate-50/60 text-slate-400' : '' }}">
+                                <td class="px-3 py-2">{{ $item->workOrderItem?->description ?? 'Ítem' }}</td>
+                                <td class="px-3 py-2 text-right tabular-nums">{{ rtrim(rtrim(number_format((float) $item->quantity, 2, ',', '.'), '0'), ',') }}</td>
+                                <td class="px-3 py-2 text-right tabular-nums font-medium">{{ rtrim(rtrim(number_format((float) $queda, 2, ',', '.'), '0'), ',') }}</td>
+                                <td class="px-3 py-2 text-right">
+                                    @if($queda > 0)
+                                    <input type="number" step="0.01" min="0" max="{{ $queda }}"
+                                        wire:model="returned.{{ $item->id }}" placeholder="0"
+                                        class="w-24 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-right text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
+                                    @else
+                                    <span class="text-xs">ya devuelto</span>
+                                    @endif
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+
+                @if($credit_notes->isNotEmpty())
+                <div class="rounded-xl border border-slate-200 bg-slate-50/60 px-3.5 py-3">
+                    <p class="text-xs font-semibold text-slate-700">Notas crédito anteriores</p>
+                    <ul class="mt-1.5 space-y-1 text-xs text-slate-600">
+                        @foreach($credit_notes as $note)
+                        <li class="flex items-center justify-between gap-3">
+                            <span class="font-mono">{{ $note->document_number }}</span>
+                            <span>{{ $note->status->label() }} · {{ col_money($note->credited_amount ?? 0) }}</span>
+                        </li>
+                        @endforeach
+                    </ul>
+                </div>
+                @endif
+            </div>
+
+            <div class="flex shrink-0 flex-col-reverse gap-2 border-t border-slate-100 px-4 py-4 sm:flex-row sm:justify-end sm:gap-3 sm:px-6">
+                <button type="button" wire:click="closeCreditNote" class="btn btn-outline-secondary btn-sm">Cancelar</button>
+                <button type="submit" wire:loading.attr="disabled" class="btn btn-primary btn-sm">
+                    <span wire:loading.remove wire:target="emitCreditNote">Emitir nota crédito</span>
+                    <span wire:loading wire:target="emitCreditNote">Emitiendo...</span>
                 </button>
             </div>
         </form>
