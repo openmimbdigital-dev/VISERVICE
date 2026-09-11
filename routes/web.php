@@ -15,6 +15,7 @@ use App\Livewire\Admin\Banks\Index as AdminBanksIndex;
 use App\Livewire\Admin\Businesses\BankAccounts\Index as AdminBusinessBankAccountsIndex;
 use App\Livewire\Admin\Businesses\BankAccounts\Show as AdminBusinessBankAccountsShow;
 use App\Livewire\Admin\Businesses\CustomTaxes\Index as AdminCustomTaxesIndex;
+use App\Livewire\Admin\Bold\Transactions as AdminBoldTransactions;
 use App\Livewire\Admin\Businesses\BoldSettings\Index as AdminBoldSettingsIndex;
 use App\Livewire\Admin\Businesses\DianSettings\Index as AdminDianSettingsIndex;
 use App\Livewire\Admin\Businesses\CustomTaxes\Show as AdminCustomTaxesShow;
@@ -211,6 +212,7 @@ Route::middleware(['auth', 'ensure.business', 'business.module'])->group(functio
         Route::get('/subscriptions', AdminSubscriptionsIndex::class)->name('subscriptions.index');
         Route::get('/subscriptions/plans', AdminSubscriptionPlansIndex::class)->name('subscriptions.plans.index');
         Route::get('/payments', AdminPaymentsIndex::class)->name('payments.index');
+        Route::get('/bold-transactions', AdminBoldTransactions::class)->name('bold-transactions.index');
         Route::get('/payments/{subscriptionInvoice}/proof', PaymentProofController::class)
             ->name('payments.proof');
         Route::get('/finance', AdminFinanceIndex::class)->name('finance.index');

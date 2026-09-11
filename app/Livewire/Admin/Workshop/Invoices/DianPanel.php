@@ -17,16 +17,17 @@ use Livewire\Component;
 class DianPanel extends Component
 {
     /** Cada cuánto se le vuelve a preguntar al proveedor mientras se espera. */
-    private const POLL_SECONDS = 10;
+    private const POLL_SECONDS = 30;
 
     /**
      * Cuántas veces seguidas antes de soltar el asunto.
      *
-     * Cinco minutos cubren de sobra el caso normal —la DIAN suele resolver en
-     * segundos—. Pasado eso no tiene sentido seguir preguntando desde una
-     * pantalla abierta: la tarea programada sigue haciéndolo cada diez minutos.
+     * Diez consultas cada treinta segundos son cinco minutos, que cubren de sobra
+     * el caso normal: la DIAN suele resolver en segundos. Pasado eso no tiene
+     * sentido seguir preguntando desde una pantalla abierta, y la tarea programada
+     * sigue haciéndolo por su cuenta.
      */
-    private const MAX_POLLS = 30;
+    private const MAX_POLLS = 10;
 
     public WorkOrderInvoice $invoice;
 

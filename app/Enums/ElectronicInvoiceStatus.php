@@ -79,12 +79,22 @@ enum ElectronicInvoiceStatus: string
             return $current;
         }
 
-        if (str_contains($normalized, 'rechaz')) {
-            return self::Rejected;
+        // El veredicto de la DIAN se mira primero y es definitivo: un documento
+        // validado no se desvalida por lo que venga después. La cronología suele
+        // seguir con pasos de entrega —«Error de envío al adquiriente por email»,
+        // por ejemplo—, que son problemas de correo, no de la factura.
+        //
+        // El proveedor escribe «Validado por la DIAN», con artículo, así que no
+        // basta con buscar la frase sin él: fue lo que dejó documentos validados
+        // eternamente en «enviada», y al sondeo sin razón para parar.
+        if (preg_match('/validad[oa]\s+por\s+(la\s+)?dian/u', $normalized) === 1
+            || str_contains($normalized, 'aceptad')) {
+            return self::Accepted;
         }
 
-        if (str_contains($normalized, 'validado por dian') || str_contains($normalized, 'aceptad')) {
-            return self::Accepted;
+        if (preg_match('/rechaz\w*\s+por\s+(la\s+)?dian/u', $normalized) === 1
+            || str_contains($normalized, 'rechaz')) {
+            return self::Rejected;
         }
 
         return self::Sent;
