@@ -2,8 +2,9 @@
 
 namespace App\Livewire\Auth;
 
-use App\Actions\Business\CreateParticipantFromUserAction;
+use App\Actions\Business\CreateBusinessOwnerAction;
 use App\Actions\Subscriptions\CreateBoldPaymentLinkAction;
+use App\Actions\Subscriptions\CreateSubscriptionWithInvoiceAction;
 use App\Services\Bold\BoldClient;
 use App\Actions\Business\SyncBusinessAccessFromOrganizationTypeAction;
 use App\Models\BankAccount;
@@ -11,16 +12,12 @@ use App\Models\Business;
 use App\Models\BusinessType;
 use App\Models\OrganizationType;
 use App\Models\City;
-use App\Models\Subscription;
 use App\Models\SubscriptionInvoice;
 use App\Models\SubscriptionPlan;
-use App\Models\User;
 use App\Support\BusinessLogoStorage;
 use App\Support\PaymentProofStorage;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Throwable;
 use Livewire\Attributes\Layout;
@@ -130,67 +127,34 @@ class RegisterWizard extends Component
             // Acceso a roles/permisos y módulos según organization_type (plantilla de negocio existente)
             SyncBusinessAccessFromOrganizationTypeAction::run($business);
 
-            // 2. Crear el usuario
-            $user = User::create([
+            // 2. El usuario administrador, con su rol y su ficha de participante
+            $user = CreateBusinessOwnerAction::run($business, [
                 'first_name'   => $this->first_name,
                 'last_name'    => $this->last_name,
                 'email'        => $this->email,
                 'username'     => $this->username,
-                'password'     => Hash::make($this->password),
-                'phone_number' => $this->user_phone ?: null,
-                'status'       => true,
+                'password'     => $this->password,
+                'phone_number' => $this->user_phone,
             ]);
 
-            $user->attachBusiness($business->id, is_primary: true);
+            // 3. Guardar comprobante de pago si es transferencia
+            $proof_path = $this->payment_proof
+                ? PaymentProofStorage::store($business->id, $this->payment_proof)
+                : null;
 
-            // 3. Asignar rol Administrador (dueño del negocio en el registro)
-            $user->assignRole('Administrador');
+            // 4. Suscripción y primer cobro, los dos pendientes: nada se da por
+            //    pagado hasta que alguien lo confirme.
+            $this->pending_invoice_id = CreateSubscriptionWithInvoiceAction::run(
+                business: $business,
+                plan: SubscriptionPlan::findOrFail($this->plan_id),
+                billing_cycle: $this->billing_cycle,
+                payment_method: $this->payment_type,
+                payment_proof_path: $proof_path,
+                payment_reference: $this->payment_reference ?: null,
+                notes: 'Registro vía onboarding',
+            )->id;
 
-            // 3b. Crear participante del negocio con los mismos datos del admin
-            CreateParticipantFromUserAction::run($user, (int) $business->id);
-
-            // 4. Guardar comprobante de pago si es transferencia
-            $proofPath = null;
-            if ($this->payment_proof) {
-                $proofPath = PaymentProofStorage::store($business->id, $this->payment_proof);
-            }
-
-            // 5. Crear suscripción en estado pending
-            $plan = SubscriptionPlan::findOrFail($this->plan_id);
-            $priceData = $plan->getPriceForCycle($this->billing_cycle);
-            $startedAt = now()->toDateString();
-            $endsAt = Carbon::now()->addMonths($priceData['months'])->toDateString();
-
-            $subscription = Subscription::create([
-                'business_id'          => $business->id,
-                'subscription_plan_id' => $this->plan_id,
-                'status'               => 'pending',
-                'billing_cycle'        => $this->billing_cycle,
-                'monthly_price'        => $plan->monthly_price,
-                'total_price'          => $priceData['total'],
-                'discount_percentage'  => $priceData['discount'],
-                'started_at'           => $startedAt,
-                'ends_at'              => $endsAt,
-                'auto_renew'           => true,
-                'notes'                => 'Registro vía onboarding',
-            ]);
-
-            // 6. Crear factura pendiente
-            $this->pending_invoice_id = SubscriptionInvoice::create([
-                'subscription_id'      => $subscription->id,
-                'business_id'          => $business->id,
-                'invoice_number'       => SubscriptionInvoice::generateInvoiceNumber(),
-                'amount'               => $subscription->total_price,
-                'status'               => 'pending',
-                'billing_period_start' => $startedAt,
-                'billing_period_end'   => $endsAt,
-                'due_date'             => $startedAt,
-                'payment_method'       => $this->payment_type,
-                'payment_proof'        => $proofPath,
-                'payment_reference'    => $this->payment_reference ?: null,
-            ])->id;
-
-            // 7. Iniciar sesión automáticamente
+            // 5. Iniciar sesión automáticamente
             Auth::login($user);
         });
 

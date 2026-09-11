@@ -229,6 +229,161 @@
                 </div>
             </div>
 
+            @if(! $is_editing)
+            {{-- Un negocio dado de alta aquí nace igual que uno que se registra
+                 solo: con su administrador, su plan y su cobro. --}}
+            <div class="border-t border-slate-100 pt-6">
+                <h3 class="mb-1 text-sm font-semibold text-slate-800">Usuario administrador</h3>
+                <p class="mb-3 text-xs text-slate-500">
+                    Es quien va a entrar a la plataforma. Sin él, el negocio queda creado pero inaccesible.
+                </p>
+
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                        <label class="mb-1.5 block text-xs font-medium text-slate-700">Nombre <span class="text-rose-500">*</span></label>
+                        <input type="text" wire:model="owner_first_name"
+                            class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('owner_first_name') border-rose-400 bg-rose-50 @enderror">
+                        @error('owner_first_name') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                    </div>
+
+                    <div>
+                        <label class="mb-1.5 block text-xs font-medium text-slate-700">Apellido <span class="text-rose-500">*</span></label>
+                        <input type="text" wire:model="owner_last_name"
+                            class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('owner_last_name') border-rose-400 bg-rose-50 @enderror">
+                        @error('owner_last_name') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                    </div>
+
+                    <div>
+                        <label class="mb-1.5 block text-xs font-medium text-slate-700">Correo <span class="text-rose-500">*</span></label>
+                        <input type="email" wire:model="owner_email"
+                            class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('owner_email') border-rose-400 bg-rose-50 @enderror">
+                        @error('owner_email') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                    </div>
+
+                    <div>
+                        <label class="mb-1.5 block text-xs font-medium text-slate-700">Teléfono</label>
+                        <input type="text" wire:model="owner_phone"
+                            class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('owner_phone') border-rose-400 bg-rose-50 @enderror">
+                        @error('owner_phone') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                    </div>
+
+                    <div>
+                        <label class="mb-1.5 block text-xs font-medium text-slate-700">Usuario <span class="text-rose-500">*</span></label>
+                        <input type="text" wire:model="owner_username"
+                            class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('owner_username') border-rose-400 bg-rose-50 @enderror">
+                        @error('owner_username') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                    </div>
+
+                    <div>
+                        <label class="mb-1.5 block text-xs font-medium text-slate-700">Contraseña inicial <span class="text-rose-500">*</span></label>
+                        <input type="text" wire:model="owner_password" autocomplete="off"
+                            class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('owner_password') border-rose-400 bg-rose-50 @enderror">
+                        @error('owner_password') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                        <p class="mt-1 text-xs text-slate-500">Mínimo 8 caracteres. Pásasela al negocio para que la cambie.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="border-t border-slate-100 pt-6">
+                <h3 class="mb-1 text-sm font-semibold text-slate-800">Plan y facturación</h3>
+                <p class="mb-3 text-xs text-slate-500">La suscripción nace pendiente de pago.</p>
+
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                        <label class="mb-1.5 block text-xs font-medium text-slate-700">Plan <span class="text-rose-500">*</span></label>
+                        <select wire:model.live="plan_id"
+                            class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('plan_id') border-rose-400 bg-rose-50 @enderror">
+                            <option value="">— Seleccionar —</option>
+                            @foreach($plans as $plan)
+                                <option value="{{ $plan->id }}">{{ $plan->name }} — {{ col_money($plan->monthly_price) }}/mes</option>
+                            @endforeach
+                        </select>
+                        @error('plan_id') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                    </div>
+
+                    <div>
+                        <label class="mb-1.5 block text-xs font-medium text-slate-700">Ciclo de facturación <span class="text-rose-500">*</span></label>
+                        <select wire:model.live="billing_cycle"
+                            class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('billing_cycle') border-rose-400 bg-rose-50 @enderror">
+                            <option value="monthly">Mensual</option>
+                            <option value="quarterly">Trimestral</option>
+                            <option value="semiannual">Semestral</option>
+                            <option value="annual">Anual</option>
+                        </select>
+                        @error('billing_cycle') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                    </div>
+
+                    @if($selected_plan)
+                    @php($price = $selected_plan->getPriceForCycle($billing_cycle))
+                    <div class="sm:col-span-2">
+                        <div class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-indigo-100 bg-indigo-50/60 px-4 py-3">
+                            <div class="text-xs text-indigo-900">
+                                {{ $price['months'] }} {{ $price['months'] === 1 ? 'mes' : 'meses' }}
+                                @if($price['discount'] > 0)
+                                    · <span class="font-semibold">{{ $price['discount'] }}% de descuento</span>
+                                @endif
+                            </div>
+                            <div class="text-lg font-bold text-indigo-900">{{ col_money($price['total']) }}</div>
+                        </div>
+                    </div>
+                    @endif
+                </div>
+            </div>
+
+            <div class="border-t border-slate-100 pt-6">
+                <h3 class="mb-1 text-sm font-semibold text-slate-800">Forma de pago</h3>
+                <p class="mb-3 text-xs text-slate-500">Con qué va a pagar el negocio su suscripción.</p>
+
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    @foreach([
+                        'transfer' => ['Transferencia', 'Consigna y nosotros confirmamos'],
+                        'cash'     => ['Efectivo', 'Se recibe en persona'],
+                        'online'   => ['En línea', 'Tarjeta, PSE, Nequi o Bancolombia'],
+                    ] as $value => $option)
+                    <label class="flex cursor-pointer items-start gap-2.5 rounded-xl border px-3.5 py-3 transition {{ $payment_type === $value ? 'border-indigo-500 bg-indigo-50/60 ring-2 ring-indigo-500/20' : 'border-slate-200 bg-slate-50 hover:border-slate-300' }}">
+                        <input type="radio" wire:model.live="payment_type" value="{{ $value }}" class="mt-0.5 text-indigo-600 focus:ring-indigo-500">
+                        <span class="min-w-0">
+                            <span class="block text-sm font-medium text-slate-800">{{ $option[0] }}</span>
+                            <span class="block text-xs text-slate-500">{{ $option[1] }}</span>
+                        </span>
+                    </label>
+                    @endforeach
+                </div>
+                @error('payment_type') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+
+                <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                        <label class="mb-1.5 block text-xs font-medium text-slate-700">Referencia del pago</label>
+                        <input type="text" wire:model="payment_reference" placeholder="Número de transacción, recibo…"
+                            class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 @error('payment_reference') border-rose-400 bg-rose-50 @enderror">
+                        @error('payment_reference') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                    </div>
+
+                    @if($payment_type === 'transfer')
+                    <div>
+                        <label class="mb-1.5 block text-xs font-medium text-slate-700">Comprobante</label>
+                        <input type="file" wire:model="payment_proof" accept=".jpg,.jpeg,.png,.pdf"
+                            class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-slate-200 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-slate-700">
+                        <div wire:loading wire:target="payment_proof" class="mt-1 text-xs text-indigo-600">Subiendo archivo…</div>
+                        @error('payment_proof') <p class="mt-1 text-xs text-rose-600">{{ $message }}</p> @enderror
+                        <p class="mt-1 text-xs text-slate-500">Opcional · JPG, PNG o PDF, máximo 5 MB.</p>
+                    </div>
+                    @endif
+                </div>
+
+                <label class="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50/60 px-4 py-3">
+                    <input type="checkbox" wire:model="register_payment" class="mt-0.5 rounded text-emerald-600 focus:ring-emerald-500">
+                    <span class="min-w-0">
+                        <span class="block text-sm font-medium text-emerald-900">Registrar el pago como recibido</span>
+                        <span class="block text-xs text-emerald-800">
+                            Activa la suscripción y genera de una vez la orden con su factura.
+                            Déjalo sin marcar si el negocio todavía no ha pagado.
+                        </span>
+                    </span>
+                </label>
+            </div>
+            @endif
+
             @if($can_edit_status)
             <div>
                 <label class="mb-1.5 block text-xs font-medium text-slate-700">Estado</label>
