@@ -5,6 +5,7 @@ namespace App\Livewire\Admin\Workshop\WorkOrders;
 use App\Actions\Dian\EmitElectronicInvoiceAction;
 use App\Actions\LogEquipmentHistoricalAction;
 use App\Actions\LogUserHistoricalAction;
+use App\Actions\RegisterInvoicePaymentAction;
 use App\Actions\Workshop\AdjustWorkOrderItemQuantityAction;
 use App\Actions\Workshop\CreateOrUpdateWorkOrderAssociatedDocumentAction;
 use App\Actions\Workshop\CreateWorkOrderInvoiceFromWorkOrderAction;
@@ -17,6 +18,7 @@ use App\Models\Product;
 use App\Models\ProductType;
 use App\Models\Status;
 use App\Models\WorkOrder;
+use App\Models\WorkOrderInvoice;
 use App\Models\WorkOrderItem;
 use App\Services\Dian\DianRequestException;
 use App\Support\DeleteConfirmationAlert;
@@ -49,12 +51,15 @@ class Show extends Component
     public bool $send_to_dian = true;
 
     /**
-     * Medio de pago que se le declara a la DIAN, en código de su tabla 12.
+     * Con qué pagaron, en código de la tabla 12 de la DIAN.
      *
-     * Vacío significa que no se supo: el documento sale con «instrumento no
-     * definido», que es lo que la DIAN admite para ese caso. Se pregunta al
-     * facturar porque después ya es tarde —el pago se registra cuando el
-     * documento ya viajó—.
+     * Elegir uno significa que la factura ya está paga: se registra el pago y el
+     * medio viaja dentro del documento electrónico. Dejarlo vacío deja la factura
+     * pendiente y el documento sale con «instrumento no definido», que es lo que
+     * la DIAN admite cuando no se sabe.
+     *
+     * Se pregunta aquí porque después ya es tarde para lo segundo: registrar el
+     * pago más adelante no alcanza al documento, que para entonces ya viajó.
      */
     public string $dian_payment_means_code = '';
 
@@ -804,7 +809,7 @@ class Show extends Component
 
         $this->createInvoice(
             send_to_dian: $send,
-            payment_means: $send ? $this->dian_payment_means_code : '',
+            payment_means: $this->dian_payment_means_code,
         );
     }
 
@@ -835,14 +840,21 @@ class Show extends Component
             return;
         }
 
-        // Antes de emitir, porque es parte del documento que se va a enviar.
+        // Antes de emitir: el medio de pago es parte del documento que se envía.
         if ($payment_means !== '' && array_key_exists($payment_means, (array) config('dian.payment_means'))) {
             $invoice->forceFill(['dian_payment_means_code' => $payment_means])->save();
+
+            $invoice = $this->settleInvoice($invoice, $payment_means);
         }
+
+        $paid_note = $invoice->status === 'pagada'
+            ? 'Quedó registrada como pagada ('.config('dian.payment_means')[$payment_means].').'
+            : null;
 
         if (! $send_to_dian) {
             $this->dispatch('swal', [
                 'title' => "Factura {$invoice->reference} creada",
+                'text'  => $paid_note,
                 'icon'  => 'success',
             ]);
 
@@ -867,9 +879,42 @@ class Show extends Component
 
         $this->dispatch('swal', [
             'title' => "Factura {$invoice->reference} creada y enviada a la DIAN",
-            'text'  => 'Número autorizado: '.$electronic_invoice->document_number,
+            'text'  => trim('Número autorizado: '.$electronic_invoice->document_number.' '.$paid_note),
             'icon'  => 'success',
         ]);
+    }
+
+    /**
+     * Da la factura por pagada con el medio que se eligió al facturar.
+     *
+     * Elegir un medio de pago es decir que ya pagaron: dejarla pendiente
+     * obligaría a entrar después a marcar lo que aquí ya se supo. Si el pago no
+     * se puede registrar —falta el permiso, o algo lo impide— la factura queda
+     * creada igual y se avisa; nunca se pierde la factura por esto.
+     */
+    private function settleInvoice(WorkOrderInvoice $invoice, string $payment_means): WorkOrderInvoice
+    {
+        if (! auth()->user()?->can('workshop.invoices.pay')) {
+            return $invoice;
+        }
+
+        $label = (string) (config('dian.payment_means')[$payment_means] ?? 'Pago');
+
+        try {
+            return RegisterInvoicePaymentAction::run(
+                invoice: $invoice,
+                payment_method: $label,
+                paid_at: now()->toDateString(),
+            );
+        } catch (ValidationException $exception) {
+            $this->dispatch('swal', [
+                'title' => 'La factura se creó, pero no se pudo marcar como pagada',
+                'text'  => collect($exception->errors())->flatten()->first(),
+                'icon'  => 'warning',
+            ]);
+
+            return $invoice;
+        }
     }
 
     /** ¿Se puede ofrecer el envío a la DIAN al facturar esta OT? */
@@ -1125,6 +1170,7 @@ class Show extends Component
             'linked_remission' => $linked_remission,
             'can_invoice' => $can_invoice,
             'latest_invoice' => $latest_invoice,
+            'can_register_payment' => auth()->user()?->can('workshop.invoices.pay') ?? false,
             'dian_setting' => $dian_setting,
             'dian_missing' => $dian_missing,
             'electronic_invoice' => $electronic_invoice,
