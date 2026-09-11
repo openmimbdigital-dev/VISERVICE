@@ -1214,6 +1214,39 @@
                 </label>
             </div>
 
+            {{-- Elegir un medio de pago es decir que ya pagaron: la factura queda
+                 saldada y el medio viaja dentro del documento electrónico, donde
+                 después ya no hay manera de corregirlo. Dejarlo sin elegir la deja
+                 pendiente, como siempre. --}}
+            <div class="rounded-xl border {{ $dian_payment_means_code ? 'border-emerald-200 bg-emerald-50/50' : 'border-slate-200 bg-white' }} px-3.5 py-3 transition">
+                <label class="mb-1.5 block text-sm font-semibold {{ $dian_payment_means_code ? 'text-emerald-900' : 'text-slate-700' }}">
+                    ¿Ya la pagaron? <span class="text-xs font-normal text-slate-400">· opcional</span>
+                </label>
+
+                <select wire:model.live="dian_payment_means_code"
+                    class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
+                    <option value="">Todavía no — queda pendiente de pago</option>
+                    @foreach(config('dian.payment_means') as $code => $label)
+                        {{-- PHP convierte las claves numéricas del config en enteros: hay que comparar como texto. --}}
+                        @if((string) $code !== '1')
+                        <option value="{{ $code }}">{{ $label }}</option>
+                        @endif
+                    @endforeach
+                </select>
+
+                <p class="mt-1.5 text-xs {{ $dian_payment_means_code && $can_register_payment ? 'text-emerald-800' : 'text-slate-500' }}">
+                    @if($dian_payment_means_code && $can_register_payment)
+                        La factura quedará <span class="font-semibold">pagada</span> con este medio{{ $send_to_dian ? ', y el medio viajará dentro del documento de la DIAN' : '' }}.
+                    @elseif($dian_payment_means_code)
+                        El medio viajará dentro del documento de la DIAN, pero la factura quedará pendiente:
+                        no tienes permiso para registrar pagos.
+                    @else
+                        Si lo dejas sin elegir, la factura queda pendiente de pago y el documento de la DIAN
+                        sale como «instrumento no definido». Después de emitir ya no se puede corregir.
+                    @endif
+                </p>
+            </div>
+
             <div class="rounded-xl border {{ $send_to_dian ? 'border-indigo-200 bg-indigo-50/60' : 'border-slate-200 bg-white' }} px-3.5 py-3 transition">
                 <div class="flex items-start gap-3">
                     <button type="button" wire:click="$toggle('send_to_dian')"
@@ -1233,32 +1266,6 @@
                         </p>
                     </div>
                 </div>
-
-                @if($send_to_dian)
-                {{-- El medio de pago viaja dentro del documento y después ya no se
-                     puede cambiar: registrar el pago más tarde no llega a la DIAN.
-                     Se pregunta aquí, sin obligar: si no se sabe, va «instrumento
-                     no definido», que es justo lo que la DIAN espera en ese caso. --}}
-                <div class="mt-3 border-t border-indigo-200/70 pt-3">
-                    <label class="mb-1.5 block text-xs font-medium text-slate-700">
-                        Medio de pago <span class="font-normal text-slate-400">· opcional</span>
-                    </label>
-                    <select wire:model="dian_payment_means_code"
-                        class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
-                        <option value="">No se sabe todavía</option>
-                        @foreach(config('dian.payment_means') as $code => $label)
-                            {{-- PHP convierte las claves numéricas del config en enteros: hay que comparar como texto. --}}
-                            @if((string) $code !== '1')
-                            <option value="{{ $code }}">{{ $label }}</option>
-                            @endif
-                        @endforeach
-                    </select>
-                    <p class="mt-1 text-xs text-slate-500">
-                        Si lo dejas sin elegir, el documento sale como «instrumento no definido».
-                        Después de emitir ya no se puede corregir.
-                    </p>
-                </div>
-                @endif
 
                 @if($dian_missing !== [])
                 <div class="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
