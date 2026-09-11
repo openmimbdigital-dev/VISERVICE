@@ -124,6 +124,36 @@ return [
     |
     */
 
+    /*
+    |--------------------------------------------------------------------------
+    | Medios de pago
+    |--------------------------------------------------------------------------
+    |
+    | Tabla 12 de la DIAN (UN/ECE 4461). La oficial tiene casi noventa entradas,
+    | y la mayoría son instrumentos bancarios que en un taller no se ven nunca
+    | —notas promisorias, clearing, bookentry—. Se ofrecen las que sí se usan; el
+    | resto solo estorbaría al elegir.
+    |
+    | Cuando no se sabe con qué van a pagar, la DIAN espera el «1»: instrumento
+    | no definido. Es lo que salía siempre antes de poder preguntarlo.
+    |
+    */
+
+    'payment_means' => [
+        '10' => 'Efectivo',
+        '48' => 'Tarjeta de crédito',
+        '49' => 'Tarjeta débito',
+        '42' => 'Consignación bancaria',
+        '45' => 'Transferencia crédito bancario',
+        '47' => 'Transferencia débito bancaria',
+        '20' => 'Cheque',
+        '71' => 'Bonos',
+        '72' => 'Vales',
+        '1'  => 'Instrumento no definido',
+    ],
+
+    'default_payment_means' => '1',
+
     'consecutive_lookup' => [
         'windows'   => (int) env('DIAN_CONSECUTIVE_WINDOWS', 6),
         'max_pages' => (int) env('DIAN_CONSECUTIVE_MAX_PAGES', 20),

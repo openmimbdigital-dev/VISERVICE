@@ -16,7 +16,8 @@ class WorkOrderInvoice extends Model
         'subtotal', 'discount_amount', 'coupon_code',
         'tax_percentage', 'tax_amount', 'total',
         'status', 'due_date', 'paid_at',
-        'payment_method', 'payment_reference', 'notes', 'created_by',
+        'payment_method', 'payment_reference', 'dian_payment_means_code',
+        'notes', 'created_by',
     ];
 
     protected function casts(): array
